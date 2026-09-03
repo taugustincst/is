@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chronicles of Elderon — Tactics</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%23e6c35a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ================= Title ================= -->
+<section id="screen-title" class="screen active">
+  <div class="title-box">
+    <div class="title-sub">A Tactical Role-Playing Game</div>
+    <h1>Chronicles of Elderon</h1>
+    <div class="title-tag">Two princes. One crown. A squire who knows too much.</div>
+    <div class="title-buttons">
+      <button id="btn-new">New Game</button>
+      <button id="btn-continue">Continue</button>
+    </div>
+    <div class="title-foot">Isometric tactics · Charge Time turns · Jobs &amp; abilities · Height and facing matter</div>
+  </div>
+</section>
+
+<!-- ================= World / camp ================= -->
+<section id="screen-world" class="screen">
+  <div class="world-layout">
+    <div class="world-main">
+      <h2>Camp</h2>
+      <div id="world-next" class="card"></div>
+      <div class="world-actions">
+        <button id="btn-battle" class="primary">March to Battle</button>
+        <button id="btn-train">Training Battle</button>
+        <button id="btn-formation">Formation &amp; Jobs</button>
+        <button id="btn-save">Save</button>
+        <button id="btn-title">Title</button>
+      </div>
+      <div class="card tavern">
+        <h3>Tavern</h3>
+        <div id="hire-info"></div>
+        <button id="btn-hire-squire">Hire Squire</button>
+        <button id="btn-hire-chemist">Hire Chemist</button>
+      </div>
+    </div>
+    <aside class="world-side">
+      <div class="gil" id="world-gil"></div>
+      <h3>Party <small>(first 5 deploy)</small></h3>
+      <div id="world-party"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= Formation ================= -->
+<section id="screen-formation" class="screen">
+  <div class="form-layout">
+    <div class="form-left">
+      <div class="form-head"><h2>Formation</h2><span id="form-gil"></span></div>
+      <div id="form-list"></div>
+      <p class="muted">Units 1–5 deploy in battle. Use ▲▼ to reorder. Change jobs freely; abilities are learned with JP earned in that job.</p>
+      <button id="btn-formation-back">Back to Camp</button>
+    </div>
+    <div class="form-right" id="form-detail"></div>
+  </div>
+</section>
+
+<!-- ================= Story ================= -->
+<section id="screen-story" class="screen">
+  <div class="story-box">
+    <h2 id="story-title"></h2>
+    <div id="story-text"></div>
+    <button id="btn-story-next">Continue</button>
+  </div>
+</section>
+
+<!-- ================= Battle ================= -->
+<section id="screen-battle" class="screen">
+  <canvas id="battle-canvas" width="1100" height="680"></canvas>
+  <div id="banner" class="banner"></div>
+  <div id="turn-order" class="panel"></div>
+  <div id="unit-card" class="panel"></div>
+  <div id="battle-top">
+    <span id="battle-name"></span>
+    <span id="tile-info"></span>
+    <button id="btn-help">?</button>
+    <button id="btn-retreat">Retreat</button>
+  </div>
+  <div id="log" class="panel"></div>
+  <div id="command" class="panel">
+    <div id="hint"></div>
+    <div id="action-menu"></div>
+    <div id="prediction"></div>
+  </div>
+  <div id="help">
+    <div class="help-box">
+      <h3>How to play</h3>
+      <ul>
+        <li><b>Charge Time (CT):</b> every unit gains CT equal to its Speed each tick. At 100 CT it takes a turn. The Turn Order panel forecasts who acts next.</li>
+        <li><b>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 CT toward your next turn.</li>
+        <li><b>Facing:</b> attacks from the side halve the target's evasion; attacks from behind cannot be evaded. Face your enemies when you Wait.</li>
+        <li><b>Height:</b> attacking from 2+ tiles above deals 10% more damage; from below, 10% less. Jump limits how high you can climb.</li>
+        <li><b>Charged abilities:</b> spells and Aim shots resolve after their charge fills. Targets that move out of the area are missed. Friendly fire is real.</li>
+        <li><b>Jobs:</b> earn JP by acting. Spend it in Formation to learn abilities. Reach job levels to unlock advanced jobs. Equip a second skillset from any job you've studied.</li>
+        <li><b>Controls:</b> click tiles/buttons. Right-click or Esc cancels. Drag or use arrow keys to pan the camera.</li>
+      </ul>
+      <button id="btn-help-close">Close</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Results ================= -->
+<section id="screen-results" class="screen">
+  <div class="results-box">
+    <h2 id="results-title"></h2>
+    <div id="results-body"></div>
+    <button id="btn-results">Continue</button>
+  </div>
+</section>
+
+<div id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/unit.js"></script>
+<script src="js/map.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+/* ==========================================================================
+   Pixel sprites. Each template is 12x18 characters.
+   Palette keys: h hair/hat, s skin, c cloth, d team accent, p pants/robe,
+   b boots, e eyes, k dark outline, w white, . transparent
+   ========================================================================== */
+
+const SPRITE_TEMPLATES = {
+  warrior: {
+    front: [
+      '....hhhh....',
+      '...hhhhhh...',
+      '...hhhhhh...',
+      '...ssssss...',
+      '...sesses...',
+      '....ssss....',
+      '...ccccccc..',
+      '..dcccccccd.',
+      '..dcccccccd.',
+      '.s.ccccccc.s',
+      '...cddddcc..',
+      '....pppp....',
+      '....pppp....',
+      '....pppp....',
+      '....pp.pp...',
+      '....pp.pp...',
+      '...bbb.bbb..',
+      '...bbb.bbb..',
+    ],
+    back: [
+      '....hhhh....',
+      '...hhhhhh...',
+      '...hhhhhh...',
+      '...hhhhhh...',
+      '...shhhhs...',
+      '....ssss....',
+      '...ccccccc..',
+      '..dcccccccd.',
+      '..dccdddccd.',
+      '.s.ccccccc.s',
+      '...ccccccc..',
+      '....pppp....',
+      '....pppp....',
+      '....pppp....',
+      '....pp.pp...',
+      '....pp.pp...',
+      '...bbb.bbb..',
+      '...bbb.bbb..',
+    ],
+  },
+  mage: {
+    front: [
+      '.....hh.....',
+      '....hhhh....',
+      '....hhhh....',
+      '...hhhhhh...',
+      '..hhhhhhhh..',
+      '.hhhhhhhhhh.',
+      '...ssssss...',
+      '...sesses...',
+      '....ssss....',
+      '...ccccccc..',
+      '..dcccccccd.',
+      '..dcccccccd.',
+      '.s.ccccccc.s',
+      '...ccccccc..',
+      '...ccccccc..',
+      '..ccccccccc.',
+      '..ccpppppcc.',
+      '..bb.....bb.',
+    ],
+    back: [
+      '.....hh.....',
+      '....hhhh....',
+      '....hhhh....',
+      '...hhhhhh...',
+      '..hhhhhhhh..',
+      '.hhhhhhhhhh.',
+      '...hhhhhh...',
+      '...hhhhhh...',
+      '....ssss....',
+      '...ccccccc..',
+      '..dcccccccd.',
+      '..dccdddccd.',
+      '.s.ccccccc.s',
+      '...ccccccc..',
+      '...ccccccc..',
+      '..ccccccccc.',
+      '..ccccccccc.',
+      '..bb.....bb.',
+    ],
+  },
+  goblin: {
+    front: [
+      '............',
+      '............',
+      '............',
+      '.h..hhhh..h.',
+      '.hhhhhhhhhh.',
+      '..hhhhhhhh..',
+      '..hehhhheh..',
+      '..hhhhhhhh..',
+      '...hwwwwh...',
+      '....cccc....',
+      '..dcccccccd.',
+      '..dcccccccd.',
+      '.h.cccccc.h.',
+      '...cccccc...',
+      '....pppp....',
+      '....pp.pp...',
+      '...bbb.bbb..',
+      '...bbb.bbb..',
+    ],
+    back: [
+      '............',
+      '............',
+      '............',
+      '.h..hhhh..h.',
+      '.hhhhhhhhhh.',
+      '..hhhhhhhh..',
+      '..hhhhhhhh..',
+      '..hhhhhhhh..',
+      '...hhhhhh...',
+      '....cccc....',
+      '..dcccccccd.',
+      '..dccdddccd.',
+      '.h.cccccc.h.',
+      '...cccccc...',
+      '....pppp....',
+      '....pp.pp...',
+      '...bbb.bbb..',
+      '...bbb.bbb..',
+    ],
+  },
+  wolf: {
+    front: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '.h........h.',
+      '.hh..cc..hh.',
+      '.hhhcccchhh.',
+      '.hhccccccch.',
+      '.hcccccccch.',
+      '..ccecceccc.',
+      '..cccccccc..',
+      '...cwwwwc...',
+      '..cc.cc.cc..',
+      '..cc.cc.cc..',
+      '..bb.bb.bb..',
+      '............',
+    ],
+    back: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '.h........h.',
+      '.hh..cc..hh.',
+      '.hhhcccchhh.',
+      '.hhccccccch.',
+      '.hcccccccch.',
+      '..ccccccccc.',
+      '..cccccccc..',
+      '...cccccc...',
+      '..cc.cc.cc..',
+      '..cc.cc.cc..',
+      '..bb.bb.bb..',
+      '............',
+    ],
+  },
+  bomb: {
+    front: [
+      '......b.....',
+      '.....bb.....',
+      '....bb......',
+      '....hh......',
+      '...hhhhhh...',
+      '..hhhhhhhh..',
+      '.hhhhhhhhhh.',
+      '.hhhcccchhh.',
+      '.hhccccccch.',
+      '.hcceccecch.',
+      '.hcccccccch.',
+      '.hccwwwwcch.',
+      '.hcccccccch.',
+      '..hcccccch..',
+      '..hhccccch..',
+      '...hhhhhh...',
+      '....pppp....',
+      '............',
+    ],
+    back: [
+      '......b.....',
+      '.....bb.....',
+      '....bb......',
+      '....hh......',
+      '...hhhhhh...',
+      '..hhhhhhhh..',
+      '.hhhhhhhhhh.',
+      '.hhhcccchhh.',
+      '.hhccccccch.',
+      '.hcccccccch.',
+      '.hcccccccch.',
+      '.hcccccccch.',
+      '.hcccccccch.',
+      '..hcccccch..',
+      '..hhccccch..',
+      '...hhhhhh...',
+      '....pppp....',
+      '............',
+    ],
+  },
+};
+
+const SPRITE_W = 12, SPRITE_H = 18, SPRITE_SCALE = 2;
+const TEAM_COLORS = { player: '#3b7bd8', enemy: '#d8483b', neutral: '#4caf50' };
+
+// Cache of rendered sprite canvases keyed by job/team/view/flip.
+const spriteCache = new Map();
+
+function darken(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, ((n >> 16) & 255) - amt), g = Math.max(0, ((n >> 8) & 255) - amt), b = Math.max(0, (n & 255) - amt);
+  return `rgb(${r},${g},${b})`;
+}
+
+function getSprite(job, team, view, flip) {
+  const key = `${job.name}|${team}|${view}|${flip}`;
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const tpl = SPRITE_TEMPLATES[job.sprite][view];
+  const pal = Object.assign({ s: '#f0c8a0', e: '#101010', w: '#f8f8f8', k: '#101010' }, job.palette, { d: TEAM_COLORS[team] || '#888' });
+  if (team === 'enemy' && job.kind === 'human') pal.c = darken(job.palette.c, 30);
+  const cv = document.createElement('canvas');
+  cv.width = SPRITE_W * SPRITE_SCALE + 2; cv.height = SPRITE_H * SPRITE_SCALE + 2;
+  const ctx = cv.getContext('2d');
+  // Outline pass: draw a dark 1px halo around every filled pixel.
+  const filled = (x, y) => y >= 0 && y < SPRITE_H && x >= 0 && x < SPRITE_W && tpl[y][x] !== '.';
+  ctx.fillStyle = '#141414';
+  for (let y = -1; y <= SPRITE_H; y++) for (let x = -1; x <= SPRITE_W; x++) {
+    if (filled(x, y)) continue;
+    if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) {
+      const px = flip ? SPRITE_W - 1 - x : x;
+      ctx.fillRect(px * SPRITE_SCALE + 1, y * SPRITE_SCALE + 1, SPRITE_SCALE, SPRITE_SCALE);
+    }
+  }
+  for (let y = 0; y < SPRITE_H; y++) for (let x = 0; x < SPRITE_W; x++) {
+    const ch = tpl[y][x];
+    if (ch === '.') continue;
+    ctx.fillStyle = pal[ch] || '#ff00ff';
+    const px = flip ? SPRITE_W - 1 - x : x;
+    ctx.fillRect(px * SPRITE_SCALE + 1, y * SPRITE_SCALE + 1, SPRITE_SCALE, SPRITE_SCALE);
+  }
+  spriteCache.set(key, cv);
+  return cv;
+}
