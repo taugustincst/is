@@ -363,6 +363,11 @@ class Battle {
         }
         t.hp = Math.max(0, t.hp - v);
         const aff = affinityOf(t, ab.element);
+        if (this.checkPhase(t)) {
+          this.log(`${user.name}'s ${ab.name} deals ${v} damage.`, 'dmg');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, '#ff6a5a');
+          return true;
+        }
         const note = aff > 1 ? ' It strikes a weakness!' : aff < 1 ? ' The blow is blunted.' : '';
         this.log(`${user.name}'s ${ab.name} deals ${v} damage to ${t.name}.${note}`, 'dmg');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, aff > 1 ? '#ffb45a' : '#ff6a5a');
@@ -378,6 +383,7 @@ class Battle {
         }
         const v = Math.min(raw, t.hp);
         t.hp -= v; user.hp = Math.min(user.maxHp, user.hp + v);
+        if (this.checkPhase(t)) return true;
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
         if (t.hp === 0) this.onUnitKO(t);
@@ -504,6 +510,40 @@ class Battle {
         this.counterDepth--;
       }
     }
+  }
+
+  // A unit with another shape behind this one does not fall; it changes.
+  // Returns true when a phase fired, in which case the unit is still standing.
+  checkPhase(u) {
+    const ph = u.phases && u.phases[0];
+    if (!ph) return false;
+    if (u.hp > Math.floor(u.maxHp * ph.atPct)) return false;
+    u.phases.shift();
+    if (ph.say) this.log(ph.say, 'ko');
+    if (ph.cry) this.log(ph.cry, 'act');
+    if (ph.job && JOBS[ph.job]) {
+      u.job = ph.job;
+      u.gear = {}; // the new shape has no use for a man's equipment
+      for (const a of JOBS[ph.job].abilities) u.learned[a] = true;
+    }
+    if (ph.name) u.name = ph.name;
+    if (ph.passives) {
+      u.passives = { reaction: null, support: null, movement: null };
+      for (const id of ph.passives) {
+        if (!PASSIVES[id]) continue;
+        u.learned[id] = true;
+        u.passives[PASSIVES[id].kind] = id;
+      }
+    }
+    u.statuses = {};             // the change burns off everything
+    u.mods = {};
+    u.hp = Math.max(1, Math.floor(u.maxHp * (ph.heal === undefined ? 1 : ph.heal)));
+    u.mp = u.maxMp;
+    u.koCount = undefined;
+    u._deathLogged = false;
+    if (this.hooks.showFloat) this.hooks.showFloat(u, u.name, '#e04040');
+    if (this.hooks.refresh) this.hooks.refresh();
+    return true;
   }
 
   onUnitKO(t) {
@@ -680,6 +720,7 @@ class Battle {
       unit.hp = Math.max(0, unit.hp - v);
       this.log(`${unit.name} takes ${v} poison damage.`, 'dmg');
       if (this.hooks.showFloat) this.hooks.showFloat(unit, `${v}`, '#a05fd6');
+      this.checkPhase(unit);
       if (unit.hp === 0) { this.log(`${unit.name} succumbs to poison!`, 'ko'); this.onUnitKO(unit); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
     }
     if (unit.hasStatus('regen')) {

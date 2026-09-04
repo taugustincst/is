@@ -195,6 +195,15 @@ const JOBS = {
     abilities: ['rootSnare', 'barkSkin'], req: null,
     desc: 'Old, slow and immensely strong. It does not like being disturbed.',
   },
+  darkKnightRisen: {
+    name: 'The Unbound', skillset: 'Black Tide', kind: 'human', sprite: 'warrior',
+    palette: { h: '#e04040', c: '#1a0a1a', p: '#100010', b: '#000000' },
+    affinity: { dark: 'absorb', holy: 'weak', fire: 'resist', ice: 'resist' },
+    hp: 3.0, mp: 1.8, pa: 1.7, ma: 1.7, spd: 1.25, move: 4, jump: 4, evade: 18,
+    weapon: { name: 'Fell Blade', power: 11, range: 1, vert: 3 },
+    abilities: ['nightSword', 'shadowBlade', 'blackTide', 'despair', 'darkProtect'], req: null,
+    desc: 'Whatever bargain he made, this is what came to collect.',
+  },
   darkKnight: {
     name: 'Dark Knight', skillset: 'Fell Sword', kind: 'human', sprite: 'warrior',
     palette: { h: '#c0c0d0', c: '#2a1a2a', p: '#1a0a1a', b: '#0a0a0a' },
@@ -376,6 +385,11 @@ const ABILITIES = {
     effects: [{ type: 'drain', formula: 'pa', power: 6 }], desc: 'A draining slash.' },
   shadowBlade: { name: 'Shadow Blade', job: 'darkKnight', jp: 0, mp: 12, range: 3, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'dark',
     effects: [{ type: 'damage', formula: 'ma', power: 6 }], desc: 'Dark energy that sears an area.' },
+  blackTide: { name: 'Black Tide', job: 'darkKnightRisen', jp: 0, mp: 18, range: 3, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Darkness rolls out across the floor and drags everything under.' },
+  despair: { name: 'Despair', job: 'darkKnightRisen', jp: 0, mp: 14, range: 4, aoe: 1, vert: 4, ct: 0, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'silence', hit: 75 }, { type: 'status', status: 'blind', hit: 75 }],
+    desc: 'Takes the voice and the sight from all in the area.' },
   darkProtect: { name: 'Umbral Ward', job: 'darkKnight', jp: 0, mp: 10, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Shroud self in Protect and Shell.' },
 };
@@ -677,19 +691,17 @@ const CAMPAIGN = [
       '"And mind the lights over the water, and whatever that is standing in the reeds. Neither is a tree."',
     ],
     enemies: [
-      { job: 'blackMage', level: 4, x: 4, y: 4, name: 'Coven Mage' },
+      { job: 'blackMage', level: 4, x: 4, y: 3, name: 'Coven Mage' },
       { job: 'wisp', level: 4, x: 5, y: 6 },
       { job: 'treant', level: 4, x: 3, y: 8 },
-      { job: 'blackMage', level: 4, x: 4, y: 3, name: 'Coven Mage' },
       { job: 'thief', level: 4, x: 3, y: 5, name: 'Coven Cutpurse' },
       { job: 'wolf', level: 4, x: 7, y: 2 },
-      { job: 'wolf', level: 4, x: 1, y: 8 },
     ],
     gil: 2100,
     outro: ['The last mage sinks beneath the black water. On her body: a sealed letter bearing the crest of Ser Brannoc, Captain of Dunmarch.'],
   },
   {
-    objective: { type: 'survive', rounds: 5, protectLeader: true },
+    objective: { type: 'survive', rounds: 4, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
     intro: [
       'Ser Brannoc was Rowan\'s father\'s sworn brother. Now he hunts the Aldric line for Prince Aldous.',
@@ -742,7 +754,14 @@ const CAMPAIGN = [
     ],
     enemies: [
       { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true,
-        passives: ['counter', 'attackUp', 'movePlus1'] },
+        passives: ['counter', 'attackUp', 'movePlus1'],
+        phases: [{
+          atPct: 0.35, job: 'darkKnightRisen', name: 'Brannoc Unbound', heal: 1,
+          passives: ['counter', 'magickUp', 'movePlus1'],
+          say: 'Brannoc falls to one knee. Then something else stands up in his armour.',
+          cry: '"You think this was ever mine to stop?"',
+        }],
+      },
       { job: 'knight', level: 7, x: 4, y: 4, name: 'Black Guard' },
       { job: 'knight', level: 7, x: 8, y: 4, name: 'Black Guard' },
       { job: 'timeMage', level: 7, x: 6, y: 1, name: 'Chronomancer', passives: ['halfMp', 'regenerator'] },
@@ -752,7 +771,8 @@ const CAMPAIGN = [
     ],
     gil: 5000,
     outro: [
-      'Brannoc falls before the altar. In his hand, the last letter: proof of who truly fed the war between the princes.',
+      'The thing in Brannoc\'s armour comes apart, and for a moment the man is there again, and almost grateful.',
+      'In his hand, the last letter: proof of who truly fed the war between the princes.',
       'Rowan takes it. The road ahead is longer than the one behind. But for the first time, he knows where it leads.',
       '--- THE END (for now). Keep training and replay battles at your leisure. ---',
     ],
@@ -977,9 +997,10 @@ function gearScore(job, id) {
   s += (it.move || 0) * 8;
   s += (it.jump || 0) * 3;
   s += (it.evade || 0) * 0.5;
-  // An element answered is worth about as much as a solid stat bump.
+  // An element answered is worth something, but not more than solid numbers:
+  // most attacks in a given battle carry no element at all.
   for (const kind of Object.values(it.resist || {})) {
-    s += { absorb: 14, immune: 12, resist: 8, weak: -10 }[kind] || 0;
+    s += { absorb: 9, immune: 7, resist: 4, weak: -9 }[kind] || 0;
   }
   return s;
 }

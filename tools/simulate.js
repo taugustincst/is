@@ -4,13 +4,19 @@
    the difficulty curve in the README was measured; re-run it after changing any
    stat, price or reward.
 
-   Usage: node tools/simulate.js [runs] [trainingBattlesPerChapter]
-   Example: node tools/simulate.js 20 1 */
+   A lost battle costs only time here as in the game: the party keeps the
+   experience and JP it earned, so the simulated player trains and tries again.
+   The report gives both the first-attempt win rate and how often the campaign
+   is finished at all.
+
+   Usage: node tools/simulate.js [runs] [trainingBattlesPerChapter] [retries]
+   Example: node tools/simulate.js 20 1 3 */
 const { load } = require('./load');
 const g = load();
 
 const RUNS = Number(process.argv[2]) || 10;
 const TRAININGS = process.argv[3] === undefined ? 1 : Number(process.argv[3]);
+const RETRIES = process.argv[4] === undefined ? 3 : Number(process.argv[4]);
 
 // A stand-in for a competent player: learn the cheapest thing available, buy the
 // best gear the purse allows, and take any advanced job that has unlocked.
@@ -34,14 +40,19 @@ function shop(party, state, chapter) {
   for (const slot of ['weapon', 'body', 'head', 'offhand', 'acc']) {
     for (const u of party) {
       const cur = u.gear[slot];
-      let best = null, bestScore = cur ? g.gearScore(u.job, cur) : 0;
+      const curScore = cur ? g.gearScore(u.job, cur) : 0;
+      // Buy on value, not on the biggest number: a player with a party to
+      // equip does not spend 1900 gil for a point of improvement.
+      let best = null, bestValue = 0;
       for (const id of Object.keys(g.ITEMS)) {
         const it = g.ITEMS[id];
         if (it.tier > tier || it.price > state.gil) continue;
         if (!g.canEquipInSlot(u.job, id, slot, g.passiveEquipBonus(u))) continue;
         if (slot === 'offhand' && u.hasPassive('twoHands')) continue;
-        const sc = g.gearScore(u.job, id);
-        if (sc > bestScore) { bestScore = sc; best = id; }
+        const gain = g.gearScore(u.job, id) - curScore;
+        if (gain <= 0) continue;
+        const value = gain / Math.max(100, it.price);
+        if (value > bestValue) { bestValue = value; best = id; }
       }
       if (best) { state.gil -= g.ITEMS[best].price; u.gear[slot] = best; }
     }
@@ -95,9 +106,20 @@ async function runCampaign() {
     for (const u of party) spendJp(u);
     shop(party, state, ci);
     advanceJobs(party);
-    const r = await fight(party, ch, state);
+    let r = await fight(party, ch, state);
+    const first = r.res;
+    let attempts = 1;
+    // A defeat is not the end of a run: train, re-equip and go again.
+    while (r.res !== 'victory' && attempts <= RETRIES) {
+      attempts++;
+      await fight(party, trainingSpec(party, ci), state);
+      for (const u of party) spendJp(u);
+      shop(party, state, ci);
+      advanceJobs(party);
+      r = await fight(party, ch, state);
+    }
     results.push({
-      ch: ch.id, res: r.res, turns: r.turns, gil: state.gil,
+      ch: ch.id, res: r.res, first, attempts, turns: r.turns, gil: state.gil,
       lvl: party.reduce((a, u) => a + u.level, 0) / party.length,
     });
     if (r.res !== 'victory') break;
@@ -108,24 +130,31 @@ async function runCampaign() {
 
 (async () => {
   const tally = {};
+  let finished = 0;
   for (let r = 0; r < RUNS; r++) {
-    for (const e of await runCampaign()) {
-      const t = tally[e.ch] = tally[e.ch] || { win: 0, played: 0, turns: 0, lvl: 0, gil: 0 };
-      t.played++; t.turns += e.turns; t.lvl += e.lvl; t.gil += e.gil;
-      if (e.res === 'victory') t.win++;
+    const res = await runCampaign();
+    if (res.length === g.CAMPAIGN.length && res[res.length - 1].res === 'victory') finished++;
+    for (const e of res) {
+      const t = tally[e.ch] = tally[e.ch] || { win: 0, cleared: 0, played: 0, turns: 0, lvl: 0, gil: 0, tries: 0 };
+      t.played++; t.turns += e.turns; t.lvl += e.lvl; t.gil += e.gil; t.tries += e.attempts;
+      if (e.first === 'victory') t.win++;
+      if (e.res === 'victory') t.cleared++;
     }
   }
-  console.log(`${RUNS} runs, ${TRAININGS} training battle(s) per chapter\n`);
-  console.log('chapter  reached   win%   turns   party Lv   gil left');
+  console.log(`${RUNS} runs, ${TRAININGS} training battle(s) per chapter, up to ${RETRIES} retries\n`);
+  console.log('chapter  reached   1st try   cleared   tries   turns   party Lv   gil left');
   for (const ch of g.CAMPAIGN) {
     const t = tally[ch.id];
     if (!t) { console.log(`${ch.id.padEnd(9)}never reached`); continue; }
     console.log(
       ch.id.padEnd(9) +
       `${t.played}/${RUNS}`.padEnd(10) +
-      `${Math.round(100 * t.win / t.played)}%`.padEnd(7) +
+      `${Math.round(100 * t.win / t.played)}%`.padEnd(10) +
+      `${Math.round(100 * t.cleared / t.played)}%`.padEnd(10) +
+      `${(t.tries / t.played).toFixed(1)}`.padEnd(8) +
       `${Math.round(t.turns / t.played)}`.padEnd(8) +
       `${(t.lvl / t.played).toFixed(1)}`.padEnd(11) +
       `${Math.round(t.gil / t.played)}`);
   }
+  console.log(`\ncampaigns finished: ${finished}/${RUNS} (${Math.round(100 * finished / RUNS)}%)`);
 })().catch(e => { console.error(e); process.exit(1); });

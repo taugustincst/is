@@ -254,6 +254,8 @@ function makeEnemy(spec, difficulty) {
     name: spec.name || job.name, job: spec.job, level, team: 'enemy', boss: spec.boss,
     gear: spec.gear || enemyGearFor(spec.job, level + (spec.boss ? 3 : 0), d.gearShift),
   });
+  // A boss may have further shapes waiting behind the first.
+  if (spec.phases) u.phases = spec.phases.map(p => Object.assign({}, p));
   // Enemies know more abilities at higher levels; bosses know everything. Early
   // foes stay simple so the opening chapters teach rather than punish.
   const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);
