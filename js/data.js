@@ -199,7 +199,7 @@ const JOBS = {
     name: 'The Unbound', skillset: 'Black Tide', kind: 'human', sprite: 'warrior',
     palette: { h: '#e04040', c: '#1a0a1a', p: '#100010', b: '#000000' },
     affinity: { dark: 'absorb', holy: 'weak', fire: 'resist', ice: 'resist' },
-    hp: 3.0, mp: 1.8, pa: 1.7, ma: 1.7, spd: 1.25, move: 4, jump: 4, evade: 18,
+    hp: 2.6, mp: 1.8, pa: 1.7, ma: 1.7, spd: 1.25, move: 4, jump: 4, evade: 18,
     weapon: { name: 'Fell Blade', power: 11, range: 1, vert: 3 },
     abilities: ['nightSword', 'shadowBlade', 'blackTide', 'despair', 'darkProtect'], req: null,
     desc: 'Whatever bargain he made, this is what came to collect.',
