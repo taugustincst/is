@@ -274,6 +274,8 @@ class Game {
       </div>`;
     }).join('');
     const jobLevels = Object.keys(JOBS).filter(j => u.jpTotal[j]).map(j => `${JOBS[j].name} Lv${u.jobLevel(j)}`).join(' · ') || 'none yet';
+    const affLine = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
+      .map(a => `<span style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join(' · ');
     const passiveLearn = passivesOfJob(u.job).map(id => {
       const p = PASSIVES[id], learned = !!u.learned[id];
       return `<div class="ab-row ${learned ? 'learned' : ''}">
@@ -294,6 +296,7 @@ class Game {
       </div>
       <div class="weapon">Weapon: ${u.weapon.name} (power ${u.weapon.power}, range ${u.weapon.range})${u.dualWielding ? ` + ${u.offhandWeapon.name}` : ''}</div>
       <div class="job-levels">Job levels: ${jobLevels}</div>
+      ${affLine ? `<div class="job-levels">Elements: ${affLine}</div>` : ''}
       <h3>Equipment <button id="btn-optimize" class="mini">Optimize</button></h3>
       <div class="equip-grid">${this.equipRows(u)}</div>
       <h3>Abilities Equipped</h3>
@@ -347,6 +350,9 @@ class Game {
       if (!it[k]) continue;
       const label = { hp: 'HP', mp: 'MP', pa: 'PA', ma: 'MA', spd: 'Spd', move: 'Move', jump: 'Jump', evade: 'Ev' }[k];
       parts.push(`${label} ${it[k] > 0 ? '+' : ''}${it[k]}`);
+    }
+    for (const [el, kind] of Object.entries(it.resist || {})) {
+      parts.push(`${ELEMENTS[el].name} ${affinityLabel(AFFINITY[kind])}`);
     }
     return parts.join(' · ');
   }

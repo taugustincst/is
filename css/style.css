@@ -226,3 +226,5 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
 .res-loot { color: var(--gold); }
 .difficulty .tabs { flex-wrap: wrap; }
 .diff-desc { width: 100%; color: var(--muted); font-size: 12px; margin-top: 6px; }
+.affinities { margin-top: 4px; font-size: 11px; display: flex; flex-wrap: wrap; gap: 6px; }
+.affinities .aff { white-space: nowrap; }

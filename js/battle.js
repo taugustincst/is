@@ -233,6 +233,10 @@ class Battle {
         if (user.hasPassive('magickUp')) base *= 1.25;
         if (target.hasStatus('shell')) base *= 2 / 3;
       }
+      // Element last, so it scales everything else. A negative result means the
+      // target drinks the attack in; the caller turns that into healing.
+      const aff = affinityOf(target, ab.element);
+      if (aff !== 1) return Math.sign(aff) * Math.max(0, Math.floor(Math.abs(base * aff)));
     }
     return Math.max(0, Math.floor(base));
   }
@@ -242,7 +246,10 @@ class Battle {
     return this.affectedUnits(user, ab, tx, ty).map(t => {
       const p = { unit: t, hit: this.hitChance(user, ab, t), dmg: 0, heal: 0, notes: [] };
       for (const eff of ab.effects) {
-        if (eff.type === 'damage') p.dmg += this.computeEffect(user, ab, eff, t);
+        if (eff.type === 'damage') {
+          const v = this.computeEffect(user, ab, eff, t);
+          if (v < 0) { p.heal += -v; p.notes.push('absorbs'); } else p.dmg += v;
+        }
         else if (eff.type === 'drain') { const v = this.computeEffect(user, ab, eff, t); p.dmg += v; p.notes.push(`drain ${v}`); }
         else if (eff.type === 'heal') p.heal += this.computeEffect(user, ab, eff, t);
         else if (eff.type === 'mpheal') p.notes.push(`MP +${this.computeEffect(user, ab, eff, t)}`);
@@ -254,6 +261,8 @@ class Battle {
         else if (eff.type === 'ctmod') p.notes.push(`CT ${eff.amount}`);
         else if (eff.type === 'ctset') p.notes.push(`CT = ${eff.amount}`);
       }
+      const aff = affinityOf(t, ab.element);
+      if (aff !== 1 && !p.notes.includes('absorbs')) p.notes.push(affinityLabel(aff));
       if (user.dualWielding && ab === ABILITIES.attack) {
         // The offhand swings too, for its own weapon's power.
         const off = user.offhandWeapon;
@@ -336,15 +345,35 @@ class Battle {
     switch (eff.type) {
       case 'damage': {
         const v = this.computeEffect(user, ab, eff, t);
+        if (v < 0) {
+          // The target's element absorbs the attack.
+          const heal = Math.min(-v, t.maxHp - t.hp);
+          t.hp += heal;
+          this.log(`${t.name} drinks in ${ab.name} and recovers ${heal} HP.`, 'heal');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, `+${heal}`, ELEMENTS[ab.element].color);
+          return true;
+        }
+        if (v === 0 && affinityOf(t, ab.element) === 0) {
+          this.log(`${t.name} is untouched by ${ab.name}.`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, 'Immune', '#ddd');
+          return false;
+        }
         t.hp = Math.max(0, t.hp - v);
-        this.log(`${user.name}'s ${ab.name} deals ${v} damage to ${t.name}.`, 'dmg');
-        if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, '#ff6a5a');
+        const aff = affinityOf(t, ab.element);
+        const note = aff > 1 ? ' It strikes a weakness!' : aff < 1 ? ' The blow is blunted.' : '';
+        this.log(`${user.name}'s ${ab.name} deals ${v} damage to ${t.name}.${note}`, 'dmg');
+        if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, aff > 1 ? '#ffb45a' : '#ff6a5a');
         if (t.hp === 0) this.onUnitKO(t);
         else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
       case 'drain': {
-        const v = Math.min(this.computeEffect(user, ab, eff, t), t.hp);
+        const raw = this.computeEffect(user, ab, eff, t);
+        if (raw <= 0) {
+          this.log(`${t.name} gives ${user.name} nothing to drain.`, 'miss');
+          return false;
+        }
+        const v = Math.min(raw, t.hp);
         t.hp -= v; user.hp = Math.min(user.maxHp, user.hp + v);
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
@@ -748,6 +777,10 @@ class Battle {
         else if (n.startsWith('steal')) score += enemy ? 10 : 0;
         else if (n.startsWith('drain')) score += enemy ? 5 : 0;
         else if (n.startsWith('CT =')) score += !enemy ? 30 : 0;
+        else if (n === 'absorbs') score += enemy ? -50 : 20;
+        else if (n === 'immune') score += enemy ? -25 : 0;
+        else if (n === 'weak') score += enemy ? 12 : -12;
+        else if (n === 'resists') score += enemy ? -8 : 4;
       }
     }
     unit.x = ox; unit.y = oy;
