@@ -54,6 +54,9 @@ a browser, or serve the folder with any static file server.
   turns before they are carried off. Revive them in time and they stay.
 - **Seven chapters** with story beats and recruits, repeatable training
   battles, and a tavern for hiring.
+- **Three difficulty settings** that shift the opposition rather than the party,
+  so your own numbers always mean the same thing: enemy level, equipment tier
+  and the size of the purse. Changeable at any time from camp.
 - **Procedural audio**: sound effects and three looping pieces synthesised at
   runtime with WebAudio, with sound and music toggles.
 - **Save and continue** through localStorage.
@@ -110,10 +113,13 @@ win rate, length and party level per chapter.
 
 ## Notes on balance
 
-Difficulty was tuned against a simulator that plays the campaign end to end
-with both sides driven by the game's own AI, carrying levels, JP, gil and
-purchases forward between chapters. With one training battle per chapter, a
-party that learns abilities and shops clears each chapter roughly 55–100% of
-the time, with the middle chapters the hardest. A human will do better than the
-AI does with the same party, and losing a battle costs only time: the party
-keeps the experience and JP it earned and can try again.
+Difficulty was tuned against `tools/simulate.js`, which plays the campaign end
+to end with both sides driven by the game's own AI, carrying levels, JP, gil and
+purchases forward between chapters. On the middle setting, with one training
+battle per chapter, a party that learns abilities and shops clears each chapter
+roughly 50–100% of the time, with chapters three to five the hardest.
+
+A human will do better than the AI does with the same party, and losing costs
+only time: experience and JP earned in a lost battle are kept and saved, the
+chapter simply does not advance. If a chapter is still too steep, the Squire
+setting drops the opposition a level and widens the purse.
