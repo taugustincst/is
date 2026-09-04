@@ -209,7 +209,9 @@ class Battle {
     if (user.hasPassive('concentrate')) return 100;
     const rel = relativeFacing(target, user.x, user.y);
     const mult = rel === 'front' ? 1 : rel === 'side' ? 0.5 : 0;
-    return Math.max(5, Math.min(100, Math.round(100 - target.evade * mult)));
+    let chance = 100 - target.evade * mult;
+    if (user.hasStatus('blind')) chance *= 0.5; // swinging at a shape in the smoke
+    return Math.max(5, Math.min(100, Math.round(chance)));
   }
 
   computeEffect(user, ab, eff, target) {
@@ -227,6 +229,7 @@ class Battle {
         const dh = this.grid.height(user.x, user.y) - this.grid.height(target.x, target.y);
         if (dh >= 2) base *= 1.1; else if (dh <= -2) base *= 0.9;
         if (user.hasPassive('attackUp')) base *= 1.25;
+        if (user.hasStatus('berserk')) base *= 1.5;
         if (target.hasPassive('defend')) base *= 0.8;
         if (target.hasStatus('protect')) base *= 2 / 3;
       } else if (ab.kind === 'magic') {
@@ -685,7 +688,8 @@ class Battle {
       if (v > 0) { this.log(`${unit.name} regenerates ${v} HP.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v}`, '#7cff7c'); }
     }
     if (this.hooks.onTurnStart) await this.hooks.onTurnStart(unit);
-    if (unit.team === 'player') await this.hooks.awaitPlayerTurn(unit);
+    if (unit.hasStatus('berserk')) await this.berserkTurn(unit);
+    else if (unit.team === 'player') await this.hooks.awaitPlayerTurn(unit);
     else await this.aiTurn(unit);
     // End of turn: CT reset with a bonus for skipped actions.
     unit.ct = 0;
@@ -745,7 +749,32 @@ class Battle {
     return unit.hasPassive('halfMp') ? Math.ceil(base / 2) : base;
   }
 
-  canAfford(unit, ab) { return unit.mp >= this.mpCost(unit, ab); }
+  canAfford(unit, ab) {
+    const id = Object.keys(ABILITIES).find(k => ABILITIES[k] === ab);
+    if (id && !unit.canUse(id)) return false;
+    return unit.mp >= this.mpCost(unit, ab);
+  }
+
+  // A unit lost to rage charges the nearest foe and swings. No one chooses for it.
+  async berserkTurn(unit) {
+    await sleep(250);
+    this.log(`${unit.name} is lost to rage!`, 'act');
+    const near = this.nearestEnemyOf(unit);
+    if (!near) return;
+    const reach = this.grid.reachable(unit, this.units);
+    let best = null, bd = 1e9;
+    for (const c of reach.values()) {
+      const d = Grid.dist(c.x, c.y, near.x, near.y) + c.cost * 0.01;
+      if (d < bd) { bd = d; best = c; }
+    }
+    if (best && (best.x !== unit.x || best.y !== unit.y)) {
+      await this.moveUnit(unit, this.grid.pathTo(reach, best.x, best.y));
+    }
+    unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
+    if (Grid.dist(unit.x, unit.y, near.x, near.y) <= unit.weapon.range) {
+      await this.useAbility(unit, ABILITIES.attack, near.x, near.y);
+    }
+  }
 
   // ---- enemy AI ----------------------------------------------------------------
   scoreTarget(unit, ab, fromX, fromY, tx, ty) {
@@ -770,7 +799,14 @@ class Battle {
       }
       for (const n of p.notes) {
         if (n.startsWith('revive')) score += enemy ? -60 : 60;
-        else if (/Poison|Slow|Stop/.test(n)) score += enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? 25 : (enemy ? 0 : -25);
+        else if (/Poison|Slow|Stop|Silence|Blind|Berserk/.test(n)) {
+          const id = n.split(' ')[0].toLowerCase();
+          if (t.hasStatus(id)) continue;
+          // Silencing a caster or blinding a fighter is worth more than the generic case.
+          const casterly = t.allAbilities().some(a => ABILITIES[a].mp > 0);
+          const bonus = id === 'silence' ? (casterly ? 20 : -10) : id === 'blind' ? (casterly ? -5 : 15) : 0;
+          score += (enemy ? 25 + bonus : -25);
+        }
         else if (/Haste|Protect|Shell|Regen/.test(n)) score += !enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? 20 : 0;
         else if (/PA \+|SPD \+/.test(n)) score += enemy ? -8 : 8;
         else if (/PA -|SPD -|MA -/.test(n)) score += enemy ? 12 : -12;

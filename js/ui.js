@@ -293,6 +293,7 @@ class BattleUI {
     const hint = this.el.hint;
     if (mode === 'menu') {
       hint.textContent = 'Choose an action. Right-click or Esc cancels.';
+      if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
       this.el.menu.innerHTML = `
         <div class="menu-title">${u.name}</div>
         <button data-a="move" ${u.turnFlags.moved ? 'disabled' : ''}>Move</button>
@@ -321,8 +322,11 @@ class BattleUI {
       this.el.menu.innerHTML = `<div class="menu-title">${t.set.label}</div>` +
         t.set.abilities.map(id => {
           const ab = ABILITIES[id];
-          const ok = this.battle.canAfford(u, ab);
-          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.name}</span><small>${ab.mp ? ab.mp + ' MP' : ''}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
+          const usable = u.canUse(id);
+          const ok = usable && this.battle.canAfford(u, ab);
+          const why = !usable ? (u.hasStatus('berserk') ? 'raging' : 'silenced') : ok ? '' : 'no MP';
+          const cost = ab.mp ? `${this.battle.mpCost(u, ab)} MP` : '';
+          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.name}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
         }).join('') + `<button data-a="cancel">Back</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => {
         b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);

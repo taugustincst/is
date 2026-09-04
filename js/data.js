@@ -22,6 +22,9 @@ const STATUSES = {
   stop:    { name: 'Stop',    dur: 24, bad: true,  color: '#c2c2c2', desc: 'Cannot act or gain Charge Time.' },
   protect: { name: 'Protect', dur: 60, bad: false, color: '#f0a050', desc: 'Physical damage reduced by 1/3.' },
   shell:   { name: 'Shell',   dur: 60, bad: false, color: '#50b0f0', desc: 'Magical damage reduced by 1/3.' },
+  silence: { name: 'Silence', dur: 48, bad: true,  color: '#8f8fa8', desc: 'Cannot use anything that costs MP.' },
+  blind:   { name: 'Blind',   dur: 48, bad: true,  color: '#4a4a5a', desc: 'Physical attacks are half as likely to land.' },
+  berserk: { name: 'Berserk', dur: 36, bad: true,  color: '#e05a3a', desc: 'Attacks the nearest foe unbidden, for half again the damage.' },
 };
 
 // ------------------------------------------------------------------- elements
@@ -64,7 +67,7 @@ const JOBS = {
     palette: { h: '#2a2a2a', c: '#e8e0c8', p: '#6b5b40', b: '#3a2a1a' },
     hp: 0.85, mp: 1.1, pa: 0.9, ma: 1.05, spd: 1.05, move: 3, jump: 3, evade: 6,
     weapon: { name: 'Knife', power: 4, range: 1, vert: 2 },
-    abilities: ['potion', 'hiPotion', 'antidote', 'ether', 'phoenixDown'],
+    abilities: ['potion', 'hiPotion', 'antidote', 'ether', 'remedy', 'phoenixDown'],
     req: {}, desc: 'Field medic who uses items. The root of the mage path.',
   },
   knight: {
@@ -88,7 +91,7 @@ const JOBS = {
     palette: { h: '#1a1a1a', c: '#d07a3a', p: '#e8d8b0', b: '#8a6a4a' },
     hp: 1.2, mp: 0.7, pa: 1.3, ma: 0.85, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Bare Hands', power: 6, range: 1, vert: 3 },
-    abilities: ['waveFist', 'quakeFist', 'chakra', 'revive'],
+    abilities: ['waveFist', 'quakeFist', 'chakra', 'bloodRage', 'revive'],
     req: { knight: 2 }, desc: 'Fights unarmed with tremendous power and chi techniques.',
   },
   thief: {
@@ -104,7 +107,7 @@ const JOBS = {
     palette: { h: '#e8e8f0', c: '#f4f0e8', p: '#c84040', b: '#6a4a3a' },
     hp: 0.8, mp: 1.3, pa: 0.75, ma: 1.25, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Staff', power: 3, range: 1, vert: 2 },
-    abilities: ['cure', 'cura', 'raise', 'protect', 'shell', 'regen', 'holyBolt'],
+    abilities: ['cure', 'cura', 'raise', 'protect', 'shell', 'regen', 'esuna', 'holyBolt'],
     req: { chemist: 2 }, desc: 'Mends wounds and shields allies with holy magick.',
   },
   blackMage: {
@@ -112,7 +115,7 @@ const JOBS = {
     palette: { h: '#2a2a4a', c: '#3a3a6a', p: '#c8a040', b: '#3a2a1a' },
     hp: 0.75, mp: 1.4, pa: 0.7, ma: 1.35, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Rod', power: 3, range: 1, vert: 2 },
-    abilities: ['fire', 'thunder', 'blizzard', 'poisonSpell', 'stone', 'fira', 'flare'],
+    abilities: ['fire', 'thunder', 'blizzard', 'poisonSpell', 'silenceSpell', 'stone', 'fira', 'flare'],
     req: { chemist: 2 }, desc: 'Rains elemental ruin upon whole groups of foes.',
   },
   timeMage: {
@@ -204,6 +207,9 @@ const ABILITIES = {
     effects: [{ type: 'heal', flat: 80 }], desc: 'Restore 80 HP.' },
   antidote: { name: 'Antidote', job: 'chemist', jp: 40, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop'] }], desc: 'Cure Poison, Slow and Stop.' },
+  remedy: { name: 'Remedy', job: 'chemist', jp: 220, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }],
+    desc: 'Cure every affliction at once.' },
   ether: { name: 'Ether', job: 'chemist', jp: 80, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'mpheal', flat: 25 }], desc: 'Restore 25 MP.' },
   phoenixDown: { name: 'Phoenix Down', job: 'chemist', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', deadOnly: true,
@@ -236,6 +242,8 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Slam the ground, striking an area.' },
   chakra: { name: 'Chakra', job: 'monk', jp: 150, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'heal', formula: 'pa', power: 4 }, { type: 'mpheal', formula: 'pa', power: 1 }], desc: 'Restore HP and MP to yourself and adjacent allies.' },
+  bloodRage: { name: 'Blood Rage', job: 'monk', jp: 200, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'berserk', hit: 100 }], desc: 'Give yourself over to the fight. You strike harder, but you no longer choose.' },
   revive: { name: 'Revive', job: 'monk', jp: 250, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'support', affects: 'ally', deadOnly: true,
     effects: [{ type: 'revive', pct: 0.3 }], desc: 'Revive an adjacent fallen ally with 30% HP.' },
 
@@ -260,6 +268,9 @@ const ABILITIES = {
     effects: [{ type: 'status', status: 'protect', hit: 100 }], desc: 'Grant Protect (physical damage -1/3).' },
   shell: { name: 'Shell', job: 'whiteMage', jp: 80, mp: 6, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'shell', hit: 100 }], desc: 'Grant Shell (magical damage -1/3).' },
+  esuna: { name: 'Esuna', job: 'whiteMage', jp: 200, mp: 10, range: 3, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }],
+    desc: 'Lift every affliction from all allies in the area.' },
   regen: { name: 'Regen', job: 'whiteMage', jp: 120, mp: 8, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'regen', hit: 100 }], desc: 'Grant Regen (recover HP each turn).' },
 
@@ -274,6 +285,8 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Tear up the ground beneath them. Cannot reach a different level.' },
   poisonSpell: { name: 'Poison', job: 'blackMage', jp: 80, mp: 4, range: 4, aoe: 1, vert: 3, ct: 30, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'poison', hit: 85 }], desc: 'Inflict Poison on all in the area.' },
+  silenceSpell: { name: 'Silence', job: 'blackMage', jp: 160, mp: 8, range: 4, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'silence', hit: 80 }], desc: 'Seal the voices of all in the area.' },
   fira: { name: 'Fira', job: 'blackMage', jp: 220, mp: 12, range: 4, aoe: 1, vert: 3, ct: 15, kind: 'magic', affects: 'all', element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'A greater fire spell.' },
   flare: { name: 'Flare', job: 'blackMage', jp: 450, mp: 26, range: 4, aoe: 0, vert: 3, ct: 10, kind: 'magic', affects: 'all', element: null,
@@ -295,7 +308,7 @@ const ABILITIES = {
   flameBomb: { name: 'Flame Bomb', job: 'ninja', jp: 150, mp: 0, range: 4, aoe: 1, vert: 4, ct: 0, kind: 'magic', affects: 'all', element: 'fire',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Throw an alchemical bomb that bursts over an area.' },
   smoke: { name: 'Smoke', job: 'ninja', jp: 120, mp: 0, range: 3, aoe: 1, vert: 3, ct: 0, kind: 'physical', affects: 'all',
-    effects: [{ type: 'status', status: 'slow', hit: 75 }], desc: 'Choking smoke that inflicts Slow.' },
+    effects: [{ type: 'status', status: 'blind', hit: 80 }], desc: 'Choking smoke that blinds everyone in it.' },
 
   // Dragoon
   jump: { name: 'Jump', job: 'dragoon', jp: 100, mp: 0, range: 4, aoe: 0, vert: 9, ct: 30, kind: 'physical', affects: 'all', airborne: true,
@@ -792,7 +805,8 @@ const ITEMS = {
   leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 1 },
   featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', hp: 12, spd: 1, price: 500, tier: 2 },
   wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', mp: 20, ma: 1, price: 550, tier: 2 },
-  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1, price: 2400, tier: 6 },
+  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1,
+                 wards: ['silence', 'blind', 'berserk', 'poison'], price: 2400, tier: 6 },
   ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 20, price: 450, tier: 1 },
   goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
 
