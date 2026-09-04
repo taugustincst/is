@@ -13,13 +13,24 @@ class Game {
     this.renderer = new Renderer($('battle-canvas'));
     this.ui = new BattleUI(this.renderer);
     this.bindScreens();
+    // Audio can only start after a gesture, so arm it on the first interaction.
+    const arm = () => { audio.init(); if (this.screen === 'world') audio.playMusic('town'); };
+    window.addEventListener('pointerdown', arm, { once: true });
+    window.addEventListener('keydown', arm, { once: true });
     this.showScreen('title');
     $('btn-continue').disabled = !localStorage.getItem(SAVE_KEY);
   }
 
   // ---- screens -----------------------------------------------------------------------
   showScreen(name) {
+    this.screen = name;
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
+    // Each part of the game keeps its own theme.
+    if (name === 'battle') audio.playMusic('battle');
+    else if (name === 'story') audio.playMusic('ruin');
+    else if (name === 'results') audio.stopMusic();
+    else if (name !== 'title') audio.playMusic('town');
+    else audio.stopMusic();
   }
 
   bindScreens() {
@@ -37,7 +48,23 @@ class Game {
     $('btn-hire-chemist').onclick = () => this.hire('chemist');
     $('btn-retreat').onclick = () => this.retreat();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
+    for (const id of ['btn-sound', 'btn-sound-world']) {
+      const b = $(id);
+      if (b) b.onclick = () => { audio.init(); audio.setMuted(!audio.muted); this.renderSound(); };
+    }
+    const bm = $('btn-music');
+    if (bm) bm.onclick = () => { audio.init(); audio.setMusicMuted(!audio.musicMuted); this.renderSound(); };
+    this.renderSound();
     $('btn-help-close').onclick = () => $('help').classList.remove('open');
+  }
+
+  renderSound() {
+    for (const id of ['btn-sound', 'btn-sound-world']) {
+      const b = $(id);
+      if (b) { b.textContent = audio.muted ? '🔇' : '🔊'; b.title = audio.muted ? 'Sound off' : 'Sound on'; }
+    }
+    const bm = $('btn-music');
+    if (bm) { bm.textContent = audio.musicMuted ? '♪̸' : '♪'; bm.title = audio.musicMuted ? 'Music off' : 'Music on'; }
   }
 
   toast(msg) {
@@ -485,6 +512,7 @@ class Game {
     if (result === 'victory') {
       r.gil += gilReward;
       this.state.gil += r.gil;
+      audio.sfx('coin');
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) { r.loot = loot; r.events.push(`Found ${loot} on the field!`); }
     }
@@ -504,6 +532,7 @@ class Game {
 
   results(result, r, battleEndReason) {
     return new Promise(resolve => {
+      audio.sfx(result === 'victory' ? 'victory' : 'defeat');
       $('results-title').textContent = result === 'victory' ? 'Victory!' : 'Defeat...';
       $('results-title').className = result;
       $('results-body').innerHTML = `
@@ -518,4 +547,10 @@ class Game {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => { window.game = new Game(); });
+window.addEventListener('DOMContentLoaded', () => {
+  window.game = new Game();
+  // A quiet blip on any button keeps the menus feeling responsive.
+  document.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON' && !e.target.disabled) audio.sfx('menu');
+  });
+});

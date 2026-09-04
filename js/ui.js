@@ -40,8 +40,11 @@ class BattleUI {
       log: (m, cls) => this.log(m, cls),
       refresh: () => this.refresh(),
       showFloat: (u, t, c) => this.r.showFloat(u, t, c),
-      animateMove: (u, p) => this.r.animateMove(u, p),
-      animateAction: (u, ab, x, y) => this.r.animateAction(u, ab, x, y),
+      animateMove: (u, p) => { audio.sfx('move'); return this.r.animateMove(u, p); },
+      animateAction: (u, ab, x, y) => {
+        audio.sfx(ab.kind === 'magic' ? 'magic' : ab.kind === 'support' || ab.kind === 'item' ? 'heal' : 'hit');
+        return this.r.animateAction(u, ab, x, y);
+      },
       onJump: (u) => this.r.onJump(u),
       onLand: (u, x, y) => this.r.onLand(u, x, y),
       onDeath: (u) => this.r.onDeath(u),
@@ -53,7 +56,12 @@ class BattleUI {
   }
 
   // ---- logging / info panels ---------------------------------------------------------
+  // Every engine event is logged, so the log is also where battle sound lives.
+  static LOG_SFX = { dmg: 'hit', heal: 'heal', miss: 'miss', ko: 'ko', lvl: 'levelup' };
+
   log(msg, cls = '') {
+    const sfx = BattleUI.LOG_SFX[cls];
+    if (sfx) audio.sfx(sfx);
     const d = document.createElement('div');
     d.className = `log-line ${cls}`;
     d.textContent = msg;
@@ -200,6 +208,7 @@ class BattleUI {
   onDeployClick(tile) {
     const d = this.deploy, b = this.battle;
     if (!d || !tile) return;
+    audio.sfx('menu');
     const occupant = b.unitAt(tile.x, tile.y);
     if (occupant && occupant.team === 'player') {
       // Clicking the selected unit picks it back up; clicking another selects it.
@@ -327,6 +336,7 @@ class BattleUI {
 
   menuAction(a) {
     const t = this.turn; if (!t) return;
+    audio.sfx('select');
     if (a === 'move') this.setMode('move');
     else if (a === 'act') this.setMode('act');
     else if (a === 'wait') this.setMode('wait');
@@ -334,6 +344,7 @@ class BattleUI {
 
   chooseAbility(id) {
     const t = this.turn; if (!t) return;
+    audio.sfx('select');
     t.ability = ABILITIES[id];
     this.setMode('target');
   }
@@ -442,6 +453,7 @@ class BattleUI {
 
   cancel() {
     const t = this.turn; if (!t) return;
+    audio.sfx('cancel');
     if (t.mode === 'move' || t.mode === 'act' || t.mode === 'wait') this.setMode('menu');
     else if (t.mode === 'abilities') this.setMode('act');
     else if (t.mode === 'target') this.setMode(t.ability === ABILITIES.attack ? 'act' : 'abilities');
