@@ -174,6 +174,10 @@ class Unit {
     this.airborne = false;
     this.turnFlags = { moved: false, acted: false };
     this.anim = null;
+    this.koCount = undefined; // turns left before a fallen unit leaves the field
+    this._regenFired = false;
+    this._deathLogged = false;
+    this._tookHit = false;
   }
 
   hasStatus(id) { return this.statuses[id] > 0; }

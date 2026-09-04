@@ -188,3 +188,7 @@ button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-
 .deploy-actions { display: flex; gap: 6px; }
 .deploy-actions button { flex: 1; }
 #hint.warn { color: var(--red); }
+#objective { color: var(--gold); font-size: 12px; border-left: 1px solid var(--border); padding-left: 12px; }
+.order-row.fallen { opacity: 0.5; }
+.order-row.fallen .dot { background: #555; }
+.res-reason { font-style: italic; color: #c8c6e0; }

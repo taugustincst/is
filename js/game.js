@@ -414,7 +414,7 @@ class Game {
     const ch = CAMPAIGN[this.state.chapter];
     if (!ch) return;
     await this.story(ch.title, ch.intro);
-    const result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil);
+    const result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective });
     if (result === 'aborted') return;
     if (result === 'victory') {
       this.state.chapter++;
@@ -449,7 +449,7 @@ class Game {
     cands.sort(() => Math.random() - 0.5);
     const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i].x, y: cands[i].y }));
     await this.story('Training', [`${map.name}. Word has it that ${pool.length} hostiles are camped here. Good practice.`]);
-    const res = await this.runBattle(map, enemies, 100 + lvl * 20);
+    const res = await this.runBattle(map, enemies, 100 + lvl * 20, { objective: { type: 'rout' } });
     if (res === 'aborted') return;
     this.saveGame();
     this.showWorld();
@@ -457,9 +457,10 @@ class Game {
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
     const roster = this.state.party;
-    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks());
+    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective);
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
+    this.ui.showObjective();
     this.renderer.setBattle(battle);
     this.ui.bind(battle);
     this.showScreen('battle');
@@ -487,7 +488,7 @@ class Game {
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) { r.loot = loot; r.events.push(`Found ${loot} on the field!`); }
     }
-    await this.results(result, r);
+    await this.results(result, r, battle.endReason);
     return result;
   }
 
@@ -501,11 +502,12 @@ class Game {
     this.ui.abort();
   }
 
-  results(result, r) {
+  results(result, r, battleEndReason) {
     return new Promise(resolve => {
       $('results-title').textContent = result === 'victory' ? 'Victory!' : 'Defeat...';
       $('results-title').className = result;
       $('results-body').innerHTML = `
+        ${battleEndReason ? `<p class="res-reason">${battleEndReason}</p>` : ''}
         <div class="res-line">Experience earned: <b>${r.exp}</b></div>
         <div class="res-line">Gil ${result === 'victory' ? 'earned' : 'kept'}: <b>${result === 'victory' ? r.gil : 0}</b></div>
         ${r.events.length ? `<ul class="res-events">${r.events.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}

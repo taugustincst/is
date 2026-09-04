@@ -54,6 +54,19 @@ function computeDeployZone(grid, anchors, enemies) {
   return [...zone.values()];
 }
 
+// How a battle is won and lost. `rout` is the default; the others are set per
+// chapter. Every campaign battle also protects the party leader.
+const OBJECTIVES = {
+  rout: { label: 'Defeat every enemy' },
+  boss: { label: 'Defeat the commander' },
+  survive: { label: 'Hold out' },
+};
+
+// Turns a fallen unit lingers before it is carried from the field.
+const KO_COUNTDOWN = 3;
+// A battle that has not resolved by here is called a loss, so nothing can hang.
+const TURN_LIMIT = 120;
+
 class Battle {
   constructor(mapDef, playerUnits, enemyUnits, hooks) {
     this.grid = new Grid(mapDef);
@@ -62,6 +75,8 @@ class Battle {
     this.hooks = hooks; // { log, animateMove, animateAction, showDamage, awaitPlayerTurn, onStateChange, onTurnStart }
     this.pending = []; // charged actions {unit, ability, tx, ty, ct, speed}
     this.tick = 0;
+    this.turnNo = 0;
+    this.objective = { type: 'rout' };
     this.over = false;
     this.result = null;
     this.rewards = { exp: 0, gil: 0, events: [] };
@@ -72,9 +87,10 @@ class Battle {
     // Player units start in reserve at x = -1; the deployment phase places them.
   }
 
-  static setup(mapDef, playerUnits, enemySpecs, hooks) {
+  static setup(mapDef, playerUnits, enemySpecs, hooks, objective) {
     const enemies = enemySpecs.map(makeEnemy);
     const b = new Battle(mapDef, playerUnits, [], hooks);
+    if (objective) b.objective = Object.assign({}, objective);
     for (const spec of enemySpecs) {
       const e = enemies.shift();
       e.resetBattleState();
@@ -89,6 +105,13 @@ class Battle {
     for (const e of b.units.filter(u => u.team === 'enemy')) {
       const p = b.nearestEnemyOf(e);
       if (p) e.facing = facingFromDelta(p.x - e.x, p.y - e.y);
+    }
+    if (b.objective.type === 'boss') {
+      b.objective.target = b.units.find(u => u.team === 'enemy' && u.boss) ||
+        b.units.find(u => u.team === 'enemy');
+    }
+    if (b.objective.protectLeader) {
+      b.objective.leader = playerUnits.find(u => u.leader) || playerUnits[0];
     }
     // Random initial CT so the opening order isn't purely by speed.
     for (const u of b.units) u.ct = Math.floor(Math.random() * 30);
@@ -326,6 +349,7 @@ class Battle {
         t.hp = Math.max(1, Math.floor(t.maxHp * eff.pct));
         t._deathLogged = false;
         t.ct = 0;
+        t.koCount = undefined;
         this.log(`${t.name} is revived!`, 'heal');
         if (this.hooks.showFloat) this.hooks.showFloat(t, 'Revive', '#ffe97c');
         return true;
@@ -432,6 +456,25 @@ class Battle {
     // Cancel anything the unit was charging.
     this.pending = this.pending.filter(p => p.unit !== t);
     t.airborne = false;
+    t.koCount = KO_COUNTDOWN;
+  }
+
+  // A fallen unit's countdown ticks on the turn it would have taken. At zero it
+  // leaves the field for the rest of the battle; revive it before then.
+  async tickDown(unit) {
+    unit.ct = 0;
+    unit.koCount = (unit.koCount === undefined ? KO_COUNTDOWN : unit.koCount) - 1;
+    if (unit.koCount > 0) {
+      this.log(`${unit.name} will be lost in ${unit.koCount}...`, 'ko');
+      if (this.hooks.showFloat) this.hooks.showFloat(unit, `${unit.koCount}`, '#ff6a5a');
+      if (this.hooks.refresh) this.hooks.refresh();
+      return;
+    }
+    this.log(`${unit.name} is carried from the field.`, 'ko');
+    if (this.hooks.showFloat) this.hooks.showFloat(unit, 'Lost', '#ff6a5a');
+    unit.x = -1; unit.y = -1;
+    unit.koCount = 0;
+    if (this.hooks.refresh) this.hooks.refresh();
   }
 
   awardAction(user, targets) {
@@ -454,18 +497,53 @@ class Battle {
   }
 
   // ---- charge-time loop -------------------------------------------------------
+  // A one-line statement of what the player has to do, with live progress.
+  objectiveText() {
+    const o = this.objective;
+    if (o.type === 'survive') return `Hold out: turn ${Math.min(this.turnNo, o.turns)}/${o.turns}`;
+    if (o.type === 'boss') return `Defeat ${o.target ? o.target.name : 'the commander'}`;
+    return OBJECTIVES.rout.label;
+  }
+
+  finish(result, why) {
+    if (this.over) return true;
+    this.over = true;
+    this.result = result;
+    this.endReason = why;
+    if (why) this.log(why, result === 'victory' ? 'lvl' : 'ko');
+    return true;
+  }
+
   checkEnd() {
-    const pAlive = this.units.some(u => u.team === 'player' && u.alive && this.onField(u));
-    const eAlive = this.units.some(u => u.team === 'enemy' && u.alive && this.onField(u));
-    if (!eAlive) { this.over = true; this.result = 'victory'; }
-    else if (!pAlive) { this.over = true; this.result = 'defeat'; }
-    return this.over;
+    if (this.over) return true;
+    const o = this.objective;
+    const standing = t => this.units.some(u => u.team === t && u.alive && this.onField(u));
+    // Losing conditions come first: they override a simultaneous win.
+    if (!standing('player')) return this.finish('defeat', 'The party is wiped out.');
+    // The leader may be revived while the countdown runs; only being carried
+    // from the field ends the cause.
+    if (o.leader && !this.onField(o.leader)) {
+      return this.finish('defeat', `${o.leader.name} is lost. The cause dies here.`);
+    }
+    if (this.turnNo >= TURN_LIMIT) return this.finish('defeat', 'The battle drags on until the light fails.');
+    if (o.type === 'survive') {
+      if (this.turnNo >= o.turns) return this.finish('victory', 'You have held long enough. Fall back!');
+      return false;
+    }
+    if (o.type === 'boss') {
+      const t = o.target;
+      if (t && (!t.alive || !this.onField(t))) return this.finish('victory', `${t.name} falls. The rest scatter.`);
+      return false;
+    }
+    if (!standing('enemy')) return this.finish('victory');
+    return false;
   }
 
   // Simulates upcoming turns for the turn-order display.
   forecast(n = 8) {
     // The acting unit's CT resets after its turn, so forecast it from zero.
-    const sim = this.units.filter(u => u.alive && this.onField(u)).map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.ctSpeed() }));
+    const sim = this.units.filter(u => this.onField(u))
+      .map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.alive ? u.ctSpeed() : Math.max(1, u.baseStats().spd) }));
     const pend = this.pending.map(p => ({ p, ct: p.ct }));
     const out = [];
     let guard = 0;
@@ -497,19 +575,24 @@ class Battle {
         await this.applyAbility(p.unit, p.ability, p.tx, p.ty);
         if (this.checkEnd()) return this.result;
       }
-      // Units gain CT; tick down statuses.
+      // Units gain CT; tick down statuses. The fallen keep a slot in the order
+      // so their countdown runs.
       for (const u of this.units) {
-        if (!u.alive || !this.onField(u)) continue;
-        u.ct += u.ctSpeed();
+        if (!this.onField(u)) continue;
+        u.ct += u.alive ? u.ctSpeed() : Math.max(1, u.baseStats().spd);
+        if (!u.alive) continue;
         for (const s of Object.keys(u.statuses)) { u.statuses[s]--; if (u.statuses[s] <= 0) delete u.statuses[s]; }
       }
-      const turnUnits = this.units.filter(u => u.alive && this.onField(u) && u.ct >= 100 && !u.airborne && !u.hasStatus('stop'))
+      const acting = this.units.filter(u => this.onField(u) && u.ct >= 100 && !u.airborne)
         .sort((a, b) => b.ct - a.ct || b.spd - a.spd);
-      for (const u of turnUnits) {
-        if (!u.alive || this.over) continue;
+      for (const u of acting) {
+        if (this.over || !this.onField(u)) continue;
+        if (!u.alive) { await this.tickDown(u); continue; }
+        if (u.hasStatus('stop')) continue;
         await this.takeTurn(u);
         if (this.checkEnd()) return this.result;
       }
+      if (this.checkEnd()) return this.result;
       if (this.hooks.refresh) this.hooks.refresh();
     }
     return this.result;
@@ -517,6 +600,7 @@ class Battle {
 
   async takeTurn(unit) {
     this.active = unit;
+    this.turnNo++;
     unit.turnFlags = { moved: false, acted: false };
     // Poison / regen at turn start.
     if (unit.hasStatus('poison')) {

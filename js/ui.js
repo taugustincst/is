@@ -19,6 +19,7 @@ class BattleUI {
       roster: document.getElementById('deploy-panel'),
       banner: document.getElementById('banner'),
       tileInfo: document.getElementById('tile-info'),
+      objective: document.getElementById('objective'),
       hint: document.getElementById('hint'),
     };
     this.bindInput();
@@ -69,8 +70,14 @@ class BattleUI {
     this._bt = setTimeout(() => { b.className = 'banner'; }, 1100);
   }
 
+  showObjective() {
+    if (!this.battle || !this.el.objective) return;
+    this.el.objective.textContent = this.battle.objectiveText();
+  }
+
   refresh() {
     if (!this.battle) return;
+    this.showObjective();
     if (this.deploy) this.renderEnemyRoster(); else this.renderOrder();
     const u = (this.hover && this.battle.unitAt(this.hover.x, this.hover.y)) || (this.turn && this.turn.unit) || this.battle.active;
     this.renderCard(u);
@@ -80,7 +87,7 @@ class BattleUI {
     const list = this.battle.forecast(9);
     let html = '<div class="panel-title">Turn Order</div>';
     for (const e of list) {
-      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.jobData.name}</span></div>`;
+      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? e.unit.jobData.name : 'fallen'}</span></div>`;
       else html += `<div class="order-row pending"><span class="dot"></span>${e.p.ability.name}<span class="sub">${e.p.unit.name}</span></div>`;
     }
     this.el.order.innerHTML = html;
@@ -101,7 +108,7 @@ class BattleUI {
       </div>
       ${mods ? `<div class="mods">${mods}</div>` : ''}
       <div class="statuses">${st}</div>
-      ${u.alive ? '' : '<div class="ko">KO</div>'}`;
+      ${u.alive ? '' : `<div class="ko">KO${u.koCount ? ` — carried off in ${u.koCount}` : ''}</div>`}`;
   }
 
   renderTileInfo(t) {

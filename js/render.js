@@ -276,6 +276,12 @@ class Renderer {
     if (!u.alive) {
       c.save(); c.globalAlpha = 0.6; c.translate(sx, sy + 8); c.scale(1, 0.35); c.filter = 'grayscale(1)';
       c.drawImage(spr, -13, -38); c.restore();
+      if (u.koCount > 0) {
+        c.font = 'bold 15px monospace'; c.textAlign = 'center';
+        c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.85)';
+        c.strokeText(`${u.koCount}`, sx, sy - 6);
+        c.fillStyle = '#ff6a5a'; c.fillText(`${u.koCount}`, sx, sy - 6);
+      }
       return;
     }
     c.drawImage(spr, sx - 13, sy + 8 - 38);

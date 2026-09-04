@@ -520,6 +520,7 @@ const MAPS = {
 // ------------------------------------------------------------------ campaign
 const CAMPAIGN = [
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch1', title: 'Ambush on the Verdant Road', map: 'verdant',
     intro: [
       'Elderon bleeds. Two princes claim one crown, and the roads between their armies belong to no one.',
@@ -536,6 +537,7 @@ const CAMPAIGN = [
     outro: ['The bandits scatter into the hills. Rowan wipes his blade and looks north, where smoke rises over Millbrook.'],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
     intro: [
       'Millbrook has been abandoned. Its mill wheel turns for no one.',
@@ -557,6 +559,7 @@ const CAMPAIGN = [
     ],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch3', title: 'Hollowmere Ruins', map: 'hollowmere',
     intro: [
       'The ruins of Hollowmere were a temple once. Now they shelter deserters from Prince Aldous\'s army.',
@@ -578,6 +581,7 @@ const CAMPAIGN = [
     ],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch4', title: 'Sable Marsh', map: 'sable',
     intro: [
       'The marsh road is the only way east that avoids the royal checkpoints.',
@@ -595,6 +599,7 @@ const CAMPAIGN = [
     outro: ['The last mage sinks beneath the black water. On her body: a sealed letter bearing the crest of Ser Brannoc, Captain of Dunmarch.'],
   },
   {
+    objective: { type: 'survive', turns: 26, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
     intro: [
       'Ser Brannoc was Rowan\'s father\'s sworn brother. Now he hunts the Aldric line for Prince Aldous.',
@@ -617,6 +622,7 @@ const CAMPAIGN = [
     ],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch6', title: 'Ashen Ridge', map: 'ashen',
     intro: [
       'The road to Thornwall climbs the Ashen Ridge, where the old volcano still breathes.',
@@ -635,6 +641,7 @@ const CAMPAIGN = [
     outro: ['Below the ridge, Thornwall Cathedral rises from the fog. A single black banner hangs from its spire.'],
   },
   {
+    objective: { type: 'boss', protectLeader: true },
     id: 'ch7', title: 'Thornwall Cathedral', map: 'thornwall',
     intro: [
       'Ser Brannoc waits at the altar in armor that has forgotten its colors.',
