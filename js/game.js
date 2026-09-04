@@ -682,12 +682,9 @@ window.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', (e) => {
     if (e.target.tagName === 'BUTTON' && !e.target.disabled) audio.sfx('menu');
   });
-  // A double tap should never zoom the page out from under the board.
-  let lastTap = 0;
-  document.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    if (now - lastTap < 300) e.preventDefault();
-    lastTap = now;
-  }, { passive: false });
+  // Double-tap zoom is disabled in CSS with touch-action, which is the right
+  // tool for it: intercepting touchend here also swallowed legitimate repeat
+  // taps on the same button. Safari still needs the gesture events refused.
   document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('gesturechange', (e) => e.preventDefault());
 });

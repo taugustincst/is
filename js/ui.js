@@ -2,6 +2,10 @@
    Battle UI: player turn state machine, menus, turn order, log, prediction.
    ========================================================================== */
 
+// Phrase the prompts for whatever the player is actually using.
+const TOUCH_ONLY = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+const CANCEL_HINT = TOUCH_ONLY ? 'Cancel goes back.' : 'Right-click or Esc cancels.';
+
 class BattleUI {
   constructor(renderer) {
     this.r = renderer;
@@ -218,7 +222,8 @@ class BattleUI {
     const placed = b.deployed().length;
     const need = b.requiredUnit && !this.battle.onField(b.requiredUnit)
       ? `${b.requiredUnit.name} must take the field. ` : '';
-    this.el.hint.textContent = `${need}Click a green tile to place ${d.sel ? d.sel.name : 'a unit'}. Click a deployed unit to pick it up.`;
+    const verb = TOUCH_ONLY ? 'Tap' : 'Click';
+    this.el.hint.textContent = `${need}${verb} a green tile to place ${d.sel ? d.sel.name : 'a unit'}. ${verb} a deployed unit to pick it up.`;
     this.el.hint.classList.toggle('warn', !!need);
     this.el.roster.classList.add('open');
     this.el.roster.innerHTML = `
@@ -320,7 +325,7 @@ class BattleUI {
     const u = t.unit;
     const hint = this.el.hint;
     if (mode === 'menu') {
-      hint.textContent = 'Choose an action. Right-click or Esc cancels.';
+      hint.textContent = `Choose an action. ${CANCEL_HINT}`;
       if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
       this.el.menu.innerHTML = `
         <div class="menu-title">${u.name}</div>
@@ -331,7 +336,7 @@ class BattleUI {
     } else if (mode === 'move') {
       t.reach = this.battle.grid.reachable(u, this.battle.units);
       for (const k of t.reach.keys()) if (k !== `${u.x},${u.y}`) this.r.hl.move.add(k);
-      hint.textContent = 'Select a tile to move to.';
+      hint.textContent = TOUCH_ONLY ? 'Tap a tile to move to.' : 'Select a tile to move to.';
       this.el.menu.innerHTML = `<div class="menu-title">Move</div><button data-a="cancel">Cancel</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode('menu');
     } else if (mode === 'act') {
@@ -346,7 +351,7 @@ class BattleUI {
         else this.setMode('abilities');
       });
     } else if (mode === 'abilities') {
-      hint.textContent = 'Choose an ability. Hover for details.';
+      hint.textContent = TOUCH_ONLY ? 'Choose an ability.' : 'Choose an ability. Hover for details.';
       this.el.menu.innerHTML = `<div class="menu-title">${t.set.label}</div>` +
         t.set.abilities.map(id => {
           const ab = ABILITIES[id];
@@ -359,17 +364,19 @@ class BattleUI {
       this.el.menu.querySelectorAll('button').forEach(b => {
         b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);
         b.onmouseenter = () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); };
+        // With no hover, show the details of whatever the finger is resting on.
+        b.addEventListener('pointerdown', () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); });
       });
     } else if (mode === 'target') {
       const ab = t.ability;
       t.targets = this.battle.targetTilesFor(u, ab);
       for (const tile of t.targets) this.r.hl.target.add(`${tile.x},${tile.y}`);
-      hint.textContent = `${ab.name}: select a target tile.`;
+      hint.textContent = `${ab.name}: ${TOUCH_ONLY ? 'tap' : 'select'} a target tile.`;
       this.el.menu.innerHTML = `<div class="menu-title">${ab.name}</div><button data-a="cancel">Cancel</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode(ab === ABILITIES.attack ? 'act' : 'abilities');
       if (ab.self) { this.previewTarget(this.battle.grid.tile(u.x, u.y)); }
     } else if (mode === 'wait') {
-      hint.textContent = 'Choose a direction to face (or click a tile).';
+      hint.textContent = TOUCH_ONLY ? 'Tap a direction to face, or tap a tile.' : 'Choose a direction to face (or click a tile).';
       this.el.menu.innerHTML = `<div class="menu-title">Face</div>
         <div class="dirs">
           <button data-d="N">↗ North</button><button data-d="E">↘ East</button>

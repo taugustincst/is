@@ -207,6 +207,9 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
   --safe-r: env(safe-area-inset-right, 0px);
 }
 html, body { overscroll-behavior: none; }
+/* `manipulation` keeps taps instant and kills double-tap zoom without
+   swallowing any of them, which intercepting touch events in script does. */
+html, body, button, select { touch-action: manipulation; }
 #battle-canvas { touch-action: none; }
 /* Nothing on the board should be selectable or long-pressable. */
 #screen-battle { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
