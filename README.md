@@ -85,6 +85,7 @@ js/ui.js          battle UI: deployment, menus, targeting, prediction, input
 js/game.js        campaign flow, formation, shop, saving
 tools/load.js     loads the game scripts into a Node sandbox
 tools/validate.js content consistency checks
+tools/regress.js  engine regression checks
 tools/simulate.js campaign balance simulator
 ```
 
@@ -95,12 +96,15 @@ without a browser:
 
 ```
 node tools/validate.js          # check maps, jobs, items, passives and chapters
+node tools/regress.js           # replay the engine bugs a review once found
 node tools/simulate.js 20 1     # play the campaign 20 times, 1 training battle per chapter
 ```
 
 `validate.js` catches content mistakes: a map row of the wrong width, a unit
-placed on water, an ability a job refers to but that does not exist, a starter
-item with a sell value. `simulate.js` runs whole campaigns with the game's own
+placed on water or stranded where nothing can walk to it, an ability a job
+refers to but that does not exist, a starter item with a sell value.
+`regress.js` replays each engine bug an adversarial review once found, so a
+change that brings one back fails there rather than in a player's battle. `simulate.js` runs whole campaigns with the game's own
 AI on both sides, carrying levels, JP, gil and purchases forward, and prints the
 win rate, length and party level per chapter.
 
