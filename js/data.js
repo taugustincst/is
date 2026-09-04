@@ -105,7 +105,6 @@ const JOBS = {
     hp: 0.9, mp: 0.8, pa: 1.15, ma: 0.9, spd: 1.35, move: 5, jump: 5, evade: 22,
     weapon: { name: 'Twin Blades', power: 4, range: 1, vert: 2 },
     abilities: ['shuriken', 'flameBomb', 'smoke'],
-    twoSwords: true,
     req: { thief: 3 }, desc: 'Strikes twice with each Attack and hurls thrown weapons.',
   },
   dragoon: {
@@ -521,22 +520,24 @@ const MAPS = {
 // ------------------------------------------------------------------ campaign
 const CAMPAIGN = [
   {
+    objective: { type: 'rout' },
     id: 'ch1', title: 'Ambush on the Verdant Road', map: 'verdant',
     intro: [
       'Elderon bleeds. Two princes claim one crown, and the roads between their armies belong to no one.',
       'Rowan Aldric, youngest son of a house that chose the wrong prince, rides north with his few remaining companions.',
       'Bandits watch the Verdant Road. They do not know whose colors Rowan wears. They do not care.',
-      '"Mira, stay behind Garret. If they want a fight, we give them one."',
+      '"Mira, stay behind Garret. Bram, take the high ground. If they want a fight, we give them one."',
     ],
     enemies: [
       { job: 'squire', level: 1, x: 8, y: 2, name: 'Bandit' },
       { job: 'squire', level: 1, x: 9, y: 4, name: 'Bandit' },
       { job: 'archer', level: 1, x: 9, y: 1, name: 'Bandit Archer' },
     ],
-    gil: 250,
+    gil: 3100,
     outro: ['The bandits scatter into the hills. Rowan wipes his blade and looks north, where smoke rises over Millbrook.'],
   },
   {
+    objective: { type: 'rout' },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
     intro: [
       'Millbrook has been abandoned. Its mill wheel turns for no one.',
@@ -549,7 +550,7 @@ const CAMPAIGN = [
       { job: 'wolf', level: 2, x: 6, y: 0 },
       { job: 'wolf', level: 2, x: 4, y: 2 },
     ],
-    gil: 350,
+    gil: 1600,
     recruit: { name: 'Lysa', job: 'chemist', level: 2 },
     outro: [
       'In the mill, a young woman hides among the sacks with a satchel of potions and a look of pure defiance.',
@@ -558,6 +559,7 @@ const CAMPAIGN = [
     ],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch3', title: 'Hollowmere Ruins', map: 'hollowmere',
     intro: [
       'The ruins of Hollowmere were a temple once. Now they shelter deserters from Prince Aldous\'s army.',
@@ -567,11 +569,10 @@ const CAMPAIGN = [
     enemies: [
       { job: 'knight', level: 3, x: 5, y: 5, name: 'Deserter Knight' },
       { job: 'archer', level: 3, x: 6, y: 5, name: 'Deserter Archer' },
-      { job: 'chemist', level: 3, x: 2, y: 1, name: 'Deserter Medic' },
+      { job: 'chemist', level: 2, x: 2, y: 1, name: 'Deserter Medic' },
       { job: 'squire', level: 3, x: 9, y: 1, name: 'Deserter' },
-      { job: 'squire', level: 3, x: 9, y: 8, name: 'Deserter' },
     ],
-    gil: 450,
+    gil: 1600,
     recruit: { name: 'Kael', job: 'archer', level: 3 },
     outro: [
       'One of the deserters throws down his bow and kneels. "I served your father at Redwater. I would rather serve his son than a prince who leaves his own men to starve."',
@@ -579,6 +580,7 @@ const CAMPAIGN = [
     ],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch4', title: 'Sable Marsh', map: 'sable',
     intro: [
       'The marsh road is the only way east that avoids the royal checkpoints.',
@@ -586,16 +588,17 @@ const CAMPAIGN = [
       '"Mages," Lysa says. "Their spells take time to charge. Close the distance before they finish."',
     ],
     enemies: [
-      { job: 'blackMage', level: 4, x: 2, y: 2, name: 'Coven Mage' },
+      { job: 'blackMage', level: 4, x: 4, y: 4, name: 'Coven Mage' },
       { job: 'blackMage', level: 4, x: 4, y: 3, name: 'Coven Mage' },
       { job: 'thief', level: 4, x: 3, y: 5, name: 'Coven Cutpurse' },
       { job: 'wolf', level: 4, x: 7, y: 2 },
       { job: 'wolf', level: 4, x: 1, y: 8 },
     ],
-    gil: 600,
+    gil: 2100,
     outro: ['The last mage sinks beneath the black water. On her body: a sealed letter bearing the crest of Ser Brannoc, Captain of Dunmarch.'],
   },
   {
+    objective: { type: 'survive', rounds: 5, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
     intro: [
       'Ser Brannoc was Rowan\'s father\'s sworn brother. Now he hunts the Aldric line for Prince Aldous.',
@@ -609,7 +612,7 @@ const CAMPAIGN = [
       { job: 'archer', level: 5, x: 8, y: 2, name: 'Wall Archer' },
       { job: 'whiteMage', level: 5, x: 6, y: 3, name: 'Garrison Priest' },
     ],
-    gil: 800,
+    gil: 2700,
     recruit: { name: 'Tamsin', job: 'whiteMage', level: 5 },
     outro: [
       'The garrison priest lowers her staff. "Brannoc rode for Thornwall at dawn. He fears you, Aldric. He fears what your father knew."',
@@ -618,6 +621,7 @@ const CAMPAIGN = [
     ],
   },
   {
+    objective: { type: 'rout', protectLeader: true },
     id: 'ch6', title: 'Ashen Ridge', map: 'ashen',
     intro: [
       'The road to Thornwall climbs the Ashen Ridge, where the old volcano still breathes.',
@@ -632,10 +636,11 @@ const CAMPAIGN = [
       { job: 'goblin', level: 6, x: 5, y: 5 },
       { job: 'monk', level: 6, x: 0, y: 3, name: 'Ridge Hermit' },
     ],
-    gil: 900,
+    gil: 1200,
     outro: ['Below the ridge, Thornwall Cathedral rises from the fog. A single black banner hangs from its spire.'],
   },
   {
+    objective: { type: 'boss', protectLeader: true },
     id: 'ch7', title: 'Thornwall Cathedral', map: 'thornwall',
     intro: [
       'Ser Brannoc waits at the altar in armor that has forgotten its colors.',
@@ -644,14 +649,15 @@ const CAMPAIGN = [
       'Rowan draws his sword. "Not today, Ser."',
     ],
     enemies: [
-      { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true },
+      { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true,
+        passives: ['counter', 'attackUp', 'movePlus1'] },
       { job: 'knight', level: 7, x: 4, y: 4, name: 'Black Guard' },
       { job: 'knight', level: 7, x: 8, y: 4, name: 'Black Guard' },
-      { job: 'timeMage', level: 7, x: 6, y: 1, name: 'Chronomancer' },
+      { job: 'timeMage', level: 7, x: 6, y: 1, name: 'Chronomancer', passives: ['halfMp', 'regenerator'] },
       { job: 'archer', level: 7, x: 3, y: 8, name: 'Black Guard Archer' },
       { job: 'ninja', level: 7, x: 10, y: 8, name: 'Brannoc\'s Shadow' },
     ],
-    gil: 2000,
+    gil: 5000,
     outro: [
       'Brannoc falls before the altar. In his hand, the last letter: proof of who truly fed the war between the princes.',
       'Rowan takes it. The road ahead is longer than the one behind. But for the first time, he knows where it leads.',
@@ -665,8 +671,20 @@ const CAMPAIGN = [
 const STARTING_PARTY = [
   { name: 'Rowan', job: 'squire', level: 1, leader: true },
   { name: 'Garret', job: 'squire', level: 1 },
+  { name: 'Bram', job: 'squire', level: 1 },
   { name: 'Mira', job: 'chemist', level: 1 },
 ];
+
+// Difficulty scales the opposition rather than the party, so a player's own
+// numbers always mean the same thing.
+const DIFFICULTIES = {
+  squire:  { name: 'Squire', levelShift: -1, gearShift: -1, gilMult: 1.25,
+             desc: 'Foes are a level below and less well equipped. Purses stretch further.' },
+  knight:  { name: 'Knight', levelShift: 0, gearShift: 0, gilMult: 1,
+             desc: 'The campaign as written.' },
+  paladin: { name: 'Paladin', levelShift: 2, gearShift: 1, gilMult: 0.85,
+             desc: 'Foes outrank and outfit you, and coin is scarcer.' },
+};
 
 // Enemy pools for random training battles.
 const TRAINING_POOL = [
@@ -678,3 +696,259 @@ const TRAINING_POOL = [
   ['bomb', 'bomb', 'goblin', 'goblin'],
   ['ninja', 'timeMage', 'knight', 'dragoon'],
 ];
+
+// ============================================================================
+// Equipment
+// ============================================================================
+// Weapon types: knife sword axe spear bow staff rod fist ninjablade
+// Armor types:  cloth light heavy robe   Head types: hat helm
+// Slots: weapon, offhand, head, body, acc
+
+const JOB_EQUIP = {
+  squire:    { w: ['sword', 'knife', 'axe'], a: ['light', 'heavy', 'cloth'], head: ['hat', 'helm'], shield: true },
+  chemist:   { w: ['knife', 'rod'], a: ['cloth', 'robe'], head: ['hat'], shield: false },
+  knight:    { w: ['sword', 'axe', 'spear'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+  archer:    { w: ['bow', 'knife'], a: ['light', 'cloth'], head: ['hat', 'helm'], shield: false },
+  monk:      { w: ['fist'], a: ['light', 'cloth'], head: ['hat'], shield: false },
+  thief:     { w: ['knife', 'sword'], a: ['light', 'cloth'], head: ['hat'], shield: false },
+  whiteMage: { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  blackMage: { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  timeMage:  { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  ninja:     { w: ['ninjablade', 'knife'], a: ['light', 'cloth'], head: ['hat'], shield: false, dual: true },
+  dragoon:   { w: ['spear', 'sword'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+};
+
+// tier: shop stock unlocks at that chapter index. price 0 = starter kit, cannot be sold.
+const ITEMS = {
+  // ---- weapons ----
+  shortSword:  { name: 'Short Sword', slot: 'weapon', wtype: 'sword', power: 5, range: 1, vert: 2, price: 0, tier: 0 },
+  broadsword:  { name: 'Broadsword', slot: 'weapon', wtype: 'sword', power: 8, range: 1, vert: 2, price: 400, tier: 1 },
+  longsword:   { name: 'Longsword', slot: 'weapon', wtype: 'sword', power: 11, range: 1, vert: 2, price: 900, tier: 3 },
+  runeBlade:   { name: 'Rune Blade', slot: 'weapon', wtype: 'sword', power: 14, range: 1, vert: 2, ma: 3, price: 1800, tier: 5 },
+  dagger:      { name: 'Dagger', slot: 'weapon', wtype: 'knife', power: 4, range: 1, vert: 2, spd: 1, price: 0, tier: 0 },
+  mainGauche:  { name: 'Main Gauche', slot: 'weapon', wtype: 'knife', power: 6, range: 1, vert: 2, evade: 8, price: 380, tier: 1 },
+  assassinDagger: { name: 'Assassin Dagger', slot: 'weapon', wtype: 'knife', power: 9, range: 1, vert: 2, spd: 2, price: 1600, tier: 4 },
+  battleAxe:   { name: 'Battle Axe', slot: 'weapon', wtype: 'axe', power: 10, range: 1, vert: 2, price: 550, tier: 2 },
+  warAxe:      { name: 'War Axe', slot: 'weapon', wtype: 'axe', power: 14, range: 1, vert: 2, spd: -1, price: 1400, tier: 4 },
+  spear:       { name: 'Spear', slot: 'weapon', wtype: 'spear', power: 6, range: 2, vert: 3, price: 0, tier: 0 },
+  partisan:    { name: 'Partisan', slot: 'weapon', wtype: 'spear', power: 9, range: 2, vert: 3, price: 700, tier: 2 },
+  dragonLance: { name: 'Dragon Lance', slot: 'weapon', wtype: 'spear', power: 13, range: 2, vert: 3, jump: 1, price: 1900, tier: 5 },
+  shortbow:    { name: 'Shortbow', slot: 'weapon', wtype: 'bow', power: 4, range: 4, vert: 5, price: 0, tier: 0 },
+  longbow:     { name: 'Longbow', slot: 'weapon', wtype: 'bow', power: 6, range: 5, vert: 6, price: 600, tier: 2 },
+  yoichiBow:   { name: 'Yoichi Bow', slot: 'weapon', wtype: 'bow', power: 9, range: 6, vert: 8, price: 1700, tier: 5 },
+  staff:       { name: 'Staff', slot: 'weapon', wtype: 'staff', power: 3, range: 1, vert: 2, ma: 1, price: 0, tier: 0 },
+  healingStaff: { name: 'Healing Staff', slot: 'weapon', wtype: 'staff', power: 4, range: 1, vert: 2, ma: 4, price: 650, tier: 2 },
+  sageStaff:   { name: 'Sage Staff', slot: 'weapon', wtype: 'staff', power: 5, range: 1, vert: 2, ma: 7, mp: 20, price: 1800, tier: 5 },
+  rod:         { name: 'Rod', slot: 'weapon', wtype: 'rod', power: 3, range: 1, vert: 2, ma: 2, price: 0, tier: 0 },
+  flameRod:    { name: 'Flame Rod', slot: 'weapon', wtype: 'rod', power: 5, range: 1, vert: 2, ma: 5, price: 700, tier: 2 },
+  voidRod:     { name: 'Void Rod', slot: 'weapon', wtype: 'rod', power: 6, range: 1, vert: 2, ma: 9, price: 1900, tier: 5 },
+  cesti:       { name: 'Cesti', slot: 'weapon', wtype: 'fist', power: 6, range: 1, vert: 3, price: 0, tier: 0 },
+  ironKnuckle: { name: 'Iron Knuckle', slot: 'weapon', wtype: 'fist', power: 10, range: 1, vert: 3, pa: 1, price: 800, tier: 3 },
+  godHand:     { name: 'God Hand', slot: 'weapon', wtype: 'fist', power: 14, range: 1, vert: 3, pa: 3, price: 2000, tier: 5 },
+  kunai:       { name: 'Kunai', slot: 'weapon', wtype: 'ninjablade', power: 5, range: 1, vert: 2, spd: 1, price: 0, tier: 0 },
+  ninjaBlade:  { name: 'Ninja Blade', slot: 'weapon', wtype: 'ninjablade', power: 8, range: 1, vert: 2, spd: 1, price: 1200, tier: 4 },
+  murasame:    { name: 'Murasame', slot: 'weapon', wtype: 'ninjablade', power: 11, range: 1, vert: 2, spd: 2, price: 2200, tier: 6 },
+
+  // ---- offhand ----
+  buckler:     { name: 'Buckler', slot: 'offhand', otype: 'shield', evade: 12, price: 300, tier: 1 },
+  kiteShield:  { name: 'Kite Shield', slot: 'offhand', otype: 'shield', evade: 18, hp: 15, price: 800, tier: 3 },
+  aegisShield: { name: 'Aegis Shield', slot: 'offhand', otype: 'shield', evade: 26, hp: 25, price: 1800, tier: 5 },
+
+  // ---- head ----
+  leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 1 },
+  featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', hp: 12, spd: 1, price: 500, tier: 2 },
+  wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', mp: 20, ma: 1, price: 550, tier: 2 },
+  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1, price: 2400, tier: 6 },
+  ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 20, price: 450, tier: 1 },
+  goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
+
+  // ---- body ----
+  clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },
+  leatherArmor:{ name: 'Leather Armor', slot: 'body', atype: 'light', hp: 22, price: 350, tier: 1 },
+  chainMail:   { name: 'Chain Mail', slot: 'body', atype: 'light', hp: 38, price: 850, tier: 3 },
+  plateMail:   { name: 'Plate Mail', slot: 'body', atype: 'heavy', hp: 58, spd: -1, price: 1500, tier: 4 },
+  crystalMail: { name: 'Crystal Mail', slot: 'body', atype: 'heavy', hp: 74, mp: 10, price: 2400, tier: 6 },
+  silkRobe:    { name: 'Silk Robe', slot: 'body', atype: 'robe', hp: 18, mp: 20, price: 400, tier: 1 },
+  wizardRobe:  { name: 'Wizard Robe', slot: 'body', atype: 'robe', hp: 30, mp: 40, ma: 1, price: 1100, tier: 3 },
+  robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
+
+  // ---- accessory ----
+  leatherBoots:{ name: 'Leather Boots', slot: 'acc', move: 1, price: 400, tier: 1 },
+  wingedBoots: { name: 'Winged Boots', slot: 'acc', jump: 2, price: 500, tier: 2 },
+  sprintShoes: { name: 'Sprint Shoes', slot: 'acc', move: 1, spd: 1, price: 1200, tier: 4 },
+  powerGlove:  { name: 'Power Glove', slot: 'acc', pa: 2, price: 900, tier: 3 },
+  magickRing:  { name: 'Magick Ring', slot: 'acc', ma: 2, price: 900, tier: 3 },
+  guardianRing:{ name: 'Guardian Ring', slot: 'acc', hp: 30, price: 700, tier: 2 },
+  reflexBracer:{ name: 'Reflex Bracer', slot: 'acc', evade: 12, price: 800, tier: 3 },
+  chronoAmulet:{ name: 'Chrono Amulet', slot: 'acc', spd: 2, price: 2000, tier: 5 },
+};
+
+// Free starting kit per job (price-0 items only, so they cannot be sold for gil).
+const STARTER_GEAR = {
+  squire:    { weapon: 'shortSword', body: 'clothes' },
+  chemist:   { weapon: 'dagger', body: 'clothes' },
+  knight:    { weapon: 'shortSword', body: 'clothes' },
+  archer:    { weapon: 'shortbow', body: 'clothes' },
+  monk:      { weapon: 'cesti', body: 'clothes' },
+  thief:     { weapon: 'dagger', body: 'clothes' },
+  whiteMage: { weapon: 'staff', body: 'clothes' },
+  blackMage: { weapon: 'rod', body: 'clothes' },
+  timeMage:  { weapon: 'staff', body: 'clothes' },
+  ninja:     { weapon: 'kunai', body: 'clothes' },
+  dragoon:   { weapon: 'spear', body: 'clothes' },
+};
+
+const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
+const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
+
+// Can `job` equip item `id` at all? `extra` adds permissions granted elsewhere,
+// such as the Equip Armor support ability.
+function canEquip(job, id, extra) {
+  const it = ITEMS[id], eq = JOB_EQUIP[job];
+  if (!it || !eq) return false;
+  const w = extra ? eq.w.concat(extra.w || []) : eq.w;
+  const a = extra ? eq.a.concat(extra.a || []) : eq.a;
+  const head = extra ? eq.head.concat(extra.head || []) : eq.head;
+  if (it.slot === 'weapon') return w.includes(it.wtype);
+  if (it.slot === 'offhand') return !!eq.shield;
+  if (it.slot === 'head') return head.includes(it.htype);
+  if (it.slot === 'body') return a.includes(it.atype);
+  return true; // accessories fit anyone
+}
+
+// Can `job` equip item `id` into `slot`? Dual wielders may hold a second weapon
+// in the offhand instead of a shield.
+function canEquipInSlot(job, id, slot, extra) {
+  const it = ITEMS[id], eq = JOB_EQUIP[job];
+  if (!it || !eq) return false;
+  if (slot === 'offhand' && it.slot === 'weapon') return !!eq.dual && canEquip(job, id, extra);
+  return it.slot === slot && canEquip(job, id, extra);
+}
+
+// Every item id this job could put in the slot, from a pool of ids.
+function itemsForSlot(job, slot, ids, extra) {
+  return (ids || Object.keys(ITEMS)).filter(id => canEquipInSlot(job, id, slot, extra));
+}
+
+// How much a piece of gear is worth to a given job. Used by the enemy loadout
+// generator and by the player's Optimize button.
+function gearScore(job, id) {
+  const it = ITEMS[id], j = JOBS[job];
+  if (!it || !j) return 0;
+  const physical = j.pa >= j.ma;
+  let s = 0;
+  if (it.slot === 'weapon' || it.otype !== 'shield') {
+    // Weapon power drives the damage formula for the job's main stat.
+    s += (it.power || 0) * 6;
+    s += Math.max(0, (it.range || 1) - 1) * 4;
+    // A job's signature weapon type is what its abilities are built around.
+    if (it.wtype && JOB_EQUIP[job] && it.wtype === JOB_EQUIP[job].w[0]) s += 25;
+  }
+  s += (it.pa || 0) * (physical ? 14 : 5);
+  s += (it.ma || 0) * (physical ? 5 : 14);
+  s += (it.hp || 0) * 0.35;
+  s += (it.mp || 0) * (physical ? 0.1 : 0.3);
+  s += (it.spd || 0) * 10;
+  s += (it.move || 0) * 8;
+  s += (it.jump || 0) * 3;
+  s += (it.evade || 0) * 0.5;
+  return s;
+}
+
+// The best loadout for a job from a pool of item ids (defaults to everything up
+// to `maxTier`). Returns a gear object; slots with nothing available are absent.
+function bestGearFor(job, pool, maxTier, extra) {
+  const eq = JOB_EQUIP[job];
+  if (!eq) return {};
+  const ids = pool || Object.keys(ITEMS).filter(i => ITEMS[i].tier <= (maxTier === undefined ? 6 : maxTier));
+  const gear = {};
+  const used = {};
+  for (const slot of ['weapon', 'offhand', 'head', 'body', 'acc']) {
+    let best = null, bestScore = 0;
+    for (const id of ids) {
+      if (!canEquipInSlot(job, id, slot, extra)) continue;
+      // The same single item cannot fill two slots.
+      if (used[id] && (pool || []).filter(p => p === id).length <= used[id]) continue;
+      const sc = gearScore(job, id);
+      if (sc > bestScore) { bestScore = sc; best = id; }
+    }
+    if (best) { gear[slot] = best; used[best] = (used[best] || 0) + 1; }
+  }
+  return gear;
+}
+
+// Items an enemy of the given job and level carries. Their gear deliberately
+// lags what the player can buy at the same point, so the shop stays worth
+// visiting and early fights are not decided by equipment the party lacks.
+function enemyGearFor(job, level, tierShift) {
+  const tier = Math.floor((level - 1) / 1.8) + (tierShift || 0);
+  return bestGearFor(job, null, Math.max(0, Math.min(6, tier)));
+}
+
+// ============================================================================
+// Passive abilities: reaction, support and movement
+// ============================================================================
+// Learned with JP inside a job, but once learned they can be equipped no matter
+// which job the unit is currently wearing. One of each kind at a time.
+
+const PASSIVES = {
+  // ---- reaction: triggered when something happens to the unit ----
+  counter: { name: 'Counter', kind: 'reaction', job: 'monk', jp: 250,
+    desc: 'Strike back when a foe within your weapon\'s reach damages you with a physical attack.' },
+  autoPotion: { name: 'Auto-Potion', kind: 'reaction', job: 'chemist', jp: 180,
+    desc: 'Drink a potion for 35 HP whenever you take damage.' },
+  parry: { name: 'Parry', kind: 'reaction', job: 'knight', jp: 250,
+    desc: '35% chance to turn aside a physical attack entirely.' },
+  absorbMp: { name: 'Absorb MP', kind: 'reaction', job: 'blackMage', jp: 200,
+    desc: 'Recover 10 MP whenever magick damages you.' },
+  regenerator: { name: 'Regenerator', kind: 'reaction', job: 'whiteMage', jp: 220,
+    desc: 'Gain Regen the first time you are damaged in a battle.' },
+  vengeance: { name: 'Vengeance', kind: 'reaction', job: 'dragoon', jp: 260,
+    desc: 'Physical Attack rises by 1 each time you are damaged.' },
+
+  // ---- support: always-on modifiers ----
+  attackUp: { name: 'Attack Up', kind: 'support', job: 'knight', jp: 300,
+    desc: 'Physical damage you deal rises by 25%.' },
+  magickUp: { name: 'Magick Up', kind: 'support', job: 'blackMage', jp: 300,
+    desc: 'Magickal damage you deal rises by 25%.' },
+  defend: { name: 'Defend', kind: 'support', job: 'squire', jp: 250,
+    desc: 'Physical damage you take falls by 20%.' },
+  halfMp: { name: 'Halve MP', kind: 'support', job: 'timeMage', jp: 320,
+    desc: 'Spells cost half as much MP.' },
+  twoHands: { name: 'Two Hands', kind: 'support', job: 'knight', jp: 350,
+    desc: 'Grip your weapon with both hands for 50% more weapon power. The offhand must be empty.' },
+  concentrate: { name: 'Concentrate', kind: 'support', job: 'archer', jp: 320,
+    desc: 'Your physical attacks ignore evasion entirely.' },
+  equipArmor: { name: 'Equip Armor', kind: 'support', job: 'whiteMage', jp: 280,
+    desc: 'Wear light and heavy armor whatever your job.' },
+  martialArts: { name: 'Martial Arts', kind: 'support', job: 'monk', jp: 260,
+    desc: 'Fist weapons strike for 50% more power.' },
+
+  // ---- movement: how the unit gets around ----
+  movePlus1: { name: 'Move +1', kind: 'movement', job: 'thief', jp: 220,
+    desc: 'Move one extra tile.' },
+  movePlus2: { name: 'Move +2', kind: 'movement', job: 'ninja', jp: 400,
+    desc: 'Move two extra tiles.' },
+  jumpPlus2: { name: 'Jump +2', kind: 'movement', job: 'dragoon', jp: 220,
+    desc: 'Climb two levels higher.' },
+  sureFooting: { name: 'Sure Footing', kind: 'movement', job: 'ninja', jp: 320,
+    desc: 'Height no longer limits where you can step.' },
+  moveHpUp: { name: 'Move-HP-Up', kind: 'movement', job: 'monk', jp: 240,
+    desc: 'Recover a tenth of your HP whenever you move.' },
+  moveFindItem: { name: 'Treasure Hunter', kind: 'movement', job: 'thief', jp: 300,
+    desc: 'Turn up 25 gil each time you move.' },
+};
+
+const PASSIVE_KINDS = { reaction: 'Reaction', support: 'Support', movement: 'Movement' };
+
+// The passives taught by a given job, in JP order.
+function passivesOfJob(job) {
+  return Object.keys(PASSIVES).filter(id => PASSIVES[id].job === job).sort((a, b) => PASSIVES[a].jp - PASSIVES[b].jp);
+}
+
+// Extra equip permissions granted by support abilities.
+function passiveEquipBonus(unit) {
+  const extra = { w: [], a: [], head: [] };
+  if (unit.hasPassive('equipArmor')) { extra.a.push('light', 'heavy'); extra.head.push('helm'); }
+  return extra;
+}

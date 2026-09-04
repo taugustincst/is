@@ -37,7 +37,8 @@ small { color: var(--muted); }
 .world-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .world-actions button { padding: 10px 16px; }
 .tavern button { margin-top: 8px; margin-right: 6px; }
-.gil { font-size: 22px; color: var(--gold); margin-bottom: 12px; }
+.side-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.gil { font-size: 22px; color: var(--gold); }
 .party-chip { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; display: flex; justify-content: space-between; }
 .party-chip.reserve { opacity: 0.55; }
 
@@ -112,7 +113,12 @@ small { color: var(--muted); }
 .log-line.dmg { color: #ff9a8a; } .log-line.heal { color: #8affa0; } .log-line.miss { color: #aaa; }
 .log-line.ko { color: var(--red); font-weight: bold; } .log-line.lvl { color: var(--gold); } .log-line.act { color: #fff; }
 #command { bottom: 12px; right: 12px; width: 320px; min-height: 120px; }
-#hint { color: var(--muted); font-size: 12px; margin-bottom: 6px; min-height: 14px; }
+/* The hint sits above whichever bottom-right panel is open, so it stays
+   readable during deployment when the command panel is hidden. */
+#hint { position: absolute; right: 12px; bottom: 0; width: 320px; color: var(--muted);
+  font-size: 12px; min-height: 16px; text-align: right; pointer-events: none; }
+#hint:not(:empty) { background: rgba(14, 16, 32, 0.85); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 8px; }
 #action-menu { display: flex; flex-direction: column; gap: 4px; }
 #action-menu button { display: flex; justify-content: space-between; text-align: left; }
 #action-menu button small { color: var(--muted); }
@@ -148,3 +154,75 @@ small { color: var(--muted); }
 @media (max-width: 900px) {
   #turn-order { width: 150px; } #unit-card { width: 200px; } #log { width: 240px; height: 120px; } #command { width: 260px; }
 }
+
+/* ---------- shop ---------- */
+.shop-layout { max-width: 900px; margin: 24px auto; padding: 0 20px; height: calc(100% - 48px); display: flex; flex-direction: column; }
+.shop-head { display: flex; justify-content: space-between; align-items: baseline; }
+.shop-head h2 { color: var(--gold); }
+#shop-gil { font-size: 20px; color: var(--gold); }
+.tabs { display: flex; gap: 6px; margin: 8px 0; }
+.tabs button.sel { background: #4a3a10; border-color: var(--gold); color: var(--gold); }
+#shop-list { flex: 1; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+#shop-list h3 { color: var(--gold); margin-top: 12px; border-bottom: 1px solid #2a2d50; }
+.shop-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 4px; border-bottom: 1px solid #23264a; }
+.shop-row.unfit { opacity: 0.5; }
+.shop-row .fits { color: var(--muted); font-size: 12px; }
+#btn-shop-back { margin-top: 12px; align-self: flex-start; }
+.stock { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+
+/* ---------- equipment ---------- */
+.equip-grid { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.equip-row { display: flex; align-items: center; gap: 8px; }
+.equip-row > span { width: 78px; color: var(--muted); font-size: 12px; }
+.equip-row select { flex: 1; max-width: 420px; }
+.equip-row .none { color: #666; font-size: 12px; }
+button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-left: 8px; }
+
+/* ---------- deployment ---------- */
+#deploy-panel { display: none; bottom: 12px; right: 12px; width: 320px; }
+#deploy-panel.open { display: block; }
+.roster-list { max-height: 210px; overflow-y: auto; margin-bottom: 8px; }
+.roster-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
+.roster-row:hover { background: rgba(255,255,255,0.05); }
+.roster-row.sel { border-color: var(--gold); background: #2a2a44; }
+.roster-row .name { flex: 1; }
+.roster-row .job { color: var(--muted); font-size: 11px; }
+.roster-row .mark { color: #555; }
+.roster-row.placed .mark { color: var(--green); }
+.deploy-dirs { margin-bottom: 8px; }
+.deploy-dirs button { font-size: 12px; padding: 4px; }
+.deploy-actions { display: flex; gap: 6px; }
+.deploy-actions button { flex: 1; }
+#hint.warn { color: var(--red); }
+#objective { color: var(--gold); font-size: 12px; border-left: 1px solid var(--border); padding-left: 12px; }
+.order-row.fallen { opacity: 0.5; }
+.order-row.fallen .dot { background: #555; }
+.res-reason { font-style: italic; color: #c8c6e0; }
+button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1; }
+
+/* Touch targets and stacking on small screens. */
+@media (max-width: 700px) {
+  body { font-size: 13px; }
+  /* Keep the top bar to a single row, then stack the panels beneath it. */
+  #battle-top { top: 4px; padding: 3px 6px; gap: 5px; flex-wrap: nowrap; max-width: 98vw; font-size: 11px; }
+  #battle-name { font-size: 12px; max-width: 38vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #battle-top button { padding: 3px 7px; font-size: 11px; min-height: 26px; }
+  #battle-top button.icon { min-width: 28px; }
+  #turn-order { top: 46px; left: 6px; width: 122px; padding: 6px; font-size: 11px; max-height: 32vh; overflow-y: auto; }
+  #unit-card { top: 46px; right: 6px; width: 148px; padding: 6px; }
+  .banner { font-size: 17px; top: 52px; padding: 4px 16px; }
+  #log { bottom: 6px; left: 6px; width: 44vw; height: 82px; font-size: 10px; }
+  #command, #deploy-panel { bottom: 6px; right: 6px; width: min(270px, 52vw); padding: 7px; }
+  #hint { right: 6px; width: min(270px, 52vw); font-size: 11px; }
+  .roster-list { max-height: 26vh; }
+  #tile-info, #objective { display: none; }
+  .world-layout, .form-layout, .shop-layout { flex-direction: column; height: auto; }
+  .world-side, .form-left { width: auto; }
+  .screen { overflow-y: auto; }
+  button { min-height: 34px; }
+  .title-box h1 { font-size: 34px; }
+}
+.chapter-goal { color: var(--gold); font-size: 13px; margin-top: 6px; }
+.res-loot { color: var(--gold); }
+.difficulty .tabs { flex-wrap: wrap; }
+.diff-desc { width: 100%; color: var(--muted); font-size: 12px; margin-top: 6px; }

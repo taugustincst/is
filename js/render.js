@@ -60,7 +60,10 @@ class Renderer {
     }
     this.cam.x = -(minX + maxX) / 2 + this.cv.width / 2;
     this.cam.y = -(minY + maxY) / 2 + this.cv.height / 2 + 24;
-    this.zoom = 1.25;
+    // Zoom so the board fills the view without spilling off a narrow screen.
+    const fitX = (this.cv.width * 0.92) / Math.max(1, maxX - minX);
+    const fitY = (this.cv.height * 0.72) / Math.max(1, maxY - minY);
+    this.zoom = Math.max(0.55, Math.min(1.35, Math.min(fitX, fitY)));
   }
 
   // World (unzoomed canvas) coordinates of a tile centre.
@@ -115,7 +118,7 @@ class Renderer {
     const { x: mx, y: my } = this.toWorld(px, py);
     const g = this.battle.grid;
     // Units first (sprites stand above their tile).
-    const units = this.battle.units.filter(u => u.alive && !u.airborne).sort((a, b) => (b.x + b.y) - (a.x + a.y));
+    const units = this.battle.units.filter(u => u.alive && !u.airborne && u.x >= 0).sort((a, b) => (b.x + b.y) - (a.x + a.y));
     for (const u of units) {
       const { sx, sy } = this.unitScreenPos(u);
       if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) return g.tile(u.x, u.y);
@@ -140,9 +143,9 @@ class Renderer {
   fit() {
     const w = Math.max(320, Math.floor(this.cv.clientWidth)), h = Math.max(240, Math.floor(this.cv.clientHeight));
     if (this.cv.width !== w || this.cv.height !== h) {
-      const ox = this.cam.x - this.cv.width / 2, oy = this.cam.y - this.cv.height / 2;
       this.cv.width = w; this.cv.height = h;
-      this.cam.x = ox + w / 2; this.cam.y = oy + h / 2;
+      // Re-frame the board rather than keeping an offset that no longer fits.
+      if (this.battle) this.centerCamera();
     }
   }
 
@@ -178,6 +181,7 @@ class Renderer {
       items.push({ d: x + y, kind: 'tile', t });
     }
     for (const u of this.battle.units) {
+      if (u.x < 0) continue; // in reserve, not on the field
       const p = u.anim || { x: u.x, y: u.y };
       items.push({ d: p.x + p.y + 0.5 + (u.alive ? 0 : -0.2), kind: 'unit', u });
     }
@@ -228,8 +232,22 @@ class Renderer {
     if (this.hl.cursor && this.hl.cursor.x === t.x && this.hl.cursor.y === t.y) {
       this.diamond(sx, sy); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
     }
-    if (this.battle.mapDef.deploy && this.battle.showDeploy) {
-      if (this.battle.mapDef.deploy.some(d => d[0] === t.x && d[1] === t.y)) { this.diamond(sx, sy); c.fillStyle = 'rgba(80,220,120,0.35)'; c.fill(); }
+    if (this.battle.showDeploy && this.battle.deployKeys && this.battle.deployKeys.has(key)) {
+      const taken = !!this.battle.unitAt(t.x, t.y);
+      const pulse = 0.30 + 0.10 * Math.sin(this.time / 350 + (t.x + t.y) * 0.5);
+      this.diamond(sx, sy);
+      c.fillStyle = taken ? 'rgba(40,180,90,0.22)' : `rgba(60,240,140,${pulse})`;
+      c.fill();
+      c.strokeStyle = taken ? 'rgba(120,255,170,0.55)' : 'rgba(190,255,215,0.95)';
+      c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
+      // A caret on free tiles reads as "you may stand here".
+      if (!taken) {
+        c.fillStyle = 'rgba(225,255,235,0.9)';
+        c.beginPath();
+        c.moveTo(sx, sy - 7); c.lineTo(sx + 6, sy + 1); c.lineTo(sx + 2, sy + 1);
+        c.lineTo(sx + 2, sy + 6); c.lineTo(sx - 2, sy + 6); c.lineTo(sx - 2, sy + 1);
+        c.lineTo(sx - 6, sy + 1); c.closePath(); c.fill();
+      }
     }
     // Tree / pillar
     if (t.t === 't') {
@@ -261,6 +279,12 @@ class Renderer {
     if (!u.alive) {
       c.save(); c.globalAlpha = 0.6; c.translate(sx, sy + 8); c.scale(1, 0.35); c.filter = 'grayscale(1)';
       c.drawImage(spr, -13, -38); c.restore();
+      if (u.koCount > 0) {
+        c.font = 'bold 15px monospace'; c.textAlign = 'center';
+        c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.85)';
+        c.strokeText(`${u.koCount}`, sx, sy - 6);
+        c.fillStyle = '#ff6a5a'; c.fillText(`${u.koCount}`, sx, sy - 6);
+      }
       return;
     }
     c.drawImage(spr, sx - 13, sy + 8 - 38);

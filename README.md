@@ -1,40 +1,125 @@
 # Chronicles of Elderon — Tactics
 
-A browser-based tactical RPG in the spirit of classic isometric job-system tactics games.
-No build step, no dependencies: open `index.html` in a browser (or serve the folder with any static server).
+A browser-based tactical RPG in the spirit of the classic isometric job-system
+tactics games. No build step, no dependencies, no network: open `index.html` in
+a browser, or serve the folder with any static file server.
 
-## Features
+> Two princes claim one crown. Rowan Aldric, youngest son of a house that chose
+> the wrong side, rides north with the last of his companions.
 
-- **Isometric height maps** rendered on canvas with pixel-art units, camera panning and animated moves, jumps and spell bursts.
-- **Charge Time turn system**: every unit accumulates CT by its Speed each tick and acts at 100. The turn order panel forecasts upcoming turns, including charging spells.
-- **Move / Act / Wait turns** with a facing choice at the end. Skipping Move or Act refunds CT.
-- **Facing and height matter**: side attacks halve evasion, back attacks can't be dodged, high ground boosts physical damage.
-- **Charged abilities**: magic and Aim shots resolve after their charge fills; targets can move out of the area. Friendly fire applies to area spells.
-- **Damage prediction** before you confirm any action (hit %, damage/heal, status chances, attack angle).
-- **11 jobs** with an unlock tree (Squire, Chemist, Knight, Archer, Monk, Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon) plus monsters and a boss job.
-- **JP progression**: earn JP by acting, learn abilities in the Formation screen, equip a secondary skillset from any job you've trained.
-- **Statuses**: Poison, Regen, Haste, Slow, Stop, Protect, Shell. Stat breaks and buffs that last the battle.
-- **Enemy AI** that evaluates every reachable tile × ability × target for damage, kills, healing and buffs.
-- **Seven-chapter campaign** with story beats and recruits, plus repeatable training battles and a tavern for hiring.
-- **Save/Continue** via localStorage.
+## The game
+
+**Battle system**
+
+- **Isometric height maps** drawn on canvas with pixel-art units, camera pan,
+  zoom, and animated moves, leaps and spell bursts.
+- **Charge Time turns.** Every unit gains CT equal to its Speed each tick and
+  acts at 100. The turn order panel forecasts who is next, including spells
+  still charging and fallen units counting down.
+- **Move, Act, then face.** Skipping either refunds CT toward your next turn.
+- **Facing and height matter.** Side attacks halve evasion, back attacks cannot
+  be dodged, high ground adds damage, and Jump limits what you can climb.
+- **Charged abilities** resolve after their charge fills, so targets can walk
+  out of the area. Area spells hit friends too.
+- **Full prediction** before you commit: hit chance, damage or healing, status
+  odds and the angle of attack.
+
+**Building a party**
+
+- **Eleven jobs** on an unlock tree — Squire, Chemist, Knight, Archer, Monk,
+  Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon — plus monsters and
+  a boss job for the other side.
+- **JP progression.** Acting earns JP in your current job. Spend it on that
+  job's abilities, equip any studied job's skillset as your secondary, and
+  reach job levels to unlock the advanced classes.
+- **Twenty passive abilities** in three kinds: reaction (Counter, Parry,
+  Auto-Potion, Absorb MP, Regenerator, Vengeance), support (Attack Up, Magick
+  Up, Defend, Concentrate, Halve MP, Two Hands, Martial Arts, Equip Armor) and
+  movement (Move +1/+2, Jump +2, Sure Footing, Move-HP-Up, Treasure Hunter).
+  Learn them in one job, equip them in any.
+- **52 pieces of equipment** across weapon, offhand, head, body and accessory
+  slots, gated by job equip classes. Gear drives weapon power and range,
+  evasion and every stat. Ninja can dual wield; Two Hands trades the offhand
+  for half again the weapon power.
+- **A shop** whose stock widens as the campaign advances, with selling,
+  battlefield loot and an Optimize button.
+
+**Battles and campaign**
+
+- **Deployment phase.** Choose who fights and where they stand before the first
+  tick, with the enemy roster laid out in front of you.
+- **Objectives** beyond routing the field: defeat the commander, or hold out a
+  set number of turns. Campaign battles are lost if the party leader is lost.
+- **Fallen units** keep their place in the turn order and count down three
+  turns before they are carried off. Revive them in time and they stay.
+- **Seven chapters** with story beats and recruits, repeatable training
+  battles, and a tavern for hiring.
+- **Three difficulty settings** that shift the opposition rather than the party,
+  so your own numbers always mean the same thing: enemy level, equipment tier
+  and the size of the purse. Changeable at any time from camp.
+- **Procedural audio**: sound effects and three looping pieces synthesised at
+  runtime with WebAudio, with sound and music toggles.
+- **Save and continue** through localStorage.
 
 ## Controls
 
-- Click a tile or button to act. Right-click / Esc cancels.
-- Drag the map or use the arrow keys to pan.
-- `?` in battle opens the rules summary.
+| Action | Mouse | Touch | Keyboard |
+| --- | --- | --- | --- |
+| Select a tile or command | Click | Tap | `1`–`9` for menu entries |
+| Cancel | Right-click | Cancel button | `Esc` |
+| Pan the camera | Drag | Drag | Arrow keys |
+| Zoom | Wheel | Pinch | `+` / `-`, `0` to reframe |
+
+The `?` button in battle opens a rules summary.
 
 ## Project layout
 
 ```
 index.html        screens and markup
-css/style.css     styling
-js/data.js        jobs, abilities, statuses, maps, campaign script
+css/style.css     styling, including the small-screen layout
+js/audio.js       WebAudio synthesis: effects and the music sequencer
+js/data.js        jobs, abilities, passives, items, statuses, maps, campaign
 js/sprites.js     pixel sprite templates and palette rendering
-js/unit.js        unit model, stats, leveling, JP
-js/map.js         grid, pathfinding, range/area queries
-js/battle.js      charge-time loop, actions, damage, statuses, AI
+js/unit.js        unit model, stats, equipment, leveling, JP
+js/map.js         grid, pathfinding, range and area queries
+js/battle.js      charge time loop, actions, damage, statuses, objectives, AI
 js/render.js      isometric canvas renderer and animations
-js/ui.js          battle UI state machine (menus, targeting, prediction)
-js/game.js        campaign flow, formation screen, saving
+js/ui.js          battle UI: deployment, menus, targeting, prediction, input
+js/game.js        campaign flow, formation, shop, saving
+tools/load.js     loads the game scripts into a Node sandbox
+tools/validate.js content consistency checks
+tools/regress.js  engine regression checks
+tools/simulate.js campaign balance simulator
 ```
+
+## Tools
+
+The engine and its data are plain scripts, so they can be exercised from Node
+without a browser:
+
+```
+node tools/validate.js          # check maps, jobs, items, passives and chapters
+node tools/regress.js           # replay the engine bugs a review once found
+node tools/simulate.js 20 1     # play the campaign 20 times, 1 training battle per chapter
+```
+
+`validate.js` catches content mistakes: a map row of the wrong width, a unit
+placed on water or stranded where nothing can walk to it, an ability a job
+refers to but that does not exist, a starter item with a sell value.
+`regress.js` replays each engine bug an adversarial review once found, so a
+change that brings one back fails there rather than in a player's battle. `simulate.js` runs whole campaigns with the game's own
+AI on both sides, carrying levels, JP, gil and purchases forward, and prints the
+win rate, length and party level per chapter.
+
+## Notes on balance
+
+Difficulty was tuned against `tools/simulate.js`, which plays the campaign end
+to end with both sides driven by the game's own AI, carrying levels, JP, gil and
+purchases forward between chapters. On the middle setting, with one training
+battle per chapter, a party that learns abilities and shops clears each chapter
+roughly 50–100% of the time, with chapters three to five the hardest.
+
+A human will do better than the AI does with the same party, and losing costs
+only time: experience and JP earned in a lost battle are kept and saved, the
+chapter simply does not advance. If a chapter is still too steep, the Squire
+setting drops the opposition a level and widens the purse.

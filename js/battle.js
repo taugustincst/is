@@ -22,6 +22,53 @@ function relativeFacing(defender, ax, ay) {
   return 'side';
 }
 
+// Tiles the player may deploy onto: the map's anchors plus everything within a
+// couple of steps of them, minus anywhere an enemy is standing or watching.
+function computeDeployZone(grid, anchors, enemies) {
+  const zone = new Map();
+  for (const [ax, ay] of anchors) {
+    const start = grid.tile(ax, ay);
+    if (!start) continue;
+    const seen = new Set([`${ax},${ay}`]);
+    let frontier = [start];
+    for (let step = 0; step <= 2; step++) {
+      const next = [];
+      for (const t of frontier) {
+        zone.set(`${t.x},${t.y}`, t);
+        for (const [dx, dy] of Object.values(DIRS)) {
+          const nx = t.x + dx, ny = t.y + dy, key = `${nx},${ny}`;
+          if (seen.has(key) || !grid.passable(nx, ny)) continue;
+          if (Math.abs(grid.height(nx, ny) - t.h) > 2) continue;
+          seen.add(key);
+          next.push(grid.tile(nx, ny));
+        }
+      }
+      frontier = next;
+    }
+  }
+  for (const e of enemies) {
+    for (const [key, t] of [...zone]) {
+      if (Grid.dist(t.x, t.y, e.x, e.y) <= 2) zone.delete(key);
+    }
+  }
+  return [...zone.values()];
+}
+
+// How a battle is won and lost. `rout` is the default; the others are set per
+// chapter. Every campaign battle also protects the party leader.
+const OBJECTIVES = {
+  rout: { label: 'Defeat every enemy' },
+  boss: { label: 'Defeat the commander' },
+  survive: { label: 'Hold out' },
+};
+
+// Turns a fallen unit lingers before it is carried from the field.
+const KO_COUNTDOWN = 3;
+// Safety nets so a battle can never hang. A round is one pass in which every
+// unit still standing has taken a turn, which is what a player counts.
+const ROUND_LIMIT = 50;
+const TURN_LIMIT = 500;
+
 class Battle {
   constructor(mapDef, playerUnits, enemyUnits, hooks) {
     this.grid = new Grid(mapDef);
@@ -30,6 +77,10 @@ class Battle {
     this.hooks = hooks; // { log, animateMove, animateAction, showDamage, awaitPlayerTurn, onStateChange, onTurnStart }
     this.pending = []; // charged actions {unit, ability, tx, ty, ct, speed}
     this.tick = 0;
+    this.turnNo = 0;
+    this.round = 1;
+    this.actedThisRound = new Set();
+    this.objective = { type: 'rout' };
     this.over = false;
     this.result = null;
     this.rewards = { exp: 0, gil: 0, events: [] };
@@ -37,41 +88,88 @@ class Battle {
     for (const u of this.units) {
       u.resetBattleState();
     }
-    // Restore positions (resetBattleState clears them).
-    playerUnits.forEach((u, i) => {
-      const d = mapDef.deploy[i]; u.x = d[0]; u.y = d[1];
-      u.facing = 'N';
-    });
-    for (const e of enemyUnits) { /* positions set by makeEnemy; resetBattleState wiped them */ }
+    // Player units start in reserve at x = -1; the deployment phase places them.
   }
 
-  static setup(mapDef, playerUnits, enemySpecs, hooks) {
-    const enemies = enemySpecs.map(makeEnemy);
+  static setup(mapDef, playerUnits, enemySpecs, hooks, objective, difficulty) {
+    const enemies = enemySpecs.map(spec => makeEnemy(spec, difficulty));
     const b = new Battle(mapDef, playerUnits, [], hooks);
+    if (objective) b.objective = Object.assign({}, objective);
     for (const spec of enemySpecs) {
       const e = enemies.shift();
       e.resetBattleState();
       e.x = spec.x; e.y = spec.y; e.facing = 'S';
       b.units.push(e);
     }
+    b.deployZone = computeDeployZone(b.grid, mapDef.deploy, b.units.filter(u => u.team === 'enemy'));
+    b.deployKeys = new Set(b.deployZone.map(t => `${t.x},${t.y}`));
+    b.maxDeploy = Math.min(5, b.deployZone.length);
+    b.autoDeploy(playerUnits);
     // Enemies face the nearest player at start.
     for (const e of b.units.filter(u => u.team === 'enemy')) {
       const p = b.nearestEnemyOf(e);
       if (p) e.facing = facingFromDelta(p.x - e.x, p.y - e.y);
+    }
+    if (b.objective.type === 'boss') {
+      b.objective.target = b.units.find(u => u.team === 'enemy' && u.boss) ||
+        b.units.find(u => u.team === 'enemy');
+    }
+    if (b.objective.protectLeader) {
+      b.objective.leader = playerUnits.find(u => u.leader) || playerUnits[0];
+      b.requiredUnit = b.objective.leader; // the deployment phase insists on this one
     }
     // Random initial CT so the opening order isn't purely by speed.
     for (const u of b.units) u.ct = Math.floor(Math.random() * 30);
     return b;
   }
 
+  // ---- deployment ---------------------------------------------------------
+  deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0); }
+  canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.unitAt(x, y); }
+
+  placeUnit(unit, x, y) {
+    if (unit.x === x && unit.y === y) return true;
+    if (!this.canDeployAt(x, y)) return false;
+    if (unit.x < 0 && this.deployed().length >= this.maxDeploy) return false;
+    unit.x = x; unit.y = y;
+    unit.facing = this.faceNearestEnemy(unit);
+    return true;
+  }
+
+  withdraw(unit) { unit.x = -1; unit.y = -1; }
+
+  faceNearestEnemy(unit) {
+    const near = this.nearestEnemyOf(unit);
+    return near ? facingFromDelta(near.x - unit.x, near.y - unit.y) : unit.facing;
+  }
+
+  // Fill the field automatically, front-loading the roster order.
+  autoDeploy(roster) {
+    const free = this.deployZone.filter(t => !this.unitAt(t.x, t.y));
+    // Anchors first, then the rest of the zone, so the default looks deliberate.
+    const anchors = this.mapDef.deploy.map(([x, y]) => `${x},${y}`);
+    free.sort((a, b) => anchors.indexOf(`${b.x},${b.y}`) - anchors.indexOf(`${a.x},${a.y}`));
+    for (const u of roster) {
+      if (u.x >= 0) continue;
+      if (this.deployed().length >= this.maxDeploy) break;
+      const t = free.find(t => !this.unitAt(t.x, t.y));
+      if (!t) break;
+      this.placeUnit(u, t.x, t.y);
+    }
+    for (const u of this.deployed()) u.facing = this.faceNearestEnemy(u);
+  }
+
   log(msg, cls) { if (this.hooks.log) this.hooks.log(msg, cls); }
-  unitAt(x, y) { return this.units.find(u => u.alive && !u.airborne && u.x === x && u.y === y) || null; }
+  unitAt(x, y) { return this.units.find(u => u.alive && !u.airborne && u.x >= 0 && u.x === x && u.y === y) || null; }
+
+  // Units left in reserve sit at x = -1 and take no part in the battle.
+  onField(u) { return u.x >= 0; }
   alliesOf(u) { return this.units.filter(o => o.team === u.team); }
   enemiesOf(u) { return this.units.filter(o => o.team !== u.team); }
   nearestEnemyOf(u) {
     let best = null, bd = 1e9;
     for (const e of this.enemiesOf(u)) {
-      if (!e.alive) continue;
+      if (!e.alive || !this.onField(e)) continue;
       const d = Grid.dist(u.x, u.y, e.x, e.y);
       if (d < bd) { bd = d; best = e; }
     }
@@ -92,7 +190,7 @@ class Battle {
     const out = [];
     for (const t of tiles) {
       for (const u of this.units) {
-        if (u.x !== t.x || u.y !== t.y) continue;
+        if (!this.onField(u) || u.x !== t.x || u.y !== t.y) continue;
         if (u.airborne) continue;
         if (ab.deadOnly ? u.alive : !u.alive) continue;
         const isAlly = u.team === unit.team;
@@ -108,6 +206,7 @@ class Battle {
   hitChance(user, ab, target) {
     if (ab.kind !== 'physical') return 100;
     if (target.team === user.team) return 100;
+    if (user.hasPassive('concentrate')) return 100;
     const rel = relativeFacing(target, user.x, user.y);
     const mult = rel === 'front' ? 1 : rel === 'side' ? 0.5 : 0;
     return Math.max(5, Math.min(100, Math.round(100 - target.evade * mult)));
@@ -127,8 +226,11 @@ class Battle {
       if (ab.kind === 'physical') {
         const dh = this.grid.height(user.x, user.y) - this.grid.height(target.x, target.y);
         if (dh >= 2) base *= 1.1; else if (dh <= -2) base *= 0.9;
+        if (user.hasPassive('attackUp')) base *= 1.25;
+        if (target.hasPassive('defend')) base *= 0.8;
         if (target.hasStatus('protect')) base *= 2 / 3;
       } else if (ab.kind === 'magic') {
+        if (user.hasPassive('magickUp')) base *= 1.25;
         if (target.hasStatus('shell')) base *= 2 / 3;
       }
     }
@@ -152,20 +254,31 @@ class Battle {
         else if (eff.type === 'ctmod') p.notes.push(`CT ${eff.amount}`);
         else if (eff.type === 'ctset') p.notes.push(`CT = ${eff.amount}`);
       }
-      if (user.jobData.twoSwords && ab === ABILITIES.attack) { p.dmg *= 2; p.notes.push('x2 hits'); }
+      if (user.dualWielding && ab === ABILITIES.attack) {
+        // The offhand swings too, for its own weapon's power.
+        const off = user.offhandWeapon;
+        const extra = ab.effects.filter(e => e.type === 'damage')
+          .reduce((a, e) => a + this.computeEffect(user, ab, Object.assign({}, e, { power: off.power }), t), 0);
+        p.dmg += extra;
+        p.notes.push('2 hits');
+      }
       return p;
     });
   }
 
   async applyAbility(user, ab, tx, ty) {
     const targets = this.affectedUnits(user, ab, tx, ty);
-    if (ab.mp) user.mp -= ab.mp;
+    if (ab.mp) user.mp -= this.mpCost(user, ab);
     user.facing = (tx === user.x && ty === user.y) ? user.facing : facingFromDelta(tx - user.x, ty - user.y);
     if (this.hooks.animateAction) await this.hooks.animateAction(user, ab, tx, ty);
     let didSomething = false;
-    const hits = user.jobData.twoSwords && ab === ABILITIES.attack ? 2 : 1;
+    const hits = user.dualWielding && ab === ABILITIES.attack ? 2 : 1;
+    // Start clean: only a blow landed by this ability may provoke a counter.
+    for (const t of targets) t._tookHit = false;
     for (const t of targets) {
       for (let h = 0; h < hits; h++) {
+        // FIX 5: the offhand does not swing at a unit the main hand felled.
+        if (!t.alive && !ab.deadOnly) break;
         const roll = Math.random() * 100;
         const hit = this.hitChance(user, ab, t);
         if (roll >= hit) {
@@ -173,8 +286,16 @@ class Battle {
           if (this.hooks.showFloat) this.hooks.showFloat(t, 'Miss', '#ddd');
           continue;
         }
+        // Parry turns a physical blow aside outright.
+        if (ab.kind === 'physical' && t.team !== user.team && t.hasPassive('parry') && Math.random() < 0.35) {
+          this.log(`${t.name} parries ${user.name}'s ${ab.name}!`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, 'Parry', '#9fd6ff');
+          continue;
+        }
+        const off = h === 1 ? user.offhandWeapon : null;
         for (const eff of ab.effects) {
-          const r = this.applyEffect(user, ab, eff, t);
+          const use = off && eff.power === 'weapon' ? Object.assign({}, eff, { power: off.power }) : eff;
+          const r = this.applyEffect(user, ab, use, t);
           if (r) didSomething = true;
         }
         if (!t.alive && t.hp <= 0 && !t._deathLogged) {
@@ -187,8 +308,25 @@ class Battle {
         if (hits > 1) await sleep(250);
       }
     }
+    if (!this.counterDepth) await this.resolveCounters(user, ab, targets);
     if (!targets.length) this.log(`${user.name}'s ${ab.name} hits nothing.`);
-    if (ab.suicide) { user.hp = 0; this.log(`${user.name} is consumed by the blast!`, 'ko'); if (this.hooks.onDeath) await this.hooks.onDeath(user); }
+    if (ab.suicide) {
+      // The blast may already have killed the user through its own area effect.
+      if (user.alive) {
+        user.hp = 0;
+        this.onUnitKO(user);
+        this.log(`${user.name} is consumed by the blast!`, 'ko');
+        if (this.hooks.onDeath) await this.hooks.onDeath(user);
+      }
+      user._deathLogged = true;
+      // The side it was fighting still gets the credit for a foe removed,
+      // whether or not anyone was caught in the blast.
+      if (!user._suicideScored) {
+        user._suicideScored = true;
+        const killer = targets.find(t => t.alive && t.team !== user.team) || this.nearestEnemyOf(user);
+        if (killer) this.awardKill(killer, user);
+      }
+    }
     if (didSomething || targets.length) this.awardAction(user, targets);
     if (this.hooks.refresh) this.hooks.refresh();
     await sleep(200);
@@ -202,6 +340,7 @@ class Battle {
         this.log(`${user.name}'s ${ab.name} deals ${v} damage to ${t.name}.`, 'dmg');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, '#ff6a5a');
         if (t.hp === 0) this.onUnitKO(t);
+        else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
       case 'drain': {
@@ -210,6 +349,7 @@ class Battle {
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
         if (t.hp === 0) this.onUnitKO(t);
+        else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
       case 'heal': {
@@ -234,6 +374,7 @@ class Battle {
         t.hp = Math.max(1, Math.floor(t.maxHp * eff.pct));
         t._deathLogged = false;
         t.ct = 0;
+        t.koCount = undefined;
         this.log(`${t.name} is revived!`, 'heal');
         if (this.hooks.showFloat) this.hooks.showFloat(t, 'Revive', '#ffe97c');
         return true;
@@ -283,46 +424,152 @@ class Battle {
     return false;
   }
 
+  // Reactions that fire the moment a unit takes damage.
+  onDamaged(user, ab, target, amount) {
+    if (!target.alive || amount <= 0) return;
+    if (target.hasPassive('autoPotion')) {
+      const heal = Math.min(35, target.maxHp - target.hp);
+      if (heal > 0) {
+        target.hp += heal;
+        this.log(`${target.name} downs a potion for ${heal} HP.`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(target, `+${heal}`, '#7cff7c');
+      }
+    }
+    if (target.hasPassive('absorbMp') && ab.kind === 'magic') {
+      const mp = Math.min(10, target.maxMp - target.mp);
+      if (mp > 0) {
+        target.mp += mp;
+        this.log(`${target.name} absorbs ${mp} MP.`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(target, `+${mp} MP`, '#7cc8ff');
+      }
+    }
+    if (target.hasPassive('regenerator') && !target._regenFired) {
+      target._regenFired = true;
+      target.addStatus('regen');
+      this.log(`${target.name}'s wounds begin to close.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'Regen', STATUSES.regen.color);
+    }
+    if (target.hasPassive('vengeance')) {
+      target.mods.pa = (target.mods.pa || 0) + 1;
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'PA +1', '#ffe97c');
+    }
+  }
+
+  // Survivors with Counter hit back once. Counters never trigger counters.
+  async resolveCounters(user, ab, targets) {
+    if (ab.kind !== 'physical' || !user.alive) return;
+    const counters = targets.filter(t =>
+      t.alive && t.team !== user.team && t.hasPassive('counter') && t._tookHit &&
+      Grid.dist(t.x, t.y, user.x, user.y) <= t.weapon.range);
+    for (const c of counters) {
+      if (!user.alive || !c.alive) break;
+      this.counterDepth = (this.counterDepth || 0) + 1;
+      this.log(`${c.name} counterattacks!`, 'act');
+      c.facing = facingFromDelta(user.x - c.x, user.y - c.y);
+      try {
+        await this.applyAbility(c, ABILITIES.attack, user.x, user.y);
+      } finally {
+        this.counterDepth--;
+      }
+    }
+  }
+
   onUnitKO(t) {
     t.statuses = {};
     t.ct = 0;
     // Cancel anything the unit was charging.
     this.pending = this.pending.filter(p => p.unit !== t);
     t.airborne = false;
+    t.koCount = KO_COUNTDOWN;
+  }
+
+  // A fallen unit's countdown ticks on the turn it would have taken. At zero it
+  // leaves the field for the rest of the battle; revive it before then.
+  async tickDown(unit) {
+    unit.ct = 0;
+    unit.koCount = (unit.koCount === undefined ? KO_COUNTDOWN : unit.koCount) - 1;
+    if (unit.koCount > 0) {
+      this.log(`${unit.name} will be lost in ${unit.koCount}...`, 'ko');
+      if (this.hooks.showFloat) this.hooks.showFloat(unit, `${unit.koCount}`, '#ff6a5a');
+      if (this.hooks.refresh) this.hooks.refresh();
+      return;
+    }
+    this.log(`${unit.name} is carried from the field.`, 'ko');
+    if (this.hooks.showFloat) this.hooks.showFloat(unit, 'Lost', '#ff6a5a');
+    unit.x = -1; unit.y = -1;
+    unit.koCount = 0;
+    if (this.hooks.refresh) this.hooks.refresh();
   }
 
   awardAction(user, targets) {
     if (user.team !== 'player') return;
     const tgt = targets[0];
-    const exp = tgt ? Math.max(4, Math.min(30, 10 + (tgt.level - user.level) * 3)) : 6;
+    const exp = tgt ? Math.max(8, Math.min(50, 20 + (tgt.level - user.level) * 4)) : 8;
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
-    const jpEv = user.gainJP(10);
+    const jpEv = user.gainJP(16);
     if (jpEv) { this.log(jpEv, 'lvl'); this.rewards.events.push(jpEv); }
     this.rewards.exp += exp;
   }
 
   awardKill(user, t) {
     if (user.team !== 'player') return;
-    const exp = 10 + Math.max(0, (t.level - user.level) * 2);
+    const exp = 28 + Math.max(0, (t.level - user.level) * 4);
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
-    user.gainJP(6);
+    user.gainJP(12);
     this.rewards.exp += exp;
-    this.rewards.gil += 10 + t.level * 5;
+    this.rewards.gil += 30 + t.level * 14;
   }
 
   // ---- charge-time loop -------------------------------------------------------
+  // A one-line statement of what the player has to do, with live progress.
+  objectiveText() {
+    const o = this.objective;
+    if (o.type === 'survive') return `Hold out: round ${Math.min(this.round, o.rounds)}/${o.rounds}`;
+    if (o.type === 'boss') return `Defeat ${o.target ? o.target.name : 'the commander'}`;
+    return OBJECTIVES.rout.label;
+  }
+
+  finish(result, why) {
+    if (this.over) return true;
+    this.over = true;
+    this.result = result;
+    this.endReason = why;
+    if (why) this.log(why, result === 'victory' ? 'lvl' : 'ko');
+    return true;
+  }
+
   checkEnd() {
-    const pAlive = this.units.some(u => u.team === 'player' && u.alive);
-    const eAlive = this.units.some(u => u.team === 'enemy' && u.alive);
-    if (!eAlive) { this.over = true; this.result = 'victory'; }
-    else if (!pAlive) { this.over = true; this.result = 'defeat'; }
-    return this.over;
+    if (this.over) return true;
+    const o = this.objective;
+    const standing = t => this.units.some(u => u.team === t && u.alive && this.onField(u));
+    // Losing conditions come first: they override a simultaneous win.
+    if (!standing('player')) return this.finish('defeat', 'The party is wiped out.');
+    // The leader may be revived while the countdown runs; only being carried
+    // from the field ends the cause.
+    if (o.leader && !this.onField(o.leader)) {
+      return this.finish('defeat', `${o.leader.name} is lost. The cause dies here.`);
+    }
+    if (this.round > ROUND_LIMIT || this.turnNo >= TURN_LIMIT) {
+      return this.finish('defeat', 'The battle drags on until the light fails.');
+    }
+    if (o.type === 'survive') {
+      if (this.round > o.rounds) return this.finish('victory', 'You have held long enough. Fall back!');
+      return false;
+    }
+    if (o.type === 'boss') {
+      const t = o.target;
+      if (t && (!t.alive || !this.onField(t))) return this.finish('victory', `${t.name} falls. The rest scatter.`);
+      return false;
+    }
+    if (!standing('enemy')) return this.finish('victory');
+    return false;
   }
 
   // Simulates upcoming turns for the turn-order display.
   forecast(n = 8) {
     // The acting unit's CT resets after its turn, so forecast it from zero.
-    const sim = this.units.filter(u => u.alive).map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.ctSpeed() }));
+    const sim = this.units.filter(u => this.onField(u))
+      .map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.alive ? u.ctSpeed() : Math.max(1, u.baseStats().spd) }));
     const pend = this.pending.map(p => ({ p, ct: p.ct }));
     const out = [];
     let guard = 0;
@@ -337,16 +584,28 @@ class Battle {
   }
 
   async run() {
+    // A leader left in reserve cannot be lost, so the rule does not apply.
+    if (this.objective.leader && !this.onField(this.objective.leader)) this.objective.leader = null;
     if (this.hooks.refresh) this.hooks.refresh();
     while (!this.over) {
       // Advance one tick.
       this.tick++;
       // Pending charged actions resolve first.
       for (const p of this.pending) p.ct += p.speed;
+      // Take every charge that is due out of the queue up front. Removing them
+      // one at a time by index breaks as soon as resolving one kills the owner
+      // of another, because onUnitKO rebuilds the queue underneath us.
       const ready = this.pending.filter(p => p.ct >= 100);
+      this.pending = this.pending.filter(p => p.ct < 100);
       for (const p of ready) {
-        this.pending.splice(this.pending.indexOf(p), 1);
         if (!p.unit.alive || p.unit.hasStatus('stop')) { p.unit.airborne = false; continue; }
+        // MP is only spent when a spell lands, so it may be gone by now.
+        if (p.ability.mp && p.unit.mp < this.mpCost(p.unit, p.ability)) {
+          p.unit.airborne = false;
+          this.log(`${p.unit.name} lacks the MP to finish ${p.ability.name}.`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(p.unit, 'Fizzle', '#aaa');
+          continue;
+        }
         this.log(`${p.unit.name} unleashes ${p.ability.name}!`, 'act');
         if (this.hooks.refresh) this.hooks.refresh();
         if (p.ability.airborne) { p.unit.airborne = false; if (this.hooks.onLand) await this.hooks.onLand(p.unit, p.tx, p.ty); }
@@ -354,19 +613,26 @@ class Battle {
         await this.applyAbility(p.unit, p.ability, p.tx, p.ty);
         if (this.checkEnd()) return this.result;
       }
-      // Units gain CT; tick down statuses.
+      // Units gain CT; tick down statuses. The fallen keep a slot in the order
+      // so their countdown runs.
       for (const u of this.units) {
+        if (!this.onField(u)) continue;
+        u.ct += u.alive ? u.ctSpeed() : Math.max(1, u.baseStats().spd);
         if (!u.alive) continue;
-        u.ct += u.ctSpeed();
         for (const s of Object.keys(u.statuses)) { u.statuses[s]--; if (u.statuses[s] <= 0) delete u.statuses[s]; }
       }
-      const turnUnits = this.units.filter(u => u.alive && u.ct >= 100 && !u.airborne && !u.hasStatus('stop'))
+      const acting = this.units.filter(u => this.onField(u) && u.ct >= 100 && !u.airborne)
         .sort((a, b) => b.ct - a.ct || b.spd - a.spd);
-      for (const u of turnUnits) {
-        if (!u.alive || this.over) continue;
+      for (const u of acting) {
+        if (this.over || !this.onField(u)) continue;
+        if (!u.alive) { await this.tickDown(u); continue; }
+        // Re-check now rather than trusting the snapshot: a unit revived or
+        // knocked back earlier in this same tick has lost its charge.
+        if (u.ct < 100 || u.hasStatus('stop')) continue;
         await this.takeTurn(u);
         if (this.checkEnd()) return this.result;
       }
+      if (this.checkEnd()) return this.result;
       if (this.hooks.refresh) this.hooks.refresh();
     }
     return this.result;
@@ -374,6 +640,7 @@ class Battle {
 
   async takeTurn(unit) {
     this.active = unit;
+    this.turnNo++;
     unit.turnFlags = { moved: false, acted: false };
     // Poison / regen at turn start.
     if (unit.hasStatus('poison')) {
@@ -397,6 +664,12 @@ class Battle {
     if (!unit.turnFlags.acted) unit.ct += 20;
     if (unit.airborne) unit.ct = 0;
     this.active = null;
+    this.actedThisRound.add(unit);
+    const standing = this.units.filter(u => u.alive && this.onField(u));
+    if (standing.length && standing.every(u => this.actedThisRound.has(u))) {
+      this.round++;
+      this.actedThisRound.clear();
+    }
     if (this.hooks.onTurnEnd) this.hooks.onTurnEnd(unit);
   }
 
@@ -404,6 +677,16 @@ class Battle {
   async moveUnit(unit, path) {
     if (path.length < 2) return;
     unit.turnFlags.moved = true;
+    // Movement abilities pay out for covering ground.
+    if (unit.hasPassive('moveHpUp')) {
+      const v = Math.min(Math.ceil(unit.maxHp / 10), unit.maxHp - unit.hp);
+      if (v > 0) { unit.hp += v; this.log(`${unit.name} recovers ${v} HP on the move.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v}`, '#7cff7c'); }
+    }
+    if (unit.hasPassive('moveFindItem')) {
+      if (unit.team === 'player') this.rewards.gil += 25;
+      this.log(`${unit.name} turns up 25 gil.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(unit, '+25 gil', '#ffe97c');
+    }
     if (this.hooks.animateMove) await this.hooks.animateMove(unit, path);
     const last = path[path.length - 1], prev = path[path.length - 2];
     unit.x = last.x; unit.y = last.y;
@@ -427,7 +710,13 @@ class Battle {
     await this.applyAbility(unit, ab, tx, ty);
   }
 
-  canAfford(unit, ab) { return unit.mp >= (ab.mp || 0); }
+  // What this unit actually pays for an ability, after support abilities.
+  mpCost(unit, ab) {
+    const base = ab.mp || 0;
+    return unit.hasPassive('halfMp') ? Math.ceil(base / 2) : base;
+  }
+
+  canAfford(unit, ab) { return unit.mp >= this.mpCost(unit, ab); }
 
   // ---- enemy AI ----------------------------------------------------------------
   scoreTarget(unit, ab, fromX, fromY, tx, ty) {

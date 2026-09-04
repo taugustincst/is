@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Chronicles of Elderon — Tactics</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%23e6c35a'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
@@ -33,8 +33,13 @@
         <button id="btn-battle" class="primary">March to Battle</button>
         <button id="btn-train">Training Battle</button>
         <button id="btn-formation">Formation &amp; Jobs</button>
+        <button id="btn-shop">Shop</button>
         <button id="btn-save">Save</button>
         <button id="btn-title">Title</button>
+      </div>
+      <div class="card difficulty">
+        <h3>Difficulty <small>changeable at any time</small></h3>
+        <div id="world-difficulty" class="tabs"></div>
       </div>
       <div class="card tavern">
         <h3>Tavern</h3>
@@ -44,7 +49,11 @@
       </div>
     </div>
     <aside class="world-side">
-      <div class="gil" id="world-gil"></div>
+      <div class="side-head">
+        <span class="gil" id="world-gil"></span>
+        <button id="btn-sound-world" class="icon"></button>
+      </div>
+      <div id="world-stock" class="stock"></div>
       <h3>Party <small>(first 5 deploy)</small></h3>
       <div id="world-party"></div>
     </aside>
@@ -61,6 +70,19 @@
       <button id="btn-formation-back">Back to Camp</button>
     </div>
     <div class="form-right" id="form-detail"></div>
+  </div>
+</section>
+
+<!-- ================= Shop ================= -->
+<section id="screen-shop" class="screen">
+  <div class="shop-layout">
+    <div class="shop-head">
+      <h2>Merchant's Wagon</h2>
+      <span id="shop-gil"></span>
+    </div>
+    <div id="shop-tabs" class="tabs"></div>
+    <div id="shop-list"></div>
+    <button id="btn-shop-back">Back to Camp</button>
   </div>
 </section>
 
@@ -81,13 +103,17 @@
   <div id="unit-card" class="panel"></div>
   <div id="battle-top">
     <span id="battle-name"></span>
+    <span id="objective"></span>
     <span id="tile-info"></span>
+    <button id="btn-sound" class="icon"></button>
+    <button id="btn-music" class="icon"></button>
     <button id="btn-help">?</button>
     <button id="btn-retreat">Retreat</button>
   </div>
   <div id="log" class="panel"></div>
+  <div id="hint"></div>
+  <div id="deploy-panel" class="panel"></div>
   <div id="command" class="panel">
-    <div id="hint"></div>
     <div id="action-menu"></div>
     <div id="prediction"></div>
   </div>
@@ -95,13 +121,18 @@
     <div class="help-box">
       <h3>How to play</h3>
       <ul>
+        <li><b>Deployment:</b> before each battle, pick who fights and where they stand. Units left in reserve take no part. The opposition is listed on the left.</li>
         <li><b>Charge Time (CT):</b> every unit gains CT equal to its Speed each tick. At 100 CT it takes a turn. The Turn Order panel forecasts who acts next.</li>
         <li><b>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 CT toward your next turn.</li>
         <li><b>Facing:</b> attacks from the side halve the target's evasion; attacks from behind cannot be evaded. Face your enemies when you Wait.</li>
         <li><b>Height:</b> attacking from 2+ tiles above deals 10% more damage; from below, 10% less. Jump limits how high you can climb.</li>
         <li><b>Charged abilities:</b> spells and Aim shots resolve after their charge fills. Targets that move out of the area are missed. Friendly fire is real.</li>
-        <li><b>Jobs:</b> earn JP by acting. Spend it in Formation to learn abilities. Reach job levels to unlock advanced jobs. Equip a second skillset from any job you've studied.</li>
-        <li><b>Controls:</b> click tiles/buttons. Right-click or Esc cancels. Drag or use arrow keys to pan the camera.</li>
+        <li><b>Falling:</b> a downed unit counts down three turns before it is carried from the field. Revive it in time and it stays. Losing your leader loses the battle.</li>
+        <li><b>Objective:</b> shown in the bar above. Some battles end when the enemy commander falls, or when you have held out long enough.</li>
+        <li><b>Jobs:</b> earn JP by acting. Spend it in Formation on abilities and passives. Reach job levels to unlock advanced jobs, and equip a second skillset from any job you have studied.</li>
+        <li><b>Passives:</b> one reaction, one support and one movement ability at a time. Learn them in one job and wear them in any.</li>
+        <li><b>Equipment:</b> buy gear at the shop and fit it in Formation, or press Optimize. Weapons set your power and reach; armour, shields and accessories do the rest.</li>
+        <li><b>Controls:</b> click or tap tiles and buttons, keys 1-9 for menu entries. Right-click or Esc cancels. Drag or pinch to pan and zoom, arrows and +/- as well, 0 to reframe.</li>
       </ul>
       <button id="btn-help-close">Close</button>
     </div>
@@ -119,6 +150,7 @@
 
 <div id="toast"></div>
 
+<script src="js/audio.js"></script>
 <script src="js/data.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/unit.js"></script>

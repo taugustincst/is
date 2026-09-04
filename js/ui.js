@@ -16,8 +16,10 @@ class BattleUI {
       menu: document.getElementById('action-menu'),
       pred: document.getElementById('prediction'),
       log: document.getElementById('log'),
+      roster: document.getElementById('deploy-panel'),
       banner: document.getElementById('banner'),
       tileInfo: document.getElementById('tile-info'),
+      objective: document.getElementById('objective'),
       hint: document.getElementById('hint'),
     };
     this.bindInput();
@@ -26,6 +28,7 @@ class BattleUI {
   bind(battle) {
     this.battle = battle;
     this.turn = null;
+    this.deploy = null;
     this.el.log.innerHTML = '';
     this.el.menu.innerHTML = '';
     this.el.pred.innerHTML = '';
@@ -37,8 +40,11 @@ class BattleUI {
       log: (m, cls) => this.log(m, cls),
       refresh: () => this.refresh(),
       showFloat: (u, t, c) => this.r.showFloat(u, t, c),
-      animateMove: (u, p) => this.r.animateMove(u, p),
-      animateAction: (u, ab, x, y) => this.r.animateAction(u, ab, x, y),
+      animateMove: (u, p) => { audio.sfx('move'); return this.r.animateMove(u, p); },
+      animateAction: (u, ab, x, y) => {
+        audio.sfx(ab.kind === 'magic' ? 'magic' : ab.kind === 'support' || ab.kind === 'item' ? 'heal' : 'hit');
+        return this.r.animateAction(u, ab, x, y);
+      },
       onJump: (u) => this.r.onJump(u),
       onLand: (u, x, y) => this.r.onLand(u, x, y),
       onDeath: (u) => this.r.onDeath(u),
@@ -50,7 +56,12 @@ class BattleUI {
   }
 
   // ---- logging / info panels ---------------------------------------------------------
+  // Every engine event is logged, so the log is also where battle sound lives.
+  static LOG_SFX = { dmg: 'hit', heal: 'heal', miss: 'miss', ko: 'ko', lvl: 'levelup' };
+
   log(msg, cls = '') {
+    const sfx = BattleUI.LOG_SFX[cls];
+    if (sfx) audio.sfx(sfx);
     const d = document.createElement('div');
     d.className = `log-line ${cls}`;
     d.textContent = msg;
@@ -67,9 +78,15 @@ class BattleUI {
     this._bt = setTimeout(() => { b.className = 'banner'; }, 1100);
   }
 
+  showObjective() {
+    if (!this.battle || !this.el.objective) return;
+    this.el.objective.textContent = this.battle.objectiveText();
+  }
+
   refresh() {
     if (!this.battle) return;
-    this.renderOrder();
+    this.showObjective();
+    if (this.deploy) this.renderEnemyRoster(); else this.renderOrder();
     const u = (this.hover && this.battle.unitAt(this.hover.x, this.hover.y)) || (this.turn && this.turn.unit) || this.battle.active;
     this.renderCard(u);
   }
@@ -78,7 +95,7 @@ class BattleUI {
     const list = this.battle.forecast(9);
     let html = '<div class="panel-title">Turn Order</div>';
     for (const e of list) {
-      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.jobData.name}</span></div>`;
+      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? e.unit.jobData.name : 'fallen'}</span></div>`;
       else html += `<div class="order-row pending"><span class="dot"></span>${e.p.ability.name}<span class="sub">${e.p.unit.name}</span></div>`;
     }
     this.el.order.innerHTML = html;
@@ -99,13 +116,135 @@ class BattleUI {
       </div>
       ${mods ? `<div class="mods">${mods}</div>` : ''}
       <div class="statuses">${st}</div>
-      ${u.alive ? '' : '<div class="ko">KO</div>'}`;
+      ${u.alive ? '' : `<div class="ko">KO${u.koCount ? ` — carried off in ${u.koCount}` : ''}</div>`}`;
   }
 
   renderTileInfo(t) {
     if (!t) { this.el.tileInfo.textContent = ''; return; }
     const names = { g: 'Grass', d: 'Dirt', s: 'Stone', b: 'Wood', w: 'Water', t: 'Tree' };
     this.el.tileInfo.textContent = `${names[t.t] || '?'}  (${t.x},${t.y})  height ${t.h}`;
+  }
+
+  // ---- deployment -------------------------------------------------------------------
+  // Runs before the first tick: pick who fights and where they stand.
+  deployPhase(battle, roster) {
+    return new Promise(resolve => {
+      this.battle = battle;
+      this.deploy = { roster, sel: roster.find(u => u.x >= 0) || roster[0], resolve };
+      battle.showDeploy = true;
+      document.getElementById('command').style.display = 'none';
+      this.renderDeploy();
+      this.renderEnemyRoster();
+    });
+  }
+
+  endDeploy() {
+    const d = this.deploy;
+    if (!d) return;
+    if (!this.battle.deployed().length) { this.toastHint('Place at least one unit.'); return; }
+    // A battle that is lost when the leader falls cannot be fought without them.
+    const need = this.battle.requiredUnit;
+    if (need && !this.battle.onField(need)) {
+      this.toastHint(`${need.name} must take the field: this battle is lost without them.`);
+      return;
+    }
+    this.deploy = null;
+    this.battle.showDeploy = false;
+    this.el.roster.innerHTML = '';
+    this.el.roster.classList.remove('open');
+    document.getElementById('command').style.display = '';
+    this.el.hint.textContent = '';
+    this.el.hint.classList.remove('warn');
+    d.resolve();
+  }
+
+  // Park the hint just above whichever bottom-right panel is showing.
+  placeHint() {
+    const panel = this.deploy ? this.el.roster : this.el.menu.parentElement;
+    const h = panel && panel.offsetParent ? panel.offsetHeight : 0;
+    this.el.hint.style.bottom = `${h + 18}px`;
+  }
+
+  toastHint(msg) {
+    this.el.hint.textContent = msg;
+    this.placeHint();
+    this.el.hint.classList.add('warn');
+    clearTimeout(this._hintTimer);
+    this._hintTimer = setTimeout(() => this.el.hint.classList.remove('warn'), 1200);
+  }
+
+  renderEnemyRoster() {
+    const foes = this.battle.units.filter(u => u.team === 'enemy');
+    this.el.order.innerHTML = '<div class="panel-title">Opposition</div>' + foes.map(u =>
+      `<div class="order-row enemy"><span class="dot"></span>${u.name}<span class="sub">Lv${u.level} ${u.jobData.name}</span></div>`).join('');
+  }
+
+  renderDeploy() {
+    const d = this.deploy;
+    if (!d) return;
+    const b = this.battle;
+    const placed = b.deployed().length;
+    const need = b.requiredUnit && !this.battle.onField(b.requiredUnit)
+      ? `${b.requiredUnit.name} must take the field. ` : '';
+    this.el.hint.textContent = `${need}Click a green tile to place ${d.sel ? d.sel.name : 'a unit'}. Click a deployed unit to pick it up.`;
+    this.el.hint.classList.toggle('warn', !!need);
+    this.el.roster.classList.add('open');
+    this.el.roster.innerHTML = `
+      <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
+      <div class="roster-list">${d.roster.map((u, i) => `
+        <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}">
+          <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
+          <span class="job">Lv${u.level} ${u.jobData.name}</span>
+          <span class="mark">${u.x >= 0 ? '●' : '○'}</span>
+        </div>`).join('')}</div>
+      <div class="dirs deploy-dirs">
+        <button data-d="N">↗ N</button><button data-d="E">↘ E</button>
+        <button data-d="W">↖ W</button><button data-d="S">↙ S</button>
+      </div>
+      <div class="deploy-actions">
+        <button data-a="auto">Auto-place</button>
+        <button data-a="clear">Clear</button>
+        <button data-a="go" class="primary">Begin Battle</button>
+      </div>`;
+    this.placeHint();
+    this.el.roster.querySelectorAll('.roster-row').forEach(r => r.onclick = () => {
+      d.sel = d.roster[+r.dataset.i];
+      if (d.sel.x >= 0) this.r.focus(d.sel);
+      this.renderDeploy();
+    });
+    this.el.roster.querySelectorAll('button[data-d]').forEach(btn => btn.onclick = () => {
+      if (d.sel && d.sel.x >= 0) { d.sel.facing = btn.dataset.d; this.refresh(); }
+    });
+    this.el.roster.querySelectorAll('button[data-a]').forEach(btn => btn.onclick = () => {
+      const a = btn.dataset.a;
+      if (a === 'auto') b.autoDeploy(d.roster);
+      else if (a === 'clear') for (const u of d.roster) b.withdraw(u);
+      else return this.endDeploy();
+      this.renderDeploy();
+    });
+    this.refresh();
+  }
+
+  onDeployClick(tile) {
+    const d = this.deploy, b = this.battle;
+    if (!d || !tile) return;
+    audio.sfx('menu');
+    const occupant = b.unitAt(tile.x, tile.y);
+    if (occupant && occupant.team === 'player') {
+      // Clicking the selected unit picks it back up; clicking another selects it.
+      if (occupant === d.sel) b.withdraw(occupant); else d.sel = occupant;
+      return this.renderDeploy();
+    }
+    if (occupant) return; // an enemy stands there
+    if (!d.sel) return;
+    if (!b.placeUnit(d.sel, tile.x, tile.y)) {
+      this.toastHint(b.deployKeys.has(`${tile.x},${tile.y}`) ? `Only ${b.maxDeploy} units may deploy.` : 'Outside the deployment zone.');
+      return;
+    }
+    // Move the selection along to the next unit still waiting in reserve.
+    const next = d.roster.find(u => u.x < 0);
+    if (next && b.deployed().length < b.maxDeploy) d.sel = next;
+    this.renderDeploy();
   }
 
   // ---- player turn ------------------------------------------------------------------
@@ -128,6 +267,16 @@ class BattleUI {
 
   // Called from the game screen when the player retreats.
   abort() {
+    if (this.deploy) {
+      const d = this.deploy;
+      this.deploy = null;
+      this.battle.showDeploy = false;
+      this.el.roster.innerHTML = '';
+      this.el.roster.classList.remove('open');
+      document.getElementById('command').style.display = '';
+      d.resolve();
+      return;
+    }
     if (this.turn) this.endTurn();
   }
 
@@ -195,6 +344,7 @@ class BattleUI {
         this.endTurn();
       });
     }
+    this.placeHint();
     this.refresh();
   }
 
@@ -207,6 +357,7 @@ class BattleUI {
 
   menuAction(a) {
     const t = this.turn; if (!t) return;
+    audio.sfx('select');
     if (a === 'move') this.setMode('move');
     else if (a === 'act') this.setMode('act');
     else if (a === 'wait') this.setMode('wait');
@@ -214,6 +365,7 @@ class BattleUI {
 
   chooseAbility(id) {
     const t = this.turn; if (!t) return;
+    audio.sfx('select');
     t.ability = ABILITIES[id];
     this.setMode('target');
   }
@@ -269,46 +421,106 @@ class BattleUI {
       const r = cv.getBoundingClientRect();
       return { x: (e.clientX - r.left) * (cv.width / r.width), y: (e.clientY - r.top) * (cv.height / r.height) };
     };
-    cv.addEventListener('mousemove', (e) => {
+    // Pointer events cover mouse, touch and pen with one code path.
+    this.pointers = new Map();
+
+    cv.addEventListener('pointerdown', (e) => {
+      audio.init();
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      cv.setPointerCapture(e.pointerId);
       const p = pos(e);
-      if (this.drag) {
-        const dx = p.x - this.drag.x, dy = p.y - this.drag.y;
-        if (Math.abs(dx) + Math.abs(dy) > 4) this.drag.moved = true;
-        if (this.drag.moved) { const z = this.r.zoom || 1; this.r.cam.x += dx / z; this.r.cam.y += dy / z; this.drag.x = p.x; this.drag.y = p.y; }
+      this.pointers.set(e.pointerId, p);
+      if (this.pointers.size === 1) this.drag = { x: p.x, y: p.y, moved: false, id: e.pointerId };
+      else { this.drag = null; this.pinch = this.pinchSpan(); } // a second finger means pinch, not drag
+    });
+
+    cv.addEventListener('pointermove', (e) => {
+      const p = pos(e);
+      if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, p);
+
+      if (this.pointers.size >= 2 && this.pinch) {
+        const span = this.pinchSpan();
+        if (span && this.pinch) this.r.setZoom((this.r.zoom || 1) * (span / this.pinch));
+        this.pinch = span;
         return;
       }
+      if (this.drag && this.drag.id === e.pointerId) {
+        const dx = p.x - this.drag.x, dy = p.y - this.drag.y;
+        // Touch needs a larger slop than a mouse before a tap becomes a drag.
+        const slop = e.pointerType === 'mouse' ? 4 : 10;
+        if (Math.abs(dx) + Math.abs(dy) > slop) this.drag.moved = true;
+        if (this.drag.moved) {
+          const z = this.r.zoom || 1;
+          this.r.cam.x += dx / z; this.r.cam.y += dy / z;
+          this.drag.x = p.x; this.drag.y = p.y;
+        }
+        if (e.pointerType !== 'mouse') return; // no hover on touch
+      }
       if (!this.battle) return;
-      const t = this.r.pickTile(p.x, p.y);
-      this.hover = t;
-      this.r.hl.cursor = t;
-      this.renderTileInfo(t);
-      this.refresh();
-      if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
+      this.hoverAt(p);
     });
-    cv.addEventListener('mouseleave', () => { this.hover = null; this.r.hl.cursor = null; this.refresh(); });
-    cv.addEventListener('mousedown', (e) => { if (e.button === 0) { const p = pos(e); this.drag = { x: p.x, y: p.y, moved: false }; } });
-    window.addEventListener('mouseup', (e) => {
-      if (e.button !== 0 || !this.drag) return;
-      const moved = this.drag.moved; this.drag = null;
-      if (moved || e.target !== cv) return;
+
+    const release = (e) => {
+      const wasDrag = this.drag && this.drag.id === e.pointerId ? this.drag : null;
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size < 2) this.pinch = null;
+      if (!wasDrag) return;
+      this.drag = null;
+      if (wasDrag.moved) return;
+      // A tap that never turned into a drag is a click on that tile.
       const p = pos(e);
-      const t = this.r.pickTile(p.x, p.y);
-      this.onClick(t);
-    });
+      if (e.pointerType !== 'mouse') this.hoverAt(p); // show what was tapped
+      this.onClick(this.r.pickTile(p.x, p.y));
+    };
+    cv.addEventListener('pointerup', release);
+    cv.addEventListener('pointercancel', (e) => { this.pointers.delete(e.pointerId); this.drag = null; this.pinch = null; });
+    cv.addEventListener('pointerleave', () => { if (!this.drag) { this.hover = null; this.r.hl.cursor = null; this.refresh(); } });
+
     cv.addEventListener('contextmenu', (e) => { e.preventDefault(); this.cancel(); });
     cv.addEventListener('wheel', (e) => { e.preventDefault(); this.r.setZoom((this.r.zoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)); }, { passive: false });
+    // Stop the page itself from panning or pinching under the board.
+    cv.style.touchAction = 'none';
+
     window.addEventListener('keydown', (e) => {
-      if (!this.battle) return;
-      if (e.key === 'Escape') this.cancel();
-      const pan = 32;
-      if (e.key === 'ArrowLeft') this.r.cam.x += pan;
-      if (e.key === 'ArrowRight') this.r.cam.x -= pan;
-      if (e.key === 'ArrowUp') this.r.cam.y += pan;
-      if (e.key === 'ArrowDown') this.r.cam.y -= pan;
+      if (!this.battle || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'Escape') return this.cancel();
+      const pan = 40, z = this.r.zoom || 1;
+      if (e.key === 'ArrowLeft') this.r.cam.x += pan / z;
+      else if (e.key === 'ArrowRight') this.r.cam.x -= pan / z;
+      else if (e.key === 'ArrowUp') this.r.cam.y += pan / z;
+      else if (e.key === 'ArrowDown') this.r.cam.y -= pan / z;
+      else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
+      else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
+      else if (e.key === '0') this.r.centerCamera();
+      else if (/^[1-9]$/.test(e.key)) {
+        // Digits pick the matching command in whichever panel is open.
+        const panel = this.deploy ? this.el.roster : this.el.menu;
+        const btns = [...panel.querySelectorAll('button')].filter(b => !b.disabled);
+        const b = btns[+e.key - 1];
+        if (b) b.click();
+      } else return;
+      e.preventDefault();
     });
   }
 
+  // Distance between the first two active pointers, for pinch zoom.
+  pinchSpan() {
+    const pts = [...this.pointers.values()];
+    if (pts.length < 2) return null;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || null;
+  }
+
+  hoverAt(p) {
+    const t = this.r.pickTile(p.x, p.y);
+    this.hover = t;
+    this.r.hl.cursor = t;
+    this.renderTileInfo(t);
+    this.refresh();
+    if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
+  }
+
   onClick(tile) {
+    if (this.deploy) return this.onDeployClick(tile);
     const t = this.turn;
     if (!t || !tile) return;
     if (t.mode === 'move') this.confirmMove(tile);
@@ -321,6 +533,7 @@ class BattleUI {
 
   cancel() {
     const t = this.turn; if (!t) return;
+    audio.sfx('cancel');
     if (t.mode === 'move' || t.mode === 'act' || t.mode === 'wait') this.setMode('menu');
     else if (t.mode === 'abilities') this.setMode('act');
     else if (t.mode === 'target') this.setMode(t.ability === ABILITIES.attack ? 'act' : 'abilities');
