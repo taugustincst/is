@@ -109,7 +109,9 @@ class Game {
   invCount(id) { return this.state.inventory[id] || 0; }
 
   invAdd(id, n = 1) {
-    if (!ITEMS[id]) return;
+    // Free starter kit belongs to the unit it was granted to. Letting it into
+    // the shared baggage would mint a new copy on every job change.
+    if (!ITEMS[id] || ITEMS[id].price === 0) return;
     this.state.inventory[id] = this.invCount(id) + n;
   }
 
@@ -177,7 +179,7 @@ class Game {
     $('world-party').innerHTML = s.party.map((u, i) => `<div class="party-chip ${i < 5 ? '' : 'reserve'}">${u.name} <small>Lv${u.level} ${u.jobData.name}</small></div>`).join('');
     if (ch) {
       const o = ch.objective || { type: 'rout' };
-      const goal = o.type === 'survive' ? `Hold out for ${o.turns} turns`
+      const goal = o.type === 'survive' ? `Hold out for ${o.rounds} rounds`
         : o.type === 'boss' ? `Defeat ${(ch.enemies.find(e => e.boss) || {}).name || 'the commander'}`
         : 'Defeat every enemy';
       const topLevel = Math.max(...ch.enemies.map(e => e.level));
@@ -558,6 +560,9 @@ class Game {
     this.battle.over = true;
     this.battle.result = 'defeat';
     this.ui.log('The party retreats!', 'ko');
+    // Mid-action the engine is still applying effects. Let it finish and unwind
+    // on its own rather than resolving the turn out from under it.
+    if (this.ui.turn && this.ui.turn.mode === 'busy') return;
     this.ui.abort();
   }
 

@@ -588,7 +588,7 @@ const CAMPAIGN = [
       '"Mages," Lysa says. "Their spells take time to charge. Close the distance before they finish."',
     ],
     enemies: [
-      { job: 'blackMage', level: 4, x: 2, y: 2, name: 'Coven Mage' },
+      { job: 'blackMage', level: 4, x: 4, y: 4, name: 'Coven Mage' },
       { job: 'blackMage', level: 4, x: 4, y: 3, name: 'Coven Mage' },
       { job: 'thief', level: 4, x: 3, y: 5, name: 'Coven Cutpurse' },
       { job: 'wolf', level: 4, x: 7, y: 2 },
@@ -598,7 +598,7 @@ const CAMPAIGN = [
     outro: ['The last mage sinks beneath the black water. On her body: a sealed letter bearing the crest of Ser Brannoc, Captain of Dunmarch.'],
   },
   {
-    objective: { type: 'survive', turns: 26, protectLeader: true },
+    objective: { type: 'survive', rounds: 5, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
     intro: [
       'Ser Brannoc was Rowan\'s father\'s sworn brother. Now he hunts the Aldric line for Prince Aldous.',
@@ -894,7 +894,7 @@ function enemyGearFor(job, level, tierShift) {
 const PASSIVES = {
   // ---- reaction: triggered when something happens to the unit ----
   counter: { name: 'Counter', kind: 'reaction', job: 'monk', jp: 250,
-    desc: 'Strike back when an adjacent foe damages you with a physical attack.' },
+    desc: 'Strike back when a foe within your weapon\'s reach damages you with a physical attack.' },
   autoPotion: { name: 'Auto-Potion', kind: 'reaction', job: 'chemist', jp: 180,
     desc: 'Drink a potion for 35 HP whenever you take damage.' },
   parry: { name: 'Parry', kind: 'reaction', job: 'knight', jp: 250,

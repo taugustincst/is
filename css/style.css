@@ -113,7 +113,12 @@ small { color: var(--muted); }
 .log-line.dmg { color: #ff9a8a; } .log-line.heal { color: #8affa0; } .log-line.miss { color: #aaa; }
 .log-line.ko { color: var(--red); font-weight: bold; } .log-line.lvl { color: var(--gold); } .log-line.act { color: #fff; }
 #command { bottom: 12px; right: 12px; width: 320px; min-height: 120px; }
-#hint { color: var(--muted); font-size: 12px; margin-bottom: 6px; min-height: 14px; }
+/* The hint sits above whichever bottom-right panel is open, so it stays
+   readable during deployment when the command panel is hidden. */
+#hint { position: absolute; right: 12px; bottom: 0; width: 320px; color: var(--muted);
+  font-size: 12px; min-height: 16px; text-align: right; pointer-events: none; }
+#hint:not(:empty) { background: rgba(14, 16, 32, 0.85); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 8px; }
 #action-menu { display: flex; flex-direction: column; gap: 4px; }
 #action-menu button { display: flex; justify-content: space-between; text-align: left; }
 #action-menu button small { color: var(--muted); }
@@ -208,6 +213,7 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
   .banner { font-size: 17px; top: 52px; padding: 4px 16px; }
   #log { bottom: 6px; left: 6px; width: 44vw; height: 82px; font-size: 10px; }
   #command, #deploy-panel { bottom: 6px; right: 6px; width: min(270px, 52vw); padding: 7px; }
+  #hint { right: 6px; width: min(270px, 52vw); font-size: 11px; }
   .roster-list { max-height: 26vh; }
   #tile-info, #objective { display: none; }
   .world-layout, .form-layout, .shop-layout { flex-direction: column; height: auto; }

@@ -81,12 +81,34 @@ for (const ch of g.CAMPAIGN) {
   }
   const o = ch.objective || {};
   if (o.type === 'boss' && !ch.enemies.some(e => e.boss)) bad(`${ch.id}: boss objective with no boss`);
-  if (o.type === 'survive' && !(o.turns > 0)) bad(`${ch.id}: survive objective without a turn count`);
+  if (o.type === 'survive' && !(o.rounds > 0)) bad(`${ch.id}: survive objective without a round count`);
   if (ch.recruit && !g.JOBS[ch.recruit.job]) bad(`${ch.id}: recruit has unknown job '${ch.recruit.job}'`);
   // A deployment zone must exist once the enemies are placed.
   const grid = new g.Grid(m);
   const zone = g.computeDeployZone(grid, m.deploy, ch.enemies);
   if (zone.length < 3) bad(`${ch.id}: deployment zone is only ${zone.length} tiles`);
+
+  // Every enemy must be walkable to from the deployment zone, or a melee party
+  // can never finish a rout and will be handed the turn limit instead.
+  const JUMP = 5; // the most generous climb any job reaches without Sure Footing
+  const walkable = new Set();
+  const queue = zone.slice();
+  for (const t of queue) walkable.add(`${t.x},${t.y}`);
+  for (let i = 0; i < queue.length; i++) {
+    const t = queue[i];
+    for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+      const nx = t.x + dx, ny = t.y + dy, key = `${nx},${ny}`;
+      if (walkable.has(key) || !grid.passable(nx, ny)) continue;
+      if (Math.abs(grid.height(nx, ny) - grid.height(t.x, t.y)) > JUMP) continue;
+      walkable.add(key);
+      queue.push(grid.tile(nx, ny));
+    }
+  }
+  for (const e of ch.enemies) {
+    if (!walkable.has(`${e.x},${e.y}`)) {
+      bad(`${ch.id}: ${e.name || e.job} at ${e.x},${e.y} cannot be walked to from the deployment zone`);
+    }
+  }
 }
 for (const p of g.STARTING_PARTY) if (!g.JOBS[p.job]) bad(`starting party member ${p.name} has unknown job '${p.job}'`);
 if (!g.STARTING_PARTY.some(p => p.leader)) bad('the starting party has no leader');

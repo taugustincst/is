@@ -64,8 +64,10 @@ const OBJECTIVES = {
 
 // Turns a fallen unit lingers before it is carried from the field.
 const KO_COUNTDOWN = 3;
-// A battle that has not resolved by here is called a loss, so nothing can hang.
-const TURN_LIMIT = 120;
+// Safety nets so a battle can never hang. A round is one pass in which every
+// unit still standing has taken a turn, which is what a player counts.
+const ROUND_LIMIT = 50;
+const TURN_LIMIT = 500;
 
 class Battle {
   constructor(mapDef, playerUnits, enemyUnits, hooks) {
@@ -76,6 +78,8 @@ class Battle {
     this.pending = []; // charged actions {unit, ability, tx, ty, ct, speed}
     this.tick = 0;
     this.turnNo = 0;
+    this.round = 1;
+    this.actedThisRound = new Set();
     this.objective = { type: 'rout' };
     this.over = false;
     this.result = null;
@@ -112,6 +116,7 @@ class Battle {
     }
     if (b.objective.protectLeader) {
       b.objective.leader = playerUnits.find(u => u.leader) || playerUnits[0];
+      b.requiredUnit = b.objective.leader; // the deployment phase insists on this one
     }
     // Random initial CT so the opening order isn't purely by speed.
     for (const u of b.units) u.ct = Math.floor(Math.random() * 30);
@@ -268,8 +273,12 @@ class Battle {
     if (this.hooks.animateAction) await this.hooks.animateAction(user, ab, tx, ty);
     let didSomething = false;
     const hits = user.dualWielding && ab === ABILITIES.attack ? 2 : 1;
+    // Start clean: only a blow landed by this ability may provoke a counter.
+    for (const t of targets) t._tookHit = false;
     for (const t of targets) {
       for (let h = 0; h < hits; h++) {
+        // FIX 5: the offhand does not swing at a unit the main hand felled.
+        if (!t.alive && !ab.deadOnly) break;
         const roll = Math.random() * 100;
         const hit = this.hitChance(user, ab, t);
         if (roll >= hit) {
@@ -301,7 +310,23 @@ class Battle {
     }
     if (!this.counterDepth) await this.resolveCounters(user, ab, targets);
     if (!targets.length) this.log(`${user.name}'s ${ab.name} hits nothing.`);
-    if (ab.suicide) { user.hp = 0; this.log(`${user.name} is consumed by the blast!`, 'ko'); if (this.hooks.onDeath) await this.hooks.onDeath(user); }
+    if (ab.suicide) {
+      // The blast may already have killed the user through its own area effect.
+      if (user.alive) {
+        user.hp = 0;
+        this.onUnitKO(user);
+        this.log(`${user.name} is consumed by the blast!`, 'ko');
+        if (this.hooks.onDeath) await this.hooks.onDeath(user);
+      }
+      user._deathLogged = true;
+      // The side it was fighting still gets the credit for a foe removed,
+      // whether or not anyone was caught in the blast.
+      if (!user._suicideScored) {
+        user._suicideScored = true;
+        const killer = targets.find(t => t.alive && t.team !== user.team) || this.nearestEnemyOf(user);
+        if (killer) this.awardKill(killer, user);
+      }
+    }
     if (didSomething || targets.length) this.awardAction(user, targets);
     if (this.hooks.refresh) this.hooks.refresh();
     await sleep(200);
@@ -436,7 +461,6 @@ class Battle {
     const counters = targets.filter(t =>
       t.alive && t.team !== user.team && t.hasPassive('counter') && t._tookHit &&
       Grid.dist(t.x, t.y, user.x, user.y) <= t.weapon.range);
-    for (const t of targets) t._tookHit = false;
     for (const c of counters) {
       if (!user.alive || !c.alive) break;
       this.counterDepth = (this.counterDepth || 0) + 1;
@@ -500,7 +524,7 @@ class Battle {
   // A one-line statement of what the player has to do, with live progress.
   objectiveText() {
     const o = this.objective;
-    if (o.type === 'survive') return `Hold out: turn ${Math.min(this.turnNo, o.turns)}/${o.turns}`;
+    if (o.type === 'survive') return `Hold out: round ${Math.min(this.round, o.rounds)}/${o.rounds}`;
     if (o.type === 'boss') return `Defeat ${o.target ? o.target.name : 'the commander'}`;
     return OBJECTIVES.rout.label;
   }
@@ -525,9 +549,11 @@ class Battle {
     if (o.leader && !this.onField(o.leader)) {
       return this.finish('defeat', `${o.leader.name} is lost. The cause dies here.`);
     }
-    if (this.turnNo >= TURN_LIMIT) return this.finish('defeat', 'The battle drags on until the light fails.');
+    if (this.round > ROUND_LIMIT || this.turnNo >= TURN_LIMIT) {
+      return this.finish('defeat', 'The battle drags on until the light fails.');
+    }
     if (o.type === 'survive') {
-      if (this.turnNo >= o.turns) return this.finish('victory', 'You have held long enough. Fall back!');
+      if (this.round > o.rounds) return this.finish('victory', 'You have held long enough. Fall back!');
       return false;
     }
     if (o.type === 'boss') {
@@ -558,16 +584,28 @@ class Battle {
   }
 
   async run() {
+    // A leader left in reserve cannot be lost, so the rule does not apply.
+    if (this.objective.leader && !this.onField(this.objective.leader)) this.objective.leader = null;
     if (this.hooks.refresh) this.hooks.refresh();
     while (!this.over) {
       // Advance one tick.
       this.tick++;
       // Pending charged actions resolve first.
       for (const p of this.pending) p.ct += p.speed;
+      // Take every charge that is due out of the queue up front. Removing them
+      // one at a time by index breaks as soon as resolving one kills the owner
+      // of another, because onUnitKO rebuilds the queue underneath us.
       const ready = this.pending.filter(p => p.ct >= 100);
+      this.pending = this.pending.filter(p => p.ct < 100);
       for (const p of ready) {
-        this.pending.splice(this.pending.indexOf(p), 1);
         if (!p.unit.alive || p.unit.hasStatus('stop')) { p.unit.airborne = false; continue; }
+        // MP is only spent when a spell lands, so it may be gone by now.
+        if (p.ability.mp && p.unit.mp < this.mpCost(p.unit, p.ability)) {
+          p.unit.airborne = false;
+          this.log(`${p.unit.name} lacks the MP to finish ${p.ability.name}.`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(p.unit, 'Fizzle', '#aaa');
+          continue;
+        }
         this.log(`${p.unit.name} unleashes ${p.ability.name}!`, 'act');
         if (this.hooks.refresh) this.hooks.refresh();
         if (p.ability.airborne) { p.unit.airborne = false; if (this.hooks.onLand) await this.hooks.onLand(p.unit, p.tx, p.ty); }
@@ -588,7 +626,9 @@ class Battle {
       for (const u of acting) {
         if (this.over || !this.onField(u)) continue;
         if (!u.alive) { await this.tickDown(u); continue; }
-        if (u.hasStatus('stop')) continue;
+        // Re-check now rather than trusting the snapshot: a unit revived or
+        // knocked back earlier in this same tick has lost its charge.
+        if (u.ct < 100 || u.hasStatus('stop')) continue;
         await this.takeTurn(u);
         if (this.checkEnd()) return this.result;
       }
@@ -624,6 +664,12 @@ class Battle {
     if (!unit.turnFlags.acted) unit.ct += 20;
     if (unit.airborne) unit.ct = 0;
     this.active = null;
+    this.actedThisRound.add(unit);
+    const standing = this.units.filter(u => u.alive && this.onField(u));
+    if (standing.length && standing.every(u => this.actedThisRound.has(u))) {
+      this.round++;
+      this.actedThisRound.clear();
+    }
     if (this.hooks.onTurnEnd) this.hooks.onTurnEnd(unit);
   }
 

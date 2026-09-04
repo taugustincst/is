@@ -142,19 +142,35 @@ class BattleUI {
     const d = this.deploy;
     if (!d) return;
     if (!this.battle.deployed().length) { this.toastHint('Place at least one unit.'); return; }
+    // A battle that is lost when the leader falls cannot be fought without them.
+    const need = this.battle.requiredUnit;
+    if (need && !this.battle.onField(need)) {
+      this.toastHint(`${need.name} must take the field: this battle is lost without them.`);
+      return;
+    }
     this.deploy = null;
     this.battle.showDeploy = false;
     this.el.roster.innerHTML = '';
     this.el.roster.classList.remove('open');
     document.getElementById('command').style.display = '';
     this.el.hint.textContent = '';
+    this.el.hint.classList.remove('warn');
     d.resolve();
+  }
+
+  // Park the hint just above whichever bottom-right panel is showing.
+  placeHint() {
+    const panel = this.deploy ? this.el.roster : this.el.menu.parentElement;
+    const h = panel && panel.offsetParent ? panel.offsetHeight : 0;
+    this.el.hint.style.bottom = `${h + 18}px`;
   }
 
   toastHint(msg) {
     this.el.hint.textContent = msg;
+    this.placeHint();
     this.el.hint.classList.add('warn');
-    setTimeout(() => this.el.hint.classList.remove('warn'), 900);
+    clearTimeout(this._hintTimer);
+    this._hintTimer = setTimeout(() => this.el.hint.classList.remove('warn'), 1200);
   }
 
   renderEnemyRoster() {
@@ -168,7 +184,10 @@ class BattleUI {
     if (!d) return;
     const b = this.battle;
     const placed = b.deployed().length;
-    this.el.hint.textContent = `Click a green tile to place ${d.sel ? d.sel.name : 'a unit'}. Click a deployed unit to pick it up.`;
+    const need = b.requiredUnit && !this.battle.onField(b.requiredUnit)
+      ? `${b.requiredUnit.name} must take the field. ` : '';
+    this.el.hint.textContent = `${need}Click a green tile to place ${d.sel ? d.sel.name : 'a unit'}. Click a deployed unit to pick it up.`;
+    this.el.hint.classList.toggle('warn', !!need);
     this.el.roster.classList.add('open');
     this.el.roster.innerHTML = `
       <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
@@ -187,6 +206,7 @@ class BattleUI {
         <button data-a="clear">Clear</button>
         <button data-a="go" class="primary">Begin Battle</button>
       </div>`;
+    this.placeHint();
     this.el.roster.querySelectorAll('.roster-row').forEach(r => r.onclick = () => {
       d.sel = d.roster[+r.dataset.i];
       if (d.sel.x >= 0) this.r.focus(d.sel);
@@ -324,6 +344,7 @@ class BattleUI {
         this.endTurn();
       });
     }
+    this.placeHint();
     this.refresh();
   }
 
