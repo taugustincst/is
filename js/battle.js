@@ -87,8 +87,8 @@ class Battle {
     // Player units start in reserve at x = -1; the deployment phase places them.
   }
 
-  static setup(mapDef, playerUnits, enemySpecs, hooks, objective) {
-    const enemies = enemySpecs.map(makeEnemy);
+  static setup(mapDef, playerUnits, enemySpecs, hooks, objective, difficulty) {
+    const enemies = enemySpecs.map(spec => makeEnemy(spec, difficulty));
     const b = new Battle(mapDef, playerUnits, [], hooks);
     if (objective) b.objective = Object.assign({}, objective);
     for (const spec of enemySpecs) {

@@ -675,6 +675,17 @@ const STARTING_PARTY = [
   { name: 'Mira', job: 'chemist', level: 1 },
 ];
 
+// Difficulty scales the opposition rather than the party, so a player's own
+// numbers always mean the same thing.
+const DIFFICULTIES = {
+  squire:  { name: 'Squire', levelShift: -1, gearShift: -1, gilMult: 1.25,
+             desc: 'Foes are a level below and less well equipped. Purses stretch further.' },
+  knight:  { name: 'Knight', levelShift: 0, gearShift: 0, gilMult: 1,
+             desc: 'The campaign as written.' },
+  paladin: { name: 'Paladin', levelShift: 2, gearShift: 1, gilMult: 0.85,
+             desc: 'Foes outrank and outfit you, and coin is scarcer.' },
+};
+
 // Enemy pools for random training battles.
 const TRAINING_POOL = [
   ['squire', 'squire', 'archer'],
@@ -869,8 +880,9 @@ function bestGearFor(job, pool, maxTier, extra) {
 // Items an enemy of the given job and level carries. Their gear deliberately
 // lags what the player can buy at the same point, so the shop stays worth
 // visiting and early fights are not decided by equipment the party lacks.
-function enemyGearFor(job, level) {
-  return bestGearFor(job, null, Math.max(0, Math.min(6, Math.floor((level - 1) / 1.8))));
+function enemyGearFor(job, level, tierShift) {
+  const tier = Math.floor((level - 1) / 1.8) + (tierShift || 0);
+  return bestGearFor(job, null, Math.max(0, Math.min(6, tier)));
 }
 
 // ============================================================================

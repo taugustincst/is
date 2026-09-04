@@ -226,19 +226,22 @@ class Unit {
 
 // Build an enemy unit for a battle. Human foes are kitted out for their level so
 // they keep pace with an equipped party; monsters fight with what nature gave them.
-function makeEnemy(spec) {
+function makeEnemy(spec, difficulty) {
   const job = JOBS[spec.job];
+  const d = DIFFICULTIES[difficulty] || DIFFICULTIES.knight;
+  // Difficulty shifts the opposition; bosses never drop below their own level.
+  const level = Math.max(1, spec.level + (spec.boss ? Math.max(0, d.levelShift) : d.levelShift));
   const u = new Unit({
-    name: spec.name || job.name, job: spec.job, level: spec.level, team: 'enemy', boss: spec.boss,
-    gear: spec.gear || enemyGearFor(spec.job, spec.level + (spec.boss ? 3 : 0)),
+    name: spec.name || job.name, job: spec.job, level, team: 'enemy', boss: spec.boss,
+    gear: spec.gear || enemyGearFor(spec.job, level + (spec.boss ? 3 : 0), d.gearShift),
   });
   // Enemies know more abilities at higher levels; bosses know everything. Early
   // foes stay simple so the opening chapters teach rather than punish.
-  const frac = spec.boss ? 1 : Math.min(1, 0.2 + spec.level * 0.09);
+  const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);
   u.autoLearn(frac);
   // From the middle of the campaign on, foes bring passives of their own. A spec
   // may name them outright; otherwise they come from the job's own teachings.
-  const slots = spec.boss ? 3 : Math.min(3, Math.floor(spec.level / 3));
+  const slots = spec.boss ? 3 : Math.min(3, Math.floor(level / 3));
   const wanted = spec.passives || passivesOfJob(spec.job).slice(0, 3);
   for (const id of wanted) {
     if (!PASSIVES[id]) continue;

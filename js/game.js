@@ -76,14 +76,15 @@ class Game {
   newGame() {
     this.state = {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
-      gil: 500, chapter: 0, victories: 0, inventory: {},
+      gil: 500, chapter: 0, victories: 0, inventory: {}, difficulty: this.pendingDifficulty || 'knight',
     };
     this.showWorld();
   }
 
   saveGame() {
     const data = {
-      v: 2, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories,
+      v: 3, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories,
+      difficulty: this.state.difficulty,
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -96,6 +97,7 @@ class Game {
     const d = JSON.parse(raw);
     this.state = {
       gil: d.gil, chapter: d.chapter, victories: d.victories || 0, inventory: d.inventory || {},
+      difficulty: DIFFICULTIES[d.difficulty] ? d.difficulty : 'knight',
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
     };
     this.showWorld();
@@ -191,6 +193,15 @@ class Game {
       $('btn-battle').disabled = true;
       $('btn-battle').textContent = 'Campaign complete';
     }
+    const diff = DIFFICULTIES[s.difficulty] || DIFFICULTIES.knight;
+    $('world-difficulty').innerHTML = Object.entries(DIFFICULTIES).map(([id, d]) =>
+      `<button data-diff="${id}" class="${id === s.difficulty ? 'sel' : ''}" title="${d.desc}">${d.name}</button>`).join('') +
+      `<div class="diff-desc">${diff.desc}</div>`;
+    $('world-difficulty').querySelectorAll('button').forEach(b => b.onclick = () => {
+      this.state.difficulty = b.dataset.diff;
+      this.toast(`Difficulty set to ${DIFFICULTIES[b.dataset.diff].name}.`);
+      this.showWorld();
+    });
     const spare = Object.values(this.state.inventory).reduce((a, b) => a + b, 0);
     $('world-stock').textContent = spare ? `${spare} spare item${spare === 1 ? '' : 's'} in the baggage` : 'No spare equipment';
     const hireLvl = Math.max(1, this.avgLevel() - 1);
@@ -503,7 +514,7 @@ class Game {
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
     const roster = this.state.party;
-    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective);
+    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty);
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
     this.ui.showObjective();
@@ -529,7 +540,8 @@ class Game {
     for (const u of this.state.party) u.resetBattleState();
     const r = battle.rewards;
     if (result === 'victory') {
-      r.gil += gilReward;
+      const mult = (DIFFICULTIES[this.state.difficulty] || DIFFICULTIES.knight).gilMult;
+      r.gil = Math.round((r.gil + gilReward) * mult);
       this.state.gil += r.gil;
       audio.sfx('coin');
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
