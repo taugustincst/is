@@ -476,7 +476,7 @@ class Game {
     cands.sort(() => Math.random() - 0.5);
     const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i].x, y: cands[i].y }));
     await this.story('Training', [`${map.name}. Word has it that ${pool.length} hostiles are camped here. Good practice.`]);
-    const res = await this.runBattle(map, enemies, 100 + lvl * 20, { objective: { type: 'rout' } });
+    const res = await this.runBattle(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' } });
     if (res === 'aborted') return;
     this.saveGame();
     this.showWorld();

@@ -60,7 +60,10 @@ class Renderer {
     }
     this.cam.x = -(minX + maxX) / 2 + this.cv.width / 2;
     this.cam.y = -(minY + maxY) / 2 + this.cv.height / 2 + 24;
-    this.zoom = 1.25;
+    // Zoom so the board fills the view without spilling off a narrow screen.
+    const fitX = (this.cv.width * 0.92) / Math.max(1, maxX - minX);
+    const fitY = (this.cv.height * 0.72) / Math.max(1, maxY - minY);
+    this.zoom = Math.max(0.55, Math.min(1.35, Math.min(fitX, fitY)));
   }
 
   // World (unzoomed canvas) coordinates of a tile centre.
@@ -140,9 +143,9 @@ class Renderer {
   fit() {
     const w = Math.max(320, Math.floor(this.cv.clientWidth)), h = Math.max(240, Math.floor(this.cv.clientHeight));
     if (this.cv.width !== w || this.cv.height !== h) {
-      const ox = this.cam.x - this.cv.width / 2, oy = this.cam.y - this.cv.height / 2;
       this.cv.width = w; this.cv.height = h;
-      this.cam.x = ox + w / 2; this.cam.y = oy + h / 2;
+      // Re-frame the board rather than keeping an offset that no longer fits.
+      if (this.battle) this.centerCamera();
     }
   }
 

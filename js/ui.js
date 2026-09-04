@@ -400,43 +400,102 @@ class BattleUI {
       const r = cv.getBoundingClientRect();
       return { x: (e.clientX - r.left) * (cv.width / r.width), y: (e.clientY - r.top) * (cv.height / r.height) };
     };
-    cv.addEventListener('mousemove', (e) => {
+    // Pointer events cover mouse, touch and pen with one code path.
+    this.pointers = new Map();
+
+    cv.addEventListener('pointerdown', (e) => {
+      audio.init();
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      cv.setPointerCapture(e.pointerId);
       const p = pos(e);
-      if (this.drag) {
-        const dx = p.x - this.drag.x, dy = p.y - this.drag.y;
-        if (Math.abs(dx) + Math.abs(dy) > 4) this.drag.moved = true;
-        if (this.drag.moved) { const z = this.r.zoom || 1; this.r.cam.x += dx / z; this.r.cam.y += dy / z; this.drag.x = p.x; this.drag.y = p.y; }
+      this.pointers.set(e.pointerId, p);
+      if (this.pointers.size === 1) this.drag = { x: p.x, y: p.y, moved: false, id: e.pointerId };
+      else { this.drag = null; this.pinch = this.pinchSpan(); } // a second finger means pinch, not drag
+    });
+
+    cv.addEventListener('pointermove', (e) => {
+      const p = pos(e);
+      if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, p);
+
+      if (this.pointers.size >= 2 && this.pinch) {
+        const span = this.pinchSpan();
+        if (span && this.pinch) this.r.setZoom((this.r.zoom || 1) * (span / this.pinch));
+        this.pinch = span;
         return;
       }
+      if (this.drag && this.drag.id === e.pointerId) {
+        const dx = p.x - this.drag.x, dy = p.y - this.drag.y;
+        // Touch needs a larger slop than a mouse before a tap becomes a drag.
+        const slop = e.pointerType === 'mouse' ? 4 : 10;
+        if (Math.abs(dx) + Math.abs(dy) > slop) this.drag.moved = true;
+        if (this.drag.moved) {
+          const z = this.r.zoom || 1;
+          this.r.cam.x += dx / z; this.r.cam.y += dy / z;
+          this.drag.x = p.x; this.drag.y = p.y;
+        }
+        if (e.pointerType !== 'mouse') return; // no hover on touch
+      }
       if (!this.battle) return;
-      const t = this.r.pickTile(p.x, p.y);
-      this.hover = t;
-      this.r.hl.cursor = t;
-      this.renderTileInfo(t);
-      this.refresh();
-      if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
+      this.hoverAt(p);
     });
-    cv.addEventListener('mouseleave', () => { this.hover = null; this.r.hl.cursor = null; this.refresh(); });
-    cv.addEventListener('mousedown', (e) => { if (e.button === 0) { const p = pos(e); this.drag = { x: p.x, y: p.y, moved: false }; } });
-    window.addEventListener('mouseup', (e) => {
-      if (e.button !== 0 || !this.drag) return;
-      const moved = this.drag.moved; this.drag = null;
-      if (moved || e.target !== cv) return;
+
+    const release = (e) => {
+      const wasDrag = this.drag && this.drag.id === e.pointerId ? this.drag : null;
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size < 2) this.pinch = null;
+      if (!wasDrag) return;
+      this.drag = null;
+      if (wasDrag.moved) return;
+      // A tap that never turned into a drag is a click on that tile.
       const p = pos(e);
-      const t = this.r.pickTile(p.x, p.y);
-      this.onClick(t);
-    });
+      if (e.pointerType !== 'mouse') this.hoverAt(p); // show what was tapped
+      this.onClick(this.r.pickTile(p.x, p.y));
+    };
+    cv.addEventListener('pointerup', release);
+    cv.addEventListener('pointercancel', (e) => { this.pointers.delete(e.pointerId); this.drag = null; this.pinch = null; });
+    cv.addEventListener('pointerleave', () => { if (!this.drag) { this.hover = null; this.r.hl.cursor = null; this.refresh(); } });
+
     cv.addEventListener('contextmenu', (e) => { e.preventDefault(); this.cancel(); });
     cv.addEventListener('wheel', (e) => { e.preventDefault(); this.r.setZoom((this.r.zoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)); }, { passive: false });
+    // Stop the page itself from panning or pinching under the board.
+    cv.style.touchAction = 'none';
+
     window.addEventListener('keydown', (e) => {
-      if (!this.battle) return;
-      if (e.key === 'Escape') this.cancel();
-      const pan = 32;
-      if (e.key === 'ArrowLeft') this.r.cam.x += pan;
-      if (e.key === 'ArrowRight') this.r.cam.x -= pan;
-      if (e.key === 'ArrowUp') this.r.cam.y += pan;
-      if (e.key === 'ArrowDown') this.r.cam.y -= pan;
+      if (!this.battle || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'Escape') return this.cancel();
+      const pan = 40, z = this.r.zoom || 1;
+      if (e.key === 'ArrowLeft') this.r.cam.x += pan / z;
+      else if (e.key === 'ArrowRight') this.r.cam.x -= pan / z;
+      else if (e.key === 'ArrowUp') this.r.cam.y += pan / z;
+      else if (e.key === 'ArrowDown') this.r.cam.y -= pan / z;
+      else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
+      else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
+      else if (e.key === '0') this.r.centerCamera();
+      else if (/^[1-9]$/.test(e.key)) {
+        // Digits pick the matching command in whichever panel is open.
+        const panel = this.deploy ? this.el.roster : this.el.menu;
+        const btns = [...panel.querySelectorAll('button')].filter(b => !b.disabled);
+        const b = btns[+e.key - 1];
+        if (b) b.click();
+      } else return;
+      e.preventDefault();
     });
+  }
+
+  // Distance between the first two active pointers, for pinch zoom.
+  pinchSpan() {
+    const pts = [...this.pointers.values()];
+    if (pts.length < 2) return null;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || null;
+  }
+
+  hoverAt(p) {
+    const t = this.r.pickTile(p.x, p.y);
+    this.hover = t;
+    this.r.hl.cursor = t;
+    this.renderTileInfo(t);
+    this.refresh();
+    if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
   }
 
   onClick(tile) {

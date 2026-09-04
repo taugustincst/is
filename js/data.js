@@ -520,24 +520,24 @@ const MAPS = {
 // ------------------------------------------------------------------ campaign
 const CAMPAIGN = [
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'rout' },
     id: 'ch1', title: 'Ambush on the Verdant Road', map: 'verdant',
     intro: [
       'Elderon bleeds. Two princes claim one crown, and the roads between their armies belong to no one.',
       'Rowan Aldric, youngest son of a house that chose the wrong prince, rides north with his few remaining companions.',
       'Bandits watch the Verdant Road. They do not know whose colors Rowan wears. They do not care.',
-      '"Mira, stay behind Garret. If they want a fight, we give them one."',
+      '"Mira, stay behind Garret. Bram, take the high ground. If they want a fight, we give them one."',
     ],
     enemies: [
       { job: 'squire', level: 1, x: 8, y: 2, name: 'Bandit' },
       { job: 'squire', level: 1, x: 9, y: 4, name: 'Bandit' },
       { job: 'archer', level: 1, x: 9, y: 1, name: 'Bandit Archer' },
     ],
-    gil: 250,
+    gil: 3100,
     outro: ['The bandits scatter into the hills. Rowan wipes his blade and looks north, where smoke rises over Millbrook.'],
   },
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'rout' },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
     intro: [
       'Millbrook has been abandoned. Its mill wheel turns for no one.',
@@ -550,7 +550,7 @@ const CAMPAIGN = [
       { job: 'wolf', level: 2, x: 6, y: 0 },
       { job: 'wolf', level: 2, x: 4, y: 2 },
     ],
-    gil: 350,
+    gil: 1600,
     recruit: { name: 'Lysa', job: 'chemist', level: 2 },
     outro: [
       'In the mill, a young woman hides among the sacks with a satchel of potions and a look of pure defiance.',
@@ -569,11 +569,10 @@ const CAMPAIGN = [
     enemies: [
       { job: 'knight', level: 3, x: 5, y: 5, name: 'Deserter Knight' },
       { job: 'archer', level: 3, x: 6, y: 5, name: 'Deserter Archer' },
-      { job: 'chemist', level: 3, x: 2, y: 1, name: 'Deserter Medic' },
+      { job: 'chemist', level: 2, x: 2, y: 1, name: 'Deserter Medic' },
       { job: 'squire', level: 3, x: 9, y: 1, name: 'Deserter' },
-      { job: 'squire', level: 3, x: 9, y: 8, name: 'Deserter' },
     ],
-    gil: 450,
+    gil: 1600,
     recruit: { name: 'Kael', job: 'archer', level: 3 },
     outro: [
       'One of the deserters throws down his bow and kneels. "I served your father at Redwater. I would rather serve his son than a prince who leaves his own men to starve."',
@@ -595,7 +594,7 @@ const CAMPAIGN = [
       { job: 'wolf', level: 4, x: 7, y: 2 },
       { job: 'wolf', level: 4, x: 1, y: 8 },
     ],
-    gil: 600,
+    gil: 2100,
     outro: ['The last mage sinks beneath the black water. On her body: a sealed letter bearing the crest of Ser Brannoc, Captain of Dunmarch.'],
   },
   {
@@ -613,7 +612,7 @@ const CAMPAIGN = [
       { job: 'archer', level: 5, x: 8, y: 2, name: 'Wall Archer' },
       { job: 'whiteMage', level: 5, x: 6, y: 3, name: 'Garrison Priest' },
     ],
-    gil: 800,
+    gil: 2700,
     recruit: { name: 'Tamsin', job: 'whiteMage', level: 5 },
     outro: [
       'The garrison priest lowers her staff. "Brannoc rode for Thornwall at dawn. He fears you, Aldric. He fears what your father knew."',
@@ -637,7 +636,7 @@ const CAMPAIGN = [
       { job: 'goblin', level: 6, x: 5, y: 5 },
       { job: 'monk', level: 6, x: 0, y: 3, name: 'Ridge Hermit' },
     ],
-    gil: 900,
+    gil: 1200,
     outro: ['Below the ridge, Thornwall Cathedral rises from the fog. A single black banner hangs from its spire.'],
   },
   {
@@ -658,7 +657,7 @@ const CAMPAIGN = [
       { job: 'archer', level: 7, x: 3, y: 8, name: 'Black Guard Archer' },
       { job: 'ninja', level: 7, x: 10, y: 8, name: 'Brannoc\'s Shadow' },
     ],
-    gil: 2000,
+    gil: 5000,
     outro: [
       'Brannoc falls before the altar. In his hand, the last letter: proof of who truly fed the war between the princes.',
       'Rowan takes it. The road ahead is longer than the one behind. But for the first time, he knows where it leads.',
@@ -672,6 +671,7 @@ const CAMPAIGN = [
 const STARTING_PARTY = [
   { name: 'Rowan', job: 'squire', level: 1, leader: true },
   { name: 'Garret', job: 'squire', level: 1 },
+  { name: 'Bram', job: 'squire', level: 1 },
   { name: 'Mira', job: 'chemist', level: 1 },
 ];
 
@@ -744,19 +744,19 @@ const ITEMS = {
   aegisShield: { name: 'Aegis Shield', slot: 'offhand', otype: 'shield', evade: 26, hp: 25, price: 1800, tier: 5 },
 
   // ---- head ----
-  leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 0 },
+  leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 1 },
   featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', hp: 12, spd: 1, price: 500, tier: 2 },
   wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', mp: 20, ma: 1, price: 550, tier: 2 },
   ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1, price: 2400, tier: 6 },
-  ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 28, price: 450, tier: 1 },
-  goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 50, mp: 8, price: 1300, tier: 4 },
+  ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 20, price: 450, tier: 1 },
+  goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
 
   // ---- body ----
   clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },
-  leatherArmor:{ name: 'Leather Armor', slot: 'body', atype: 'light', hp: 28, price: 350, tier: 1 },
-  chainMail:   { name: 'Chain Mail', slot: 'body', atype: 'light', hp: 48, price: 850, tier: 3 },
-  plateMail:   { name: 'Plate Mail', slot: 'body', atype: 'heavy', hp: 75, spd: -1, price: 1500, tier: 4 },
-  crystalMail: { name: 'Crystal Mail', slot: 'body', atype: 'heavy', hp: 100, mp: 10, price: 2400, tier: 6 },
+  leatherArmor:{ name: 'Leather Armor', slot: 'body', atype: 'light', hp: 22, price: 350, tier: 1 },
+  chainMail:   { name: 'Chain Mail', slot: 'body', atype: 'light', hp: 38, price: 850, tier: 3 },
+  plateMail:   { name: 'Plate Mail', slot: 'body', atype: 'heavy', hp: 58, spd: -1, price: 1500, tier: 4 },
+  crystalMail: { name: 'Crystal Mail', slot: 'body', atype: 'heavy', hp: 74, mp: 10, price: 2400, tier: 6 },
   silkRobe:    { name: 'Silk Robe', slot: 'body', atype: 'robe', hp: 18, mp: 20, price: 400, tier: 1 },
   wizardRobe:  { name: 'Wizard Robe', slot: 'body', atype: 'robe', hp: 30, mp: 40, ma: 1, price: 1100, tier: 3 },
   robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
@@ -866,9 +866,11 @@ function bestGearFor(job, pool, maxTier, extra) {
   return gear;
 }
 
-// Items an enemy of the given job and level carries, so foes scale with the party.
+// Items an enemy of the given job and level carries. Their gear deliberately
+// lags what the player can buy at the same point, so the shop stays worth
+// visiting and early fights are not decided by equipment the party lacks.
 function enemyGearFor(job, level) {
-  return bestGearFor(job, null, Math.max(0, Math.min(6, Math.floor(level / 1.6))));
+  return bestGearFor(job, null, Math.max(0, Math.min(6, Math.floor((level - 1) / 1.8))));
 }
 
 // ============================================================================

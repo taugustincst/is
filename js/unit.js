@@ -3,7 +3,6 @@
    ========================================================================== */
 
 const DIRS = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
-const DIR_LIST = ['N', 'E', 'S', 'W'];
 
 let unitSeq = 1;
 
@@ -115,10 +114,10 @@ class Unit {
   baseStats() {
     const L = this.level, j = this.jobData, g = this.gearBonus();
     return {
-      maxHp: Math.max(1, Math.floor((45 + 9 * L) * j.hp) + g.hp),
+      maxHp: Math.max(1, Math.floor((45 + 12 * L) * j.hp) + g.hp),
       maxMp: Math.max(0, Math.floor((10 + 4 * L) * j.mp) + g.mp),
-      pa: Math.max(1, Math.floor((5 + 0.5 * L) * j.pa) + g.pa),
-      ma: Math.max(1, Math.floor((5 + 0.5 * L) * j.ma) + g.ma),
+      pa: Math.max(1, Math.floor((5 + 0.8 * L) * j.pa) + g.pa),
+      ma: Math.max(1, Math.floor((5 + 0.8 * L) * j.ma) + g.ma),
       spd: Math.max(1, Math.floor((6 + 0.12 * L) * j.spd) + g.spd),
       move: Math.max(1, j.move + g.move + (this.hasPassive('movePlus1') ? 1 : 0) + (this.hasPassive('movePlus2') ? 2 : 0)),
       jump: this.hasPassive('sureFooting') ? 99 : Math.max(1, j.jump + g.jump + (this.hasPassive('jumpPlus2') ? 2 : 0)),
@@ -194,7 +193,7 @@ class Unit {
       this.level++;
       events.push(`${this.name} reached level ${this.level}!`);
       // Level-ups raise max HP; keep current HP proportional so it feels like growth.
-      this.hp = Math.min(this.maxHp, this.hp + 9);
+      this.hp = Math.min(this.maxHp, this.hp + 12);
     }
     return events;
   }
@@ -233,8 +232,9 @@ function makeEnemy(spec) {
     name: spec.name || job.name, job: spec.job, level: spec.level, team: 'enemy', boss: spec.boss,
     gear: spec.gear || enemyGearFor(spec.job, spec.level + (spec.boss ? 3 : 0)),
   });
-  // Enemies know more abilities at higher levels; bosses know everything.
-  const frac = spec.boss ? 1 : Math.min(1, 0.4 + spec.level * 0.08);
+  // Enemies know more abilities at higher levels; bosses know everything. Early
+  // foes stay simple so the opening chapters teach rather than punish.
+  const frac = spec.boss ? 1 : Math.min(1, 0.2 + spec.level * 0.09);
   u.autoLearn(frac);
   // From the middle of the campaign on, foes bring passives of their own. A spec
   // may name them outright; otherwise they come from the job's own teachings.

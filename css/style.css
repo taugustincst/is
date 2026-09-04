@@ -193,3 +193,25 @@ button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-
 .order-row.fallen .dot { background: #555; }
 .res-reason { font-style: italic; color: #c8c6e0; }
 button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1; }
+
+/* Touch targets and stacking on small screens. */
+@media (max-width: 700px) {
+  body { font-size: 13px; }
+  /* Keep the top bar to a single row, then stack the panels beneath it. */
+  #battle-top { top: 4px; padding: 3px 6px; gap: 5px; flex-wrap: nowrap; max-width: 98vw; font-size: 11px; }
+  #battle-name { font-size: 12px; max-width: 38vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #battle-top button { padding: 3px 7px; font-size: 11px; min-height: 26px; }
+  #battle-top button.icon { min-width: 28px; }
+  #turn-order { top: 46px; left: 6px; width: 122px; padding: 6px; font-size: 11px; max-height: 32vh; overflow-y: auto; }
+  #unit-card { top: 46px; right: 6px; width: 148px; padding: 6px; }
+  .banner { font-size: 17px; top: 52px; padding: 4px 16px; }
+  #log { bottom: 6px; left: 6px; width: 44vw; height: 82px; font-size: 10px; }
+  #command, #deploy-panel { bottom: 6px; right: 6px; width: min(270px, 52vw); padding: 7px; }
+  .roster-list { max-height: 26vh; }
+  #tile-info, #objective { display: none; }
+  .world-layout, .form-layout, .shop-layout { flex-direction: column; height: auto; }
+  .world-side, .form-left { width: auto; }
+  .screen { overflow-y: auto; }
+  button { min-height: 34px; }
+  .title-box h1 { font-size: 34px; }
+}

@@ -480,20 +480,20 @@ class Battle {
   awardAction(user, targets) {
     if (user.team !== 'player') return;
     const tgt = targets[0];
-    const exp = tgt ? Math.max(4, Math.min(30, 10 + (tgt.level - user.level) * 3)) : 6;
+    const exp = tgt ? Math.max(8, Math.min(50, 20 + (tgt.level - user.level) * 4)) : 8;
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
-    const jpEv = user.gainJP(10);
+    const jpEv = user.gainJP(16);
     if (jpEv) { this.log(jpEv, 'lvl'); this.rewards.events.push(jpEv); }
     this.rewards.exp += exp;
   }
 
   awardKill(user, t) {
     if (user.team !== 'player') return;
-    const exp = 10 + Math.max(0, (t.level - user.level) * 2);
+    const exp = 28 + Math.max(0, (t.level - user.level) * 4);
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
-    user.gainJP(6);
+    user.gainJP(12);
     this.rewards.exp += exp;
-    this.rewards.gil += 10 + t.level * 5;
+    this.rewards.gil += 30 + t.level * 14;
   }
 
   // ---- charge-time loop -------------------------------------------------------
