@@ -78,6 +78,33 @@ class BattleUI {
     this._bt = setTimeout(() => { b.className = 'banner'; }, 1100);
   }
 
+  // Tell the renderer how much of the canvas the panels are covering, so the
+  // board can be framed in what is left. Measured from the real elements, which
+  // is the only thing that survives every breakpoint and orientation.
+  measureInsets() {
+    const cv = this.cv;
+    const scale = cv.width / Math.max(1, cv.clientWidth);
+    const ins = { top: 0, bottom: 0, left: 0, right: 0 };
+    const box = (el) => (el && el.offsetParent !== null && getComputedStyle(el).display !== 'none')
+      ? el.getBoundingClientRect() : null;
+    const H = cv.clientHeight, W = cv.clientWidth;
+    for (const id of ['battle-top', 'turn-order', 'unit-card', 'log', 'command', 'deploy-panel', 'hint']) {
+      const r = box(document.getElementById(id));
+      if (!r || !r.width || !r.height) continue;
+      // A panel only counts against the edge it hugs.
+      const spans = r.width > W * 0.6;
+      if (spans) {
+        if (r.bottom < H * 0.5) ins.top = Math.max(ins.top, r.bottom);
+        else ins.bottom = Math.max(ins.bottom, H - r.top);
+      } else if (r.top < H * 0.35 && r.bottom < H * 0.55) {
+        ins.top = Math.max(ins.top, r.bottom);
+      } else if (r.bottom > H * 0.65) {
+        ins.bottom = Math.max(ins.bottom, H - r.top);
+      }
+    }
+    this.r.insets = { top: ins.top * scale, bottom: ins.bottom * scale, left: ins.left * scale, right: ins.right * scale };
+  }
+
   showObjective() {
     if (!this.battle || !this.el.objective) return;
     this.el.objective.textContent = this.battle.objectiveText();
@@ -85,6 +112,7 @@ class BattleUI {
 
   refresh() {
     if (!this.battle) return;
+    this.measureInsets();
     this.showObjective();
     if (this.deploy) this.renderEnemyRoster(); else this.renderOrder();
     const u = (this.hover && this.battle.unitAt(this.hover.x, this.hover.y)) || (this.turn && this.turn.unit) || this.battle.active;
@@ -463,6 +491,7 @@ class BattleUI {
         if (this.drag.moved) {
           const z = this.r.zoom || 1;
           this.r.cam.x += dx / z; this.r.cam.y += dy / z;
+          this.r.clampCamera();
           this.drag.x = p.x; this.drag.y = p.y;
         }
         if (e.pointerType !== 'mouse') return; // no hover on touch
@@ -496,10 +525,10 @@ class BattleUI {
       if (!this.battle || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
       if (e.key === 'Escape') return this.cancel();
       const pan = 40, z = this.r.zoom || 1;
-      if (e.key === 'ArrowLeft') this.r.cam.x += pan / z;
-      else if (e.key === 'ArrowRight') this.r.cam.x -= pan / z;
-      else if (e.key === 'ArrowUp') this.r.cam.y += pan / z;
-      else if (e.key === 'ArrowDown') this.r.cam.y -= pan / z;
+      if (e.key === 'ArrowLeft') { this.r.cam.x += pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowRight') { this.r.cam.x -= pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowUp') { this.r.cam.y += pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowDown') { this.r.cam.y -= pan / z; this.r.clampCamera(); }
       else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
       else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
       else if (e.key === '0') this.r.centerCamera();

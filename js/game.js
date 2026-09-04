@@ -54,6 +54,9 @@ class Game {
     }
     const bm = $('btn-music');
     if (bm) bm.onclick = () => { audio.init(); audio.setMusicMuted(!audio.musicMuted); this.renderSound(); };
+    // On a phone the battle log is hidden by default and toggled from the bar.
+    const bl = $('btn-log');
+    if (bl) bl.onclick = () => $('log').classList.toggle('hidden');
     this.renderSound();
     $('btn-help-close').onclick = () => $('help').classList.remove('open');
   }
@@ -567,8 +570,14 @@ class Game {
     this.renderer.setBattle(battle);
     this.ui.bind(battle);
     this.showScreen('battle');
+    // Small screens start with the log out of the way; the bar toggles it back.
+    $('log').classList.toggle('hidden', window.innerWidth <= 820 || window.innerHeight <= 520);
     this.renderer.start();
+    // Let the deployment panels lay out, then frame the board in what is left.
+    requestAnimationFrame(() => { this.ui.measureInsets(); this.renderer.centerCamera(); });
     if (!opts.skipDeploy) await this.ui.deployPhase(battle, roster);
+    this.ui.measureInsets();
+    this.renderer.centerCamera();
     if (battle.over && battle.result === 'defeat' && !battle.tick) {
       // Left the field before a blow was struck: no losses, no rewards.
       this.renderer.stop();
@@ -628,10 +637,57 @@ class Game {
   }
 }
 
+// On Android the hardware back button arrives as a history pop (in a browser or
+// an installed PWA) or as a call to this hook (from the native wrapper). Either
+// way it should step back through the game rather than close it.
+function handleBack() {
+  const g = window.game;
+  if (!g) return false;
+  if (document.getElementById('help').classList.contains('open')) {
+    document.getElementById('help').classList.remove('open');
+    return true;
+  }
+  if (g.screen === 'battle') {
+    // In battle, back cancels the current selection; it never leaves the fight.
+    if (g.ui.turn || g.ui.deploy) { g.ui.cancel(); return true; }
+    return true;
+  }
+  const parent = { formation: 'world', shop: 'world', results: 'world', world: 'title', story: null, title: null };
+  const to = parent[g.screen];
+  if (to === 'world') { g.showWorld(); return true; }
+  if (to === 'title') { g.showScreen('title'); return true; }
+  return false; // nothing left to go back to: let the app close
+}
+window.handleBack = handleBack;
+
 window.addEventListener('DOMContentLoaded', () => {
   window.game = new Game();
+  // Keep a history entry parked so a browser back gesture reaches handleBack.
+  history.replaceState({ game: true }, '');
+  history.pushState({ game: true }, '');
+  window.addEventListener('popstate', () => {
+    const handled = handleBack();
+    if (handled) history.pushState({ game: true }, '');
+  });
+  // A phone rotating is a layout change the board has to be re-framed for.
+  const reframe = () => {
+    if (!game.battle) return;
+    game.renderer.fit();
+    game.ui.measureInsets();
+    game.renderer.centerCamera();
+  };
+  window.addEventListener('orientationchange', () => setTimeout(reframe, 250));
+  window.addEventListener('resize', () => { clearTimeout(window.__rt); window.__rt = setTimeout(reframe, 200); });
   // A quiet blip on any button keeps the menus feeling responsive.
   document.addEventListener('click', (e) => {
     if (e.target.tagName === 'BUTTON' && !e.target.disabled) audio.sfx('menu');
   });
+  // A double tap should never zoom the page out from under the board.
+  let lastTap = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) e.preventDefault();
+    lastTap = now;
+  }, { passive: false });
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
 });

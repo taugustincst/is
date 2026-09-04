@@ -47,6 +47,22 @@ class Renderer {
 
   clearHighlights() { this.hl.move.clear(); this.hl.target.clear(); this.hl.area.clear(); this.hl.cursor = null; }
 
+  // The part of the canvas the panels are not sitting on. The board is framed
+  // inside this rather than the whole screen, so on a phone it lands in the
+  // free band between the turn strip and the command panel.
+  viewCentre() {
+    const i = this.insets || { top: 0, bottom: 0, left: 0, right: 0 };
+    const w = this.cv.width, h = this.cv.height;
+    const left = Math.min(i.left, w * 0.4), right = Math.min(i.right, w * 0.4);
+    const top = Math.min(i.top, h * 0.4), bottom = Math.min(i.bottom, h * 0.5);
+    return {
+      cx: left + (w - left - right) / 2,
+      cy: top + (h - top - bottom) / 2,
+      w: Math.max(120, w - left - right),
+      h: Math.max(120, h - top - bottom),
+    };
+  }
+
   centerCamera() {
     // Centre the on-screen bounding box of the map (tops and walls included).
     const g = this.battle.grid;
@@ -58,12 +74,36 @@ class Renderer {
       minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
       minY = Math.min(minY, sy - 16 - 40); maxY = Math.max(maxY, sy + 16 + t.h * HZ);
     }
-    this.cam.x = -(minX + maxX) / 2 + this.cv.width / 2;
-    this.cam.y = -(minY + maxY) / 2 + this.cv.height / 2 + 24;
-    // Zoom so the board fills the view without spilling off a narrow screen.
-    const fitX = (this.cv.width * 0.92) / Math.max(1, maxX - minX);
-    const fitY = (this.cv.height * 0.72) / Math.max(1, maxY - minY);
-    this.zoom = Math.max(0.55, Math.min(1.35, Math.min(fitX, fitY)));
+    const view = this.viewCentre();
+    this.cam.x = -(minX + maxX) / 2 + view.cx;
+    this.cam.y = -(minY + maxY) / 2 + view.cy;
+    // Frame the board, but never shrink it past the point where a unit is too
+    // small to read or tap. On a narrow screen the board is allowed to run off
+    // the edges and the player pans instead.
+    const fitX = (view.w * 0.96) / Math.max(1, maxX - minX);
+    const fitY = (view.h * 0.92) / Math.max(1, maxY - minY);
+    const floor = Math.min(this.cv.width, this.cv.height) < 520 ? 0.9 : 0.55;
+    this.zoom = Math.max(floor, Math.min(1.35, Math.min(fitX, fitY)));
+  }
+
+  // Keep a point of interest on screen when the board is larger than the view.
+  clampCamera() {
+    if (!this.battle) return;
+    const g = this.battle.grid, z = this.zoom || 1;
+    let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    for (const row of g.tiles) for (const t of row) {
+      if (t.t === 'x') continue;
+      const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+      minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
+      minY = Math.min(minY, sy - 56); maxY = Math.max(maxY, sy + 16 + t.h * HZ);
+    }
+    // Allow the board's edge to reach the middle of the view, no further.
+    const halfW = this.cv.width / (2 * z), halfH = this.cv.height / (2 * z);
+    const cx = this.cv.width / 2, cy = this.cv.height / 2;
+    if (minX > cx + halfW) this.cam.x -= minX - (cx + halfW);
+    if (maxX < cx - halfW) this.cam.x += (cx - halfW) - maxX;
+    if (minY > cy + halfH) this.cam.y -= minY - (cy + halfH);
+    if (maxY < cy - halfH) this.cam.y += (cy - halfH) - maxY;
   }
 
   // World (unzoomed canvas) coordinates of a tile centre.
@@ -80,7 +120,7 @@ class Renderer {
     return { x: (mx - W / 2) / z + W / 2, y: (my - H / 2) / z + H / 2 };
   }
 
-  setZoom(z) { this.zoom = Math.max(0.6, Math.min(2.5, z)); }
+  setZoom(z) { this.zoom = Math.max(0.6, Math.min(2.5, z)); this.clampCamera(); }
 
   unitScreenPos(u) {
     const p = u.anim || { x: u.x, y: u.y, h: this.battle.grid.height(u.x, u.y), z: 0 };
@@ -93,13 +133,16 @@ class Renderer {
   // Pan the camera so a grid position sits near the centre.
   async focus(u, ms = 300) {
     const g = this.battle.grid;
-    const tx = -(u.x - u.y) * TILE_W / 2, ty = -(u.x + u.y) * TILE_H / 2 + g.height(u.x, u.y) * HZ;
+    const off = this.viewCentre();
+    const tx = -(u.x - u.y) * TILE_W / 2 + (off.cx - this.cv.width / 2);
+    const ty = -(u.x + u.y) * TILE_H / 2 + g.height(u.x, u.y) * HZ + (off.cy - this.cv.height / 2);
     const fx = this.cam.x, fy = this.cam.y;
     // Only pan when the unit would otherwise sit outside the comfortable centre zone.
     const z = this.zoom || 1;
+    const view = this.viewCentre();
     const cur = this.toScreen(u.x, u.y, g.height(u.x, u.y));
-    const dx = (cur.sx - this.cv.width / 2) * z, dy = (cur.sy - this.cv.height / 2) * z;
-    if (Math.abs(dx) < this.cv.width * 0.3 && Math.abs(dy) < this.cv.height * 0.3) return;
+    const dx = (cur.sx - view.cx) * z, dy = (cur.sy - view.cy) * z;
+    if (Math.abs(dx) < view.w * 0.3 && Math.abs(dy) < view.h * 0.3) return;
     await tween(ms, k => { this.cam.x = lerp(fx, tx, k); this.cam.y = lerp(fy, ty, k); });
   }
 
