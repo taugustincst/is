@@ -22,6 +22,38 @@ function relativeFacing(defender, ax, ay) {
   return 'side';
 }
 
+// Tiles the player may deploy onto: the map's anchors plus everything within a
+// couple of steps of them, minus anywhere an enemy is standing or watching.
+function computeDeployZone(grid, anchors, enemies) {
+  const zone = new Map();
+  for (const [ax, ay] of anchors) {
+    const start = grid.tile(ax, ay);
+    if (!start) continue;
+    const seen = new Set([`${ax},${ay}`]);
+    let frontier = [start];
+    for (let step = 0; step <= 2; step++) {
+      const next = [];
+      for (const t of frontier) {
+        zone.set(`${t.x},${t.y}`, t);
+        for (const [dx, dy] of Object.values(DIRS)) {
+          const nx = t.x + dx, ny = t.y + dy, key = `${nx},${ny}`;
+          if (seen.has(key) || !grid.passable(nx, ny)) continue;
+          if (Math.abs(grid.height(nx, ny) - t.h) > 2) continue;
+          seen.add(key);
+          next.push(grid.tile(nx, ny));
+        }
+      }
+      frontier = next;
+    }
+  }
+  for (const e of enemies) {
+    for (const [key, t] of [...zone]) {
+      if (Grid.dist(t.x, t.y, e.x, e.y) <= 2) zone.delete(key);
+    }
+  }
+  return [...zone.values()];
+}
+
 class Battle {
   constructor(mapDef, playerUnits, enemyUnits, hooks) {
     this.grid = new Grid(mapDef);
@@ -37,12 +69,7 @@ class Battle {
     for (const u of this.units) {
       u.resetBattleState();
     }
-    // Restore positions (resetBattleState clears them).
-    playerUnits.forEach((u, i) => {
-      const d = mapDef.deploy[i]; u.x = d[0]; u.y = d[1];
-      u.facing = 'N';
-    });
-    for (const e of enemyUnits) { /* positions set by makeEnemy; resetBattleState wiped them */ }
+    // Player units start in reserve at x = -1; the deployment phase places them.
   }
 
   static setup(mapDef, playerUnits, enemySpecs, hooks) {
@@ -54,6 +81,10 @@ class Battle {
       e.x = spec.x; e.y = spec.y; e.facing = 'S';
       b.units.push(e);
     }
+    b.deployZone = computeDeployZone(b.grid, mapDef.deploy, b.units.filter(u => u.team === 'enemy'));
+    b.deployKeys = new Set(b.deployZone.map(t => `${t.x},${t.y}`));
+    b.maxDeploy = Math.min(5, b.deployZone.length);
+    b.autoDeploy(playerUnits);
     // Enemies face the nearest player at start.
     for (const e of b.units.filter(u => u.team === 'enemy')) {
       const p = b.nearestEnemyOf(e);
@@ -64,14 +95,53 @@ class Battle {
     return b;
   }
 
+  // ---- deployment ---------------------------------------------------------
+  deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0); }
+  canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.unitAt(x, y); }
+
+  placeUnit(unit, x, y) {
+    if (unit.x === x && unit.y === y) return true;
+    if (!this.canDeployAt(x, y)) return false;
+    if (unit.x < 0 && this.deployed().length >= this.maxDeploy) return false;
+    unit.x = x; unit.y = y;
+    unit.facing = this.faceNearestEnemy(unit);
+    return true;
+  }
+
+  withdraw(unit) { unit.x = -1; unit.y = -1; }
+
+  faceNearestEnemy(unit) {
+    const near = this.nearestEnemyOf(unit);
+    return near ? facingFromDelta(near.x - unit.x, near.y - unit.y) : unit.facing;
+  }
+
+  // Fill the field automatically, front-loading the roster order.
+  autoDeploy(roster) {
+    const free = this.deployZone.filter(t => !this.unitAt(t.x, t.y));
+    // Anchors first, then the rest of the zone, so the default looks deliberate.
+    const anchors = this.mapDef.deploy.map(([x, y]) => `${x},${y}`);
+    free.sort((a, b) => anchors.indexOf(`${b.x},${b.y}`) - anchors.indexOf(`${a.x},${a.y}`));
+    for (const u of roster) {
+      if (u.x >= 0) continue;
+      if (this.deployed().length >= this.maxDeploy) break;
+      const t = free.find(t => !this.unitAt(t.x, t.y));
+      if (!t) break;
+      this.placeUnit(u, t.x, t.y);
+    }
+    for (const u of this.deployed()) u.facing = this.faceNearestEnemy(u);
+  }
+
   log(msg, cls) { if (this.hooks.log) this.hooks.log(msg, cls); }
-  unitAt(x, y) { return this.units.find(u => u.alive && !u.airborne && u.x === x && u.y === y) || null; }
+  unitAt(x, y) { return this.units.find(u => u.alive && !u.airborne && u.x >= 0 && u.x === x && u.y === y) || null; }
+
+  // Units left in reserve sit at x = -1 and take no part in the battle.
+  onField(u) { return u.x >= 0; }
   alliesOf(u) { return this.units.filter(o => o.team === u.team); }
   enemiesOf(u) { return this.units.filter(o => o.team !== u.team); }
   nearestEnemyOf(u) {
     let best = null, bd = 1e9;
     for (const e of this.enemiesOf(u)) {
-      if (!e.alive) continue;
+      if (!e.alive || !this.onField(e)) continue;
       const d = Grid.dist(u.x, u.y, e.x, e.y);
       if (d < bd) { bd = d; best = e; }
     }
@@ -92,7 +162,7 @@ class Battle {
     const out = [];
     for (const t of tiles) {
       for (const u of this.units) {
-        if (u.x !== t.x || u.y !== t.y) continue;
+        if (!this.onField(u) || u.x !== t.x || u.y !== t.y) continue;
         if (u.airborne) continue;
         if (ab.deadOnly ? u.alive : !u.alive) continue;
         const isAlly = u.team === unit.team;
@@ -385,8 +455,8 @@ class Battle {
 
   // ---- charge-time loop -------------------------------------------------------
   checkEnd() {
-    const pAlive = this.units.some(u => u.team === 'player' && u.alive);
-    const eAlive = this.units.some(u => u.team === 'enemy' && u.alive);
+    const pAlive = this.units.some(u => u.team === 'player' && u.alive && this.onField(u));
+    const eAlive = this.units.some(u => u.team === 'enemy' && u.alive && this.onField(u));
     if (!eAlive) { this.over = true; this.result = 'victory'; }
     else if (!pAlive) { this.over = true; this.result = 'defeat'; }
     return this.over;
@@ -395,7 +465,7 @@ class Battle {
   // Simulates upcoming turns for the turn-order display.
   forecast(n = 8) {
     // The acting unit's CT resets after its turn, so forecast it from zero.
-    const sim = this.units.filter(u => u.alive).map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.ctSpeed() }));
+    const sim = this.units.filter(u => u.alive && this.onField(u)).map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.ctSpeed() }));
     const pend = this.pending.map(p => ({ p, ct: p.ct }));
     const out = [];
     let guard = 0;
@@ -429,11 +499,11 @@ class Battle {
       }
       // Units gain CT; tick down statuses.
       for (const u of this.units) {
-        if (!u.alive) continue;
+        if (!u.alive || !this.onField(u)) continue;
         u.ct += u.ctSpeed();
         for (const s of Object.keys(u.statuses)) { u.statuses[s]--; if (u.statuses[s] <= 0) delete u.statuses[s]; }
       }
-      const turnUnits = this.units.filter(u => u.alive && u.ct >= 100 && !u.airborne && !u.hasStatus('stop'))
+      const turnUnits = this.units.filter(u => u.alive && this.onField(u) && u.ct >= 100 && !u.airborne && !u.hasStatus('stop'))
         .sort((a, b) => b.ct - a.ct || b.spd - a.spd);
       for (const u of turnUnits) {
         if (!u.alive || this.over) continue;

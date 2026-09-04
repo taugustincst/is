@@ -171,3 +171,20 @@ small { color: var(--muted); }
 .equip-row select { flex: 1; max-width: 420px; }
 .equip-row .none { color: #666; font-size: 12px; }
 button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-left: 8px; }
+
+/* ---------- deployment ---------- */
+#deploy-panel { display: none; bottom: 12px; right: 12px; width: 320px; }
+#deploy-panel.open { display: block; }
+.roster-list { max-height: 210px; overflow-y: auto; margin-bottom: 8px; }
+.roster-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
+.roster-row:hover { background: rgba(255,255,255,0.05); }
+.roster-row.sel { border-color: var(--gold); background: #2a2a44; }
+.roster-row .name { flex: 1; }
+.roster-row .job { color: var(--muted); font-size: 11px; }
+.roster-row .mark { color: #555; }
+.roster-row.placed .mark { color: var(--green); }
+.deploy-dirs { margin-bottom: 8px; }
+.deploy-dirs button { font-size: 12px; padding: 4px; }
+.deploy-actions { display: flex; gap: 6px; }
+.deploy-actions button { flex: 1; }
+#hint.warn { color: var(--red); }

@@ -115,7 +115,7 @@ class Renderer {
     const { x: mx, y: my } = this.toWorld(px, py);
     const g = this.battle.grid;
     // Units first (sprites stand above their tile).
-    const units = this.battle.units.filter(u => u.alive && !u.airborne).sort((a, b) => (b.x + b.y) - (a.x + a.y));
+    const units = this.battle.units.filter(u => u.alive && !u.airborne && u.x >= 0).sort((a, b) => (b.x + b.y) - (a.x + a.y));
     for (const u of units) {
       const { sx, sy } = this.unitScreenPos(u);
       if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) return g.tile(u.x, u.y);
@@ -178,6 +178,7 @@ class Renderer {
       items.push({ d: x + y, kind: 'tile', t });
     }
     for (const u of this.battle.units) {
+      if (u.x < 0) continue; // in reserve, not on the field
       const p = u.anim || { x: u.x, y: u.y };
       items.push({ d: p.x + p.y + 0.5 + (u.alive ? 0 : -0.2), kind: 'unit', u });
     }
@@ -228,8 +229,22 @@ class Renderer {
     if (this.hl.cursor && this.hl.cursor.x === t.x && this.hl.cursor.y === t.y) {
       this.diamond(sx, sy); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
     }
-    if (this.battle.mapDef.deploy && this.battle.showDeploy) {
-      if (this.battle.mapDef.deploy.some(d => d[0] === t.x && d[1] === t.y)) { this.diamond(sx, sy); c.fillStyle = 'rgba(80,220,120,0.35)'; c.fill(); }
+    if (this.battle.showDeploy && this.battle.deployKeys && this.battle.deployKeys.has(key)) {
+      const taken = !!this.battle.unitAt(t.x, t.y);
+      const pulse = 0.30 + 0.10 * Math.sin(this.time / 350 + (t.x + t.y) * 0.5);
+      this.diamond(sx, sy);
+      c.fillStyle = taken ? 'rgba(40,180,90,0.22)' : `rgba(60,240,140,${pulse})`;
+      c.fill();
+      c.strokeStyle = taken ? 'rgba(120,255,170,0.55)' : 'rgba(190,255,215,0.95)';
+      c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
+      // A caret on free tiles reads as "you may stand here".
+      if (!taken) {
+        c.fillStyle = 'rgba(225,255,235,0.9)';
+        c.beginPath();
+        c.moveTo(sx, sy - 7); c.lineTo(sx + 6, sy + 1); c.lineTo(sx + 2, sy + 1);
+        c.lineTo(sx + 2, sy + 6); c.lineTo(sx - 2, sy + 6); c.lineTo(sx - 2, sy + 1);
+        c.lineTo(sx - 6, sy + 1); c.closePath(); c.fill();
+      }
     }
     // Tree / pillar
     if (t.t === 't') {

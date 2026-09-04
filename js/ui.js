@@ -16,6 +16,7 @@ class BattleUI {
       menu: document.getElementById('action-menu'),
       pred: document.getElementById('prediction'),
       log: document.getElementById('log'),
+      roster: document.getElementById('deploy-panel'),
       banner: document.getElementById('banner'),
       tileInfo: document.getElementById('tile-info'),
       hint: document.getElementById('hint'),
@@ -26,6 +27,7 @@ class BattleUI {
   bind(battle) {
     this.battle = battle;
     this.turn = null;
+    this.deploy = null;
     this.el.log.innerHTML = '';
     this.el.menu.innerHTML = '';
     this.el.pred.innerHTML = '';
@@ -69,7 +71,7 @@ class BattleUI {
 
   refresh() {
     if (!this.battle) return;
-    this.renderOrder();
+    if (this.deploy) this.renderEnemyRoster(); else this.renderOrder();
     const u = (this.hover && this.battle.unitAt(this.hover.x, this.hover.y)) || (this.turn && this.turn.unit) || this.battle.active;
     this.renderCard(u);
   }
@@ -108,6 +110,107 @@ class BattleUI {
     this.el.tileInfo.textContent = `${names[t.t] || '?'}  (${t.x},${t.y})  height ${t.h}`;
   }
 
+  // ---- deployment -------------------------------------------------------------------
+  // Runs before the first tick: pick who fights and where they stand.
+  deployPhase(battle, roster) {
+    return new Promise(resolve => {
+      this.battle = battle;
+      this.deploy = { roster, sel: roster.find(u => u.x >= 0) || roster[0], resolve };
+      battle.showDeploy = true;
+      document.getElementById('command').style.display = 'none';
+      this.renderDeploy();
+      this.renderEnemyRoster();
+    });
+  }
+
+  endDeploy() {
+    const d = this.deploy;
+    if (!d) return;
+    if (!this.battle.deployed().length) { this.toastHint('Place at least one unit.'); return; }
+    this.deploy = null;
+    this.battle.showDeploy = false;
+    this.el.roster.innerHTML = '';
+    this.el.roster.classList.remove('open');
+    document.getElementById('command').style.display = '';
+    this.el.hint.textContent = '';
+    d.resolve();
+  }
+
+  toastHint(msg) {
+    this.el.hint.textContent = msg;
+    this.el.hint.classList.add('warn');
+    setTimeout(() => this.el.hint.classList.remove('warn'), 900);
+  }
+
+  renderEnemyRoster() {
+    const foes = this.battle.units.filter(u => u.team === 'enemy');
+    this.el.order.innerHTML = '<div class="panel-title">Opposition</div>' + foes.map(u =>
+      `<div class="order-row enemy"><span class="dot"></span>${u.name}<span class="sub">Lv${u.level} ${u.jobData.name}</span></div>`).join('');
+  }
+
+  renderDeploy() {
+    const d = this.deploy;
+    if (!d) return;
+    const b = this.battle;
+    const placed = b.deployed().length;
+    this.el.hint.textContent = `Click a green tile to place ${d.sel ? d.sel.name : 'a unit'}. Click a deployed unit to pick it up.`;
+    this.el.roster.classList.add('open');
+    this.el.roster.innerHTML = `
+      <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
+      <div class="roster-list">${d.roster.map((u, i) => `
+        <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}">
+          <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
+          <span class="job">Lv${u.level} ${u.jobData.name}</span>
+          <span class="mark">${u.x >= 0 ? '●' : '○'}</span>
+        </div>`).join('')}</div>
+      <div class="dirs deploy-dirs">
+        <button data-d="N">↗ N</button><button data-d="E">↘ E</button>
+        <button data-d="W">↖ W</button><button data-d="S">↙ S</button>
+      </div>
+      <div class="deploy-actions">
+        <button data-a="auto">Auto-place</button>
+        <button data-a="clear">Clear</button>
+        <button data-a="go" class="primary">Begin Battle</button>
+      </div>`;
+    this.el.roster.querySelectorAll('.roster-row').forEach(r => r.onclick = () => {
+      d.sel = d.roster[+r.dataset.i];
+      if (d.sel.x >= 0) this.r.focus(d.sel);
+      this.renderDeploy();
+    });
+    this.el.roster.querySelectorAll('button[data-d]').forEach(btn => btn.onclick = () => {
+      if (d.sel && d.sel.x >= 0) { d.sel.facing = btn.dataset.d; this.refresh(); }
+    });
+    this.el.roster.querySelectorAll('button[data-a]').forEach(btn => btn.onclick = () => {
+      const a = btn.dataset.a;
+      if (a === 'auto') b.autoDeploy(d.roster);
+      else if (a === 'clear') for (const u of d.roster) b.withdraw(u);
+      else return this.endDeploy();
+      this.renderDeploy();
+    });
+    this.refresh();
+  }
+
+  onDeployClick(tile) {
+    const d = this.deploy, b = this.battle;
+    if (!d || !tile) return;
+    const occupant = b.unitAt(tile.x, tile.y);
+    if (occupant && occupant.team === 'player') {
+      // Clicking the selected unit picks it back up; clicking another selects it.
+      if (occupant === d.sel) b.withdraw(occupant); else d.sel = occupant;
+      return this.renderDeploy();
+    }
+    if (occupant) return; // an enemy stands there
+    if (!d.sel) return;
+    if (!b.placeUnit(d.sel, tile.x, tile.y)) {
+      this.toastHint(b.deployKeys.has(`${tile.x},${tile.y}`) ? `Only ${b.maxDeploy} units may deploy.` : 'Outside the deployment zone.');
+      return;
+    }
+    // Move the selection along to the next unit still waiting in reserve.
+    const next = d.roster.find(u => u.x < 0);
+    if (next && b.deployed().length < b.maxDeploy) d.sel = next;
+    this.renderDeploy();
+  }
+
   // ---- player turn ------------------------------------------------------------------
   awaitPlayerTurn(unit) {
     return new Promise(resolve => {
@@ -128,6 +231,16 @@ class BattleUI {
 
   // Called from the game screen when the player retreats.
   abort() {
+    if (this.deploy) {
+      const d = this.deploy;
+      this.deploy = null;
+      this.battle.showDeploy = false;
+      this.el.roster.innerHTML = '';
+      this.el.roster.classList.remove('open');
+      document.getElementById('command').style.display = '';
+      d.resolve();
+      return;
+    }
     if (this.turn) this.endTurn();
   }
 
@@ -309,6 +422,7 @@ class BattleUI {
   }
 
   onClick(tile) {
+    if (this.deploy) return this.onDeployClick(tile);
     const t = this.turn;
     if (!t || !tile) return;
     if (t.mode === 'move') this.confirmMove(tile);

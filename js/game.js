@@ -415,6 +415,7 @@ class Game {
     if (!ch) return;
     await this.story(ch.title, ch.intro);
     const result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil);
+    if (result === 'aborted') return;
     if (result === 'victory') {
       this.state.chapter++;
       this.state.victories++;
@@ -448,20 +449,30 @@ class Game {
     cands.sort(() => Math.random() - 0.5);
     const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i].x, y: cands[i].y }));
     await this.story('Training', [`${map.name}. Word has it that ${pool.length} hostiles are camped here. Good practice.`]);
-    await this.runBattle(map, enemies, 100 + lvl * 20);
+    const res = await this.runBattle(map, enemies, 100 + lvl * 20);
+    if (res === 'aborted') return;
     this.saveGame();
     this.showWorld();
   }
 
-  async runBattle(mapDef, enemySpecs, gilReward) {
-    const deploy = this.state.party.slice(0, Math.min(5, mapDef.deploy.length));
-    const battle = Battle.setup(mapDef, deploy, enemySpecs, this.ui.hooks());
+  async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
+    const roster = this.state.party;
+    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks());
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
     this.renderer.setBattle(battle);
     this.ui.bind(battle);
     this.showScreen('battle');
     this.renderer.start();
+    if (!opts.skipDeploy) await this.ui.deployPhase(battle, roster);
+    if (battle.over && battle.result === 'defeat' && !battle.tick) {
+      // Left the field before a blow was struck: no losses, no rewards.
+      this.renderer.stop();
+      this.battle = null;
+      for (const u of this.state.party) u.resetBattleState();
+      this.showWorld();
+      return 'aborted';
+    }
     this.ui.log(`Battle begins at ${mapDef.name}!`, 'lvl');
     const result = await battle.run();
     await sleep(600);
@@ -482,8 +493,10 @@ class Game {
 
   retreat() {
     if (!this.battle || this.battle.over) return;
-    if (!confirm('Retreat from battle? This counts as a defeat.')) return;
-    this.battle.over = true; this.battle.result = 'defeat';
+    const deploying = !!this.ui.deploy;
+    if (!confirm(deploying ? 'Leave without giving battle?' : 'Retreat from battle? This counts as a defeat.')) return;
+    this.battle.over = true;
+    this.battle.result = 'defeat';
     this.ui.log('The party retreats!', 'ko');
     this.ui.abort();
   }
