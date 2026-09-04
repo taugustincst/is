@@ -138,15 +138,22 @@ class Game {
     return true;
   }
 
-  // Equip the best available loadout for this unit out of stock plus what it wears.
+  // Equip the best available loadout for this unit out of stock plus whatever it
+  // already wears. Worked as a diff so a slot is never emptied for want of a
+  // replacement, which would quietly destroy a free starter item.
   optimize(unit) {
-    for (const slot of Object.keys(SLOT_NAMES)) if (unit.gear[slot]) this.equip(unit, slot, null);
     const pool = [];
     for (const [id, n] of Object.entries(this.state.inventory)) for (let i = 0; i < n; i++) pool.push(id);
+    for (const slot of Object.keys(SLOT_NAMES)) if (unit.gear[slot]) pool.push(unit.gear[slot]);
     const best = bestGearFor(unit.job, pool, undefined, unit.equipExtra());
-    for (const [slot, id] of Object.entries(best)) {
+    for (const slot of Object.keys(SLOT_NAMES)) {
       if (slot === 'offhand' && unit.hasPassive('twoHands')) continue;
-      this.equip(unit, slot, id);
+      const want = best[slot];
+      const have = unit.gear[slot];
+      if (!want || want === have) continue;
+      // Release the old piece first so the new one can be drawn from stock.
+      if (have) this.equip(unit, slot, null);
+      if (!this.equip(unit, slot, want) && have) unit.gear[slot] = have; // put it back
     }
   }
 
