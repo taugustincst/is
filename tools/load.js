@@ -15,7 +15,7 @@ const ENGINE = ['data', 'unit', 'map', 'battle'];
 const NAMES = [
   'MAPS', 'JOBS', 'ABILITIES', 'PASSIVES', 'PASSIVE_KINDS', 'STATUSES', 'ITEMS',
   'SLOT_NAMES', 'GEAR_STATS', 'JOB_EQUIP', 'STARTER_GEAR', 'CAMPAIGN',
-  'STARTING_PARTY', 'TRAINING_POOL', 'JOB_LEVEL_JP', 'TURN_LIMIT', 'KO_COUNTDOWN',
+  'STARTING_PARTY', 'TRAINING_POOL', 'JOB_LEVEL_JP', 'TURN_LIMIT', 'KO_COUNTDOWN', 'ROUND_LIMIT',
   'Unit', 'Battle', 'Grid', 'makeEnemy', 'canEquip', 'canEquipInSlot',
   'itemsForSlot', 'bestGearFor', 'gearScore', 'enemyGearFor', 'passivesOfJob',
   'passiveEquipBonus', 'jobLevelFromJP', 'computeDeployZone', 'facingFromDelta',

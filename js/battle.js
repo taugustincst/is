@@ -125,7 +125,7 @@ class Battle {
 
   // ---- deployment ---------------------------------------------------------
   deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0); }
-  canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.unitAt(x, y); }
+  canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.occupantAt(x, y); }
 
   placeUnit(unit, x, y) {
     if (unit.x === x && unit.y === y) return true;
@@ -145,14 +145,14 @@ class Battle {
 
   // Fill the field automatically, front-loading the roster order.
   autoDeploy(roster) {
-    const free = this.deployZone.filter(t => !this.unitAt(t.x, t.y));
+    const free = this.deployZone.filter(t => !this.occupantAt(t.x, t.y));
     // Anchors first, then the rest of the zone, so the default looks deliberate.
     const anchors = this.mapDef.deploy.map(([x, y]) => `${x},${y}`);
     free.sort((a, b) => anchors.indexOf(`${b.x},${b.y}`) - anchors.indexOf(`${a.x},${a.y}`));
     for (const u of roster) {
       if (u.x >= 0) continue;
       if (this.deployed().length >= this.maxDeploy) break;
-      const t = free.find(t => !this.unitAt(t.x, t.y));
+      const t = free.find(t => !this.occupantAt(t.x, t.y));
       if (!t) break;
       this.placeUnit(u, t.x, t.y);
     }
@@ -160,7 +160,12 @@ class Battle {
   }
 
   log(msg, cls) { if (this.hooks.log) this.hooks.log(msg, cls); }
+  // The living unit standing on a tile, for targeting and picking.
   unitAt(x, y) { return this.units.find(u => u.alive && !u.airborne && u.x >= 0 && u.x === x && u.y === y) || null; }
+
+  // Anyone taking up the tile, for movement and placement: the fallen who have
+  // not been carried off yet, and anyone in mid-leap who will land back on it.
+  occupantAt(x, y) { return this.units.find(u => u.x >= 0 && u.x === x && u.y === y) || null; }
 
   // Units left in reserve sit at x = -1 and take no part in the battle.
   onField(u) { return u.x >= 0; }
@@ -409,6 +414,11 @@ class Battle {
       }
       case 'revive': {
         if (t.alive) return false;
+        const standing = this.unitAt(t.x, t.y);
+        if (standing && standing !== t) {
+          this.log(`There is no room to raise ${t.name}.`, 'miss');
+          return false;
+        }
         t.hp = Math.max(1, Math.floor(t.maxHp * eff.pct));
         t._deathLogged = false;
         t.ct = 0;
@@ -606,6 +616,10 @@ class Battle {
     this.over = true;
     this.result = result;
     this.endReason = why;
+    // Bring anyone still in the air back down and drop unresolved charges, so
+    // the final state of the field is a state the game could have shown.
+    for (const u of this.units) u.airborne = false;
+    this.pending = [];
     if (why) this.log(why, result === 'victory' ? 'lvl' : 'ko');
     return true;
   }

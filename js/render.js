@@ -276,7 +276,7 @@ class Renderer {
       this.diamond(sx, sy); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
     }
     if (this.battle.showDeploy && this.battle.deployKeys && this.battle.deployKeys.has(key)) {
-      const taken = !!this.battle.unitAt(t.x, t.y);
+      const taken = !!this.battle.occupantAt(t.x, t.y);
       const pulse = 0.30 + 0.10 * Math.sin(this.time / 350 + (t.x + t.y) * 0.5);
       this.diamond(sx, sy);
       c.fillStyle = taken ? 'rgba(40,180,90,0.22)' : `rgba(60,240,140,${pulse})`;
