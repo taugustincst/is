@@ -21,6 +21,9 @@ class Unit {
     this.jpTotal = opts.jpTotal || {};  // lifetime JP per job (job level)
     this.learned = opts.learned || {};  // abilityId -> true
     this.secondary = opts.secondary || null; // job id whose skillset is equipped as secondary
+    // Equipped items keyed by slot. Player recruits arrive in their job's free kit.
+    this.gear = opts.gear ? Object.assign({}, opts.gear)
+      : (STARTER_GEAR[this.job] ? Object.assign({}, STARTER_GEAR[this.job]) : {});
     this.gilStolen = 0;
     if (opts.autoLearn) this.autoLearn(opts.autoLearn);
     this.resetBattleState();
@@ -35,6 +38,7 @@ class Unit {
     return {
       id: this.id, name: this.name, job: this.job, level: this.level, exp: this.exp, team: this.team,
       leader: this.leader, jp: this.jp, jpTotal: this.jpTotal, learned: this.learned, secondary: this.secondary,
+      gear: this.gear,
     };
   }
 
@@ -57,16 +61,45 @@ class Unit {
 
   learnedIn(job) { return JOBS[job].abilities.filter(a => this.learned[a]); }
 
+  // ---- equipment ----------------------------------------------------------
+  equipped(slot) { const id = this.gear[slot]; return id ? ITEMS[id] : null; }
+
+  // Summed stat bonuses from every equipped item.
+  gearBonus() {
+    const b = { hp: 0, mp: 0, pa: 0, ma: 0, spd: 0, move: 0, jump: 0, evade: 0 };
+    for (const slot of Object.keys(SLOT_NAMES)) {
+      const it = this.equipped(slot);
+      if (!it) continue;
+      for (const k of GEAR_STATS) if (it[k]) b[k] += it[k];
+    }
+    return b;
+  }
+
+  // Drop anything this unit's current job cannot wear. Returns the removed ids
+  // so the caller can put them back into the shared stock.
+  dropInvalidGear() {
+    const removed = [];
+    for (const slot of Object.keys(SLOT_NAMES)) {
+      const id = this.gear[slot];
+      if (id && !canEquipInSlot(this.job, id, slot)) { removed.push(id); delete this.gear[slot]; }
+    }
+    return removed;
+  }
+
   // ---- derived stats -----------------------------------------------------
+  // Job and level baseline plus equipment. Battle-time `mods` are added on top
+  // by the individual stat getters.
   baseStats() {
-    const L = this.level, j = this.jobData;
+    const L = this.level, j = this.jobData, g = this.gearBonus();
     return {
-      maxHp: Math.floor((45 + 9 * L) * j.hp),
-      maxMp: Math.floor((10 + 4 * L) * j.mp),
-      pa: Math.floor((5 + 0.5 * L) * j.pa),
-      ma: Math.floor((5 + 0.5 * L) * j.ma),
-      spd: Math.floor((6 + 0.12 * L) * j.spd),
-      move: j.move, jump: j.jump, evade: j.evade,
+      maxHp: Math.max(1, Math.floor((45 + 9 * L) * j.hp) + g.hp),
+      maxMp: Math.max(0, Math.floor((10 + 4 * L) * j.mp) + g.mp),
+      pa: Math.max(1, Math.floor((5 + 0.5 * L) * j.pa) + g.pa),
+      ma: Math.max(1, Math.floor((5 + 0.5 * L) * j.ma) + g.ma),
+      spd: Math.max(1, Math.floor((6 + 0.12 * L) * j.spd) + g.spd),
+      move: Math.max(1, j.move + g.move),
+      jump: Math.max(1, j.jump + g.jump),
+      evade: Math.max(0, j.evade + g.evade),
     };
   }
 
@@ -78,7 +111,15 @@ class Unit {
   get move() { return this.baseStats().move; }
   get jump() { return this.baseStats().jump; }
   get evade() { return this.baseStats().evade; }
-  get weapon() { return this.jobData.weapon; }
+  // The equipped weapon, or the job's innate one (bare hands, claws, fangs).
+  get weapon() { return this.equipped('weapon') || this.jobData.weapon; }
+
+  // A second weapon in the offhand, for jobs that dual wield.
+  get offhandWeapon() {
+    const it = this.equipped('offhand');
+    return it && it.slot === 'weapon' ? it : null;
+  }
+  get dualWielding() { return !!this.offhandWeapon; }
 
   // Effective CT gain per tick.
   ctSpeed() {
@@ -149,11 +190,13 @@ class Unit {
   }
 }
 
-// Build an enemy unit for a battle.
+// Build an enemy unit for a battle. Human foes are kitted out for their level so
+// they keep pace with an equipped party; monsters fight with what nature gave them.
 function makeEnemy(spec) {
   const job = JOBS[spec.job];
   const u = new Unit({
     name: spec.name || job.name, job: spec.job, level: spec.level, team: 'enemy', boss: spec.boss,
+    gear: spec.gear || enemyGearFor(spec.job, spec.level + (spec.boss ? 3 : 0)),
   });
   // Enemies know more abilities at higher levels; bosses know everything.
   const frac = spec.boss ? 1 : Math.min(1, 0.4 + spec.level * 0.08);

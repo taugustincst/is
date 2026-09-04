@@ -33,6 +33,7 @@
         <button id="btn-battle" class="primary">March to Battle</button>
         <button id="btn-train">Training Battle</button>
         <button id="btn-formation">Formation &amp; Jobs</button>
+        <button id="btn-shop">Shop</button>
         <button id="btn-save">Save</button>
         <button id="btn-title">Title</button>
       </div>
@@ -45,6 +46,7 @@
     </div>
     <aside class="world-side">
       <div class="gil" id="world-gil"></div>
+      <div id="world-stock" class="stock"></div>
       <h3>Party <small>(first 5 deploy)</small></h3>
       <div id="world-party"></div>
     </aside>
@@ -61,6 +63,19 @@
       <button id="btn-formation-back">Back to Camp</button>
     </div>
     <div class="form-right" id="form-detail"></div>
+  </div>
+</section>
+
+<!-- ================= Shop ================= -->
+<section id="screen-shop" class="screen">
+  <div class="shop-layout">
+    <div class="shop-head">
+      <h2>Merchant's Wagon</h2>
+      <span id="shop-gil"></span>
+    </div>
+    <div id="shop-tabs" class="tabs"></div>
+    <div id="shop-list"></div>
+    <button id="btn-shop-back">Back to Camp</button>
   </div>
 </section>
 

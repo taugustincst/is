@@ -105,7 +105,6 @@ const JOBS = {
     hp: 0.9, mp: 0.8, pa: 1.15, ma: 0.9, spd: 1.35, move: 5, jump: 5, evade: 22,
     weapon: { name: 'Twin Blades', power: 4, range: 1, vert: 2 },
     abilities: ['shuriken', 'flameBomb', 'smoke'],
-    twoSwords: true,
     req: { thief: 3 }, desc: 'Strikes twice with each Attack and hurls thrown weapons.',
   },
   dragoon: {
@@ -678,3 +677,184 @@ const TRAINING_POOL = [
   ['bomb', 'bomb', 'goblin', 'goblin'],
   ['ninja', 'timeMage', 'knight', 'dragoon'],
 ];
+
+// ============================================================================
+// Equipment
+// ============================================================================
+// Weapon types: knife sword axe spear bow staff rod fist ninjablade
+// Armor types:  cloth light heavy robe   Head types: hat helm
+// Slots: weapon, offhand, head, body, acc
+
+const JOB_EQUIP = {
+  squire:    { w: ['sword', 'knife', 'axe'], a: ['light', 'heavy', 'cloth'], head: ['hat', 'helm'], shield: true },
+  chemist:   { w: ['knife', 'rod'], a: ['cloth', 'robe'], head: ['hat'], shield: false },
+  knight:    { w: ['sword', 'axe', 'spear'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+  archer:    { w: ['bow', 'knife'], a: ['light', 'cloth'], head: ['hat', 'helm'], shield: false },
+  monk:      { w: ['fist'], a: ['light', 'cloth'], head: ['hat'], shield: false },
+  thief:     { w: ['knife', 'sword'], a: ['light', 'cloth'], head: ['hat'], shield: false },
+  whiteMage: { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  blackMage: { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  timeMage:  { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  ninja:     { w: ['ninjablade', 'knife'], a: ['light', 'cloth'], head: ['hat'], shield: false, dual: true },
+  dragoon:   { w: ['spear', 'sword'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+};
+
+// tier: shop stock unlocks at that chapter index. price 0 = starter kit, cannot be sold.
+const ITEMS = {
+  // ---- weapons ----
+  shortSword:  { name: 'Short Sword', slot: 'weapon', wtype: 'sword', power: 5, range: 1, vert: 2, price: 0, tier: 0 },
+  broadsword:  { name: 'Broadsword', slot: 'weapon', wtype: 'sword', power: 8, range: 1, vert: 2, price: 400, tier: 1 },
+  longsword:   { name: 'Longsword', slot: 'weapon', wtype: 'sword', power: 11, range: 1, vert: 2, price: 900, tier: 3 },
+  runeBlade:   { name: 'Rune Blade', slot: 'weapon', wtype: 'sword', power: 14, range: 1, vert: 2, ma: 3, price: 1800, tier: 5 },
+  dagger:      { name: 'Dagger', slot: 'weapon', wtype: 'knife', power: 4, range: 1, vert: 2, spd: 1, price: 0, tier: 0 },
+  mainGauche:  { name: 'Main Gauche', slot: 'weapon', wtype: 'knife', power: 6, range: 1, vert: 2, evade: 8, price: 380, tier: 1 },
+  assassinDagger: { name: 'Assassin Dagger', slot: 'weapon', wtype: 'knife', power: 9, range: 1, vert: 2, spd: 2, price: 1600, tier: 4 },
+  battleAxe:   { name: 'Battle Axe', slot: 'weapon', wtype: 'axe', power: 10, range: 1, vert: 2, price: 550, tier: 2 },
+  warAxe:      { name: 'War Axe', slot: 'weapon', wtype: 'axe', power: 14, range: 1, vert: 2, spd: -1, price: 1400, tier: 4 },
+  spear:       { name: 'Spear', slot: 'weapon', wtype: 'spear', power: 6, range: 2, vert: 3, price: 0, tier: 0 },
+  partisan:    { name: 'Partisan', slot: 'weapon', wtype: 'spear', power: 9, range: 2, vert: 3, price: 700, tier: 2 },
+  dragonLance: { name: 'Dragon Lance', slot: 'weapon', wtype: 'spear', power: 13, range: 2, vert: 3, jump: 1, price: 1900, tier: 5 },
+  shortbow:    { name: 'Shortbow', slot: 'weapon', wtype: 'bow', power: 4, range: 4, vert: 5, price: 0, tier: 0 },
+  longbow:     { name: 'Longbow', slot: 'weapon', wtype: 'bow', power: 6, range: 5, vert: 6, price: 600, tier: 2 },
+  yoichiBow:   { name: 'Yoichi Bow', slot: 'weapon', wtype: 'bow', power: 9, range: 6, vert: 8, price: 1700, tier: 5 },
+  staff:       { name: 'Staff', slot: 'weapon', wtype: 'staff', power: 3, range: 1, vert: 2, ma: 1, price: 0, tier: 0 },
+  healingStaff: { name: 'Healing Staff', slot: 'weapon', wtype: 'staff', power: 4, range: 1, vert: 2, ma: 4, price: 650, tier: 2 },
+  sageStaff:   { name: 'Sage Staff', slot: 'weapon', wtype: 'staff', power: 5, range: 1, vert: 2, ma: 7, mp: 20, price: 1800, tier: 5 },
+  rod:         { name: 'Rod', slot: 'weapon', wtype: 'rod', power: 3, range: 1, vert: 2, ma: 2, price: 0, tier: 0 },
+  flameRod:    { name: 'Flame Rod', slot: 'weapon', wtype: 'rod', power: 5, range: 1, vert: 2, ma: 5, price: 700, tier: 2 },
+  voidRod:     { name: 'Void Rod', slot: 'weapon', wtype: 'rod', power: 6, range: 1, vert: 2, ma: 9, price: 1900, tier: 5 },
+  cesti:       { name: 'Cesti', slot: 'weapon', wtype: 'fist', power: 6, range: 1, vert: 3, price: 0, tier: 0 },
+  ironKnuckle: { name: 'Iron Knuckle', slot: 'weapon', wtype: 'fist', power: 10, range: 1, vert: 3, pa: 1, price: 800, tier: 3 },
+  godHand:     { name: 'God Hand', slot: 'weapon', wtype: 'fist', power: 14, range: 1, vert: 3, pa: 3, price: 2000, tier: 5 },
+  kunai:       { name: 'Kunai', slot: 'weapon', wtype: 'ninjablade', power: 5, range: 1, vert: 2, spd: 1, price: 0, tier: 0 },
+  ninjaBlade:  { name: 'Ninja Blade', slot: 'weapon', wtype: 'ninjablade', power: 8, range: 1, vert: 2, spd: 1, price: 1200, tier: 4 },
+  murasame:    { name: 'Murasame', slot: 'weapon', wtype: 'ninjablade', power: 11, range: 1, vert: 2, spd: 2, price: 2200, tier: 6 },
+
+  // ---- offhand ----
+  buckler:     { name: 'Buckler', slot: 'offhand', otype: 'shield', evade: 12, price: 300, tier: 1 },
+  kiteShield:  { name: 'Kite Shield', slot: 'offhand', otype: 'shield', evade: 18, hp: 15, price: 800, tier: 3 },
+  aegisShield: { name: 'Aegis Shield', slot: 'offhand', otype: 'shield', evade: 26, hp: 25, price: 1800, tier: 5 },
+
+  // ---- head ----
+  leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 0 },
+  featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', hp: 12, spd: 1, price: 500, tier: 2 },
+  wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', mp: 20, ma: 1, price: 550, tier: 2 },
+  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1, price: 2400, tier: 6 },
+  ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 28, price: 450, tier: 1 },
+  goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 50, mp: 8, price: 1300, tier: 4 },
+
+  // ---- body ----
+  clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },
+  leatherArmor:{ name: 'Leather Armor', slot: 'body', atype: 'light', hp: 28, price: 350, tier: 1 },
+  chainMail:   { name: 'Chain Mail', slot: 'body', atype: 'light', hp: 48, price: 850, tier: 3 },
+  plateMail:   { name: 'Plate Mail', slot: 'body', atype: 'heavy', hp: 75, spd: -1, price: 1500, tier: 4 },
+  crystalMail: { name: 'Crystal Mail', slot: 'body', atype: 'heavy', hp: 100, mp: 10, price: 2400, tier: 6 },
+  silkRobe:    { name: 'Silk Robe', slot: 'body', atype: 'robe', hp: 18, mp: 20, price: 400, tier: 1 },
+  wizardRobe:  { name: 'Wizard Robe', slot: 'body', atype: 'robe', hp: 30, mp: 40, ma: 1, price: 1100, tier: 3 },
+  robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
+
+  // ---- accessory ----
+  leatherBoots:{ name: 'Leather Boots', slot: 'acc', move: 1, price: 400, tier: 1 },
+  wingedBoots: { name: 'Winged Boots', slot: 'acc', jump: 2, price: 500, tier: 2 },
+  sprintShoes: { name: 'Sprint Shoes', slot: 'acc', move: 1, spd: 1, price: 1200, tier: 4 },
+  powerGlove:  { name: 'Power Glove', slot: 'acc', pa: 2, price: 900, tier: 3 },
+  magickRing:  { name: 'Magick Ring', slot: 'acc', ma: 2, price: 900, tier: 3 },
+  guardianRing:{ name: 'Guardian Ring', slot: 'acc', hp: 30, price: 700, tier: 2 },
+  reflexBracer:{ name: 'Reflex Bracer', slot: 'acc', evade: 12, price: 800, tier: 3 },
+  chronoAmulet:{ name: 'Chrono Amulet', slot: 'acc', spd: 2, price: 2000, tier: 5 },
+};
+
+// Free starting kit per job (price-0 items only, so they cannot be sold for gil).
+const STARTER_GEAR = {
+  squire:    { weapon: 'shortSword', body: 'clothes' },
+  chemist:   { weapon: 'dagger', body: 'clothes' },
+  knight:    { weapon: 'shortSword', body: 'clothes' },
+  archer:    { weapon: 'shortbow', body: 'clothes' },
+  monk:      { weapon: 'cesti', body: 'clothes' },
+  thief:     { weapon: 'dagger', body: 'clothes' },
+  whiteMage: { weapon: 'staff', body: 'clothes' },
+  blackMage: { weapon: 'rod', body: 'clothes' },
+  timeMage:  { weapon: 'staff', body: 'clothes' },
+  ninja:     { weapon: 'kunai', body: 'clothes' },
+  dragoon:   { weapon: 'spear', body: 'clothes' },
+};
+
+const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
+const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
+
+// Can `job` equip item `id` at all?
+function canEquip(job, id) {
+  const it = ITEMS[id], eq = JOB_EQUIP[job];
+  if (!it || !eq) return false;
+  if (it.slot === 'weapon') return eq.w.includes(it.wtype);
+  if (it.slot === 'offhand') return !!eq.shield;
+  if (it.slot === 'head') return eq.head.includes(it.htype);
+  if (it.slot === 'body') return eq.a.includes(it.atype);
+  return true; // accessories fit anyone
+}
+
+// Can `job` equip item `id` into `slot`? Dual wielders may hold a second weapon
+// in the offhand instead of a shield.
+function canEquipInSlot(job, id, slot) {
+  const it = ITEMS[id], eq = JOB_EQUIP[job];
+  if (!it || !eq) return false;
+  if (slot === 'offhand' && it.slot === 'weapon') return !!eq.dual && canEquip(job, id);
+  return it.slot === slot && canEquip(job, id);
+}
+
+// Every item id this job could put in the slot, from a pool of ids.
+function itemsForSlot(job, slot, ids) {
+  return (ids || Object.keys(ITEMS)).filter(id => canEquipInSlot(job, id, slot));
+}
+
+// How much a piece of gear is worth to a given job. Used by the enemy loadout
+// generator and by the player's Optimize button.
+function gearScore(job, id) {
+  const it = ITEMS[id], j = JOBS[job];
+  if (!it || !j) return 0;
+  const physical = j.pa >= j.ma;
+  let s = 0;
+  if (it.slot === 'weapon' || it.otype !== 'shield') {
+    // Weapon power drives the damage formula for the job's main stat.
+    s += (it.power || 0) * 6;
+    s += Math.max(0, (it.range || 1) - 1) * 4;
+    // A job's signature weapon type is what its abilities are built around.
+    if (it.wtype && JOB_EQUIP[job] && it.wtype === JOB_EQUIP[job].w[0]) s += 25;
+  }
+  s += (it.pa || 0) * (physical ? 14 : 5);
+  s += (it.ma || 0) * (physical ? 5 : 14);
+  s += (it.hp || 0) * 0.35;
+  s += (it.mp || 0) * (physical ? 0.1 : 0.3);
+  s += (it.spd || 0) * 10;
+  s += (it.move || 0) * 8;
+  s += (it.jump || 0) * 3;
+  s += (it.evade || 0) * 0.5;
+  return s;
+}
+
+// The best loadout for a job from a pool of item ids (defaults to everything up
+// to `maxTier`). Returns a gear object; slots with nothing available are absent.
+function bestGearFor(job, pool, maxTier) {
+  const eq = JOB_EQUIP[job];
+  if (!eq) return {};
+  const ids = pool || Object.keys(ITEMS).filter(i => ITEMS[i].tier <= (maxTier === undefined ? 6 : maxTier));
+  const gear = {};
+  const used = {};
+  for (const slot of ['weapon', 'offhand', 'head', 'body', 'acc']) {
+    let best = null, bestScore = 0;
+    for (const id of ids) {
+      if (!canEquipInSlot(job, id, slot)) continue;
+      // The same single item cannot fill two slots.
+      if (used[id] && (pool || []).filter(p => p === id).length <= used[id]) continue;
+      const sc = gearScore(job, id);
+      if (sc > bestScore) { bestScore = sc; best = id; }
+    }
+    if (best) { gear[slot] = best; used[best] = (used[best] || 0) + 1; }
+  }
+  return gear;
+}
+
+// Items an enemy of the given job and level carries, so foes scale with the party.
+function enemyGearFor(job, level) {
+  return bestGearFor(job, null, Math.max(0, Math.min(6, Math.floor(level / 1.6))));
+}

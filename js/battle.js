@@ -152,7 +152,14 @@ class Battle {
         else if (eff.type === 'ctmod') p.notes.push(`CT ${eff.amount}`);
         else if (eff.type === 'ctset') p.notes.push(`CT = ${eff.amount}`);
       }
-      if (user.jobData.twoSwords && ab === ABILITIES.attack) { p.dmg *= 2; p.notes.push('x2 hits'); }
+      if (user.dualWielding && ab === ABILITIES.attack) {
+        // The offhand swings too, for its own weapon's power.
+        const off = user.offhandWeapon;
+        const extra = ab.effects.filter(e => e.type === 'damage')
+          .reduce((a, e) => a + this.computeEffect(user, ab, Object.assign({}, e, { power: off.power }), t), 0);
+        p.dmg += extra;
+        p.notes.push('2 hits');
+      }
       return p;
     });
   }
@@ -163,7 +170,7 @@ class Battle {
     user.facing = (tx === user.x && ty === user.y) ? user.facing : facingFromDelta(tx - user.x, ty - user.y);
     if (this.hooks.animateAction) await this.hooks.animateAction(user, ab, tx, ty);
     let didSomething = false;
-    const hits = user.jobData.twoSwords && ab === ABILITIES.attack ? 2 : 1;
+    const hits = user.dualWielding && ab === ABILITIES.attack ? 2 : 1;
     for (const t of targets) {
       for (let h = 0; h < hits; h++) {
         const roll = Math.random() * 100;
@@ -173,8 +180,10 @@ class Battle {
           if (this.hooks.showFloat) this.hooks.showFloat(t, 'Miss', '#ddd');
           continue;
         }
+        const off = h === 1 ? user.offhandWeapon : null;
         for (const eff of ab.effects) {
-          const r = this.applyEffect(user, ab, eff, t);
+          const use = off && eff.power === 'weapon' ? Object.assign({}, eff, { power: off.power }) : eff;
+          const r = this.applyEffect(user, ab, use, t);
           if (r) didSomething = true;
         }
         if (!t.alive && t.hp <= 0 && !t._deathLogged) {
