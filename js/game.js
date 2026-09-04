@@ -174,7 +174,16 @@ class Game {
     $('world-gil').textContent = `${s.gil} gil`;
     $('world-party').innerHTML = s.party.map((u, i) => `<div class="party-chip ${i < 5 ? '' : 'reserve'}">${u.name} <small>Lv${u.level} ${u.jobData.name}</small></div>`).join('');
     if (ch) {
-      $('world-next').innerHTML = `<div class="chapter-num">Chapter ${s.chapter + 1}</div><div class="chapter-title">${ch.title}</div><div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · Lv ${ch.enemies[0].level}</div>`;
+      const o = ch.objective || { type: 'rout' };
+      const goal = o.type === 'survive' ? `Hold out for ${o.turns} turns`
+        : o.type === 'boss' ? `Defeat ${(ch.enemies.find(e => e.boss) || {}).name || 'the commander'}`
+        : 'Defeat every enemy';
+      const topLevel = Math.max(...ch.enemies.map(e => e.level));
+      $('world-next').innerHTML = `
+        <div class="chapter-num">Chapter ${s.chapter + 1}</div>
+        <div class="chapter-title">${ch.title}</div>
+        <div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · up to Lv ${topLevel}</div>
+        <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>`;
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = 'March to Battle';
     } else {
@@ -514,7 +523,7 @@ class Game {
       this.state.gil += r.gil;
       audio.sfx('coin');
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
-      if (loot) { r.loot = loot; r.events.push(`Found ${loot} on the field!`); }
+      if (loot) r.loot = loot;
     }
     await this.results(result, r, battle.endReason);
     return result;
@@ -539,6 +548,7 @@ class Game {
         ${battleEndReason ? `<p class="res-reason">${battleEndReason}</p>` : ''}
         <div class="res-line">Experience earned: <b>${r.exp}</b></div>
         <div class="res-line">Gil ${result === 'victory' ? 'earned' : 'kept'}: <b>${result === 'victory' ? r.gil : 0}</b></div>
+        ${r.loot ? `<div class="res-line res-loot">Recovered: <b>${r.loot}</b></div>` : ''}
         ${r.events.length ? `<ul class="res-events">${r.events.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}
         ${result === 'defeat' ? '<p class="res-note">Your party regroups. Train, learn new abilities, and try again.</p>' : ''}`;
       $('btn-results').onclick = () => { $('btn-results').onclick = null; resolve(); };

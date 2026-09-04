@@ -37,7 +37,8 @@ small { color: var(--muted); }
 .world-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .world-actions button { padding: 10px 16px; }
 .tavern button { margin-top: 8px; margin-right: 6px; }
-.gil { font-size: 22px; color: var(--gold); margin-bottom: 12px; }
+.side-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.gil { font-size: 22px; color: var(--gold); }
 .party-chip { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; display: flex; justify-content: space-between; }
 .party-chip.reserve { opacity: 0.55; }
 
@@ -215,3 +216,5 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
   button { min-height: 34px; }
   .title-box h1 { font-size: 34px; }
 }
+.chapter-goal { color: var(--gold); font-size: 13px; margin-top: 6px; }
+.res-loot { color: var(--gold); }
