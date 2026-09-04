@@ -83,7 +83,26 @@ js/battle.js      charge time loop, actions, damage, statuses, objectives, AI
 js/render.js      isometric canvas renderer and animations
 js/ui.js          battle UI: deployment, menus, targeting, prediction, input
 js/game.js        campaign flow, formation, shop, saving
+tools/load.js     loads the game scripts into a Node sandbox
+tools/validate.js content consistency checks
+tools/simulate.js campaign balance simulator
 ```
+
+## Tools
+
+The engine and its data are plain scripts, so they can be exercised from Node
+without a browser:
+
+```
+node tools/validate.js          # check maps, jobs, items, passives and chapters
+node tools/simulate.js 20 1     # play the campaign 20 times, 1 training battle per chapter
+```
+
+`validate.js` catches content mistakes: a map row of the wrong width, a unit
+placed on water, an ability a job refers to but that does not exist, a starter
+item with a sell value. `simulate.js` runs whole campaigns with the game's own
+AI on both sides, carrying levels, JP, gil and purchases forward, and prints the
+win rate, length and party level per chapter.
 
 ## Notes on balance
 
