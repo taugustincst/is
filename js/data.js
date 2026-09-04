@@ -643,10 +643,11 @@ const CAMPAIGN = [
       'Rowan draws his sword. "Not today, Ser."',
     ],
     enemies: [
-      { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true },
+      { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true,
+        passives: ['counter', 'attackUp', 'movePlus1'] },
       { job: 'knight', level: 7, x: 4, y: 4, name: 'Black Guard' },
       { job: 'knight', level: 7, x: 8, y: 4, name: 'Black Guard' },
-      { job: 'timeMage', level: 7, x: 6, y: 1, name: 'Chronomancer' },
+      { job: 'timeMage', level: 7, x: 6, y: 1, name: 'Chronomancer', passives: ['halfMp', 'regenerator'] },
       { job: 'archer', level: 7, x: 3, y: 8, name: 'Black Guard Archer' },
       { job: 'ninja', level: 7, x: 10, y: 8, name: 'Brannoc\'s Shadow' },
     ],
@@ -782,29 +783,33 @@ const STARTER_GEAR = {
 const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
 const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
 
-// Can `job` equip item `id` at all?
-function canEquip(job, id) {
+// Can `job` equip item `id` at all? `extra` adds permissions granted elsewhere,
+// such as the Equip Armor support ability.
+function canEquip(job, id, extra) {
   const it = ITEMS[id], eq = JOB_EQUIP[job];
   if (!it || !eq) return false;
-  if (it.slot === 'weapon') return eq.w.includes(it.wtype);
+  const w = extra ? eq.w.concat(extra.w || []) : eq.w;
+  const a = extra ? eq.a.concat(extra.a || []) : eq.a;
+  const head = extra ? eq.head.concat(extra.head || []) : eq.head;
+  if (it.slot === 'weapon') return w.includes(it.wtype);
   if (it.slot === 'offhand') return !!eq.shield;
-  if (it.slot === 'head') return eq.head.includes(it.htype);
-  if (it.slot === 'body') return eq.a.includes(it.atype);
+  if (it.slot === 'head') return head.includes(it.htype);
+  if (it.slot === 'body') return a.includes(it.atype);
   return true; // accessories fit anyone
 }
 
 // Can `job` equip item `id` into `slot`? Dual wielders may hold a second weapon
 // in the offhand instead of a shield.
-function canEquipInSlot(job, id, slot) {
+function canEquipInSlot(job, id, slot, extra) {
   const it = ITEMS[id], eq = JOB_EQUIP[job];
   if (!it || !eq) return false;
-  if (slot === 'offhand' && it.slot === 'weapon') return !!eq.dual && canEquip(job, id);
-  return it.slot === slot && canEquip(job, id);
+  if (slot === 'offhand' && it.slot === 'weapon') return !!eq.dual && canEquip(job, id, extra);
+  return it.slot === slot && canEquip(job, id, extra);
 }
 
 // Every item id this job could put in the slot, from a pool of ids.
-function itemsForSlot(job, slot, ids) {
-  return (ids || Object.keys(ITEMS)).filter(id => canEquipInSlot(job, id, slot));
+function itemsForSlot(job, slot, ids, extra) {
+  return (ids || Object.keys(ITEMS)).filter(id => canEquipInSlot(job, id, slot, extra));
 }
 
 // How much a piece of gear is worth to a given job. Used by the enemy loadout
@@ -834,7 +839,7 @@ function gearScore(job, id) {
 
 // The best loadout for a job from a pool of item ids (defaults to everything up
 // to `maxTier`). Returns a gear object; slots with nothing available are absent.
-function bestGearFor(job, pool, maxTier) {
+function bestGearFor(job, pool, maxTier, extra) {
   const eq = JOB_EQUIP[job];
   if (!eq) return {};
   const ids = pool || Object.keys(ITEMS).filter(i => ITEMS[i].tier <= (maxTier === undefined ? 6 : maxTier));
@@ -843,7 +848,7 @@ function bestGearFor(job, pool, maxTier) {
   for (const slot of ['weapon', 'offhand', 'head', 'body', 'acc']) {
     let best = null, bestScore = 0;
     for (const id of ids) {
-      if (!canEquipInSlot(job, id, slot)) continue;
+      if (!canEquipInSlot(job, id, slot, extra)) continue;
       // The same single item cannot fill two slots.
       if (used[id] && (pool || []).filter(p => p === id).length <= used[id]) continue;
       const sc = gearScore(job, id);
@@ -857,4 +862,72 @@ function bestGearFor(job, pool, maxTier) {
 // Items an enemy of the given job and level carries, so foes scale with the party.
 function enemyGearFor(job, level) {
   return bestGearFor(job, null, Math.max(0, Math.min(6, Math.floor(level / 1.6))));
+}
+
+// ============================================================================
+// Passive abilities: reaction, support and movement
+// ============================================================================
+// Learned with JP inside a job, but once learned they can be equipped no matter
+// which job the unit is currently wearing. One of each kind at a time.
+
+const PASSIVES = {
+  // ---- reaction: triggered when something happens to the unit ----
+  counter: { name: 'Counter', kind: 'reaction', job: 'monk', jp: 250,
+    desc: 'Strike back when an adjacent foe damages you with a physical attack.' },
+  autoPotion: { name: 'Auto-Potion', kind: 'reaction', job: 'chemist', jp: 180,
+    desc: 'Drink a potion for 35 HP whenever you take damage.' },
+  parry: { name: 'Parry', kind: 'reaction', job: 'knight', jp: 250,
+    desc: '35% chance to turn aside a physical attack entirely.' },
+  absorbMp: { name: 'Absorb MP', kind: 'reaction', job: 'blackMage', jp: 200,
+    desc: 'Recover 10 MP whenever magick damages you.' },
+  regenerator: { name: 'Regenerator', kind: 'reaction', job: 'whiteMage', jp: 220,
+    desc: 'Gain Regen the first time you are damaged in a battle.' },
+  vengeance: { name: 'Vengeance', kind: 'reaction', job: 'dragoon', jp: 260,
+    desc: 'Physical Attack rises by 1 each time you are damaged.' },
+
+  // ---- support: always-on modifiers ----
+  attackUp: { name: 'Attack Up', kind: 'support', job: 'knight', jp: 300,
+    desc: 'Physical damage you deal rises by 25%.' },
+  magickUp: { name: 'Magick Up', kind: 'support', job: 'blackMage', jp: 300,
+    desc: 'Magickal damage you deal rises by 25%.' },
+  defend: { name: 'Defend', kind: 'support', job: 'squire', jp: 250,
+    desc: 'Physical damage you take falls by 20%.' },
+  halfMp: { name: 'Halve MP', kind: 'support', job: 'timeMage', jp: 320,
+    desc: 'Spells cost half as much MP.' },
+  twoHands: { name: 'Two Hands', kind: 'support', job: 'knight', jp: 350,
+    desc: 'Grip your weapon with both hands for 50% more weapon power. The offhand must be empty.' },
+  concentrate: { name: 'Concentrate', kind: 'support', job: 'archer', jp: 320,
+    desc: 'Your physical attacks ignore evasion entirely.' },
+  equipArmor: { name: 'Equip Armor', kind: 'support', job: 'whiteMage', jp: 280,
+    desc: 'Wear light and heavy armor whatever your job.' },
+  martialArts: { name: 'Martial Arts', kind: 'support', job: 'monk', jp: 260,
+    desc: 'Fist weapons strike for 50% more power.' },
+
+  // ---- movement: how the unit gets around ----
+  movePlus1: { name: 'Move +1', kind: 'movement', job: 'thief', jp: 220,
+    desc: 'Move one extra tile.' },
+  movePlus2: { name: 'Move +2', kind: 'movement', job: 'ninja', jp: 400,
+    desc: 'Move two extra tiles.' },
+  jumpPlus2: { name: 'Jump +2', kind: 'movement', job: 'dragoon', jp: 220,
+    desc: 'Climb two levels higher.' },
+  sureFooting: { name: 'Sure Footing', kind: 'movement', job: 'ninja', jp: 320,
+    desc: 'Height no longer limits where you can step.' },
+  moveHpUp: { name: 'Move-HP-Up', kind: 'movement', job: 'monk', jp: 240,
+    desc: 'Recover a tenth of your HP whenever you move.' },
+  moveFindItem: { name: 'Treasure Hunter', kind: 'movement', job: 'thief', jp: 300,
+    desc: 'Turn up 25 gil each time you move.' },
+};
+
+const PASSIVE_KINDS = { reaction: 'Reaction', support: 'Support', movement: 'Movement' };
+
+// The passives taught by a given job, in JP order.
+function passivesOfJob(job) {
+  return Object.keys(PASSIVES).filter(id => PASSIVES[id].job === job).sort((a, b) => PASSIVES[a].jp - PASSIVES[b].jp);
+}
+
+// Extra equip permissions granted by support abilities.
+function passiveEquipBonus(unit) {
+  const extra = { w: [], a: [], head: [] };
+  if (unit.hasPassive('equipArmor')) { extra.a.push('light', 'heavy'); extra.head.push('helm'); }
+  return extra;
 }

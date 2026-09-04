@@ -94,11 +94,12 @@ class Game {
   slotOptions(unit, slot) {
     const ids = Object.keys(this.state.inventory).filter(id => this.invCount(id) > 0);
     if (unit.gear[slot]) ids.push(unit.gear[slot]);
-    return [...new Set(itemsForSlot(unit.job, slot, ids))];
+    if (slot === 'offhand' && unit.hasPassive('twoHands')) return []; // both hands are busy
+    return [...new Set(itemsForSlot(unit.job, slot, ids, unit.equipExtra()))];
   }
 
   equip(unit, slot, id) {
-    if (id && !canEquipInSlot(unit.job, id, slot)) return false;
+    if (id && !unit.canEquipItem(id, slot)) return false;
     if (id && !this.invCount(id)) return false;
     const old = unit.gear[slot];
     if (old) this.invAdd(old);
@@ -111,8 +112,11 @@ class Game {
     for (const slot of Object.keys(SLOT_NAMES)) if (unit.gear[slot]) this.equip(unit, slot, null);
     const pool = [];
     for (const [id, n] of Object.entries(this.state.inventory)) for (let i = 0; i < n; i++) pool.push(id);
-    const best = bestGearFor(unit.job, pool);
-    for (const [slot, id] of Object.entries(best)) this.equip(unit, slot, id);
+    const best = bestGearFor(unit.job, pool, undefined, unit.equipExtra());
+    for (const [slot, id] of Object.entries(best)) {
+      if (slot === 'offhand' && unit.hasPassive('twoHands')) continue;
+      this.equip(unit, slot, id);
+    }
   }
 
   // Gear the shop stocks, widening as the campaign advances.
@@ -214,6 +218,13 @@ class Game {
       </div>`;
     }).join('');
     const jobLevels = Object.keys(JOBS).filter(j => u.jpTotal[j]).map(j => `${JOBS[j].name} Lv${u.jobLevel(j)}`).join(' · ') || 'none yet';
+    const passiveLearn = passivesOfJob(u.job).map(id => {
+      const p = PASSIVES[id], learned = !!u.learned[id];
+      return `<div class="ab-row ${learned ? 'learned' : ''}">
+        <div><b>${p.name}</b> <small>${PASSIVE_KINDS[p.kind]}</small><div class="ab-desc">${p.desc}</div></div>
+        <div>${learned ? '<span class="tag">Learned</span>' : `<button data-learn="${id}" ${jp >= p.jp ? '' : 'disabled'}>${p.jp} JP</button>`}</div>
+      </div>`;
+    }).join('');
     $('form-detail').innerHTML = `
       <div class="detail-head"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP</span></div>
       <div class="detail-grid">
@@ -229,8 +240,11 @@ class Game {
       <div class="job-levels">Job levels: ${jobLevels}</div>
       <h3>Equipment <button id="btn-optimize" class="mini">Optimize</button></h3>
       <div class="equip-grid">${this.equipRows(u)}</div>
+      <h3>Abilities Equipped</h3>
+      <div class="equip-grid">${this.passiveRows(u)}</div>
       <h3>${u.jobData.skillset} <small>${jp} JP available · ${u.jobData.name} Lv${u.jobLevel(u.job)}</small></h3>
-      <div class="ab-list">${abilities}</div>`;
+      <div class="ab-list">${abilities}</div>
+      ${passiveLearn ? `<h3>${u.jobData.name} Passives</h3><div class="ab-list">${passiveLearn}</div>` : ''}`;
     $('sel-job').onchange = (e) => {
       u.job = e.target.value;
       if (u.secondary === u.job) u.secondary = null;
@@ -243,10 +257,16 @@ class Game {
       this.equip(u, sel.dataset.slot, e.target.value || null);
       this.renderFormationDetail();
     });
+    $('form-detail').querySelectorAll('select[data-passive]').forEach(sel => sel.onchange = (e) => {
+      u.setPassive(sel.dataset.passive, e.target.value || null);
+      this.syncGear(u); // Two Hands frees the offhand
+      this.renderFormationDetail();
+    });
     $('form-detail').querySelectorAll('button[data-learn]').forEach(b => b.onclick = () => {
-      const ab = ABILITIES[b.dataset.learn];
-      if ((u.jp[u.job] || 0) < ab.jp) return;
-      u.jp[u.job] -= ab.jp; u.learned[b.dataset.learn] = true;
+      const id = b.dataset.learn;
+      const ab = ABILITIES[id] || PASSIVES[id];
+      if (!ab || (u.jp[u.job] || 0) < ab.jp) return;
+      u.jp[u.job] -= ab.jp; u.learned[id] = true;
       this.toast(`${u.name} learned ${ab.name}!`);
       this.renderFormationDetail();
     });
@@ -277,6 +297,16 @@ class Game {
         return `<option value="${id}" ${cur === id ? 'selected' : ''}>${ITEMS[id].name} (x${owned}) — ${this.itemSummary(id)}</option>`;
       }).join('');
       return `<label class="equip-row"><span>${label}</span><select data-slot="${slot}"><option value="">— empty —</option>${list}</select></label>`;
+    }).join('');
+  }
+
+  passiveRows(u) {
+    return Object.entries(PASSIVE_KINDS).map(([kind, label]) => {
+      const opts = u.learnedPassives(kind);
+      const cur = u.passives[kind] || '';
+      if (!opts.length) return `<label class="equip-row"><span>${label}</span><em class="none">none learned yet</em></label>`;
+      const list = opts.map(id => `<option value="${id}" ${cur === id ? 'selected' : ''}>${PASSIVES[id].name} — ${PASSIVES[id].desc}</option>`).join('');
+      return `<label class="equip-row"><span>${label}</span><select data-passive="${kind}"><option value="">— none —</option>${list}</select></label>`;
     }).join('');
   }
 

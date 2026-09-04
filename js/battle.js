@@ -108,6 +108,7 @@ class Battle {
   hitChance(user, ab, target) {
     if (ab.kind !== 'physical') return 100;
     if (target.team === user.team) return 100;
+    if (user.hasPassive('concentrate')) return 100;
     const rel = relativeFacing(target, user.x, user.y);
     const mult = rel === 'front' ? 1 : rel === 'side' ? 0.5 : 0;
     return Math.max(5, Math.min(100, Math.round(100 - target.evade * mult)));
@@ -127,8 +128,11 @@ class Battle {
       if (ab.kind === 'physical') {
         const dh = this.grid.height(user.x, user.y) - this.grid.height(target.x, target.y);
         if (dh >= 2) base *= 1.1; else if (dh <= -2) base *= 0.9;
+        if (user.hasPassive('attackUp')) base *= 1.25;
+        if (target.hasPassive('defend')) base *= 0.8;
         if (target.hasStatus('protect')) base *= 2 / 3;
       } else if (ab.kind === 'magic') {
+        if (user.hasPassive('magickUp')) base *= 1.25;
         if (target.hasStatus('shell')) base *= 2 / 3;
       }
     }
@@ -166,7 +170,7 @@ class Battle {
 
   async applyAbility(user, ab, tx, ty) {
     const targets = this.affectedUnits(user, ab, tx, ty);
-    if (ab.mp) user.mp -= ab.mp;
+    if (ab.mp) user.mp -= this.mpCost(user, ab);
     user.facing = (tx === user.x && ty === user.y) ? user.facing : facingFromDelta(tx - user.x, ty - user.y);
     if (this.hooks.animateAction) await this.hooks.animateAction(user, ab, tx, ty);
     let didSomething = false;
@@ -178,6 +182,12 @@ class Battle {
         if (roll >= hit) {
           this.log(`${t.name} evades ${user.name}'s ${ab.name}!`, 'miss');
           if (this.hooks.showFloat) this.hooks.showFloat(t, 'Miss', '#ddd');
+          continue;
+        }
+        // Parry turns a physical blow aside outright.
+        if (ab.kind === 'physical' && t.team !== user.team && t.hasPassive('parry') && Math.random() < 0.35) {
+          this.log(`${t.name} parries ${user.name}'s ${ab.name}!`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, 'Parry', '#9fd6ff');
           continue;
         }
         const off = h === 1 ? user.offhandWeapon : null;
@@ -196,6 +206,7 @@ class Battle {
         if (hits > 1) await sleep(250);
       }
     }
+    if (!this.counterDepth) await this.resolveCounters(user, ab, targets);
     if (!targets.length) this.log(`${user.name}'s ${ab.name} hits nothing.`);
     if (ab.suicide) { user.hp = 0; this.log(`${user.name} is consumed by the blast!`, 'ko'); if (this.hooks.onDeath) await this.hooks.onDeath(user); }
     if (didSomething || targets.length) this.awardAction(user, targets);
@@ -211,6 +222,7 @@ class Battle {
         this.log(`${user.name}'s ${ab.name} deals ${v} damage to ${t.name}.`, 'dmg');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, '#ff6a5a');
         if (t.hp === 0) this.onUnitKO(t);
+        else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
       case 'drain': {
@@ -219,6 +231,7 @@ class Battle {
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
         if (t.hp === 0) this.onUnitKO(t);
+        else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
       case 'heal': {
@@ -290,6 +303,57 @@ class Battle {
       }
     }
     return false;
+  }
+
+  // Reactions that fire the moment a unit takes damage.
+  onDamaged(user, ab, target, amount) {
+    if (!target.alive || amount <= 0) return;
+    if (target.hasPassive('autoPotion')) {
+      const heal = Math.min(35, target.maxHp - target.hp);
+      if (heal > 0) {
+        target.hp += heal;
+        this.log(`${target.name} downs a potion for ${heal} HP.`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(target, `+${heal}`, '#7cff7c');
+      }
+    }
+    if (target.hasPassive('absorbMp') && ab.kind === 'magic') {
+      const mp = Math.min(10, target.maxMp - target.mp);
+      if (mp > 0) {
+        target.mp += mp;
+        this.log(`${target.name} absorbs ${mp} MP.`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(target, `+${mp} MP`, '#7cc8ff');
+      }
+    }
+    if (target.hasPassive('regenerator') && !target._regenFired) {
+      target._regenFired = true;
+      target.addStatus('regen');
+      this.log(`${target.name}'s wounds begin to close.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'Regen', STATUSES.regen.color);
+    }
+    if (target.hasPassive('vengeance')) {
+      target.mods.pa = (target.mods.pa || 0) + 1;
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'PA +1', '#ffe97c');
+    }
+  }
+
+  // Survivors with Counter hit back once. Counters never trigger counters.
+  async resolveCounters(user, ab, targets) {
+    if (ab.kind !== 'physical' || !user.alive) return;
+    const counters = targets.filter(t =>
+      t.alive && t.team !== user.team && t.hasPassive('counter') && t._tookHit &&
+      Grid.dist(t.x, t.y, user.x, user.y) <= t.weapon.range);
+    for (const t of targets) t._tookHit = false;
+    for (const c of counters) {
+      if (!user.alive || !c.alive) break;
+      this.counterDepth = (this.counterDepth || 0) + 1;
+      this.log(`${c.name} counterattacks!`, 'act');
+      c.facing = facingFromDelta(user.x - c.x, user.y - c.y);
+      try {
+        await this.applyAbility(c, ABILITIES.attack, user.x, user.y);
+      } finally {
+        this.counterDepth--;
+      }
+    }
   }
 
   onUnitKO(t) {
@@ -413,6 +477,16 @@ class Battle {
   async moveUnit(unit, path) {
     if (path.length < 2) return;
     unit.turnFlags.moved = true;
+    // Movement abilities pay out for covering ground.
+    if (unit.hasPassive('moveHpUp')) {
+      const v = Math.min(Math.ceil(unit.maxHp / 10), unit.maxHp - unit.hp);
+      if (v > 0) { unit.hp += v; this.log(`${unit.name} recovers ${v} HP on the move.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v}`, '#7cff7c'); }
+    }
+    if (unit.hasPassive('moveFindItem')) {
+      if (unit.team === 'player') this.rewards.gil += 25;
+      this.log(`${unit.name} turns up 25 gil.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(unit, '+25 gil', '#ffe97c');
+    }
     if (this.hooks.animateMove) await this.hooks.animateMove(unit, path);
     const last = path[path.length - 1], prev = path[path.length - 2];
     unit.x = last.x; unit.y = last.y;
@@ -436,7 +510,13 @@ class Battle {
     await this.applyAbility(unit, ab, tx, ty);
   }
 
-  canAfford(unit, ab) { return unit.mp >= (ab.mp || 0); }
+  // What this unit actually pays for an ability, after support abilities.
+  mpCost(unit, ab) {
+    const base = ab.mp || 0;
+    return unit.hasPassive('halfMp') ? Math.ceil(base / 2) : base;
+  }
+
+  canAfford(unit, ab) { return unit.mp >= this.mpCost(unit, ab); }
 
   // ---- enemy AI ----------------------------------------------------------------
   scoreTarget(unit, ab, fromX, fromY, tx, ty) {

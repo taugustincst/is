@@ -21,6 +21,8 @@ class Unit {
     this.jpTotal = opts.jpTotal || {};  // lifetime JP per job (job level)
     this.learned = opts.learned || {};  // abilityId -> true
     this.secondary = opts.secondary || null; // job id whose skillset is equipped as secondary
+    // One equipped passive of each kind; they may come from any job ever studied.
+    this.passives = Object.assign({ reaction: null, support: null, movement: null }, opts.passives || {});
     // Equipped items keyed by slot. Player recruits arrive in their job's free kit.
     this.gear = opts.gear ? Object.assign({}, opts.gear)
       : (STARTER_GEAR[this.job] ? Object.assign({}, STARTER_GEAR[this.job]) : {});
@@ -38,7 +40,7 @@ class Unit {
     return {
       id: this.id, name: this.name, job: this.job, level: this.level, exp: this.exp, team: this.team,
       leader: this.leader, jp: this.jp, jpTotal: this.jpTotal, learned: this.learned, secondary: this.secondary,
-      gear: this.gear,
+      gear: this.gear, passives: this.passives,
     };
   }
 
@@ -61,6 +63,25 @@ class Unit {
 
   learnedIn(job) { return JOBS[job].abilities.filter(a => this.learned[a]); }
 
+  // ---- passives ------------------------------------------------------------
+  hasPassive(id) {
+    return this.passives.reaction === id || this.passives.support === id || this.passives.movement === id;
+  }
+
+  learnedPassives(kind) {
+    return Object.keys(PASSIVES).filter(id => this.learned[id] && (!kind || PASSIVES[id].kind === kind));
+  }
+
+  // Equip a passive, clearing whatever held that slot before.
+  setPassive(kind, id) {
+    if (id && (!PASSIVES[id] || PASSIVES[id].kind !== kind || !this.learned[id])) return false;
+    this.passives[kind] = id || null;
+    return true;
+  }
+
+  equipExtra() { return passiveEquipBonus(this); }
+  canEquipItem(id, slot) { return canEquipInSlot(this.job, id, slot, this.equipExtra()); }
+
   // ---- equipment ----------------------------------------------------------
   equipped(slot) { const id = this.gear[slot]; return id ? ITEMS[id] : null; }
 
@@ -81,8 +102,10 @@ class Unit {
     const removed = [];
     for (const slot of Object.keys(SLOT_NAMES)) {
       const id = this.gear[slot];
-      if (id && !canEquipInSlot(this.job, id, slot)) { removed.push(id); delete this.gear[slot]; }
+      if (id && !this.canEquipItem(id, slot)) { removed.push(id); delete this.gear[slot]; }
     }
+    // Two Hands needs the offhand free.
+    if (this.hasPassive('twoHands') && this.gear.offhand) { removed.push(this.gear.offhand); delete this.gear.offhand; }
     return removed;
   }
 
@@ -97,8 +120,8 @@ class Unit {
       pa: Math.max(1, Math.floor((5 + 0.5 * L) * j.pa) + g.pa),
       ma: Math.max(1, Math.floor((5 + 0.5 * L) * j.ma) + g.ma),
       spd: Math.max(1, Math.floor((6 + 0.12 * L) * j.spd) + g.spd),
-      move: Math.max(1, j.move + g.move),
-      jump: Math.max(1, j.jump + g.jump),
+      move: Math.max(1, j.move + g.move + (this.hasPassive('movePlus1') ? 1 : 0) + (this.hasPassive('movePlus2') ? 2 : 0)),
+      jump: this.hasPassive('sureFooting') ? 99 : Math.max(1, j.jump + g.jump + (this.hasPassive('jumpPlus2') ? 2 : 0)),
       evade: Math.max(0, j.evade + g.evade),
     };
   }
@@ -111,15 +134,23 @@ class Unit {
   get move() { return this.baseStats().move; }
   get jump() { return this.baseStats().jump; }
   get evade() { return this.baseStats().evade; }
-  // The equipped weapon, or the job's innate one (bare hands, claws, fangs).
-  get weapon() { return this.equipped('weapon') || this.jobData.weapon; }
+  // The equipped weapon, or the job's innate one (bare hands, claws, fangs),
+  // with support abilities folded into its power.
+  get weapon() {
+    const base = this.equipped('weapon') || this.jobData.weapon;
+    let mult = 1;
+    if (this.hasPassive('twoHands') && !this.gear.offhand) mult *= 1.5;
+    if (this.hasPassive('martialArts') && (base.wtype === 'fist' || base === this.jobData.weapon)) mult *= 1.5;
+    if (mult === 1) return base;
+    return Object.assign({}, base, { power: Math.floor(base.power * mult) });
+  }
 
   // A second weapon in the offhand, for jobs that dual wield.
   get offhandWeapon() {
     const it = this.equipped('offhand');
     return it && it.slot === 'weapon' ? it : null;
   }
-  get dualWielding() { return !!this.offhandWeapon; }
+  get dualWielding() { return !!this.offhandWeapon && !this.hasPassive('twoHands'); }
 
   // Effective CT gain per tick.
   ctSpeed() {
@@ -201,6 +232,17 @@ function makeEnemy(spec) {
   // Enemies know more abilities at higher levels; bosses know everything.
   const frac = spec.boss ? 1 : Math.min(1, 0.4 + spec.level * 0.08);
   u.autoLearn(frac);
+  // From the middle of the campaign on, foes bring passives of their own. A spec
+  // may name them outright; otherwise they come from the job's own teachings.
+  const slots = spec.boss ? 3 : Math.min(3, Math.floor(spec.level / 3));
+  const wanted = spec.passives || passivesOfJob(spec.job).slice(0, 3);
+  for (const id of wanted) {
+    if (!PASSIVES[id]) continue;
+    const kind = PASSIVES[id].kind;
+    if (u.passives[kind] || Object.values(u.passives).filter(Boolean).length >= slots) continue;
+    u.learned[id] = true;
+    u.passives[kind] = id;
+  }
   u.x = spec.x; u.y = spec.y;
   return u;
 }
