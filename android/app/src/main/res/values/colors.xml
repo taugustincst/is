@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The game's night sky, used for the launch window and the icon layer. -->
+    <color name="elderon_night">#FF0F1020</color>
+    <color name="ic_launcher_background">#FF141628</color>
+</resources>

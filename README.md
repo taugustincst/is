@@ -71,6 +71,29 @@ a browser, or serve the folder with any static file server.
   runtime with WebAudio, with sound and music toggles.
 - **Save and continue** through localStorage.
 
+## Playing on a phone
+
+The game is built for touch as well as mouse, in either orientation, and there
+are two ways to get it onto an Android device.
+
+**Install the web version.** It is a progressive web app: serve the repository
+over HTTPS, open it in Chrome and choose "Install app". It lands on the home
+screen with its own icon, launches fullscreen and runs offline, with no
+toolchain involved.
+
+**Build the Android app.** `android/` holds a Gradle project that wraps the game
+in a WebView and bundles it into an APK with no permissions at all — it cannot
+reach the network. `cd android && ./gradlew assembleDebug`. See
+[android/README.md](android/README.md), which is honest about the fact that the
+project has never been compiled: the Android SDK was not reachable from the
+environment it was written in.
+
+On a phone the layout changes shape: portrait turns the turn order into a strip
+across the top and gives the command panel the full width, landscape puts
+columns down each side. The board is framed in whatever the panels are not
+covering, and never shrinks below a legible size — it runs off the edges and you
+pan instead. The back button steps back through the game rather than closing it.
+
 ## Controls
 
 | Action | Mouse | Touch | Keyboard |
@@ -79,6 +102,7 @@ a browser, or serve the folder with any static file server.
 | Cancel | Right-click | Cancel button | `Esc` |
 | Pan the camera | Drag | Drag | Arrow keys |
 | Zoom | Wheel | Pinch | `+` / `-`, `0` to reframe |
+| Back / cancel | Right-click | Android back button | `Esc` |
 
 The `?` button in battle opens a rules summary.
 
@@ -101,6 +125,11 @@ tools/validate.js content consistency checks
 tools/regress.js  engine regression checks
 tools/test-*.js   feature tests for elements, statuses and the boss
 tools/simulate.js campaign balance simulator
+tools/make-icons.js draws the app icons from the game's own sprites
+manifest.webmanifest  install metadata for the web app
+sw.js             offline cache for the installed web app
+icons/            generated app icons
+android/          Gradle project wrapping the game in an Android WebView
 ```
 
 ## Tools

@@ -121,19 +121,22 @@ function drawSprite(s, name, palette, ox, oy, scale) {
 }
 
 // `pad` leaves room for Android's maskable safe zone, which crops to a circle.
-function icon(size, pad) {
+function icon(size, pad, transparent) {
   const s = surface(size);
   const inner = size * (1 - pad * 2);
-  const x0 = size * pad, y0 = size * pad;
-  // Background: the game's night sky, lighter towards the top.
-  for (let y = 0; y < size; y++) {
-    const k = y / size;
-    const c = [
-      Math.round(0x1a + (0x0d - 0x1a) * k),
-      Math.round(0x1c + (0x0e - 0x1c) * k),
-      Math.round(0x2c + (0x18 - 0x2c) * k),
-    ];
-    s.rect(0, y, size, 1, c);
+  const y0 = size * pad;
+  // Background: the game's night sky, lighter towards the top. An adaptive
+  // foreground layer leaves this out and sits on the declared colour instead.
+  if (!transparent) {
+    for (let y = 0; y < size; y++) {
+      const k = y / size;
+      const c = [
+        Math.round(0x1a + (0x0d - 0x1a) * k),
+        Math.round(0x1c + (0x0e - 0x1c) * k),
+        Math.round(0x2c + (0x18 - 0x2c) * k),
+      ];
+      s.rect(0, y, size, 1, c);
+    }
   }
   const tw = inner * 0.52;
   const wall = inner * 0.10;
@@ -152,15 +155,35 @@ function icon(size, pad) {
 
 const out = path.join(ROOT, 'icons');
 fs.mkdirSync(out, { recursive: true });
-const written = [];
+let count = 0;
 for (const [name, size, pad] of [
   ['icon-192.png', 192, 0.06],
   ['icon-512.png', 512, 0.06],
   ['icon-maskable-512.png', 512, 0.17],  // Android crops maskable icons to a circle
   ['icon-64.png', 64, 0.04],
 ]) {
-  const buf = icon(size, pad);
-  fs.writeFileSync(path.join(out, name), buf);
-  written.push(`${name} (${size}x${size}, ${(buf.length / 1024).toFixed(1)} KB)`);
+  fs.writeFileSync(path.join(out, name), icon(size, pad));
+  count++;
 }
-console.log('wrote ' + written.join(', '));
+console.log(`wrote ${count} web icons into icons/`);
+
+// ------------------------------------------------- Android launcher icons
+// Adaptive icons are 108dp with only the middle 72dp guaranteed visible, so the
+// foreground layer is drawn small and on transparency; the background is a flat
+// colour declared in resources.
+const RES = path.join(ROOT, 'android/app/src/main/res');
+const DENSITIES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+if (fs.existsSync(path.join(ROOT, 'android'))) {
+  let android = 0;
+  for (const [d, k] of Object.entries(DENSITIES)) {
+    const dir = path.join(RES, `mipmap-${d}`);
+    fs.mkdirSync(dir, { recursive: true });
+    // The legacy square icon, for Android before adaptive icons.
+    fs.writeFileSync(path.join(dir, 'ic_launcher.png'), icon(Math.round(48 * k), 0.06));
+    fs.writeFileSync(path.join(dir, 'ic_launcher_round.png'), icon(Math.round(48 * k), 0.14));
+    // The adaptive foreground: 108dp canvas, art kept inside the safe circle.
+    fs.writeFileSync(path.join(dir, 'ic_launcher_foreground.png'), icon(Math.round(108 * k), 0.28, true));
+    android += 3;
+  }
+  console.log(`wrote ${android} Android launcher icons into android/app/src/main/res/`);
+}
