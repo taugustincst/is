@@ -180,7 +180,17 @@ class Unit {
   }
 
   hasStatus(id) { return this.statuses[id] > 0; }
-  addStatus(id) { this.statuses[id] = STATUSES[id].dur; }
+
+  // Some gear simply refuses an affliction.
+  wardsOff(id) {
+    for (const slot of Object.keys(SLOT_NAMES)) {
+      const it = this.equipped(slot);
+      if (it && it.wards && it.wards.includes(id)) return true;
+    }
+    return false;
+  }
+
+  addStatus(id) { if (!this.wardsOff(id)) this.statuses[id] = STATUSES[id].dur; }
   removeStatus(id) { delete this.statuses[id]; }
 
   // ---- progression --------------------------------------------------------
@@ -205,6 +215,15 @@ class Unit {
     this.jpTotal[this.job] = (this.jpTotal[this.job] || 0) + amount;
     const after = this.jobLevel(this.job);
     return after > before ? `${this.name}'s ${this.jobData.name} job reached level ${after}!` : null;
+  }
+
+  // Silence seals anything that costs MP; a berserk unit only swings.
+  canUse(abId) {
+    const ab = ABILITIES[abId];
+    if (!ab) return false;
+    if (this.hasStatus('berserk')) return abId === 'attack';
+    if (this.hasStatus('silence') && ab.mp > 0) return false;
+    return true;
   }
 
   // Abilities available in battle: Attack + primary skillset + secondary skillset.
@@ -235,6 +254,8 @@ function makeEnemy(spec, difficulty) {
     name: spec.name || job.name, job: spec.job, level, team: 'enemy', boss: spec.boss,
     gear: spec.gear || enemyGearFor(spec.job, level + (spec.boss ? 3 : 0), d.gearShift),
   });
+  // A boss may have further shapes waiting behind the first.
+  if (spec.phases) u.phases = spec.phases.map(p => Object.assign({}, p));
   // Enemies know more abilities at higher levels; bosses know everything. Early
   // foes stay simple so the opening chapters teach rather than punish.
   const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);

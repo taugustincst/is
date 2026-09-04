@@ -19,6 +19,7 @@ const NAMES = [
   'Unit', 'Battle', 'Grid', 'makeEnemy', 'canEquip', 'canEquipInSlot',
   'itemsForSlot', 'bestGearFor', 'gearScore', 'enemyGearFor', 'passivesOfJob',
   'passiveEquipBonus', 'jobLevelFromJP', 'computeDeployZone', 'facingFromDelta',
+  'ELEMENTS', 'AFFINITY', 'affinityOf', 'affinityLabel',
 ];
 
 function load(files = ENGINE) {

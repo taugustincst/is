@@ -104,6 +104,9 @@ class BattleUI {
   renderCard(u) {
     if (!u) { this.el.card.innerHTML = ''; return; }
     const st = Object.keys(u.statuses).map(s => `<span class="status" style="background:${STATUSES[s].color}">${STATUSES[s].name}</span>`).join('');
+    // Only show elements this unit actually answers, so the card stays short.
+    const aff = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
+      .map(a => `<span class="aff" style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join('');
     const mods = Object.entries(u.mods).filter(([, v]) => v).map(([k, v]) => `${k.toUpperCase()} ${v > 0 ? '+' : ''}${v}`).join(', ');
     this.el.card.innerHTML = `
       <div class="card-head ${u.team}"><b>${u.name}</b><span>Lv ${u.level} ${u.jobData.name}${u.boss ? ' ★' : ''}</span></div>
@@ -116,6 +119,7 @@ class BattleUI {
       </div>
       ${mods ? `<div class="mods">${mods}</div>` : ''}
       <div class="statuses">${st}</div>
+      ${aff ? `<div class="affinities">${aff}</div>` : ''}
       ${u.alive ? '' : `<div class="ko">KO${u.koCount ? ` — carried off in ${u.koCount}` : ''}</div>`}`;
   }
 
@@ -289,6 +293,7 @@ class BattleUI {
     const hint = this.el.hint;
     if (mode === 'menu') {
       hint.textContent = 'Choose an action. Right-click or Esc cancels.';
+      if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
       this.el.menu.innerHTML = `
         <div class="menu-title">${u.name}</div>
         <button data-a="move" ${u.turnFlags.moved ? 'disabled' : ''}>Move</button>
@@ -317,8 +322,11 @@ class BattleUI {
       this.el.menu.innerHTML = `<div class="menu-title">${t.set.label}</div>` +
         t.set.abilities.map(id => {
           const ab = ABILITIES[id];
-          const ok = this.battle.canAfford(u, ab);
-          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.name}</span><small>${ab.mp ? ab.mp + ' MP' : ''}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
+          const usable = u.canUse(id);
+          const ok = usable && this.battle.canAfford(u, ab);
+          const why = !usable ? (u.hasStatus('berserk') ? 'raging' : 'silenced') : ok ? '' : 'no MP';
+          const cost = ab.mp ? `${this.battle.mpCost(u, ab)} MP` : '';
+          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.name}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
         }).join('') + `<button data-a="cancel">Back</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => {
         b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);
@@ -351,8 +359,11 @@ class BattleUI {
   showAbilityInfo(ab) {
     const u = this.turn.unit;
     const range = this.battle.abilityRange(u, ab), vert = this.battle.abilityVert(u, ab);
+    const el = ab.element && ELEMENTS[ab.element]
+      ? ` · <span style="color:${ELEMENTS[ab.element].color}">${ELEMENTS[ab.element].name}</span>` : '';
+    const mp = ab.mp ? ` · ${this.battle.mpCost(u, ab)} MP` : '';
     this.el.pred.innerHTML = `<div class="ab-info"><b>${ab.name}</b><div>${ab.desc}</div>
-      <div class="ab-meta">Range ${range} · Area ${ab.aoe ? (ab.aoe === 1 ? 'cross' : 'wide') : 'single'} · Vert ${vert}${ab.mp ? ` · ${ab.mp} MP` : ''}${ab.ct ? ` · Charge ${ab.ct}` : ' · Instant'}</div></div>`;
+      <div class="ab-meta">Range ${range} · Area ${ab.aoe ? (ab.aoe === 1 ? 'cross' : 'wide') : 'single'} · Vert ${vert}${mp}${ab.ct ? ` · Charge ${ab.ct}` : ' · Instant'}${el}</div></div>`;
   }
 
   menuAction(a) {

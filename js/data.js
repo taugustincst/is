@@ -22,7 +22,34 @@ const STATUSES = {
   stop:    { name: 'Stop',    dur: 24, bad: true,  color: '#c2c2c2', desc: 'Cannot act or gain Charge Time.' },
   protect: { name: 'Protect', dur: 60, bad: false, color: '#f0a050', desc: 'Physical damage reduced by 1/3.' },
   shell:   { name: 'Shell',   dur: 60, bad: false, color: '#50b0f0', desc: 'Magical damage reduced by 1/3.' },
+  silence: { name: 'Silence', dur: 48, bad: true,  color: '#8f8fa8', desc: 'Cannot use anything that costs MP.' },
+  blind:   { name: 'Blind',   dur: 48, bad: true,  color: '#4a4a5a', desc: 'Physical attacks are half as likely to land.' },
+  berserk: { name: 'Berserk', dur: 36, bad: true,  color: '#e05a3a', desc: 'Attacks the nearest foe unbidden, for half again the damage.' },
 };
+
+// ------------------------------------------------------------------- elements
+// An attack carrying an element is scaled by the target's affinity for it.
+// Affinities come from what a creature is and from what it wears.
+const ELEMENTS = {
+  fire:    { name: 'Fire', color: '#ff7a30' },
+  ice:     { name: 'Ice', color: '#7fd8ff' },
+  thunder: { name: 'Thunder', color: '#ffe040' },
+  earth:   { name: 'Earth', color: '#c08a4a' },
+  holy:    { name: 'Holy', color: '#fff3b0' },
+  dark:    { name: 'Dark', color: '#a05fd6' },
+};
+
+// Multipliers. Absorb turns the damage into healing.
+const AFFINITY = { weak: 1.5, resist: 0.5, immune: 0, absorb: -1 };
+
+// A one-word label for the prediction panel.
+function affinityLabel(mult) {
+  if (mult < 0) return 'absorbs';
+  if (mult === 0) return 'immune';
+  if (mult > 1) return 'weak';
+  if (mult < 1) return 'resists';
+  return '';
+}
 
 // ---------------------------------------------------------------------- jobs
 // Stat multipliers are applied to a level-based baseline (see unit.js).
@@ -40,7 +67,7 @@ const JOBS = {
     palette: { h: '#2a2a2a', c: '#e8e0c8', p: '#6b5b40', b: '#3a2a1a' },
     hp: 0.85, mp: 1.1, pa: 0.9, ma: 1.05, spd: 1.05, move: 3, jump: 3, evade: 6,
     weapon: { name: 'Knife', power: 4, range: 1, vert: 2 },
-    abilities: ['potion', 'hiPotion', 'antidote', 'ether', 'phoenixDown'],
+    abilities: ['potion', 'hiPotion', 'antidote', 'ether', 'remedy', 'phoenixDown'],
     req: {}, desc: 'Field medic who uses items. The root of the mage path.',
   },
   knight: {
@@ -64,7 +91,7 @@ const JOBS = {
     palette: { h: '#1a1a1a', c: '#d07a3a', p: '#e8d8b0', b: '#8a6a4a' },
     hp: 1.2, mp: 0.7, pa: 1.3, ma: 0.85, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Bare Hands', power: 6, range: 1, vert: 3 },
-    abilities: ['waveFist', 'quakeFist', 'chakra', 'revive'],
+    abilities: ['waveFist', 'quakeFist', 'chakra', 'bloodRage', 'revive'],
     req: { knight: 2 }, desc: 'Fights unarmed with tremendous power and chi techniques.',
   },
   thief: {
@@ -80,7 +107,7 @@ const JOBS = {
     palette: { h: '#e8e8f0', c: '#f4f0e8', p: '#c84040', b: '#6a4a3a' },
     hp: 0.8, mp: 1.3, pa: 0.75, ma: 1.25, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Staff', power: 3, range: 1, vert: 2 },
-    abilities: ['cure', 'cura', 'raise', 'protect', 'shell', 'regen'],
+    abilities: ['cure', 'cura', 'raise', 'protect', 'shell', 'regen', 'esuna', 'holyBolt'],
     req: { chemist: 2 }, desc: 'Mends wounds and shields allies with holy magick.',
   },
   blackMage: {
@@ -88,7 +115,7 @@ const JOBS = {
     palette: { h: '#2a2a4a', c: '#3a3a6a', p: '#c8a040', b: '#3a2a1a' },
     hp: 0.75, mp: 1.4, pa: 0.7, ma: 1.35, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Rod', power: 3, range: 1, vert: 2 },
-    abilities: ['fire', 'thunder', 'poisonSpell', 'fira', 'flare'],
+    abilities: ['fire', 'thunder', 'blizzard', 'poisonSpell', 'silenceSpell', 'stone', 'fira', 'flare'],
     req: { chemist: 2 }, desc: 'Rains elemental ruin upon whole groups of foes.',
   },
   timeMage: {
@@ -120,6 +147,7 @@ const JOBS = {
   goblin: {
     name: 'Goblin', skillset: 'Goblin', kind: 'monster', sprite: 'goblin',
     palette: { h: '#2a5a2a', c: '#4a8a3a', p: '#6a4a2a', b: '#3a2a1a' },
+    affinity: { earth: 'resist' },
     hp: 1.1, mp: 0.5, pa: 1.1, ma: 0.7, spd: 0.95, move: 4, jump: 3, evade: 8,
     weapon: { name: 'Claws', power: 5, range: 1, vert: 2 },
     abilities: ['tackle', 'goblinPunch'], req: null, desc: 'A vicious little brute.',
@@ -127,6 +155,7 @@ const JOBS = {
   wolf: {
     name: 'Dire Wolf', skillset: 'Wolf', kind: 'monster', sprite: 'wolf',
     palette: { h: '#4a4a4a', c: '#6a6a70', p: '#3a3a3a', b: '#2a2a2a' },
+    affinity: { fire: 'weak' },
     hp: 0.85, mp: 0.5, pa: 1.05, ma: 0.6, spd: 1.3, move: 5, jump: 4, evade: 14,
     weapon: { name: 'Fangs', power: 5, range: 1, vert: 2 },
     abilities: ['bite', 'howl'], req: null, desc: 'Fast and hungry.',
@@ -134,13 +163,51 @@ const JOBS = {
   bomb: {
     name: 'Bomb', skillset: 'Bomb', kind: 'monster', sprite: 'bomb',
     palette: { h: '#ff8a20', c: '#d04a10', p: '#801a00', b: '#ffd040' },
+    affinity: { fire: 'absorb', ice: 'weak' },
     hp: 0.7, mp: 0.8, pa: 0.9, ma: 1.2, spd: 1.0, move: 3, jump: 6, evade: 5,
     weapon: { name: 'Flame', power: 4, range: 1, vert: 3 },
     abilities: ['spark', 'selfDestruct'], req: null, desc: 'Floats about, burning. Explodes when cornered.',
   },
+  skeleton: {
+    name: 'Skeleton', skillset: 'Bone', kind: 'monster', sprite: 'skeleton',
+    palette: { h: '#e0dcc8', c: '#8a8478', p: '#5a564c', b: '#3a3a3a', e: '#c02020' },
+    affinity: { holy: 'weak', dark: 'absorb', ice: 'resist', fire: 'weak' },
+    hp: 1.15, mp: 0.6, pa: 1.05, ma: 0.8, spd: 0.85, move: 3, jump: 2, evade: 6,
+    weapon: { name: 'Rusted Blade', power: 6, range: 1, vert: 2 },
+    abilities: ['boneToss', 'gravePull'], req: null,
+    desc: 'It was a soldier once. It has forgotten everything but the war.',
+  },
+  wisp: {
+    name: 'Marsh Wisp', skillset: 'Glimmer', kind: 'monster', sprite: 'wisp',
+    palette: { h: '#bff0ff', c: '#4a9ad0', p: '#2a5a80', b: '#1a3a50', w: '#ffffff', e: '#204060' },
+    affinity: { thunder: 'absorb', earth: 'weak', ice: 'resist' },
+    hp: 0.6, mp: 1.5, pa: 0.6, ma: 1.4, spd: 1.15, move: 4, jump: 8, evade: 20,
+    weapon: { name: 'Cold Touch', power: 3, range: 1, vert: 4 },
+    abilities: ['willOWisp', 'drainLight'], req: null,
+    desc: 'A light over the water that wants you to follow it.',
+  },
+  treant: {
+    name: 'Treant', skillset: 'Bough', kind: 'monster', sprite: 'treant',
+    palette: { h: '#6a5030', c: '#3d7a35', p: '#4a3a20', b: '#3a2a18', e: '#d8c040' },
+    affinity: { fire: 'weak', earth: 'absorb', ice: 'resist' },
+    hp: 1.6, mp: 0.9, pa: 1.25, ma: 0.9, spd: 0.75, move: 2, jump: 2, evade: 4,
+    weapon: { name: 'Heavy Bough', power: 7, range: 2, vert: 3 },
+    abilities: ['rootSnare', 'barkSkin'], req: null,
+    desc: 'Old, slow and immensely strong. It does not like being disturbed.',
+  },
+  darkKnightRisen: {
+    name: 'The Unbound', skillset: 'Black Tide', kind: 'human', sprite: 'warrior',
+    palette: { h: '#e04040', c: '#1a0a1a', p: '#100010', b: '#000000' },
+    affinity: { dark: 'absorb', holy: 'weak', fire: 'resist', ice: 'resist' },
+    hp: 2.6, mp: 1.8, pa: 1.7, ma: 1.7, spd: 1.25, move: 4, jump: 4, evade: 18,
+    weapon: { name: 'Fell Blade', power: 11, range: 1, vert: 3 },
+    abilities: ['nightSword', 'shadowBlade', 'blackTide', 'despair', 'darkProtect'], req: null,
+    desc: 'Whatever bargain he made, this is what came to collect.',
+  },
   darkKnight: {
     name: 'Dark Knight', skillset: 'Fell Sword', kind: 'human', sprite: 'warrior',
     palette: { h: '#c0c0d0', c: '#2a1a2a', p: '#1a0a1a', b: '#0a0a0a' },
+    affinity: { dark: 'absorb', holy: 'weak' },
     hp: 1.8, mp: 1.2, pa: 1.5, ma: 1.3, spd: 1.1, move: 4, jump: 4, evade: 15,
     weapon: { name: 'Fell Blade', power: 8, range: 1, vert: 3 },
     abilities: ['nightSword', 'shadowBlade', 'darkProtect'], req: null,
@@ -176,6 +243,9 @@ const ABILITIES = {
     effects: [{ type: 'heal', flat: 80 }], desc: 'Restore 80 HP.' },
   antidote: { name: 'Antidote', job: 'chemist', jp: 40, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop'] }], desc: 'Cure Poison, Slow and Stop.' },
+  remedy: { name: 'Remedy', job: 'chemist', jp: 220, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }],
+    desc: 'Cure every affliction at once.' },
   ether: { name: 'Ether', job: 'chemist', jp: 80, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'mpheal', flat: 25 }], desc: 'Restore 25 MP.' },
   phoenixDown: { name: 'Phoenix Down', job: 'chemist', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', deadOnly: true,
@@ -208,6 +278,8 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Slam the ground, striking an area.' },
   chakra: { name: 'Chakra', job: 'monk', jp: 150, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'heal', formula: 'pa', power: 4 }, { type: 'mpheal', formula: 'pa', power: 1 }], desc: 'Restore HP and MP to yourself and adjacent allies.' },
+  bloodRage: { name: 'Blood Rage', job: 'monk', jp: 200, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'berserk', hit: 100 }], desc: 'Give yourself over to the fight. You strike harder, but you no longer choose.' },
   revive: { name: 'Revive', job: 'monk', jp: 250, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'support', affects: 'ally', deadOnly: true,
     effects: [{ type: 'revive', pct: 0.3 }], desc: 'Revive an adjacent fallen ally with 30% HP.' },
 
@@ -220,6 +292,8 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'gil' }], desc: 'Strike and steal gil in the same motion.' },
 
   // White Mage
+  holyBolt: { name: 'Holy Bolt', job: 'whiteMage', jp: 260, mp: 14, range: 4, aoe: 0, vert: 3, ct: 18, kind: 'magic', affects: 'all', element: 'holy',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Searing light. Undead and fell things burn.' },
   cure: { name: 'Cure', job: 'whiteMage', jp: 50, mp: 6, range: 4, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'heal', formula: 'ma', power: 4 }], desc: 'Restore HP to all in the area.' },
   cura: { name: 'Cura', job: 'whiteMage', jp: 180, mp: 12, range: 4, aoe: 1, vert: 3, ct: 18, kind: 'magic', affects: 'all', allowSelf: true,
@@ -230,6 +304,9 @@ const ABILITIES = {
     effects: [{ type: 'status', status: 'protect', hit: 100 }], desc: 'Grant Protect (physical damage -1/3).' },
   shell: { name: 'Shell', job: 'whiteMage', jp: 80, mp: 6, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'shell', hit: 100 }], desc: 'Grant Shell (magical damage -1/3).' },
+  esuna: { name: 'Esuna', job: 'whiteMage', jp: 200, mp: 10, range: 3, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }],
+    desc: 'Lift every affliction from all allies in the area.' },
   regen: { name: 'Regen', job: 'whiteMage', jp: 120, mp: 8, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'regen', hit: 100 }], desc: 'Grant Regen (recover HP each turn).' },
 
@@ -238,11 +315,17 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'ma', power: 5 }], desc: 'Burn all in the area.' },
   thunder: { name: 'Thunder', job: 'blackMage', jp: 80, mp: 8, range: 4, aoe: 0, vert: 8, ct: 22, kind: 'magic', affects: 'all', element: 'thunder',
     effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Strike a single target with lightning. Ignores height.' },
+  blizzard: { name: 'Blizzard', job: 'blackMage', jp: 90, mp: 7, range: 4, aoe: 1, vert: 3, ct: 24, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 6 }], desc: 'Freeze all in the area.' },
+  stone: { name: 'Stone', job: 'blackMage', jp: 140, mp: 9, range: 3, aoe: 1, vert: 1, ct: 20, kind: 'magic', affects: 'all', element: 'earth',
+    effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Tear up the ground beneath them. Cannot reach a different level.' },
   poisonSpell: { name: 'Poison', job: 'blackMage', jp: 80, mp: 4, range: 4, aoe: 1, vert: 3, ct: 30, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'poison', hit: 85 }], desc: 'Inflict Poison on all in the area.' },
+  silenceSpell: { name: 'Silence', job: 'blackMage', jp: 160, mp: 8, range: 4, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'silence', hit: 80 }], desc: 'Seal the voices of all in the area.' },
   fira: { name: 'Fira', job: 'blackMage', jp: 220, mp: 12, range: 4, aoe: 1, vert: 3, ct: 15, kind: 'magic', affects: 'all', element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'A greater fire spell.' },
-  flare: { name: 'Flare', job: 'blackMage', jp: 450, mp: 26, range: 4, aoe: 0, vert: 3, ct: 10, kind: 'magic', affects: 'all',
+  flare: { name: 'Flare', job: 'blackMage', jp: 450, mp: 26, range: 4, aoe: 0, vert: 3, ct: 10, kind: 'magic', affects: 'all', element: null,
     effects: [{ type: 'damage', formula: 'ma', power: 15 }], desc: 'Annihilate a single target.' },
 
   // Time Mage
@@ -261,7 +344,7 @@ const ABILITIES = {
   flameBomb: { name: 'Flame Bomb', job: 'ninja', jp: 150, mp: 0, range: 4, aoe: 1, vert: 4, ct: 0, kind: 'magic', affects: 'all', element: 'fire',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Throw an alchemical bomb that bursts over an area.' },
   smoke: { name: 'Smoke', job: 'ninja', jp: 120, mp: 0, range: 3, aoe: 1, vert: 3, ct: 0, kind: 'physical', affects: 'all',
-    effects: [{ type: 'status', status: 'slow', hit: 75 }], desc: 'Choking smoke that inflicts Slow.' },
+    effects: [{ type: 'status', status: 'blind', hit: 80 }], desc: 'Choking smoke that blinds everyone in it.' },
 
   // Dragoon
   jump: { name: 'Jump', job: 'dragoon', jp: 100, mp: 0, range: 4, aoe: 0, vert: 9, ct: 30, kind: 'physical', affects: 'all', airborne: true,
@@ -284,10 +367,29 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'ma', power: 4 }], desc: 'Spit a gout of flame.' },
   selfDestruct: { name: 'Self-Destruct', job: 'bomb', jp: 0, mp: 0, range: 0, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all', self: true, suicide: true,
     effects: [{ type: 'damage', formula: 'curhp', power: 1 }], desc: 'Explode, dealing damage equal to remaining HP to everything nearby.' },
-  nightSword: { name: 'Night Sword', job: 'darkKnight', jp: 0, mp: 8, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
+  boneToss: { name: 'Bone Toss', job: 'skeleton', jp: 0, mp: 0, range: 4, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Throws a piece of itself.' },
+  gravePull: { name: 'Grave Pull', job: 'skeleton', jp: 0, mp: 6, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'drain', formula: 'ma', power: 4 }], desc: 'Drags the warmth out of the living.' },
+  willOWisp: { name: 'Will o\' Wisp', job: 'wisp', jp: 0, mp: 6, range: 4, aoe: 1, vert: 6, ct: 0, kind: 'magic', affects: 'all', element: 'thunder',
+    effects: [{ type: 'damage', formula: 'ma', power: 5 }], desc: 'A crackling light that leaps between targets.' },
+  drainLight: { name: 'Drain Light', job: 'wisp', jp: 0, mp: 8, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'blind', hit: 70 }], desc: 'Puts out the eyes with a flare.' },
+  rootSnare: { name: 'Root Snare', job: 'treant', jp: 0, mp: 0, range: 3, aoe: 1, vert: 1, ct: 0, kind: 'physical', affects: 'all', element: 'earth',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'status', status: 'slow', hit: 70 }],
+    desc: 'Roots burst up and tangle everything nearby.' },
+  barkSkin: { name: 'Bark Skin', job: 'treant', jp: 0, mp: 6, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }],
+    desc: 'Hardens its bark and closes its wounds.' },
+  nightSword: { name: 'Night Sword', job: 'darkKnight', jp: 0, mp: 8, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'dark',
     effects: [{ type: 'drain', formula: 'pa', power: 6 }], desc: 'A draining slash.' },
-  shadowBlade: { name: 'Shadow Blade', job: 'darkKnight', jp: 0, mp: 12, range: 3, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all',
+  shadowBlade: { name: 'Shadow Blade', job: 'darkKnight', jp: 0, mp: 12, range: 3, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'dark',
     effects: [{ type: 'damage', formula: 'ma', power: 6 }], desc: 'Dark energy that sears an area.' },
+  blackTide: { name: 'Black Tide', job: 'darkKnightRisen', jp: 0, mp: 18, range: 3, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Darkness rolls out across the floor and drags everything under.' },
+  despair: { name: 'Despair', job: 'darkKnightRisen', jp: 0, mp: 14, range: 4, aoe: 1, vert: 4, ct: 0, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'silence', hit: 75 }, { type: 'status', status: 'blind', hit: 75 }],
+    desc: 'Takes the voice and the sight from all in the area.' },
   darkProtect: { name: 'Umbral Ward', job: 'darkKnight', jp: 0, mp: 10, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Shroud self in Protect and Shell.' },
 };
@@ -586,19 +688,20 @@ const CAMPAIGN = [
       'The marsh road is the only way east that avoids the royal checkpoints.',
       'It is also where the Sable Coven trades curses for coin, and someone has paid them handsomely.',
       '"Mages," Lysa says. "Their spells take time to charge. Close the distance before they finish."',
+      '"And mind the lights over the water, and whatever that is standing in the reeds. Neither is a tree."',
     ],
     enemies: [
-      { job: 'blackMage', level: 4, x: 4, y: 4, name: 'Coven Mage' },
       { job: 'blackMage', level: 4, x: 4, y: 3, name: 'Coven Mage' },
+      { job: 'wisp', level: 4, x: 5, y: 6 },
+      { job: 'treant', level: 4, x: 3, y: 8 },
       { job: 'thief', level: 4, x: 3, y: 5, name: 'Coven Cutpurse' },
       { job: 'wolf', level: 4, x: 7, y: 2 },
-      { job: 'wolf', level: 4, x: 1, y: 8 },
     ],
     gil: 2100,
     outro: ['The last mage sinks beneath the black water. On her body: a sealed letter bearing the crest of Ser Brannoc, Captain of Dunmarch.'],
   },
   {
-    objective: { type: 'survive', rounds: 5, protectLeader: true },
+    objective: { type: 'survive', rounds: 4, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
     intro: [
       'Ser Brannoc was Rowan\'s father\'s sworn brother. Now he hunts the Aldric line for Prince Aldous.',
@@ -646,20 +749,30 @@ const CAMPAIGN = [
       'Ser Brannoc waits at the altar in armor that has forgotten its colors.',
       '"Your father learned that the princes are puppets, boy. That the war is a harvest. He would have told the realm."',
       '"So I killed him. And now I will kill you, and Elderon can go on burning in peace."',
+      'Behind him, two suits of armour rise from the flagstones with nothing living inside them.',
       'Rowan draws his sword. "Not today, Ser."',
     ],
     enemies: [
       { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true,
-        passives: ['counter', 'attackUp', 'movePlus1'] },
+        passives: ['counter', 'attackUp', 'movePlus1'],
+        phases: [{
+          atPct: 0.35, job: 'darkKnightRisen', name: 'Brannoc Unbound', heal: 1,
+          passives: ['counter', 'magickUp', 'movePlus1'],
+          say: 'Brannoc falls to one knee. Then something else stands up in his armour.',
+          cry: '"You think this was ever mine to stop?"',
+        }],
+      },
       { job: 'knight', level: 7, x: 4, y: 4, name: 'Black Guard' },
       { job: 'knight', level: 7, x: 8, y: 4, name: 'Black Guard' },
       { job: 'timeMage', level: 7, x: 6, y: 1, name: 'Chronomancer', passives: ['halfMp', 'regenerator'] },
-      { job: 'archer', level: 7, x: 3, y: 8, name: 'Black Guard Archer' },
+      { job: 'skeleton', level: 7, x: 3, y: 8, name: 'Risen Guard' },
+      { job: 'skeleton', level: 7, x: 9, y: 8, name: 'Risen Guard' },
       { job: 'ninja', level: 7, x: 10, y: 8, name: 'Brannoc\'s Shadow' },
     ],
     gil: 5000,
     outro: [
-      'Brannoc falls before the altar. In his hand, the last letter: proof of who truly fed the war between the princes.',
+      'The thing in Brannoc\'s armour comes apart, and for a moment the man is there again, and almost grateful.',
+      'In his hand, the last letter: proof of who truly fed the war between the princes.',
       'Rowan takes it. The road ahead is longer than the one behind. But for the first time, he knows where it leads.',
       '--- THE END (for now). Keep training and replay battles at your leisure. ---',
     ],
@@ -691,9 +804,10 @@ const TRAINING_POOL = [
   ['squire', 'squire', 'archer'],
   ['goblin', 'goblin', 'wolf', 'wolf'],
   ['knight', 'chemist', 'archer', 'squire'],
-  ['blackMage', 'thief', 'wolf', 'squire'],
+  ['wisp', 'treant', 'wolf', 'blackMage'],
   ['knight', 'whiteMage', 'archer', 'monk'],
-  ['bomb', 'bomb', 'goblin', 'goblin'],
+  ['bomb', 'bomb', 'goblin', 'skeleton'],
+  ['skeleton', 'skeleton', 'wisp', 'treant'],
   ['ninja', 'timeMage', 'knight', 'dragoon'],
 ];
 
@@ -758,7 +872,8 @@ const ITEMS = {
   leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 1 },
   featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', hp: 12, spd: 1, price: 500, tier: 2 },
   wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', mp: 20, ma: 1, price: 550, tier: 2 },
-  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1, price: 2400, tier: 6 },
+  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1,
+                 wards: ['silence', 'blind', 'berserk', 'poison'], price: 2400, tier: 6 },
   ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 20, price: 450, tier: 1 },
   goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
 
@@ -771,6 +886,16 @@ const ITEMS = {
   silkRobe:    { name: 'Silk Robe', slot: 'body', atype: 'robe', hp: 18, mp: 20, price: 400, tier: 1 },
   wizardRobe:  { name: 'Wizard Robe', slot: 'body', atype: 'robe', hp: 30, mp: 40, ma: 1, price: 1100, tier: 3 },
   robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
+
+  // ---- elemental gear: each answers one element ----
+  flameShield: { name: 'Flame Shield', slot: 'offhand', otype: 'shield', evade: 14, resist: { fire: 'resist' }, price: 1000, tier: 3 },
+  iceShield:   { name: 'Ice Shield', slot: 'offhand', otype: 'shield', evade: 14, resist: { ice: 'resist' }, price: 1000, tier: 3 },
+  stormMail:   { name: 'Storm Mail', slot: 'body', atype: 'heavy', hp: 52, resist: { thunder: 'absorb', ice: 'weak' }, price: 1900, tier: 5 },
+  salamanderRobe: { name: 'Salamander Robe', slot: 'body', atype: 'robe', hp: 26, mp: 26, resist: { fire: 'absorb', ice: 'weak' }, price: 1900, tier: 5 },
+  wardingCloak: { name: 'Warding Cloak', slot: 'body', atype: 'cloth', hp: 24, mp: 14,
+                  resist: { fire: 'resist', ice: 'resist', thunder: 'resist' }, price: 2200, tier: 6 },
+  holyPendant: { name: 'Holy Pendant', slot: 'acc', ma: 1, resist: { dark: 'resist', holy: 'absorb' }, price: 1600, tier: 4 },
+  obsidianCharm: { name: 'Obsidian Charm', slot: 'acc', hp: 18, resist: { earth: 'immune', holy: 'weak' }, price: 1400, tier: 4 },
 
   // ---- accessory ----
   leatherBoots:{ name: 'Leather Boots', slot: 'acc', move: 1, price: 400, tier: 1 },
@@ -830,6 +955,26 @@ function itemsForSlot(job, slot, ids, extra) {
   return (ids || Object.keys(ITEMS)).filter(id => canEquipInSlot(job, id, slot, extra));
 }
 
+// A unit's multiplier against an element: what it is, then what it wears.
+// The strongest single answer wins rather than stacking, so two fire resists
+// never make a unit immune by accident.
+function affinityOf(unit, element) {
+  if (!element || !ELEMENTS[element]) return 1;
+  const sources = [];
+  const innate = unit.jobData.affinity;
+  if (innate && innate[element]) sources.push(innate[element]);
+  for (const slot of Object.keys(SLOT_NAMES)) {
+    const it = unit.equipped ? unit.equipped(slot) : null;
+    if (it && it.resist && it.resist[element]) sources.push(it.resist[element]);
+  }
+  if (!sources.length) return 1;
+  // Order of authority: absorb beats immune beats resist beats weak.
+  for (const kind of ['absorb', 'immune', 'resist', 'weak']) {
+    if (sources.includes(kind)) return AFFINITY[kind];
+  }
+  return 1;
+}
+
 // How much a piece of gear is worth to a given job. Used by the enemy loadout
 // generator and by the player's Optimize button.
 function gearScore(job, id) {
@@ -852,6 +997,11 @@ function gearScore(job, id) {
   s += (it.move || 0) * 8;
   s += (it.jump || 0) * 3;
   s += (it.evade || 0) * 0.5;
+  // An element answered is worth something, but not more than solid numbers:
+  // most attacks in a given battle carry no element at all.
+  for (const kind of Object.values(it.resist || {})) {
+    s += { absorb: 9, immune: 7, resist: 4, weak: -9 }[kind] || 0;
+  }
   return s;
 }
 

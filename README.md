@@ -27,8 +27,9 @@ a browser, or serve the folder with any static file server.
 **Building a party**
 
 - **Eleven jobs** on an unlock tree — Squire, Chemist, Knight, Archer, Monk,
-  Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon — plus monsters and
-  a boss job for the other side.
+  Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon — plus six creatures
+  with their own skillsets and elemental identities (goblin, dire wolf, bomb,
+  skeleton, marsh wisp, treant) and two shapes of boss.
 - **JP progression.** Acting earns JP in your current job. Spend it on that
   job's abilities, equip any studied job's skillset as your secondary, and
   reach job levels to unlock the advanced classes.
@@ -57,6 +58,15 @@ a browser, or serve the folder with any static file server.
 - **Three difficulty settings** that shift the opposition rather than the party,
   so your own numbers always mean the same thing: enemy level, equipment tier
   and the size of the purse. Changeable at any time from camp.
+- **Six elements** — fire, ice, thunder, earth, holy and dark — that creatures
+  and equipment answer. A bomb drinks fire and burns in ice, a dire wolf fears
+  fire, a fell knight feeds on dark and dreads holy. Absorbed attacks heal the
+  target, and the targeting preview tells you before you commit.
+- **Control statuses** alongside the buffs: Silence seals anything that costs
+  MP, Blind halves physical accuracy, Berserk takes a unit out of its owner's
+  hands for half again the damage. Remedy, Esuna and the Ribbon answer them.
+- **A two-shape final battle.** At about a third of his health the man goes
+  down and something else stands up in his armour.
 - **Procedural audio**: sound effects and three looping pieces synthesised at
   runtime with WebAudio, with sound and music toggles.
 - **Save and continue** through localStorage.
@@ -89,6 +99,7 @@ js/game.js        campaign flow, formation, shop, saving
 tools/load.js     loads the game scripts into a Node sandbox
 tools/validate.js content consistency checks
 tools/regress.js  engine regression checks
+tools/test-*.js   feature tests for elements, statuses and the boss
 tools/simulate.js campaign balance simulator
 ```
 
@@ -100,7 +111,10 @@ without a browser:
 ```
 node tools/validate.js          # check maps, jobs, items, passives and chapters
 node tools/regress.js           # replay the engine bugs a review once found
-node tools/simulate.js 20 1     # play the campaign 20 times, 1 training battle per chapter
+node tools/test-elements.js     # elemental affinities, absorption, prediction, AI
+node tools/test-statuses.js     # Silence, Blind, Berserk and what answers them
+node tools/test-boss.js         # the final battle's second shape
+node tools/simulate.js 20 1 3   # 20 campaigns, 1 training battle per chapter, 3 retries
 ```
 
 `validate.js` catches content mistakes: a map row of the wrong width, a unit
@@ -115,11 +129,14 @@ win rate, length and party level per chapter.
 
 Difficulty was tuned against `tools/simulate.js`, which plays the campaign end
 to end with both sides driven by the game's own AI, carrying levels, JP, gil and
-purchases forward between chapters. On the middle setting, with one training
-battle per chapter, a party that learns abilities and shops clears each chapter
-roughly 50–100% of the time, with chapters three to five the hardest.
+purchases forward between chapters and retrying a chapter it loses, as a player
+would. On the middle setting with one training battle per chapter, every chapter
+is cleared, first-attempt win rates run 60–100%, and chapters three, five and
+seven take about one retry.
 
-A human will do better than the AI does with the same party, and losing costs
-only time: experience and JP earned in a lost battle are kept and saved, the
-chapter simply does not advance. If a chapter is still too steep, the Squire
+Equipment is the main lever: a party that shops well arrives ready, and one that
+does not will grind. Camp says so plainly when the party is behind on levels or
+on kit. A human will do better than the AI does with the same party, and losing
+costs only time: experience and JP earned in a lost battle are kept and saved,
+the chapter simply does not advance. If a chapter is still too steep, the Squire
 setting drops the opposition a level and widens the purse.

@@ -190,11 +190,13 @@ class Game {
         : o.type === 'boss' ? `Defeat ${(ch.enemies.find(e => e.boss) || {}).name || 'the commander'}`
         : 'Defeat every enemy';
       const topLevel = Math.max(...ch.enemies.map(e => e.level));
+      const ready = this.readiness(ch);
       $('world-next').innerHTML = `
         <div class="chapter-num">Chapter ${s.chapter + 1}</div>
         <div class="chapter-title">${ch.title}</div>
         <div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · up to Lv ${topLevel}</div>
-        <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>`;
+        <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>
+        ${ready ? `<div class="chapter-warn">${ready}</div>` : ''}`;
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = 'March to Battle';
     } else {
@@ -217,6 +219,35 @@ class Game {
     $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max 8).`;
     $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= 8;
     this.showScreen('world');
+  }
+
+  // A word of warning when the party is walking into a chapter underprepared.
+  // Levels and equipment are the two levers, so name whichever is behind.
+  readiness(ch) {
+    const s = this.state;
+    const deploy = s.party.slice(0, 5);
+    if (!deploy.length) return '';
+    const foeLevel = Math.max(...ch.enemies.map(e => e.level));
+    const avgLevel = deploy.reduce((a, u) => a + u.level, 0) / deploy.length;
+    // Average gear tier of the pieces actually worn, against what the shop sells.
+    let tiers = 0, slots = 0;
+    for (const u of deploy) {
+      for (const slot of Object.keys(SLOT_NAMES)) {
+        const it = u.equipped(slot);
+        tiers += it ? it.tier : 0;
+        slots++;
+      }
+    }
+    const gearTier = slots ? tiers / slots : 0;
+    const want = this.shopTier();
+    const notes = [];
+    if (avgLevel < foeLevel - 1) notes.push('they outrank you');
+    if (gearTier < want - 1.6) notes.push('your kit is behind what the shop stocks');
+    if (!notes.length) return '';
+    const advice = notes.includes('your kit is behind what the shop stocks')
+      ? 'Spend at the shop, or fight a training battle first.'
+      : 'A training battle or two would even the odds.';
+    return `This looks like a hard fight: ${notes.join(' and ')}. ${advice}`;
   }
 
   hire(job) {
@@ -274,6 +305,8 @@ class Game {
       </div>`;
     }).join('');
     const jobLevels = Object.keys(JOBS).filter(j => u.jpTotal[j]).map(j => `${JOBS[j].name} Lv${u.jobLevel(j)}`).join(' · ') || 'none yet';
+    const affLine = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
+      .map(a => `<span style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join(' · ');
     const passiveLearn = passivesOfJob(u.job).map(id => {
       const p = PASSIVES[id], learned = !!u.learned[id];
       return `<div class="ab-row ${learned ? 'learned' : ''}">
@@ -294,6 +327,7 @@ class Game {
       </div>
       <div class="weapon">Weapon: ${u.weapon.name} (power ${u.weapon.power}, range ${u.weapon.range})${u.dualWielding ? ` + ${u.offhandWeapon.name}` : ''}</div>
       <div class="job-levels">Job levels: ${jobLevels}</div>
+      ${affLine ? `<div class="job-levels">Elements: ${affLine}</div>` : ''}
       <h3>Equipment <button id="btn-optimize" class="mini">Optimize</button></h3>
       <div class="equip-grid">${this.equipRows(u)}</div>
       <h3>Abilities Equipped</h3>
@@ -347,6 +381,9 @@ class Game {
       if (!it[k]) continue;
       const label = { hp: 'HP', mp: 'MP', pa: 'PA', ma: 'MA', spd: 'Spd', move: 'Move', jump: 'Jump', evade: 'Ev' }[k];
       parts.push(`${label} ${it[k] > 0 ? '+' : ''}${it[k]}`);
+    }
+    for (const [el, kind] of Object.entries(it.resist || {})) {
+      parts.push(`${ELEMENTS[el].name} ${affinityLabel(AFFINITY[kind])}`);
     }
     return parts.join(' · ');
   }
