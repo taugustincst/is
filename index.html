@@ -9,7 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="A tactical role-playing game of charge-time turns, jobs and height maps.">
 <title>Chronicles of Elderon — Tactics</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%23e6c35a'/%3E%3C/svg%3E">
+<link rel="icon" href="icons/icon-64.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -157,6 +159,13 @@
 
 <div id="toast"></div>
 
+<script>
+  // Register the offline cache. It is optional: the game runs perfectly well
+  // without it, so a failure here is not worth interrupting anyone over.
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
 <script src="js/audio.js"></script>
 <script src="js/data.js"></script>
 <script src="js/sprites.js"></script>

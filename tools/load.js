@@ -34,7 +34,14 @@ function load(files = ENGINE) {
   for (const f of files) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', `${f}.js`), 'utf8'), ctx, { filename: `${f}.js` });
   }
-  const api = vm.runInContext(`({ ${NAMES.join(', ')} })`, ctx);
+  // Only gather the names the loaded files actually declare, so a caller that
+  // wants just the data file is not tripped up by engine symbols.
+  const api = vm.runInContext(
+    `(() => { const out = {};
+` +
+    NAMES.map(n => `  try { out.${n} = ${n}; } catch (e) {}`).join('\n') +
+    `
+  return out; })()`, ctx);
   api.run = (code) => vm.runInContext(code, ctx);
   return api;
 }
