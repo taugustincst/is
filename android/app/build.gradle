@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The game's own files live at the repository root and are the single source of
+// truth. They are copied into the APK's assets at build time rather than being
+// duplicated in this directory, so the app can never drift from the web build.
+def gameRoot = rootProject.file('..')
+def gameAssets = layout.buildDirectory.dir('game-assets')
+
+tasks.register('copyGame', Copy) {
+    description = 'Copies the game into the APK assets.'
+    from(gameRoot) {
+        include 'index.html'
+        include 'manifest.webmanifest'
+        include 'css/**'
+        include 'js/**'
+        include 'icons/**'
+    }
+    into gameAssets
+}
+
+android {
+    namespace 'com.elderon.tactics'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.elderon.tactics'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += gameAssets
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false      // there is no Java worth shrinking
+            // Signed with the debug key so `assembleRelease` produces an APK
+            // that installs. Point this at a real keystore before publishing.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn('copyGame') }
+
+dependencies {
+    // WebViewAssetLoader serves the bundled files over an https origin, which
+    // gives the game durable localStorage instead of a file:// opaque origin.
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.activity:activity:1.9.2'
+    implementation 'androidx.core:core:1.13.1'
+}

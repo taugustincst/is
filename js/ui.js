@@ -2,6 +2,10 @@
    Battle UI: player turn state machine, menus, turn order, log, prediction.
    ========================================================================== */
 
+// Phrase the prompts for whatever the player is actually using.
+const TOUCH_ONLY = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+const CANCEL_HINT = TOUCH_ONLY ? 'Cancel goes back.' : 'Right-click or Esc cancels.';
+
 class BattleUI {
   constructor(renderer) {
     this.r = renderer;
@@ -78,6 +82,33 @@ class BattleUI {
     this._bt = setTimeout(() => { b.className = 'banner'; }, 1100);
   }
 
+  // Tell the renderer how much of the canvas the panels are covering, so the
+  // board can be framed in what is left. Measured from the real elements, which
+  // is the only thing that survives every breakpoint and orientation.
+  measureInsets() {
+    const cv = this.cv;
+    const scale = cv.width / Math.max(1, cv.clientWidth);
+    const ins = { top: 0, bottom: 0, left: 0, right: 0 };
+    const box = (el) => (el && el.offsetParent !== null && getComputedStyle(el).display !== 'none')
+      ? el.getBoundingClientRect() : null;
+    const H = cv.clientHeight, W = cv.clientWidth;
+    for (const id of ['battle-top', 'turn-order', 'unit-card', 'log', 'command', 'deploy-panel', 'hint']) {
+      const r = box(document.getElementById(id));
+      if (!r || !r.width || !r.height) continue;
+      // A panel only counts against the edge it hugs.
+      const spans = r.width > W * 0.6;
+      if (spans) {
+        if (r.bottom < H * 0.5) ins.top = Math.max(ins.top, r.bottom);
+        else ins.bottom = Math.max(ins.bottom, H - r.top);
+      } else if (r.top < H * 0.35 && r.bottom < H * 0.55) {
+        ins.top = Math.max(ins.top, r.bottom);
+      } else if (r.bottom > H * 0.65) {
+        ins.bottom = Math.max(ins.bottom, H - r.top);
+      }
+    }
+    this.r.insets = { top: ins.top * scale, bottom: ins.bottom * scale, left: ins.left * scale, right: ins.right * scale };
+  }
+
   showObjective() {
     if (!this.battle || !this.el.objective) return;
     this.el.objective.textContent = this.battle.objectiveText();
@@ -85,6 +116,7 @@ class BattleUI {
 
   refresh() {
     if (!this.battle) return;
+    this.measureInsets();
     this.showObjective();
     if (this.deploy) this.renderEnemyRoster(); else this.renderOrder();
     const u = (this.hover && this.battle.unitAt(this.hover.x, this.hover.y)) || (this.turn && this.turn.unit) || this.battle.active;
@@ -190,7 +222,8 @@ class BattleUI {
     const placed = b.deployed().length;
     const need = b.requiredUnit && !this.battle.onField(b.requiredUnit)
       ? `${b.requiredUnit.name} must take the field. ` : '';
-    this.el.hint.textContent = `${need}Click a green tile to place ${d.sel ? d.sel.name : 'a unit'}. Click a deployed unit to pick it up.`;
+    const verb = TOUCH_ONLY ? 'Tap' : 'Click';
+    this.el.hint.textContent = `${need}${verb} a green tile to place ${d.sel ? d.sel.name : 'a unit'}. ${verb} a deployed unit to pick it up.`;
     this.el.hint.classList.toggle('warn', !!need);
     this.el.roster.classList.add('open');
     this.el.roster.innerHTML = `
@@ -292,7 +325,7 @@ class BattleUI {
     const u = t.unit;
     const hint = this.el.hint;
     if (mode === 'menu') {
-      hint.textContent = 'Choose an action. Right-click or Esc cancels.';
+      hint.textContent = `Choose an action. ${CANCEL_HINT}`;
       if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
       this.el.menu.innerHTML = `
         <div class="menu-title">${u.name}</div>
@@ -303,7 +336,7 @@ class BattleUI {
     } else if (mode === 'move') {
       t.reach = this.battle.grid.reachable(u, this.battle.units);
       for (const k of t.reach.keys()) if (k !== `${u.x},${u.y}`) this.r.hl.move.add(k);
-      hint.textContent = 'Select a tile to move to.';
+      hint.textContent = TOUCH_ONLY ? 'Tap a tile to move to.' : 'Select a tile to move to.';
       this.el.menu.innerHTML = `<div class="menu-title">Move</div><button data-a="cancel">Cancel</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode('menu');
     } else if (mode === 'act') {
@@ -318,7 +351,7 @@ class BattleUI {
         else this.setMode('abilities');
       });
     } else if (mode === 'abilities') {
-      hint.textContent = 'Choose an ability. Hover for details.';
+      hint.textContent = TOUCH_ONLY ? 'Choose an ability.' : 'Choose an ability. Hover for details.';
       this.el.menu.innerHTML = `<div class="menu-title">${t.set.label}</div>` +
         t.set.abilities.map(id => {
           const ab = ABILITIES[id];
@@ -331,17 +364,19 @@ class BattleUI {
       this.el.menu.querySelectorAll('button').forEach(b => {
         b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);
         b.onmouseenter = () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); };
+        // With no hover, show the details of whatever the finger is resting on.
+        b.addEventListener('pointerdown', () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); });
       });
     } else if (mode === 'target') {
       const ab = t.ability;
       t.targets = this.battle.targetTilesFor(u, ab);
       for (const tile of t.targets) this.r.hl.target.add(`${tile.x},${tile.y}`);
-      hint.textContent = `${ab.name}: select a target tile.`;
+      hint.textContent = `${ab.name}: ${TOUCH_ONLY ? 'tap' : 'select'} a target tile.`;
       this.el.menu.innerHTML = `<div class="menu-title">${ab.name}</div><button data-a="cancel">Cancel</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode(ab === ABILITIES.attack ? 'act' : 'abilities');
       if (ab.self) { this.previewTarget(this.battle.grid.tile(u.x, u.y)); }
     } else if (mode === 'wait') {
-      hint.textContent = 'Choose a direction to face (or click a tile).';
+      hint.textContent = TOUCH_ONLY ? 'Tap a direction to face, or tap a tile.' : 'Choose a direction to face (or click a tile).';
       this.el.menu.innerHTML = `<div class="menu-title">Face</div>
         <div class="dirs">
           <button data-d="N">↗ North</button><button data-d="E">↘ East</button>
@@ -463,6 +498,7 @@ class BattleUI {
         if (this.drag.moved) {
           const z = this.r.zoom || 1;
           this.r.cam.x += dx / z; this.r.cam.y += dy / z;
+          this.r.clampCamera();
           this.drag.x = p.x; this.drag.y = p.y;
         }
         if (e.pointerType !== 'mouse') return; // no hover on touch
@@ -496,10 +532,10 @@ class BattleUI {
       if (!this.battle || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
       if (e.key === 'Escape') return this.cancel();
       const pan = 40, z = this.r.zoom || 1;
-      if (e.key === 'ArrowLeft') this.r.cam.x += pan / z;
-      else if (e.key === 'ArrowRight') this.r.cam.x -= pan / z;
-      else if (e.key === 'ArrowUp') this.r.cam.y += pan / z;
-      else if (e.key === 'ArrowDown') this.r.cam.y -= pan / z;
+      if (e.key === 'ArrowLeft') { this.r.cam.x += pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowRight') { this.r.cam.x -= pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowUp') { this.r.cam.y += pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowDown') { this.r.cam.y -= pan / z; this.r.clampCamera(); }
       else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
       else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
       else if (e.key === '0') this.r.centerCamera();
