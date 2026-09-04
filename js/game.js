@@ -303,7 +303,15 @@ class Game {
       const ab = ABILITIES[id] || PASSIVES[id];
       if (!ab || (u.jp[u.job] || 0) < ab.jp) return;
       u.jp[u.job] -= ab.jp; u.learned[id] = true;
-      this.toast(`${u.name} learned ${ab.name}!`);
+      let note = `${u.name} learned ${ab.name}!`;
+      // A newly learned passive goes straight into an empty slot, so it is not
+      // sitting unused behind a menu the player has yet to open.
+      if (PASSIVES[id] && !u.passives[PASSIVES[id].kind]) {
+        u.setPassive(PASSIVES[id].kind, id);
+        this.syncGear(u); // Two Hands frees the offhand
+        note += ` Equipped as ${PASSIVE_KINDS[PASSIVES[id].kind].toLowerCase()}.`;
+      }
+      this.toast(note);
       this.renderFormationDetail();
     });
   }
