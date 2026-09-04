@@ -452,6 +452,8 @@ class Game {
     await this.story(ch.title, ch.intro);
     const result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective });
     if (result === 'aborted') return;
+    // Experience and JP are earned even in a losing battle, so record the run
+    // either way rather than letting a defeat quietly discard it.
     if (result === 'victory') {
       this.state.chapter++;
       this.state.victories++;
@@ -461,9 +463,9 @@ class Game {
         r.jp[r.job] = 60; r.jpTotal[r.job] = 60;
         this.state.party.push(r);
       }
-      this.saveGame();
       await this.story(ch.title, ch.outro);
     }
+    this.saveGame();
     this.showWorld();
   }
 
