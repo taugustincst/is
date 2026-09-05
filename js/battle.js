@@ -258,7 +258,15 @@ class Battle {
           const v = this.computeEffect(user, ab, eff, t);
           if (v < 0) { p.heal += -v; p.notes.push('absorbs'); } else p.dmg += v;
         }
-        else if (eff.type === 'drain') { const v = this.computeEffect(user, ab, eff, t); p.dmg += v; p.notes.push(`drain ${v}`); }
+        else if (eff.type === 'drain') {
+          // A target that drinks this element gives nothing back. Counting the
+          // negative as damage let the AI score it as a gift to an ally.
+          const v = this.computeEffect(user, ab, eff, t);
+          // A drain against a target that drinks this element is simply
+          // refused when it resolves, so it is worth nothing to anyone.
+          if (v > 0) { p.dmg += v; p.notes.push(`drain ${v}`); }
+          else p.notes.push('no effect');
+        }
         else if (eff.type === 'heal') p.heal += this.computeEffect(user, ab, eff, t);
         else if (eff.type === 'mpheal') p.notes.push(`MP +${this.computeEffect(user, ab, eff, t)}`);
         else if (eff.type === 'revive') p.notes.push(`revive ${Math.round(eff.pct * 100)}%`);
@@ -547,6 +555,10 @@ class Battle {
     }
     u.statuses = {};             // the change burns off everything
     u.mods = {};
+    // Including anything the old shape had begun: a charge from the man should
+    // not land under the thing that replaced him.
+    this.pending = this.pending.filter(p => p.unit !== u);
+    u.airborne = false;
     u.hp = Math.max(1, Math.floor(u.maxHp * (ph.heal === undefined ? 1 : ph.heal)));
     u.mp = u.maxMp;
     u.koCount = undefined;
@@ -685,10 +697,15 @@ class Battle {
       this.pending = this.pending.filter(p => p.ct < 100);
       for (const p of ready) {
         if (!p.unit.alive || p.unit.hasStatus('stop')) { p.unit.airborne = false; continue; }
-        // MP is only spent when a spell lands, so it may be gone by now.
-        if (p.ability.mp && p.unit.mp < this.mpCost(p.unit, p.ability)) {
+        // The world moves while a spell charges: the MP may be gone, or the
+        // caster may have been silenced since. Either way it does not land.
+        const abId = Object.keys(ABILITIES).find(k => ABILITIES[k] === p.ability);
+        const sealed = abId && !p.unit.canUse(abId);
+        if (sealed || (p.ability.mp && p.unit.mp < this.mpCost(p.unit, p.ability))) {
           p.unit.airborne = false;
-          this.log(`${p.unit.name} lacks the MP to finish ${p.ability.name}.`, 'miss');
+          this.log(sealed
+            ? `${p.unit.name} cannot finish ${p.ability.name}.`
+            : `${p.unit.name} lacks the MP to finish ${p.ability.name}.`, 'miss');
           if (this.hooks.showFloat) this.hooks.showFloat(p.unit, 'Fizzle', '#aaa');
           continue;
         }
@@ -826,7 +843,11 @@ class Battle {
       await this.moveUnit(unit, this.grid.pathTo(reach, best.x, best.y));
     }
     unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
-    if (Grid.dist(unit.x, unit.y, near.x, near.y) <= unit.weapon.range) {
+    // Rage does not let a unit swing where a chosen attack could not reach:
+    // ask the same targeting the menu would, so height still counts.
+    const reachable = this.targetTilesFor(unit, ABILITIES.attack)
+      .some(t => t.x === near.x && t.y === near.y);
+    if (reachable) {
       await this.useAbility(unit, ABILITIES.attack, near.x, near.y);
     }
   }
@@ -868,6 +889,7 @@ class Battle {
         else if (n.startsWith('steal')) score += enemy ? 10 : 0;
         else if (n.startsWith('drain')) score += enemy ? 5 : 0;
         else if (n.startsWith('CT =')) score += !enemy ? 30 : 0;
+        else if (n === 'no effect') score -= 30;
         else if (n === 'absorbs') score += enemy ? -50 : 20;
         else if (n === 'immune') score += enemy ? -25 : 0;
         else if (n === 'weak') score += enemy ? 12 : -12;

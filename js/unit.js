@@ -6,11 +6,15 @@ const DIRS = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
 
 let unitSeq = 1;
 
+// A job to fall back on when a save names one this build does not have. Renaming
+// or retiring a job must never make an existing save unloadable.
+const FALLBACK_JOB = 'squire';
+
 class Unit {
   constructor(opts) {
     this.id = opts.id || `u${unitSeq++}`;
-    this.name = opts.name || JOBS[opts.job].name;
-    this.job = opts.job;
+    this.job = JOBS[opts.job] ? opts.job : FALLBACK_JOB;
+    this.name = opts.name || JOBS[this.job].name;
     this.level = opts.level || 1;
     this.exp = opts.exp || 0;
     this.team = opts.team || 'player';
@@ -18,13 +22,29 @@ class Unit {
     this.boss = !!opts.boss;
     this.jp = opts.jp || {};            // spendable JP per job
     this.jpTotal = opts.jpTotal || {};  // lifetime JP per job (job level)
-    this.learned = opts.learned || {};  // abilityId -> true
-    this.secondary = opts.secondary || null; // job id whose skillset is equipped as secondary
+    // Learned things this build no longer has are dropped, so nothing downstream
+    // has to guard against an ability or passive that cannot be looked up.
+    this.learned = {};
+    for (const id of Object.keys(opts.learned || {})) {
+      if (ABILITIES[id] || PASSIVES[id]) this.learned[id] = true;
+    }
+    // A secondary naming a job this build does not have is simply dropped.
+    this.secondary = JOBS[opts.secondary] ? opts.secondary : null;
     // One equipped passive of each kind; they may come from any job ever studied.
-    this.passives = Object.assign({ reaction: null, support: null, movement: null }, opts.passives || {});
+    // Anything this build no longer recognises is dropped rather than kept.
+    this.passives = { reaction: null, support: null, movement: null };
+    for (const [kind, id] of Object.entries(opts.passives || {})) {
+      if (PASSIVES[id] && PASSIVES[id].kind === kind && kind in this.passives) this.passives[kind] = id;
+    }
     // Equipped items keyed by slot. Player recruits arrive in their job's free kit.
-    this.gear = opts.gear ? Object.assign({}, opts.gear)
-      : (STARTER_GEAR[this.job] ? Object.assign({}, STARTER_GEAR[this.job]) : {});
+    this.gear = {};
+    if (opts.gear) {
+      for (const [slot, id] of Object.entries(opts.gear)) {
+        if (SLOT_NAMES[slot] && ITEMS[id]) this.gear[slot] = id;
+      }
+    } else if (STARTER_GEAR[this.job]) {
+      this.gear = Object.assign({}, STARTER_GEAR[this.job]);
+    }
     this.gilStolen = 0;
     if (opts.autoLearn) this.autoLearn(opts.autoLearn);
     this.resetBattleState();
@@ -60,7 +80,7 @@ class Unit {
     return Object.entries(j.req).every(([rj, lvl]) => this.jobLevel(rj) >= lvl);
   }
 
-  learnedIn(job) { return JOBS[job].abilities.filter(a => this.learned[a]); }
+  learnedIn(job) { return JOBS[job] ? JOBS[job].abilities.filter(a => this.learned[a]) : []; }
 
   // ---- passives ------------------------------------------------------------
   hasPassive(id) {

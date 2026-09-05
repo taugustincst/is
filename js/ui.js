@@ -95,15 +95,16 @@ class BattleUI {
     for (const id of ['battle-top', 'turn-order', 'unit-card', 'log', 'command', 'deploy-panel', 'hint']) {
       const r = box(document.getElementById(id));
       if (!r || !r.width || !r.height) continue;
-      // A panel only counts against the edge it hugs.
-      const spans = r.width > W * 0.6;
-      if (spans) {
-        if (r.bottom < H * 0.5) ins.top = Math.max(ins.top, r.bottom);
+      // Only a panel that runs most of the way along an edge takes a band out
+      // of the view. A panel sitting in a corner blocks a corner, and the board
+      // is mostly empty there, so it is left to overlap rather than squeezing
+      // the whole board into what is left between four corners.
+      if (r.width > W * 0.6) {
+        if (r.top + r.height / 2 < H / 2) ins.top = Math.max(ins.top, r.bottom);
         else ins.bottom = Math.max(ins.bottom, H - r.top);
-      } else if (r.top < H * 0.35 && r.bottom < H * 0.55) {
-        ins.top = Math.max(ins.top, r.bottom);
-      } else if (r.bottom > H * 0.65) {
-        ins.bottom = Math.max(ins.bottom, H - r.top);
+      } else if (r.height > H * 0.6) {
+        if (r.left + r.width / 2 < W / 2) ins.left = Math.max(ins.left, r.right);
+        else ins.right = Math.max(ins.right, W - r.left);
       }
     }
     this.r.insets = { top: ins.top * scale, bottom: ins.bottom * scale, left: ins.left * scale, right: ins.right * scale };

@@ -961,7 +961,7 @@ function itemsForSlot(job, slot, ids, extra) {
 function affinityOf(unit, element) {
   if (!element || !ELEMENTS[element]) return 1;
   const sources = [];
-  const innate = unit.jobData.affinity;
+  const innate = (unit.jobData || {}).affinity;
   if (innate && innate[element]) sources.push(innate[element]);
   for (const slot of Object.keys(SLOT_NAMES)) {
     const it = unit.equipped ? unit.equipped(slot) : null;
