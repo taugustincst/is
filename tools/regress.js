@@ -163,6 +163,95 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('no enemy is stranded off the walkable area', unreachable === 0, `stranded=${unreachable}`);
   }
 
+  // ---- findings from the second review ----
+
+  // An absorbed drain must not read as damage, nor tempt the AI.
+  {
+    const mage = mk('Skel', 'skeleton', 7, { team: 'enemy' });
+    const ally = mk('Skel2', 'skeleton', 7, { team: 'enemy' });
+    const hero = mk('Hero', 'knight', 7);
+    let b; b = g.Battle.setup(g.MAPS.verdant, [hero], [{ job: 'skeleton', level: 7, x: 3, y: 1 }],
+      { log: () => {}, awaitPlayerTurn: async () => {} }, { type: 'rout' });
+    b.units = [hero, mage, ally];
+    mage.x = 1; mage.y = 3; ally.x = 2; ally.y = 3; hero.x = 8; hero.y = 8;
+    const p = b.predict(mage, g.ABILITIES.gravePull, ally.x, ally.y)[0];
+    ok('an absorbed drain is not counted as damage', p && p.dmg === 0,
+       p ? `dmg=${p.dmg} notes=${p.notes}` : 'no prediction');
+    const onAlly = b.scoreTarget(mage, g.ABILITIES.gravePull, mage.x, mage.y, ally.x, ally.y);
+    ok('draining an ally that absorbs it is not attractive', onAlly <= 0, `score=${Math.round(onAlly)}`);
+  }
+
+  // A raging unit obeys the same reach as a chosen attack.
+  {
+    const monk = mk('Rager', 'monk', 8);
+    const foe = mk('Above', 'knight', 8, { team: 'enemy' });
+    let b; b = g.Battle.setup(g.MAPS.dunmarch, [monk], [{ job: 'knight', level: 8, x: 6, y: 8 }],
+      { log: () => {}, awaitPlayerTurn: async () => {} }, { type: 'rout' });
+    b.units = [monk, foe];
+    // A cliff: orthogonally adjacent, four levels apart.
+    monk.x = 0; monk.y = 4; foe.x = 0; foe.y = 3;
+    const normal = b.targetTilesFor(monk, g.ABILITIES.attack).some(t => t.x === foe.x && t.y === foe.y);
+    monk.addStatus('berserk');
+    const hpBefore = foe.hp;
+    await b.berserkTurn(monk);
+    ok('rage cannot swing where a chosen attack could not reach',
+       normal || foe.hp === hpBefore, `normalReach=${normal} hp ${hpBefore}->${foe.hp}`);
+  }
+
+  // A phase change takes the old shape's charge with it.
+  {
+    const ch = g.CAMPAIGN[6];
+    const party = ['knight', 'whiteMage'].map((j, i) => mk('P' + i, j, 10));
+    let b; b = g.Battle.setup(g.MAPS[ch.map], party, ch.enemies,
+      { log: () => {}, awaitPlayerTurn: async () => {} }, ch.objective);
+    const boss = b.units.find(u => u.boss);
+    b.pending.push({ unit: boss, ability: g.ABILITIES.shadowBlade, tx: party[0].x, ty: party[0].y, ct: 40, speed: 12 });
+    boss.hp = Math.floor(boss.maxHp * 0.3);
+    b.checkPhase(boss);
+    ok('the change drops what the old shape was charging',
+       !b.pending.some(p => p.unit === boss), `pending=${b.pending.length}`);
+  }
+
+  // Silence stops a spell already in flight.
+  {
+    const mage = mk('Caster', 'whiteMage', 10);
+    let b; b = g.Battle.setup(g.MAPS.verdant, [mage], [{ job: 'goblin', level: 4, x: 4, y: 1 }],
+      { log: () => {}, awaitPlayerTurn: async () => {} }, { type: 'rout' });
+    const foe = b.units.find(u => u.team === 'enemy');
+    const hp = foe.hp, mp = mage.mp;
+    b.pending = [{ unit: mage, ability: g.ABILITIES.holyBolt, tx: foe.x, ty: foe.y, ct: 100, speed: 0 }];
+    mage.addStatus('silence');
+    const ready = b.pending.filter(p => p.ct >= 100);
+    b.pending = b.pending.filter(p => p.ct < 100);
+    for (const p of ready) {
+      const id = Object.keys(g.ABILITIES).find(k => g.ABILITIES[k] === p.ability);
+      if (id && !p.unit.canUse(id)) continue;
+      await b.applyAbility(p.unit, p.ability, p.tx, p.ty);
+    }
+    ok('a silenced caster\'s charge does not land', foe.hp === hp && mage.mp === mp,
+       `hp ${hp}->${foe.hp} mp ${mp}->${mage.mp}`);
+  }
+
+  // Affinity should be as defensive about the job as about the gear.
+  {
+    let threw = false;
+    try { g.affinityOf({}, 'fire'); } catch (e) { threw = true; }
+    ok('affinity of an object with no job does not throw', !threw);
+  }
+
+  // A save naming things this build no longer has must still load.
+  {
+    let threw = null;
+    try {
+      const u = new g.Unit({ name: 'Old', job: 'noSuchJob', level: 5, team: 'player',
+        secondary: 'alsoGone', learned: { notAnAbility: true }, gear: { weapon: 'notAnItem' },
+        passives: { support: 'notAPassive' } });
+      u.actionMenu();
+      ok('a save from another build heals rather than crashing',
+         u.job === 'squire' && u.secondary === null && !u.gear.weapon, `job=${u.job} sec=${u.secondary}`);
+    } catch (e) { threw = e.message; ok('a save from another build heals rather than crashing', false, threw); }
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

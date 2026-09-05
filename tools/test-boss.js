@@ -53,6 +53,9 @@ const mk = (n, job, lvl) => { const u = new g.Unit({ name: n, job, level: lvl, t
   const hero = b2.units.find(u => u.team === 'player');
   boss2.hp = 5;
   hero.x = boss2.x; hero.y = boss2.y + 1;
+  // The point here is the phase trigger, not the hit roll: Brannoc's evasion
+  // would otherwise turn this check into a coin flip.
+  b2.hitChance = () => 100;
   await b2.applyAbility(hero, g.ABILITIES.attack, boss2.x, boss2.y);
   ok('an overkill blow triggers the change instead of a death', boss2.alive && boss2.job === 'darkKnightRisen',
      `alive=${boss2.alive} job=${boss2.job} hp=${boss2.hp}`);

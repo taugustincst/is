@@ -48,6 +48,11 @@ origin where saved games in `localStorage` are not durable.
 - **Rotation** is handled by the activity rather than by recreating it, so a
   battle in progress survives turning the phone.
 - **Pause** stops the render loop and the music sequencer via `pauseTimers()`.
+- **The offline service worker still works.** The page is served over https, so
+  it registers the same worker it would in a browser. A WebView routes requests
+  made by a service worker through a separate client, so that client is wired to
+  the same asset loader; without it the assets would stop resolving the moment
+  the worker took control, which is the second launch.
 - **The screen is kept awake** while the app is in front.
 
 ## Icons

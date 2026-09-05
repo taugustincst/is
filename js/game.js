@@ -97,12 +97,30 @@ class Game {
   loadGame() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
-    const d = JSON.parse(raw);
+    let d;
+    try {
+      d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.party) || !d.party.length) throw new Error('no party');
+    } catch (e) {
+      // A truncated or hand-edited save used to throw inside the click handler,
+      // leaving the player on the title screen with a button that did nothing.
+      localStorage.removeItem(SAVE_KEY);
+      $('btn-continue').disabled = true;
+      this.toast('That save could not be read. Start a new game.');
+      return;
+    }
+    // Anything a Unit cannot make sense of, it heals on the way in.
     this.state = {
-      gil: d.gil, chapter: d.chapter, victories: d.victories || 0, inventory: d.inventory || {},
+      gil: Number.isFinite(d.gil) ? d.gil : 0,
+      chapter: Number.isFinite(d.chapter) ? Math.max(0, Math.min(CAMPAIGN.length, d.chapter)) : 0,
+      victories: d.victories || 0,
+      inventory: {},
       difficulty: DIFFICULTIES[d.difficulty] ? d.difficulty : 'knight',
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
     };
+    for (const [id, n] of Object.entries(d.inventory || {})) {
+      if (ITEMS[id] && n > 0) this.state.inventory[id] = n;
+    }
     this.showWorld();
   }
 

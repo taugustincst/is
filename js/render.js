@@ -97,13 +97,18 @@ class Renderer {
       minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
       minY = Math.min(minY, sy - 56); maxY = Math.max(maxY, sy + 16 + t.h * HZ);
     }
-    // Allow the board's edge to reach the middle of the view, no further.
+    // Keep a slice of the board inside the view. These are world coordinates,
+    // so the visible span is the canvas divided by the zoom, centred on the
+    // canvas middle; a quarter of it is the margin the board may not leave.
+    const view = this.viewCentre();
     const halfW = this.cv.width / (2 * z), halfH = this.cv.height / (2 * z);
-    const cx = this.cv.width / 2, cy = this.cv.height / 2;
-    if (minX > cx + halfW) this.cam.x -= minX - (cx + halfW);
-    if (maxX < cx - halfW) this.cam.x += (cx - halfW) - maxX;
-    if (minY > cy + halfH) this.cam.y -= minY - (cy + halfH);
-    if (maxY < cy - halfH) this.cam.y += (cy - halfH) - maxY;
+    const keepX = halfW * 0.5, keepY = halfH * 0.5;
+    const left = view.cx - halfW, right = view.cx + halfW;
+    const top = view.cy - halfH, bottom = view.cy + halfH;
+    if (minX > right - keepX) this.cam.x -= minX - (right - keepX);
+    if (maxX < left + keepX) this.cam.x += (left + keepX) - maxX;
+    if (minY > bottom - keepY) this.cam.y -= minY - (bottom - keepY);
+    if (maxY < top + keepY) this.cam.y += (top + keepY) - maxY;
   }
 
   // World (unzoomed canvas) coordinates of a tile centre.
@@ -185,10 +190,21 @@ class Renderer {
   // Match the canvas backing store to its on-screen size so pixels stay square.
   fit() {
     const w = Math.max(320, Math.floor(this.cv.clientWidth)), h = Math.max(240, Math.floor(this.cv.clientHeight));
-    if (this.cv.width !== w || this.cv.height !== h) {
-      this.cv.width = w; this.cv.height = h;
-      // Re-frame the board rather than keeping an offset that no longer fits.
-      if (this.battle) this.centerCamera();
+    if (this.cv.width === w && this.cv.height === h) return;
+    const wasW = this.cv.width, wasH = this.cv.height;
+    this.cv.width = w; this.cv.height = h;
+    if (!this.battle) return;
+    // A browser's address bar sliding away resizes the canvas by a little. That
+    // should not throw away where the player had panned to; only a real change
+    // of shape, such as turning the phone, is worth re-framing for.
+    const small = wasW && wasH &&
+      Math.abs(w - wasW) < wasW * 0.15 && Math.abs(h - wasH) < wasH * 0.25;
+    if (small) {
+      this.cam.x += (w - wasW) / 2;
+      this.cam.y += (h - wasH) / 2;
+      this.clampCamera();
+    } else {
+      this.centerCamera();
     }
   }
 
@@ -276,7 +292,7 @@ class Renderer {
       this.diamond(sx, sy); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
     }
     if (this.battle.showDeploy && this.battle.deployKeys && this.battle.deployKeys.has(key)) {
-      const taken = !!this.battle.unitAt(t.x, t.y);
+      const taken = !!this.battle.occupantAt(t.x, t.y);
       const pulse = 0.30 + 0.10 * Math.sin(this.time / 350 + (t.x + t.y) * 0.5);
       this.diamond(sx, sy);
       c.fillStyle = taken ? 'rgba(40,180,90,0.22)' : `rgba(60,240,140,${pulse})`;

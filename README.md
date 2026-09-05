@@ -123,6 +123,7 @@ js/game.js        campaign flow, formation, shop, saving
 tools/load.js     loads the game scripts into a Node sandbox
 tools/validate.js content consistency checks
 tools/regress.js  engine regression checks
+tools/soak.js     randomised battles checked against the engine's invariants
 tools/test-*.js   feature tests for elements, statuses and the boss
 tools/simulate.js campaign balance simulator
 tools/make-icons.js draws the app icons from the game's own sprites
@@ -140,11 +141,14 @@ without a browser:
 ```
 node tools/validate.js          # check maps, jobs, items, passives and chapters
 node tools/regress.js           # replay the engine bugs a review once found
+node tools/soak.js 60           # randomised battles, checked against the invariants
 node tools/test-elements.js     # elemental affinities, absorption, prediction, AI
 node tools/test-statuses.js     # Silence, Blind, Berserk and what answers them
 node tools/test-boss.js         # the final battle's second shape
 node tools/simulate.js 20 1 3   # 20 campaigns, 1 training battle per chapter, 3 retries
 ```
+
+[tools/README.md](tools/README.md) describes each of them.
 
 `validate.js` catches content mistakes: a map row of the wrong width, a unit
 placed on water or stranded where nothing can walk to it, an ability a job

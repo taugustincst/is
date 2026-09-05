@@ -16,7 +16,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.webkit.ServiceWorkerClientCompat;
+import androidx.webkit.ServiceWorkerControllerCompat;
 import androidx.webkit.WebViewAssetLoader;
+import androidx.webkit.WebViewFeature;
 
 /**
  * Hosts the game in a WebView.
@@ -88,6 +91,22 @@ public class MainActivity extends AppCompatActivity {
                 return !DOMAIN.equals(request.getUrl().getHost());
             }
         });
+
+        // The page is served over https, so it registers its offline service
+        // worker here as it would in a browser. A WebView routes requests made
+        // by a service worker through a separate client rather than the one
+        // above, so without this the assets stop resolving the moment the
+        // worker takes control, which is the second launch.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
+                && WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
+            ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(
+                    new ServiceWorkerClientCompat() {
+                        @Override
+                        public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                            return loader.shouldInterceptRequest(request.getUrl());
+                        }
+                    });
+        }
 
         web.loadUrl("https://" + DOMAIN + "/index.html");
 

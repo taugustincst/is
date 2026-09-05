@@ -27,8 +27,11 @@ class Grid {
 
   // BFS movement: returns Map "x,y" -> {x,y,cost,prev}
   reachable(unit, units) {
+    // Every tile someone is coming back to counts as taken: the fallen lie
+    // where they dropped until they are carried off, and a unit in mid-leap
+    // lands on the tile it left. Ignoring either lets two units share a tile.
     const occupied = new Map();
-    for (const u of units) if (u.alive && u !== unit && !u.airborne && u.x >= 0) occupied.set(`${u.x},${u.y}`, u);
+    for (const u of units) if (u !== unit && u.x >= 0) occupied.set(`${u.x},${u.y}`, u);
     const start = { x: unit.x, y: unit.y, cost: 0, prev: null };
     const seen = new Map([[`${unit.x},${unit.y}`, start]]);
     const queue = [start];
