@@ -14,6 +14,7 @@ code the browser runs.
 | `node tools/test-boss.js` | The final battle's second shape and the difficulty it produces. |
 | `node tools/simulate.js [runs] [training] [retries]` | Plays whole campaigns with the AI on both sides, retrying a lost chapter as a player would, and reports the difficulty curve. |
 | `node tools/make-icons.js` | Redraws every app icon, web and Android, from the game's own sprites. |
+| `node tools/bundle.js [--body]` | Packs the stylesheet, all nine scripts and the icons into one self-contained page in `dist/`. The plain form is a complete HTML file that plays off a filesystem; `--body` omits the document shell for a host that supplies its own. |
 
 Run them all before shipping a change:
 

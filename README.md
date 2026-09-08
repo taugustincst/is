@@ -73,13 +73,20 @@ a browser, or serve the folder with any static file server.
 
 ## Playing on a phone
 
-The game is built for touch as well as mouse, in either orientation, and there
-are two ways to get it onto an Android device.
+The game is built for touch as well as mouse, in either orientation. There are
+three ways to get it onto a phone, in order of how little work they take.
 
-**Install the web version.** It is a progressive web app: serve the repository
-over HTTPS, open it in Chrome and choose "Install app". It lands on the home
-screen with its own icon, launches fullscreen and runs offline, with no
-toolchain involved.
+**One file.** `node tools/bundle.js` writes `dist/elderon.html`: the stylesheet,
+all nine scripts and the icons inlined into a single self-contained page with
+nothing else to fetch. Send it to the phone however you like — a download, a
+message, a memory stick — and open it. It plays straight off the filesystem with
+no server, and saves persist. Host that one file anywhere and it is also a
+complete web build.
+
+**Install the web version.** Served over HTTPS, the game is a progressive web
+app: open it in Chrome and choose "Install app". It lands on the home screen
+with its own icon, launches fullscreen and runs offline. The single-file build
+builds its own manifest at runtime, so it offers to install too.
 
 **Build the Android app.** `android/` holds a Gradle project that wraps the game
 in a WebView and bundles it into an APK with no permissions at all — it cannot
@@ -126,6 +133,7 @@ tools/regress.js  engine regression checks
 tools/soak.js     randomised battles checked against the engine's invariants
 tools/test-*.js   feature tests for elements, statuses and the boss
 tools/simulate.js campaign balance simulator
+tools/bundle.js   packs the whole game into one self-contained HTML file
 tools/make-icons.js draws the app icons from the game's own sprites
 manifest.webmanifest  install metadata for the web app
 sw.js             offline cache for the installed web app
