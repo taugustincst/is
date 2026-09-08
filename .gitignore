@@ -8,6 +8,9 @@ android/*.iml
 *.apk
 *.aab
 
+# Built bundles: regenerate with `node tools/bundle.js`
+dist/
+
 # Node
 node_modules/
 

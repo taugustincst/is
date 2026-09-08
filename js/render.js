@@ -86,6 +86,42 @@ class Renderer {
     this.zoom = Math.max(floor, Math.min(1.35, Math.min(fitX, fitY)));
   }
 
+  // Pan so a set of tiles sits in the free part of the view. Used when the game
+  // offers the player a choice: on a phone the board is often larger than the
+  // screen, and an option that cannot be seen cannot be tapped.
+  frameTiles(tiles, ms = 220) {
+    if (!this.battle || !tiles || !tiles.length) return Promise.resolve();
+    const g = this.battle.grid;
+    let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    for (const t of tiles) {
+      const { sx, sy } = this.toScreen(t.x, t.y, g.height(t.x, t.y));
+      minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
+      minY = Math.min(minY, sy - 40); maxY = Math.max(maxY, sy + 20);
+    }
+    const view = this.viewCentre(), z = this.zoom || 1;
+    const halfW = view.w / (2 * z), halfH = view.h / (2 * z);
+    const left = view.cx - halfW, right = view.cx + halfW;
+    const top = view.cy - halfH, bottom = view.cy + halfH;
+    // Nudge by the least that brings the set inside, rather than centring on
+    // it: yanking the board across the screen every time a menu opens is more
+    // disorienting than the scroll it saves. A set too big to fit is centred.
+    let dx = 0, dy = 0;
+    if (maxX - minX > right - left) dx = view.cx - (minX + maxX) / 2;
+    else if (minX < left) dx = left - minX;
+    else if (maxX > right) dx = right - maxX;
+    if (maxY - minY > bottom - top) dy = view.cy - (minY + maxY) / 2;
+    else if (minY < top) dy = top - minY;
+    else if (maxY > bottom) dy = bottom - maxY;
+    if (!dx && !dy) return Promise.resolve();
+    const fx = this.cam.x, fy = this.cam.y;
+    const tx = this.cam.x + dx;
+    const ty = this.cam.y + dy;
+    return tween(ms, k => {
+      this.cam.x = lerp(fx, tx, k);
+      this.cam.y = lerp(fy, ty, k);
+    }).then(() => this.clampCamera());
+  }
+
   // Keep a point of interest on screen when the board is larger than the view.
   clampCamera() {
     if (!this.battle) return;

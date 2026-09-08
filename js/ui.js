@@ -337,6 +337,9 @@ class BattleUI {
     } else if (mode === 'move') {
       t.reach = this.battle.grid.reachable(u, this.battle.units);
       for (const k of t.reach.keys()) if (k !== `${u.x},${u.y}`) this.r.hl.move.add(k);
+      // Bring the whole range into view: an option off the edge of a phone
+      // screen may as well not be offered.
+      this.r.frameTiles([...t.reach.values()]);
       hint.textContent = TOUCH_ONLY ? 'Tap a tile to move to.' : 'Select a tile to move to.';
       this.el.menu.innerHTML = `<div class="menu-title">Move</div><button data-a="cancel">Cancel</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode('menu');
@@ -372,6 +375,7 @@ class BattleUI {
       const ab = t.ability;
       t.targets = this.battle.targetTilesFor(u, ab);
       for (const tile of t.targets) this.r.hl.target.add(`${tile.x},${tile.y}`);
+      this.r.frameTiles(t.targets);
       hint.textContent = `${ab.name}: ${TOUCH_ONLY ? 'tap' : 'select'} a target tile.`;
       this.el.menu.innerHTML = `<div class="menu-title">${ab.name}</div><button data-a="cancel">Cancel</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode(ab === ABILITIES.attack ? 'act' : 'abilities');
