@@ -100,13 +100,22 @@ class Renderer {
     }
     const view = this.viewCentre(), z = this.zoom || 1;
     const halfW = view.w / (2 * z), halfH = view.h / (2 * z);
-    // Only move if some of the set is outside the free area; then centre it.
-    const outside = minX < view.cx - halfW || maxX > view.cx + halfW ||
-                    minY < view.cy - halfH || maxY > view.cy + halfH;
-    if (!outside) return Promise.resolve();
+    const left = view.cx - halfW, right = view.cx + halfW;
+    const top = view.cy - halfH, bottom = view.cy + halfH;
+    // Nudge by the least that brings the set inside, rather than centring on
+    // it: yanking the board across the screen every time a menu opens is more
+    // disorienting than the scroll it saves. A set too big to fit is centred.
+    let dx = 0, dy = 0;
+    if (maxX - minX > right - left) dx = view.cx - (minX + maxX) / 2;
+    else if (minX < left) dx = left - minX;
+    else if (maxX > right) dx = right - maxX;
+    if (maxY - minY > bottom - top) dy = view.cy - (minY + maxY) / 2;
+    else if (minY < top) dy = top - minY;
+    else if (maxY > bottom) dy = bottom - maxY;
+    if (!dx && !dy) return Promise.resolve();
     const fx = this.cam.x, fy = this.cam.y;
-    const tx = this.cam.x + (view.cx - (minX + maxX) / 2);
-    const ty = this.cam.y + (view.cy - (minY + maxY) / 2);
+    const tx = this.cam.x + dx;
+    const ty = this.cam.y + dy;
     return tween(ms, k => {
       this.cam.x = lerp(fx, tx, k);
       this.cam.y = lerp(fy, ty, k);
