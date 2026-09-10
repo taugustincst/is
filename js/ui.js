@@ -231,6 +231,7 @@ class BattleUI {
       <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
       <div class="roster-list">${d.roster.map((u, i) => `
         <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}">
+          <canvas class="row-portrait" data-portrait="${i}"></canvas>
           <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
           <span class="job">Lv${u.level} ${u.jobData.name}</span>
           <span class="mark">${u.x >= 0 ? '●' : '○'}</span>
@@ -245,6 +246,8 @@ class BattleUI {
         <button data-a="go" class="primary">Begin Battle</button>
       </div>`;
     this.placeHint();
+    // Whoever you are about to send in, wearing what you gave them.
+    this.el.roster.querySelectorAll('canvas[data-portrait]').forEach(cv => paintUnitSprite(cv, d.roster[+cv.dataset.portrait], 1));
     this.el.roster.querySelectorAll('.roster-row').forEach(r => r.onclick = () => {
       d.sel = d.roster[+r.dataset.i];
       if (d.sel.x >= 0) this.r.focus(d.sel);

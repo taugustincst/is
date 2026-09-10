@@ -252,6 +252,62 @@ const mk = (n, job, lvl, opts = {}) => {
     } catch (e) { threw = e.message; ok('a save from another build heals rather than crashing', false, threw); }
   }
 
+  // 23. The sprite art is data, and data drifts. A template that loses a row,
+  //     a job that names a template nobody drew, or a glyph that hangs off the
+  //     grid all render as silent damage rather than an error, so check them.
+  {
+    const fs = require('fs'), path = require('path'), vm = require('vm');
+    const { ROOT } = require('./load');
+    const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) } };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/sprites.js'), 'utf8'), ctx);
+    const get = (n) => vm.runInContext(n, ctx);
+    const T = get('SPRITE_TEMPLATES'), W = get('SPRITE_W'), H = get('SPRITE_H');
+    const GW = get('GRID_W'), GH = get('GRID_H'), OX = get('BODY_OX'), OY = get('BODY_OY');
+
+    const shapes = [];
+    for (const [name, tpl] of Object.entries(T)) {
+      for (const view of ['front', 'back']) shapes.push([`${name}.${view}`, tpl[view]]);
+    }
+    const badSize = shapes.filter(([, rows]) => rows.length !== H || rows.some(r => r.length !== W));
+    ok('every sprite template is the declared size', badSize.length === 0,
+       badSize.length ? badSize.map(b => b[0]).join(',') : `${shapes.length} at ${W}x${H}`);
+
+    const missing = Object.values(g.JOBS).filter(j => !T[j.sprite]).map(j => j.name);
+    ok('every job names a template that exists', missing.length === 0, missing.join(',') || `${Object.keys(g.JOBS).length} jobs`);
+
+    // The body is stamped at an offset; it must still land inside the grid.
+    ok('the body fits the composite grid', OX + W <= GW && OY + H <= GH, `${OX}+${W}<=${GW}, ${OY}+${H}<=${GH}`);
+
+    const glyphs = [];
+    for (const [k, v] of Object.entries(get('WEAPONS'))) glyphs.push(['weapon ' + k, v]);
+    for (const [k, v] of Object.entries(get('SHIELDS'))) glyphs.push(['shield ' + k, v]);
+    for (const [k, v] of Object.entries(get('ARMOUR'))) glyphs.push(['armour ' + k, v]);
+    for (const n of ['HELM', 'PLUME', 'CAP', 'FEATHER', 'POINTED_HAT', 'RIBBON']) glyphs.push([n, get(n)]);
+    for (const gl of get('FIST_WRAPS')) glyphs.push(['fist wrap', gl]);
+    const off = glyphs.filter(([, gl]) =>
+      gl.x < 0 || gl.y < 0 || gl.y + gl.rows.length > GH || gl.x + Math.max(...gl.rows.map(r => r.length)) > GW);
+    ok('every equipment glyph fits the grid', off.length === 0, off.map(o => o[0]).join(',') || `${glyphs.length} glyphs`);
+
+    // Anything a player can equip must have somewhere to be drawn.
+    const weapons = get('WEAPONS');
+    const noGlyph = Object.values(g.ITEMS).filter(i => i.slot === 'weapon' && !weapons[i.wtype] && i.wtype !== 'fist');
+    ok('every weapon type has a glyph', noGlyph.length === 0, noGlyph.map(i => i.name).join(',') || 'all drawn');
+    const looks = ['helm', 'cap', 'feather', 'wizard', 'ribbon'];
+    const badLook = Object.values(g.ITEMS).filter(i => i.slot === 'head' && i.look && !looks.includes(i.look));
+    ok('every head item declares a look the renderer knows', badLook.length === 0, badLook.map(i => i.name).join(',') || 'all known');
+    const armour = get('ARMOUR');
+    const badArmour = Object.values(g.ITEMS).filter(i => i.slot === 'body' && i.atype !== 'cloth' && !armour[i.atype]);
+    ok('every armour type has a glyph', badArmour.length === 0, badArmour.map(i => i.name).join(',') || 'all drawn');
+
+    // Palette keys must resolve, or a pixel renders magenta.
+    const pal = get('resolvePalette')(g.JOBS.knight.palette, 'player', 'human');
+    const keys = new Set();
+    for (const [, rows] of shapes) for (const r of rows) for (const ch of r) if (ch !== '.') keys.add(ch);
+    const unresolved = [...keys].filter(k => !pal[k]);
+    ok('every body palette key resolves to a colour', unresolved.length === 0, unresolved.join(',') || [...keys].sort().join(''));
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

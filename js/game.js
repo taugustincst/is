@@ -291,10 +291,12 @@ class Game {
     $('form-list').innerHTML = s.party.map((u, i) => `
       <div class="form-row ${i === this.formSel ? 'sel' : ''} ${i >= 5 ? 'reserve' : ''}" data-i="${i}">
         <span class="slot">${i < 5 ? i + 1 : 'R'}</span>
+        <canvas class="row-portrait" data-portrait="${i}"></canvas>
         <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
         <span class="job">Lv${u.level} ${u.jobData.name}</span>
         <span class="btns"><button data-up="${i}" ${i === 0 ? 'disabled' : ''}>▲</button><button data-down="${i}" ${i === s.party.length - 1 ? 'disabled' : ''}>▼</button></span>
       </div>`).join('');
+    $('form-list').querySelectorAll('canvas[data-portrait]').forEach(cv => paintUnitSprite(cv, s.party[+cv.dataset.portrait], 1));
     $('form-list').querySelectorAll('.form-row').forEach(r => r.onclick = (e) => { if (e.target.tagName !== 'BUTTON') this.openFormation(+r.dataset.i); });
     $('form-list').querySelectorAll('button').forEach(b => b.onclick = () => {
       const i = b.dataset.up !== undefined ? +b.dataset.up : +b.dataset.down;
@@ -336,7 +338,10 @@ class Game {
       </div>`;
     }).join('');
     $('form-detail').innerHTML = `
-      <div class="detail-head"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP</span></div>
+      <div class="detail-head">
+        <canvas id="form-portrait" class="portrait"></canvas>
+        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP</span></div>
+      </div>
       <div class="detail-grid">
         <label>Job <select id="sel-job">${jobOpts}</select></label>
         <label>Secondary <select id="sel-sec">${secOpts}</select></label>
@@ -356,6 +361,7 @@ class Game {
       <h3>${u.jobData.skillset} <small>${jp} JP available · ${u.jobData.name} Lv${u.jobLevel(u.job)}</small></h3>
       <div class="ab-list">${abilities}</div>
       ${passiveLearn ? `<h3>${u.jobData.name} Passives</h3><div class="ab-list">${passiveLearn}</div>` : ''}`;
+    paintUnitSprite($('form-portrait'), u, 3);
     $('sel-job').onchange = (e) => {
       u.job = e.target.value;
       if (u.secondary === u.job) u.secondary = null;
