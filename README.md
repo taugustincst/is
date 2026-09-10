@@ -13,6 +13,11 @@ a browser, or serve the folder with any static file server.
 
 - **Isometric height maps** drawn on canvas with pixel-art units, camera pan,
   zoom, and animated moves, leaps and spell bursts.
+- **Units wear what you give them.** Weapons, shields, helms, hats and armour
+  are drawn on the sprite from the unit's actual equipment. Material shows its
+  age through colour — iron, steel, mythril, gold — and elemental gear takes
+  its element's tint, so a party's progress is legible across the field. The
+  same sprite appears in Formation beside the dropdowns that dress it.
 - **Charge Time turns.** Every unit gains CT equal to its Speed each tick and
   acts at 100. The turn order panel forecasts who is next, including spells
   still charging and fallen units counting down.
@@ -120,7 +125,7 @@ index.html        screens and markup
 css/style.css     styling, including the small-screen layout
 js/audio.js       WebAudio synthesis: effects and the music sequencer
 js/data.js        jobs, abilities, passives, items, statuses, maps, campaign
-js/sprites.js     pixel sprite templates and palette rendering
+js/sprites.js     sprite compositing: body templates, equipment glyphs, lighting
 js/unit.js        unit model, stats, equipment, leveling, JP
 js/map.js         grid, pathfinding, range and area queries
 js/battle.js      charge time loop, actions, damage, statuses, objectives, AI

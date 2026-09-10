@@ -7,13 +7,13 @@ code the browser runs.
 | command | what it does |
 | --- | --- |
 | `node tools/validate.js` | Content consistency: map shapes, walkable ground, every enemy reachable from the deployment zone, abilities and items that jobs actually refer to, starter kit that cannot be sold. |
-| `node tools/regress.js` | Replays each engine defect an adversarial review once found, so a change that brings one back fails here. |
+| `node tools/regress.js` | Replays each engine defect an adversarial review once found, so a change that brings one back fails here. Also checks the sprite art as data: template sizes, glyphs that fit the grid, and every weapon, hat and armour type having a shape to draw. |
 | `node tools/soak.js [battles] [seed]` | Plays randomised battles across every map, job, monster, passive and objective, checking the invariants that must hold whatever happened. Deterministic from its seed. |
 | `node tools/test-elements.js` | Elemental affinities: weakness, resistance, absorption, immunity, prediction and AI awareness. |
 | `node tools/test-statuses.js` | Silence, Blind and Berserk, the gear that wards them off and the abilities that lift them. |
 | `node tools/test-boss.js` | The final battle's second shape and the difficulty it produces. |
 | `node tools/simulate.js [runs] [training] [retries]` | Plays whole campaigns with the AI on both sides, retrying a lost chapter as a player would, and reports the difficulty curve. |
-| `node tools/make-icons.js` | Redraws every app icon, web and Android, from the game's own sprites. |
+| `node tools/make-icons.js` | Redraws every app icon, web and Android, from the game's own sprites. Shares the game's palette resolution, so icons carry the same shading. |
 | `node tools/bundle.js [--body]` | Packs the stylesheet, all nine scripts and the icons into one self-contained page in `dist/`. The plain form is a complete HTML file that plays off a filesystem; `--body` omits the document shell for a host that supplies its own. |
 
 Run them all before shipping a change:
