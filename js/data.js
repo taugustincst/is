@@ -71,7 +71,7 @@ const JOBS = {
     req: {}, desc: 'Field medic who uses items. The root of the mage path.',
   },
   knight: {
-    name: 'Knight', skillset: 'Arts of War', kind: 'human', sprite: 'warrior',
+    name: 'Knight', skillset: 'Arts of War', kind: 'human', sprite: 'heavy',
     palette: { h: '#c9a24a', c: '#8892a8', p: '#3a4256', b: '#2a2a3a' },
     hp: 1.25, mp: 0.8, pa: 1.2, ma: 0.8, spd: 0.95, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Broadsword', power: 6, range: 1, vert: 2 },
@@ -79,7 +79,7 @@ const JOBS = {
     req: { squire: 2 }, desc: 'Heavy armor and a heavy blade. Cripples foes with Breaks.',
   },
   archer: {
-    name: 'Archer', skillset: 'Aim', kind: 'human', sprite: 'warrior',
+    name: 'Archer', skillset: 'Aim', kind: 'human', sprite: 'rogue',
     palette: { h: '#7a4a2a', c: '#4f7a3f', p: '#5a4a30', b: '#3a2a1a' },
     hp: 0.95, mp: 0.9, pa: 1.1, ma: 0.9, spd: 1.05, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Longbow', power: 4, range: 4, vert: 5 },
@@ -87,7 +87,7 @@ const JOBS = {
     req: { squire: 2 }, desc: 'Strikes from afar. Charged Aim shots trade time for power.',
   },
   monk: {
-    name: 'Monk', skillset: 'Martial Arts', kind: 'human', sprite: 'warrior',
+    name: 'Monk', skillset: 'Martial Arts', kind: 'human', sprite: 'monk',
     palette: { h: '#1a1a1a', c: '#d07a3a', p: '#e8d8b0', b: '#8a6a4a' },
     hp: 1.2, mp: 0.7, pa: 1.3, ma: 0.85, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Bare Hands', power: 6, range: 1, vert: 3 },
@@ -95,7 +95,7 @@ const JOBS = {
     req: { knight: 2 }, desc: 'Fights unarmed with tremendous power and chi techniques.',
   },
   thief: {
-    name: 'Thief', skillset: 'Steal', kind: 'human', sprite: 'warrior',
+    name: 'Thief', skillset: 'Steal', kind: 'human', sprite: 'rogue',
     palette: { h: '#d0b060', c: '#5a3a6a', p: '#2a1a3a', b: '#1a1a1a' },
     hp: 0.9, mp: 0.8, pa: 1.0, ma: 0.8, spd: 1.25, move: 5, jump: 4, evade: 18,
     weapon: { name: 'Dagger', power: 4, range: 1, vert: 2 },
@@ -127,7 +127,7 @@ const JOBS = {
     req: { whiteMage: 2 }, desc: 'Bends the flow of Charge Time itself.',
   },
   ninja: {
-    name: 'Ninja', skillset: 'Throw', kind: 'human', sprite: 'warrior',
+    name: 'Ninja', skillset: 'Throw', kind: 'human', sprite: 'rogue',
     palette: { h: '#1a1a1a', c: '#2a2a3a', p: '#1a1a2a', b: '#101018' },
     hp: 0.9, mp: 0.8, pa: 1.15, ma: 0.9, spd: 1.35, move: 5, jump: 5, evade: 22,
     weapon: { name: 'Twin Blades', power: 4, range: 1, vert: 2 },
@@ -135,7 +135,7 @@ const JOBS = {
     req: { thief: 3 }, desc: 'Strikes twice with each Attack and hurls thrown weapons.',
   },
   dragoon: {
-    name: 'Dragoon', skillset: 'Jump', kind: 'human', sprite: 'warrior',
+    name: 'Dragoon', skillset: 'Jump', kind: 'human', sprite: 'heavy',
     palette: { h: '#3a2a5a', c: '#3a5a9a', p: '#2a3a5a', b: '#1a1a2a' },
     hp: 1.2, mp: 0.8, pa: 1.25, ma: 0.8, spd: 1.0, move: 3, jump: 5, evade: 8,
     weapon: { name: 'Spear', power: 6, range: 2, vert: 3 },
@@ -196,7 +196,7 @@ const JOBS = {
     desc: 'Old, slow and immensely strong. It does not like being disturbed.',
   },
   darkKnightRisen: {
-    name: 'The Unbound', skillset: 'Black Tide', kind: 'human', sprite: 'warrior',
+    name: 'The Unbound', skillset: 'Black Tide', kind: 'human', sprite: 'heavy',
     palette: { h: '#e04040', c: '#1a0a1a', p: '#100010', b: '#000000' },
     affinity: { dark: 'absorb', holy: 'weak', fire: 'resist', ice: 'resist' },
     hp: 2.6, mp: 1.8, pa: 1.7, ma: 1.7, spd: 1.25, move: 4, jump: 4, evade: 18,
@@ -205,7 +205,7 @@ const JOBS = {
     desc: 'Whatever bargain he made, this is what came to collect.',
   },
   darkKnight: {
-    name: 'Dark Knight', skillset: 'Fell Sword', kind: 'human', sprite: 'warrior',
+    name: 'Dark Knight', skillset: 'Fell Sword', kind: 'human', sprite: 'heavy',
     palette: { h: '#c0c0d0', c: '#2a1a2a', p: '#1a0a1a', b: '#0a0a0a' },
     affinity: { dark: 'absorb', holy: 'weak' },
     hp: 1.8, mp: 1.2, pa: 1.5, ma: 1.3, spd: 1.1, move: 4, jump: 4, evade: 15,
@@ -869,13 +869,13 @@ const ITEMS = {
   aegisShield: { name: 'Aegis Shield', slot: 'offhand', otype: 'shield', evade: 26, hp: 25, price: 1800, tier: 5 },
 
   // ---- head ----
-  leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', hp: 10, price: 150, tier: 1 },
-  featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', hp: 12, spd: 1, price: 500, tier: 2 },
-  wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', mp: 20, ma: 1, price: 550, tier: 2 },
-  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', hp: 20, mp: 20, ma: 2, spd: 1,
+  leatherCap:  { name: 'Leather Cap', slot: 'head', htype: 'hat', look: 'cap', hp: 10, price: 150, tier: 1 },
+  featherHat:  { name: 'Feather Hat', slot: 'head', htype: 'hat', look: 'feather', hp: 12, spd: 1, price: 500, tier: 2 },
+  wizardHat:   { name: 'Wizard Hat', slot: 'head', htype: 'hat', look: 'wizard', mp: 20, ma: 1, price: 550, tier: 2 },
+  ribbon:      { name: 'Ribbon', slot: 'head', htype: 'hat', look: 'ribbon', hp: 20, mp: 20, ma: 2, spd: 1,
                  wards: ['silence', 'blind', 'berserk', 'poison'], price: 2400, tier: 6 },
-  ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', hp: 20, price: 450, tier: 1 },
-  goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
+  ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 20, price: 450, tier: 1 },
+  goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
 
   // ---- body ----
   clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },

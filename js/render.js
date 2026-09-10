@@ -360,7 +360,7 @@ class Renderer {
     const job = u.jobData;
     const view = (u.facing === 'N' || u.facing === 'W') ? 'back' : 'front';
     const flip = (u.facing === 'S' || u.facing === 'W');
-    const spr = getSprite(job, u.team, view, flip);
+    const spr = getSprite(job, u.team, view, flip, spriteGear(u));
     // Shadow
     c.fillStyle = 'rgba(0,0,0,0.35)';
     const groundY = u.airborne ? this.toScreen(u.x, u.y, this.battle.grid.height(u.x, u.y)).sy : sy;
@@ -373,7 +373,7 @@ class Renderer {
     }
     if (!u.alive) {
       c.save(); c.globalAlpha = 0.6; c.translate(sx, sy + 8); c.scale(1, 0.35); c.filter = 'grayscale(1)';
-      c.drawImage(spr, -13, -38); c.restore();
+      c.drawImage(spr, SPRITE_DX, SPRITE_DY - 8); c.restore();
       if (u.koCount > 0) {
         c.font = 'bold 15px monospace'; c.textAlign = 'center';
         c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.85)';
@@ -382,7 +382,7 @@ class Renderer {
       }
       return;
     }
-    c.drawImage(spr, sx - 13, sy + 8 - 38);
+    c.drawImage(spr, sx + SPRITE_DX, sy + SPRITE_DY);
     // HP bar
     const w = 24, hpk = u.hp / u.maxHp;
     c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(sx - w / 2 - 1, sy - 36, w + 2, 4);

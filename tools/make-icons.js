@@ -16,6 +16,8 @@ const spriteCtx = { document: { createElement: () => ({ getContext: () => ({ fil
 vm.createContext(spriteCtx);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/sprites.js'), 'utf8'), spriteCtx);
 const TEMPLATES = vm.runInContext('SPRITE_TEMPLATES', spriteCtx);
+// The same palette resolution the game uses, so the icon carries the shading.
+const resolvePalette = vm.runInContext('resolvePalette', spriteCtx);
 
 // ---------------------------------------------------------------- PNG writer
 const CRC = (() => {
@@ -104,7 +106,7 @@ function tile(s, cx, cy, w, wallH, top, left, right) {
 
 function drawSprite(s, name, palette, ox, oy, scale) {
   const rows = TEMPLATES[name].front;
-  const pal = Object.assign({ s: '#f0c8a0', e: '#101010', w: '#f8f8f8', k: '#101010', d: '#3b7bd8' }, palette);
+  const pal = resolvePalette(palette, 'player', 'human');
   // Outline first, so the figure reads against the tile.
   const filled = (x, y) => y >= 0 && y < rows.length && x >= 0 && x < rows[0].length && rows[y][x] !== '.';
   for (let y = -1; y <= rows.length; y++) for (let x = -1; x <= rows[0].length; x++) {
