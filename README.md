@@ -13,6 +13,14 @@ a browser, or serve the folder with any static file server.
 
 - **Isometric height maps** drawn on canvas with pixel-art units, camera pan,
   zoom, and animated moves, leaps and spell bursts.
+- **Every blow has a shape.** A sword sweeps an arc, a spear drives a thrust,
+  an axe falls, a bow puts an arrow in the air that takes time to arrive.
+  Elements answer differently where they land: fire climbs, ice spikes and
+  shatters, thunder falls, earth erupts, holy rises, dark contracts. A landed
+  hit flashes its target, shoves them back and shakes the view by how hard it
+  was, and a charging spell rings both its caster and the ground it is aimed
+  at, so you can see what is coming and move. All of it stands down for
+  anyone whose system asks for reduced motion.
 - **Units wear what you give them.** Weapons, shields, helms, hats and armour
   are drawn on the sprite from the unit's actual equipment. Material shows its
   age through colour — iron, steel, mythril, gold — and elemental gear takes
@@ -126,6 +134,7 @@ css/style.css     styling, including the small-screen layout
 js/audio.js       WebAudio synthesis: effects and the music sequencer
 js/data.js        jobs, abilities, passives, items, statuses, maps, campaign
 js/sprites.js     sprite compositing: body templates, equipment glyphs, lighting
+js/fx.js          battle effects: weapon swings, projectiles, elemental impacts
 js/unit.js        unit model, stats, equipment, leveling, JP
 js/map.js         grid, pathfinding, range and area queries
 js/battle.js      charge time loop, actions, damage, statuses, objectives, AI

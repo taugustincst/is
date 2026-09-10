@@ -308,6 +308,65 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('every body palette key resolves to a colour', unresolved.length === 0, unresolved.join(',') || [...keys].sort().join(''));
   }
 
+  // 24. The battle effects are a lookup table over ability data, so the ways
+  //     they break are all silent: an element with no effect, a weapon with no
+  //     swing, a name that no longer resolves to a draw function. Check that
+  //     every path through the tables lands somewhere real.
+  {
+    const fs = require('fs'), path = require('path'), vm = require('vm');
+    const { ROOT } = require('./load');
+    const ctx = { window: {}, Math, JSON };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/fx.js'), 'utf8'), ctx);
+    const get = (n) => vm.runInContext(n, ctx);
+    const DRAW = get('FX_DRAW'), WFX = get('WEAPON_FX'), EFX = get('ELEMENT_FX');
+    const abilityFx = get('abilityFx'), weaponFx = get('weaponFx'), throwShape = get('throwShape');
+
+    const missingEl = Object.keys(g.ELEMENTS).filter(e => !EFX[e]);
+    ok('every element has an effect of its own', missingEl.length === 0, missingEl.join(',') || Object.keys(EFX).join(','));
+
+    // Distinct elements must not collapse onto one look.
+    const kinds = new Set(Object.values(EFX).map(f => f.kind));
+    ok('the elements do not share a look', kinds.size === Object.keys(EFX).length, `${kinds.size} looks for ${Object.keys(EFX).length} elements`);
+
+    const specs = Object.values(EFX).concat([get('NEUTRAL_MAGIC'), get('HEAL_FX'), get('BUFF_FX')]);
+    const noDraw = specs.filter(f => !DRAW[f.kind]).map(f => f.kind);
+    ok('every effect names a draw function that exists', noDraw.length === 0, noDraw.join(',') || `${specs.length} effects`);
+
+    const noSwing = Object.entries(WFX).filter(([, w]) => w.swing && !DRAW[w.swing]).map(([k]) => k);
+    ok('every weapon swing names a draw function that exists', noSwing.length === 0, noSwing.join(',') || `${Object.keys(WFX).length} weapons`);
+
+    // A weapon a player can buy must have a way to be swung.
+    const wtypes = [...new Set(Object.values(g.ITEMS).filter(i => i.slot === 'weapon').map(i => i.wtype))];
+    const unarmed = wtypes.filter(t => !WFX[t]);
+    ok('every weapon type has an attack animation', unarmed.length === 0, unarmed.join(',') || wtypes.join(','));
+
+    // Elemental abilities must animate as their element, and every ability
+    // must resolve to something -- a physical blow legitimately returns null,
+    // because the weapon carries it.
+    const wrongEl = Object.values(g.ABILITIES)
+      .filter(a => a.element && abilityFx(a) !== EFX[a.element]).map(a => a.name);
+    ok('an elemental ability animates as its element', wrongEl.length === 0, wrongEl.join(',') || 'all elements match');
+
+    // Healing read as generic magic once, which made Cure look like a curse.
+    const heals = Object.values(g.ABILITIES).filter(a =>
+      !a.element && (a.effects || []).some(e => e.type === 'heal' || e.type === 'revive'));
+    const wrongHeal = heals.filter(a => abilityFx(a) !== get('HEAL_FX')).map(a => a.name);
+    ok('a spell that mends does not animate as a curse', wrongHeal.length === 0,
+       wrongHeal.join(',') || `${heals.length} healing abilities`);
+
+    const bare = { weapon: { wtype: 'fist', range: 1 } };
+    ok('a job with no weapon still swings something', !!weaponFx(bare, g.ABILITIES.attack), 'fist');
+    const shapes = ['orb', 'star', 'arrow', 'rock'];
+    const badShape = [['fist'], ['bow'], ['knife'], ['sword'], ['ninjablade']]
+      .map(([t]) => throwShape({ weapon: { wtype: t } }, g.ABILITIES.throwStone))
+      .filter(sh => !shapes.includes(sh));
+    ok('everything thrown has a shape the renderer draws', badShape.length === 0, badShape.join(',') || shapes.join(','));
+    // A spear reaches two tiles, which once made it throw a rock.
+    ok('a spear thrusts rather than throws', g.ABILITIES.attack.range === 'weapon',
+       `attack range=${g.ABILITIES.attack.range}`);
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
