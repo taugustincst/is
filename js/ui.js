@@ -49,6 +49,8 @@ class BattleUI {
         audio.sfx(ab.kind === 'magic' ? 'magic' : ab.kind === 'support' || ab.kind === 'item' ? 'heal' : 'hit');
         return this.r.animateAction(u, ab, x, y);
       },
+      onImpact: (t, ab, v) => this.r.onImpact(t, ab, v),
+      onEvade: (t) => this.r.onEvade(t),
       onJump: (u) => this.r.onJump(u),
       onLand: (u, x, y) => this.r.onLand(u, x, y),
       onDeath: (u) => this.r.onDeath(u),

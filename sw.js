@@ -20,6 +20,7 @@ const ASSETS = [
   'js/unit.js',
   'js/map.js',
   'js/battle.js',
+  'js/fx.js',
   'js/render.js',
   'js/ui.js',
   'js/game.js',

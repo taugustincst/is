@@ -74,7 +74,7 @@ class Battle {
     this.grid = new Grid(mapDef);
     this.mapDef = mapDef;
     this.units = [...playerUnits, ...enemyUnits];
-    this.hooks = hooks; // { log, animateMove, animateAction, showDamage, awaitPlayerTurn, onStateChange, onTurnStart }
+    this.hooks = hooks; // { log, animateMove, animateAction, onImpact, onEvade, showFloat, awaitPlayerTurn, onStateChange, onTurnStart }
     this.pending = []; // charged actions {unit, ability, tx, ty, ct, speed}
     this.tick = 0;
     this.turnNo = 0;
@@ -308,12 +308,14 @@ class Battle {
         const hit = this.hitChance(user, ab, t);
         if (roll >= hit) {
           this.log(`${t.name} evades ${user.name}'s ${ab.name}!`, 'miss');
+          if (this.hooks.onEvade) this.hooks.onEvade(t);
           if (this.hooks.showFloat) this.hooks.showFloat(t, 'Miss', '#ddd');
           continue;
         }
         // Parry turns a physical blow aside outright.
         if (ab.kind === 'physical' && t.team !== user.team && t.hasPassive('parry') && Math.random() < 0.35) {
           this.log(`${t.name} parries ${user.name}'s ${ab.name}!`, 'miss');
+          if (this.hooks.onEvade) this.hooks.onEvade(t);
           if (this.hooks.showFloat) this.hooks.showFloat(t, 'Parry', '#9fd6ff');
           continue;
         }
@@ -376,6 +378,7 @@ class Battle {
         }
         t.hp = Math.max(0, t.hp - v);
         const aff = affinityOf(t, ab.element);
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v);
         if (this.checkPhase(t)) {
           this.log(`${user.name}'s ${ab.name} deals ${v} damage.`, 'dmg');
           if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, '#ff6a5a');
@@ -398,6 +401,7 @@ class Battle {
         t.hp -= v; user.hp = Math.min(user.maxHp, user.hp + v);
         if (this.checkPhase(t)) return true;
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v);
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
         if (t.hp === 0) this.onUnitKO(t);
         else { t._tookHit = true; this.onDamaged(user, ab, t, v); }

@@ -34,13 +34,18 @@ class Renderer {
     this.hl = { move: new Set(), target: new Set(), area: new Set(), cursor: null };
     this.floats = [];
     this.bursts = [];
+    this.fx = [];
+    this.shake = null;
+    // How many camera moves are in flight. A tile's screen position is only
+    // stable at zero, which matters to anything translating a tap.
+    this.camAnim = 0;
     this.running = false;
     this.time = 0;
   }
 
   setBattle(b) {
     this.battle = b;
-    this.floats = []; this.bursts = [];
+    this.floats = []; this.bursts = []; this.fx = []; this.shake = null;
     this.clearHighlights();
     this.centerCamera();
   }
@@ -116,10 +121,11 @@ class Renderer {
     const fx = this.cam.x, fy = this.cam.y;
     const tx = this.cam.x + dx;
     const ty = this.cam.y + dy;
+    this.camAnim++;
     return tween(ms, k => {
       this.cam.x = lerp(fx, tx, k);
       this.cam.y = lerp(fy, ty, k);
-    }).then(() => this.clampCamera());
+    }).then(() => { this.clampCamera(); this.camAnim--; });
   }
 
   // Keep a point of interest on screen when the board is larger than the view.
@@ -184,7 +190,9 @@ class Renderer {
     const cur = this.toScreen(u.x, u.y, g.height(u.x, u.y));
     const dx = (cur.sx - view.cx) * z, dy = (cur.sy - view.cy) * z;
     if (Math.abs(dx) < view.w * 0.3 && Math.abs(dy) < view.h * 0.3) return;
-    await tween(ms, k => { this.cam.x = lerp(fx, tx, k); this.cam.y = lerp(fy, ty, k); });
+    this.camAnim++;
+    try { await tween(ms, k => { this.cam.x = lerp(fx, tx, k); this.cam.y = lerp(fy, ty, k); }); }
+    finally { this.camAnim--; }
   }
 
   // ---- picking -----------------------------------------------------------------
@@ -266,6 +274,15 @@ class Renderer {
     if (!this.battle) return;
     const z = this.zoom || 1;
     c.save();
+    // A blow that lands hard shoves the whole view, briefly.
+    if (this.shake) {
+      const k = (this.time - this.shake.t0) / this.shake.dur;
+      if (k >= 1) this.shake = null;
+      else {
+        const m = this.shake.mag * (1 - k);
+        c.translate(Math.sin(k * 46) * m, Math.cos(k * 39) * m * 0.6);
+      }
+    }
     c.translate(W / 2, H / 2); c.scale(z, z); c.translate(-W / 2, -H / 2);
     c.imageSmoothingEnabled = false;
     const g = this.battle.grid;
@@ -280,8 +297,20 @@ class Renderer {
       const p = u.anim || { x: u.x, y: u.y };
       items.push({ d: p.x + p.y + 0.5 + (u.alive ? 0 : -0.2), kind: 'unit', u });
     }
+    // Ground effects sit under the figures standing in them; everything else
+    // is the flourish and belongs on top of its own tile's depth.
+    this.fx = this.fx.filter(f => this.time - f.t0 < f.dur);
+    for (const f of this.fx) {
+      if (f.ground) items.push({ d: f.x + f.y - 0.5, kind: 'fx', f });
+      else items.push({ d: (f.d !== undefined ? f.d : f.x + f.y) + 0.9, kind: 'fx', f });
+    }
     items.sort((a, b) => a.d - b.d);
-    for (const it of items) it.kind === 'tile' ? this.drawTile(it.t) : this.drawUnit(it.u);
+    for (const it of items) {
+      if (it.kind === 'tile') this.drawTile(it.t);
+      else if (it.kind === 'unit') this.drawUnit(it.u);
+      else this.drawFx(it.f);
+    }
+    this.drawCharges();
     this.drawBursts();
     this.drawFloats();
     c.restore();
@@ -382,7 +411,29 @@ class Renderer {
       }
       return;
     }
-    c.drawImage(spr, sx + SPRITE_DX, sy + SPRITE_DY);
+    let rx = 0, ry = 0;
+    if (u.recoil) {
+      const k = (this.time - u.recoil.t0) / u.recoil.dur;
+      if (k >= 1) u.recoil = null;
+      else {
+        // Shoved back, then pulled home.
+        const push = Math.sin(k * Math.PI) * u.recoil.mag;
+        rx = Math.cos(u.recoil.a) * push; ry = Math.sin(u.recoil.a) * push * 0.6;
+      }
+    }
+    c.drawImage(spr, sx + SPRITE_DX + rx, sy + SPRITE_DY + ry);
+    // A struck figure flares white, so a blow reads even off-centre.
+    if (u.hitAt) {
+      const k = (this.time - u.hitAt) / 200;
+      if (k >= 1) u.hitAt = null;
+      else {
+        c.save();
+        c.globalAlpha = (1 - k) * 0.85;
+        c.globalCompositeOperation = 'lighter';
+        c.drawImage(spr, sx + SPRITE_DX + rx, sy + SPRITE_DY + ry);
+        c.restore();
+      }
+    }
     // HP bar
     const w = 24, hpk = u.hp / u.maxHp;
     c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(sx - w / 2 - 1, sy - 36, w + 2, 4);
@@ -404,14 +455,8 @@ class Renderer {
       const k = (now - b.t0) / b.dur;
       for (const t of b.tiles) {
         const { sx, sy } = this.toScreen(t.x, t.y, t.h);
-        c.save(); c.globalAlpha = (1 - k) * 0.8;
+        c.save(); c.globalAlpha = (1 - k) * 0.3;
         this.diamond(sx, sy); c.fillStyle = b.color; c.fill();
-        c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke();
-        // Rising sparks
-        for (let i = 0; i < 4; i++) {
-          const a = (i / 4) * Math.PI * 2 + k * 3;
-          c.fillStyle = '#fff'; c.fillRect(sx + Math.cos(a) * 14, sy - k * 40 + Math.sin(a) * 6, 3, 3);
-        }
         c.restore();
       }
     }
@@ -440,6 +485,93 @@ class Renderer {
 
   burst(tiles, color, dur = 500) { this.bursts.push({ tiles, color, dur, t0: performance.now() }); }
 
+  // ---- effects ----------------------------------------------------------------------------------
+  spawn(kind, opts) {
+    const f = Object.assign({ kind, t0: performance.now(), dur: 400 }, opts);
+    this.fx.push(f);
+    return f;
+  }
+
+  drawFx(f) {
+    const draw = FX_DRAW[f.kind];
+    if (!draw) return;
+    const k = Math.min(1, Math.max(0, (this.time - f.t0) / f.dur));
+    draw(this.ctx, this, f, k);
+  }
+
+  shakeScreen(mag, dur = 220) {
+    if (reducedMotion()) return;
+    // A bigger blow landing mid-shake replaces a smaller one rather than
+    // stacking, so a wide spell does not rattle the board apart.
+    if (this.shake && this.shake.mag > mag && this.time - this.shake.t0 < this.shake.dur * 0.5) return;
+    this.shake = { mag, dur, t0: this.time || performance.now() };
+  }
+
+  // Where an ability lands, in the element's own language.
+  landFx(ab, tiles) {
+    const spec = abilityFx(ab);
+    if (!spec) return 0;
+    const g = this.battle.grid;
+    for (const t of tiles) {
+      this.spawn(spec.kind, {
+        x: t.x, y: t.y, h: g.height(t.x, t.y),
+        dur: spec.dur, color: spec.color, second: spec.second,
+        ground: spec.kind === 'ring',
+      });
+    }
+    return spec.dur;
+  }
+
+  // The mark a landed blow leaves on whoever took it.
+  onImpact(t, ab, amount) {
+    if (!this.battle || t.x < 0) return;
+    const g = this.battle.grid;
+    const share = Math.min(1, amount / Math.max(1, t.maxHp));
+    t.hitAt = performance.now();
+    if (!reducedMotion()) {
+      const dir = t._fromAngle === undefined ? -0.6 : t._fromAngle;
+      t.recoil = { a: dir, t0: performance.now(), dur: 260, mag: 3 + share * 7 };
+      this.shakeScreen(2 + share * 9);
+    }
+    this.spawn('impact', {
+      x: t.x, y: t.y, h: g.height(t.x, t.y), dur: 260,
+      color: ab && ab.element ? ELEMENTS[ab.element].color : '#ffffff',
+      size: 12 + share * 22, angle: t._fromAngle || 0,
+    });
+  }
+
+  // A blow that was turned aside: the target slips out of the way.
+  onEvade(t) {
+    if (!this.battle || t.x < 0 || reducedMotion()) return;
+    t.recoil = { a: (t._fromAngle || 0) + Math.PI / 2, t0: performance.now(), dur: 240, mag: 6 };
+  }
+
+  /* A charging spell is public information: the caster glows and the ground it
+     is aimed at is ringed, so a player can see what is coming and move. */
+  drawCharges() {
+    const b = this.battle;
+    if (!b || !b.pending || !b.pending.length) return;
+    const c = this.ctx, g = b.grid;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time / 160);
+    for (const p of b.pending) {
+      const col = p.ability.element ? ELEMENTS[p.ability.element].color : '#c8b0ff';
+      if (p.unit.x >= 0) {
+        const { sx, sy } = this.unitScreenPos(p.unit);
+        c.strokeStyle = rgba(col, 0.35 + pulse * 0.5);
+        c.lineWidth = 2;
+        c.beginPath(); c.ellipse(sx, sy + 5, 15, 7, 0, 0, Math.PI * 2); c.stroke();
+      }
+      for (const t of g.areaTiles(p.tx, p.ty, p.ability.aoe)) {
+        const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+        c.strokeStyle = rgba(col, 0.25 + pulse * 0.35);
+        c.lineWidth = 2;
+        c.setLineDash([5, 4]);
+        this.diamond(sx, sy); c.stroke();
+        c.setLineDash([]);
+      }
+    }
+  }
+
   async animateMove(u, path) {
     const g = this.battle.grid;
     for (let i = 1; i < path.length; i++) {
@@ -453,23 +585,102 @@ class Renderer {
     u.anim = null;
   }
 
+  /* The shape of a blow, from wind-up to arrival.
+
+     A turn is a conversation, so this stays short: the whole sequence is
+     budgeted at roughly a third of a second for a sword and half for a spell,
+     and every wait is awaited so the engine prints damage only once the blow
+     has visibly landed. */
   async animateAction(u, ab, tx, ty) {
     const g = this.battle.grid;
     const tiles = g.areaTiles(tx, ty, ab.aoe);
-    const color = ab.kind === 'magic' ? (ab.element === 'fire' ? '#ff7a30' : ab.element === 'thunder' ? '#ffe040' : '#b080ff')
-      : ab.kind === 'physical' ? '#ffffff' : '#70ff90';
-    const melee = ab.kind === 'physical' && this.abilityRangeOf(u, ab) <= 1 && !ab.self;
-    if (melee && (tx !== u.x || ty !== u.y)) {
-      const h = g.height(u.x, u.y), dx = tx - u.x, dy = ty - u.y;
-      await tween(220, k => { const s = Math.sin(k * Math.PI) * 0.35; u.anim = { x: u.x + dx * s, y: u.y + dy * s, h, z: 0 }; });
+    const h = g.height(u.x, u.y);
+    const dx = tx - u.x, dy = ty - u.y;
+    // Screen-space direction of the blow: the board is isometric, so the
+    // angle a player sees is not the angle on the grid.
+    const from = this.toScreen(u.x, u.y, h), to = this.toScreen(tx, ty, g.height(tx, ty));
+    const angle = (dx || dy) ? Math.atan2(to.sy - from.sy, to.sx - from.sx) : -Math.PI / 2;
+    // Every target remembers where the blow came from, for its recoil.
+    for (const t of tiles) {
+      const hit = this.battle.unitAt ? this.battle.unitAt(t.x, t.y) : null;
+      if (hit) hit._fromAngle = angle;
+    }
+    for (const t of this.battle.units) if (t.x === tx && t.y === ty) t._fromAngle = angle;
+
+    const wfx = weaponFx(u, ab);
+    const dist = Math.abs(dx) + Math.abs(dy);
+    /* How the blow gets there. A weapon swung at its own reach swings — a
+       spear's two tiles are still a thrust, not a throw. Something that
+       reaches further by a means of its own is projected, unless what it
+       projects is an element, which arrives as the element. */
+    const usesWeaponReach = ab.range === 'weapon';
+    const shoots = !!(wfx && wfx.shot && usesWeaponReach);
+    const thrown = !usesWeaponReach && this.abilityRangeOf(u, ab) > 1 && !ab.element
+      && ab.kind !== 'magic' && ab.kind !== 'support';
+    const reduced = reducedMotion();
+
+    if (reduced) {
+      // No lunge, no travel: just say where it landed, briefly.
+      this.landFx(ab, tiles);
+      if (wfx) for (const t of tiles) this.spawn('impact', { x: t.x, y: t.y, h: g.height(t.x, t.y), dur: 180, color: wfx.color, size: 14, angle });
+      await sleep(140);
+      return;
+    }
+
+    if (shoots) {
+      // A bow is drawn, then the arrow has to get there.
+      await tween(wfx.wind, k => { u.anim = { x: u.x - dx * 0.12 * k / Math.max(1, dist), y: u.y - dy * 0.12 * k / Math.max(1, dist), h, z: 0 }; });
       u.anim = null;
-    } else if (ab.kind !== 'support' && ab.kind !== 'item') {
-      const h = g.height(u.x, u.y);
-      await tween(200, k => { u.anim = { x: u.x, y: u.y, h, z: Math.sin(k * Math.PI) * 6 }; });
+      await this.travel(u.x, u.y, h, tx, ty, g.height(tx, ty), wfx.shot, 26);
+    } else if (thrown) {
+      await tween(150, k => { u.anim = { x: u.x, y: u.y, h, z: Math.sin(k * Math.PI) * 5 }; });
+      u.anim = null;
+      await this.travel(u.x, u.y, h, tx, ty, g.height(tx, ty), throwShape(u, ab), 34);
+    } else if (wfx) {
+      // A weapon blow. Within a weapon's reach the attacker leans into it and
+      // the swing is drawn over whoever it lands on; beyond that it is a
+      // flourish at the attacker and the ability carries the rest.
+      const near = dist > 0 && dist <= 2;
+      const lunge = near ? wfx.reach / dist : 0;
+      await tween(wfx.wind, k => {
+        const sw = Math.sin(k * Math.PI) * lunge;
+        u.anim = { x: u.x + dx * sw, y: u.y + dy * sw, h, z: lunge ? 0 : Math.sin(k * Math.PI) * 6 };
+      });
+      u.anim = null;
+      const where = near ? tiles : [g.tile(u.x, u.y)];
+      for (let i = 0; i < wfx.hits; i++) {
+        for (const t of where) {
+          if (!t) continue;
+          this.spawn(wfx.swing, { x: t.x, y: t.y, h: g.height(t.x, t.y), dur: 240, color: wfx.color, angle });
+        }
+        if (i < wfx.hits - 1) await sleep(90);
+      }
+    } else if (ab.kind === 'magic') {
+      // A spell: the caster gathers it before it arrives.
+      const col = ab.element ? ELEMENTS[ab.element].color : '#c8b0ff';
+      const cast = this.spawn('ring', { x: u.x, y: u.y, h, dur: 260, color: col, ground: true });
+      await tween(240, k => { u.anim = { x: u.x, y: u.y, h, z: Math.sin(k * Math.PI) * 8 }; });
+      u.anim = null;
+      cast.dur = 1;   // the gather is done; let the arrival own the screen
+    } else {
+      await tween(180, k => { u.anim = { x: u.x, y: u.y, h, z: Math.sin(k * Math.PI) * 6 }; });
       u.anim = null;
     }
-    this.burst(tiles, color);
-    await sleep(260);
+
+    const landed = this.landFx(ab, tiles);
+    // The tile highlight still reads the area at a glance; keep it, quietly.
+    this.burst(tiles, ab.kind === 'magic' ? (ab.element ? ELEMENTS[ab.element].color : '#b080ff')
+      : ab.kind === 'physical' ? '#ffffff' : '#70ff90', 320);
+    await sleep(Math.max(120, Math.min(landed || 0, 300)));
+  }
+
+  /* Send something across the board and wait for it to arrive. Returns once
+     the projectile is on the target, so damage lands with the hit. */
+  travel(x0, y0, h0, x1, y1, h1, shape, arc) {
+    const dist = Math.abs(x1 - x0) + Math.abs(y1 - y0);
+    const dur = Math.min(420, 120 + dist * 45);
+    const f = this.spawn('shot', { x0, y0, h0, x: x1, y: y1, h: h1, shape, arc, dur, d: Math.max(x0 + y0, x1 + y1) });
+    return sleep(dur).then(() => { f.dur = 1; });
   }
 
   abilityRangeOf(u, ab) { return ab.range === 'weapon' ? u.weapon.range : ab.range; }
