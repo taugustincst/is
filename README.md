@@ -13,6 +13,12 @@ a browser, or serve the folder with any static file server.
 
 - **Isometric height maps** drawn on canvas with pixel-art units, camera pan,
   zoom, and animated moves, leaps and spell bursts.
+- **Every blow has a voice.** Nine weapon swings and five impacts, so a knife
+  is heard as a knife and an axe as an axe, and six elements that sound as
+  different as they look. A bowstring twangs, an arrow thuds, a thrown stone
+  lands as a stone whatever the thrower is holding, and a spell is heard being
+  gathered before it arrives. Twenty-eight sounds, all synthesised at runtime,
+  none downloaded.
 - **Every blow has a shape.** A sword sweeps an arc, a spear drives a thrust,
   an axe falls, a bow puts an arrow in the air that takes time to arrive.
   Elements answer differently where they land: fire climbs, ice spikes and
@@ -131,10 +137,10 @@ The `?` button in battle opens a rules summary.
 ```
 index.html        screens and markup
 css/style.css     styling, including the small-screen layout
-js/audio.js       WebAudio synthesis: effects and the music sequencer
+js/audio.js       WebAudio synthesis: the combat sound table and the music sequencer
 js/data.js        jobs, abilities, passives, items, statuses, maps, campaign
 js/sprites.js     sprite compositing: body templates, equipment glyphs, lighting
-js/fx.js          battle effects: weapon swings, projectiles, elemental impacts
+js/fx.js          battle effects: weapon swings, projectiles, elemental impacts, and what each sounds like
 js/unit.js        unit model, stats, equipment, leveling, JP
 js/map.js         grid, pathfinding, range and area queries
 js/battle.js      charge time loop, actions, damage, statuses, objectives, AI

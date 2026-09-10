@@ -32,6 +32,147 @@ const TRACKS = {
   },
 };
 
+/* ==========================================================================
+   Combat sounds.
+
+   Each one is a stack of layers rather than a single beep, because that is
+   what makes a blow read as a blow: a sword is air moving fast and then metal
+   biting, an axe is a slow heavy swing and then a dull crack. The layers are
+   data so that a weapon or an element can name a sound and be checked against
+   this table, rather than a switch case growing a limb per weapon.
+
+   `t` is a tone layer, `n` a noise layer. `d` delays a layer, which is how a
+   crack becomes thunder: the strike lands, the rumble follows it.
+   ========================================================================== */
+const COMBAT_SFX = {
+  // ---- weapon swings: air, pitched by how heavy the thing is -------------
+  'swing-light': [{ n: 1, freq: 5200, sweep: 2600, dur: 0.06, vol: 0.16, q: 1.5 }],
+  'swing-blade': [
+    { n: 1, freq: 3200, sweep: 900, dur: 0.10, vol: 0.20, q: 1.2 },
+    { t: 1, freq: 1400, to: 700, dur: 0.07, vol: 0.06, type: 'sine' },
+  ],
+  'swing-fast': [
+    { n: 1, freq: 6000, sweep: 3000, dur: 0.06, vol: 0.17, q: 2 },
+    { t: 1, freq: 2400, to: 1600, dur: 0.05, vol: 0.07, type: 'sine' },
+  ],
+  'swing-heavy': [
+    { n: 1, freq: 1100, sweep: 220, dur: 0.17, vol: 0.24, q: 0.8 },
+    { t: 1, freq: 320, to: 140, dur: 0.14, vol: 0.08, type: 'triangle' },
+  ],
+  'swing-pierce': [{ n: 1, freq: 4200, sweep: 1600, dur: 0.08, vol: 0.18, q: 3 }],
+  'swing-blunt': [{ n: 1, freq: 800, sweep: 260, dur: 0.12, vol: 0.18, q: 0.9 }],
+  'swing-rod': [{ n: 1, freq: 1300, sweep: 520, dur: 0.09, vol: 0.15, q: 1.3 }],
+  'swing-fist': [{ n: 1, freq: 520, sweep: 160, dur: 0.08, vol: 0.16, q: 0.8 }],
+
+  // ---- what a landed blow sounds like ------------------------------------
+  'impact-slash': [
+    { n: 1, freq: 2600, sweep: 400, dur: 0.13, vol: 0.30, q: 0.7 },
+    { t: 1, freq: 200, to: 80, dur: 0.11, vol: 0.18, type: 'square' },
+  ],
+  'impact-pierce': [
+    { n: 1, freq: 3600, sweep: 900, dur: 0.09, vol: 0.26, q: 2 },
+    { t: 1, freq: 300, to: 120, dur: 0.08, vol: 0.14, type: 'square' },
+  ],
+  'impact-blunt': [
+    { n: 1, freq: 420, sweep: 110, dur: 0.18, vol: 0.30, q: 0.6 },
+    { t: 1, freq: 130, to: 45, dur: 0.16, vol: 0.24, type: 'square' },
+  ],
+  'impact-wood': [
+    { n: 1, freq: 1100, sweep: 480, dur: 0.09, vol: 0.20, q: 1.2 },
+    { t: 1, freq: 300, to: 150, dur: 0.16, vol: 0.18, type: 'triangle' },
+    { t: 1, freq: 450, to: 300, dur: 0.11, vol: 0.08, type: 'sine', d: 0.01 },
+  ],
+  'impact-arrow': [
+    { n: 1, freq: 2400, sweep: 700, dur: 0.05, vol: 0.24, q: 3 },
+    { t: 1, freq: 560, to: 240, dur: 0.05, vol: 0.14, type: 'square' },
+  ],
+
+  // ---- things leaving the hand -------------------------------------------
+  'bow-release': [
+    { t: 1, freq: 165, to: 98, dur: 0.26, vol: 0.20, type: 'triangle' },
+    { t: 1, freq: 330, to: 196, dur: 0.16, vol: 0.08, type: 'sine' },
+    { n: 1, freq: 2200, sweep: 900, dur: 0.04, vol: 0.09, q: 3 },
+  ],
+  'throw': [{ n: 1, freq: 900, sweep: 400, dur: 0.12, vol: 0.13, q: 1 }],
+  'cast': [
+    { t: 1, freq: 240, to: 900, dur: 0.22, vol: 0.12, type: 'sine' },
+    { n: 1, freq: 400, sweep: 1800, dur: 0.20, vol: 0.06, q: 2 },
+  ],
+
+  // ---- the elements ------------------------------------------------------
+  // Fire roars and then crackles.
+  'el-fire': [
+    { n: 1, freq: 300, sweep: 2600, dur: 0.38, vol: 0.22, q: 0.8 },
+    { t: 1, freq: 90, to: 50, dur: 0.30, vol: 0.10, type: 'sawtooth' },
+    { n: 1, freq: 3400, sweep: 1800, dur: 0.05, vol: 0.10, q: 4, d: 0.14 },
+    { n: 1, freq: 4200, sweep: 2200, dur: 0.05, vol: 0.09, q: 4, d: 0.23 },
+  ],
+  // Ice rings, then breaks.
+  'el-ice': [
+    { t: 1, freq: 1319, dur: 0.16, vol: 0.13, type: 'sine' },
+    { t: 1, freq: 1661, dur: 0.16, vol: 0.11, type: 'sine', d: 0.05 },
+    { t: 1, freq: 1976, dur: 0.18, vol: 0.10, type: 'sine', d: 0.10 },
+    { n: 1, freq: 6000, sweep: 2000, dur: 0.22, vol: 0.20, q: 1.2, d: 0.14 },
+  ],
+  // Thunder cracks, and the rumble arrives after it.
+  'el-thunder': [
+    { n: 1, freq: 9000, sweep: 400, dur: 0.12, vol: 0.34, q: 0.5 },
+    { t: 1, freq: 70, to: 38, dur: 0.50, vol: 0.16, type: 'sawtooth', d: 0.05 },
+    { n: 1, freq: 500, sweep: 90, dur: 0.40, vol: 0.14, q: 0.6, d: 0.07, filter: 'lowpass' },
+  ],
+  // Earth is all low end and loose stone.
+  'el-earth': [
+    { n: 1, freq: 260, sweep: 50, dur: 0.42, vol: 0.26, q: 0.7, filter: 'lowpass' },
+    { t: 1, freq: 60, to: 34, dur: 0.38, vol: 0.18, type: 'sine' },
+    { n: 1, freq: 1400, sweep: 700, dur: 0.05, vol: 0.10, q: 3, d: 0.16 },
+    { n: 1, freq: 1000, sweep: 500, dur: 0.05, vol: 0.09, q: 3, d: 0.26 },
+  ],
+  // Holy is a chord that arrives rather than a noise.
+  'el-holy': [
+    { t: 1, freq: 1047, dur: 0.50, vol: 0.10, type: 'sine' },
+    { t: 1, freq: 1319, dur: 0.50, vol: 0.09, type: 'sine', d: 0.06 },
+    { t: 1, freq: 1568, dur: 0.50, vol: 0.08, type: 'sine', d: 0.12 },
+    { t: 1, freq: 2093, dur: 0.44, vol: 0.07, type: 'sine', d: 0.18 },
+    { n: 1, freq: 7000, sweep: 5000, dur: 0.40, vol: 0.05, q: 1.5 },
+  ],
+  // Dark is two drones a little out of tune with each other.
+  'el-dark': [
+    { t: 1, freq: 220, to: 60, dur: 0.45, vol: 0.16, type: 'sawtooth' },
+    { t: 1, freq: 233, to: 63, dur: 0.45, vol: 0.12, type: 'sawtooth' },
+    { n: 1, freq: 1200, sweep: 200, dur: 0.35, vol: 0.10, q: 1.2 },
+  ],
+  // A spell with no element of its own.
+  'el-arcane': [
+    { t: 1, freq: 300, to: 1500, dur: 0.35, vol: 0.18, type: 'sine' },
+    { n: 1, freq: 500, sweep: 3000, dur: 0.35, vol: 0.11, q: 2 },
+  ],
+
+  // ---- everything else a blow can do -------------------------------------
+  'buff': [
+    { t: 1, freq: 523, dur: 0.14, vol: 0.14, type: 'triangle' },
+    { t: 1, freq: 784, dur: 0.16, vol: 0.13, type: 'triangle', d: 0.07 },
+  ],
+  'debuff': [
+    { t: 1, freq: 415, dur: 0.16, vol: 0.14, type: 'triangle' },
+    { t: 1, freq: 277, dur: 0.20, vol: 0.13, type: 'triangle', d: 0.08 },
+  ],
+  'poison': [
+    { n: 1, freq: 320, sweep: 120, dur: 0.30, vol: 0.13, q: 2, filter: 'lowpass' },
+    { t: 1, freq: 130, to: 90, dur: 0.28, vol: 0.11, type: 'sine' },
+    { t: 1, freq: 165, to: 110, dur: 0.22, vol: 0.07, type: 'sine', d: 0.10 },
+  ],
+  'absorb': [
+    { t: 1, freq: 200, to: 800, dur: 0.30, vol: 0.16, type: 'sine' },
+    { n: 1, freq: 600, sweep: 2400, dur: 0.28, vol: 0.07, q: 2 },
+  ],
+  'revive': [
+    { t: 1, freq: 523, dur: 0.20, vol: 0.14, type: 'triangle' },
+    { t: 1, freq: 659, dur: 0.20, vol: 0.13, type: 'triangle', d: 0.08 },
+    { t: 1, freq: 784, dur: 0.20, vol: 0.13, type: 'triangle', d: 0.16 },
+    { t: 1, freq: 1047, dur: 0.36, vol: 0.14, type: 'triangle', d: 0.24 },
+  ],
+};
+
 class GameAudio {
   constructor() {
     this.ctx = null;
@@ -98,7 +239,7 @@ class GameAudio {
     osc.start(t); osc.stop(t + dur + 0.02);
   }
 
-  noise({ dur = 0.15, vol = 0.3, delay = 0, freq = 1200, q = 1, sweep = 0 }) {
+  noise({ dur = 0.15, vol = 0.3, delay = 0, freq = 1200, q = 1, sweep = 0, filter = 'bandpass' }) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime + delay;
     const frames = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
@@ -108,7 +249,7 @@ class GameAudio {
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     const filt = this.ctx.createBiquadFilter();
-    filt.type = 'bandpass'; filt.frequency.setValueAtTime(freq, t); filt.Q.value = q;
+    filt.type = filter; filt.frequency.setValueAtTime(freq, t); filt.Q.value = q;
     if (sweep) filt.frequency.exponentialRampToValueAtTime(Math.max(60, sweep), t + dur);
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(vol, t);
@@ -124,6 +265,14 @@ class GameAudio {
     const now = performance.now();
     if (now - (this.lastSfx[name] || 0) < 55) return;
     this.lastSfx[name] = now;
+    const layers = COMBAT_SFX[name];
+    if (layers) {
+      for (const l of layers) {
+        if (l.n) this.noise({ dur: l.dur, vol: l.vol, delay: l.d || 0, freq: l.freq, q: l.q, sweep: l.sweep, filter: l.filter });
+        else this.tone({ freq: l.freq, to: l.to, dur: l.dur, type: l.type, vol: l.vol, delay: l.d || 0 });
+      }
+      return;
+    }
     switch (name) {
       case 'menu': this.tone({ freq: 660, dur: 0.06, type: 'square', vol: 0.12 }); break;
       case 'select': this.tone({ freq: 880, to: 1320, dur: 0.09, type: 'square', vol: 0.14 }); break;

@@ -45,11 +45,9 @@ class BattleUI {
       refresh: () => this.refresh(),
       showFloat: (u, t, c) => this.r.showFloat(u, t, c),
       animateMove: (u, p) => { audio.sfx('move'); return this.r.animateMove(u, p); },
-      animateAction: (u, ab, x, y) => {
-        audio.sfx(ab.kind === 'magic' ? 'magic' : ab.kind === 'support' || ab.kind === 'item' ? 'heal' : 'hit');
-        return this.r.animateAction(u, ab, x, y);
-      },
-      onImpact: (t, ab, v) => this.r.onImpact(t, ab, v),
+      animateAction: (u, ab, x, y) => this.r.animateAction(u, ab, x, y),
+      onImpact: (t, ab, v, user) => this.r.onImpact(t, ab, v, user),
+      onSound: (n) => audio.sfx(n),
       onEvade: (t) => this.r.onEvade(t),
       onJump: (u) => this.r.onJump(u),
       onLand: (u, x, y) => this.r.onLand(u, x, y),
@@ -63,7 +61,7 @@ class BattleUI {
 
   // ---- logging / info panels ---------------------------------------------------------
   // Every engine event is logged, so the log is also where battle sound lives.
-  static LOG_SFX = { dmg: 'hit', heal: 'heal', miss: 'miss', ko: 'ko', lvl: 'levelup' };
+  static LOG_SFX = { heal: 'heal', miss: 'miss', ko: 'ko', lvl: 'levelup' };
 
   log(msg, cls = '') {
     const sfx = BattleUI.LOG_SFX[cls];

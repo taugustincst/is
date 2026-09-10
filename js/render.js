@@ -167,7 +167,24 @@ class Renderer {
     return { x: (mx - W / 2) / z + W / 2, y: (my - H / 2) / z + H / 2 };
   }
 
-  setZoom(z) { this.zoom = Math.max(0.6, Math.min(2.5, z)); this.clampCamera(); }
+  /* Zooming in magnifies the board around the middle of the view, which can
+     carry a legal destination out under one of the panels, where nobody can
+     tap it. So whenever the zoom changes while options are on offer, nudge
+     them back into the free part of the view -- the same nudge that put them
+     there when the menu opened. */
+  setZoom(z) {
+    this.zoom = Math.max(0.6, Math.min(2.5, z));
+    this.clampCamera();
+    const keys = this.hl.move.size ? this.hl.move : this.hl.target;
+    if (!keys.size || !this.battle) return;
+    const g = this.battle.grid, tiles = [];
+    for (const k of keys) {
+      const [x, y] = k.split(',').map(Number);
+      const t = g.tile(x, y);
+      if (t) tiles.push(t);
+    }
+    this.frameTiles(tiles, 120);
+  }
 
   unitScreenPos(u) {
     const p = u.anim || { x: u.x, y: u.y, h: this.battle.grid.height(u.x, u.y), z: 0 };
@@ -209,25 +226,37 @@ class Renderer {
     if (!this.battle) return null;
     const { x: mx, y: my } = this.toWorld(px, py);
     const g = this.battle.grid;
-    // Units first (sprites stand above their tile).
+    // A figure standing in front of a tile answers for it, since that is what
+    // the player is looking at.
+    let onUnit = null;
     const units = this.battle.units.filter(u => u.alive && !u.airborne && u.x >= 0).sort((a, b) => (b.x + b.y) - (a.x + a.y));
     for (const u of units) {
       const { sx, sy } = this.unitScreenPos(u);
-      if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) return g.tile(u.x, u.y);
+      if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) { onUnit = g.tile(u.x, u.y); break; }
     }
+    let onGround = null;
     const order = [];
     for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.tiles[y][x].t !== 'x') order.push(g.tiles[y][x]);
     order.sort((a, b) => (b.x + b.y) - (a.x + a.y) || b.h - a.h);
     for (const t of order) {
       const { sx, sy } = this.toScreen(t.x, t.y, t.h);
       const top = [[sx, sy - 16], [sx + 32, sy], [sx, sy + 16], [sx - 32, sy]];
-      if (this.pointInPoly(mx, my, top)) return t;
+      if (this.pointInPoly(mx, my, top)) { onGround = t; break; }
       const wh = t.h * HZ;
       const lw = [[sx - 32, sy], [sx, sy + 16], [sx, sy + 16 + wh], [sx - 32, sy + wh]];
       const rw = [[sx + 32, sy], [sx, sy + 16], [sx, sy + 16 + wh], [sx + 32, sy + wh]];
-      if (this.pointInPoly(mx, my, lw) || this.pointInPoly(mx, my, rw)) return t;
+      if (this.pointInPoly(mx, my, lw) || this.pointInPoly(mx, my, rw)) { onGround = t; break; }
     }
-    return null;
+    /* While the game is offering a choice, whichever of the two is on offer
+       wins. A figure is drawn a good half-tile taller than the square it
+       stands on, so it covers the tiles behind it; without this, a legal
+       destination standing behind an ally simply cannot be tapped. */
+    if (this.hl.move.size || this.hl.target.size) {
+      const offered = (t) => !!t && (this.hl.move.has(`${t.x},${t.y}`) || this.hl.target.has(`${t.x},${t.y}`));
+      if (offered(onUnit)) return onUnit;
+      if (offered(onGround)) return onGround;
+    }
+    return onUnit || onGround;
   }
 
   // ---- drawing ------------------------------------------------------------------
@@ -511,6 +540,8 @@ class Renderer {
   landFx(ab, tiles) {
     const spec = abilityFx(ab);
     if (!spec) return 0;
+    // One sound for the ability, however many tiles it covers.
+    if (spec.sound) audio.sfx(spec.sound);
     const g = this.battle.grid;
     for (const t of tiles) {
       this.spawn(spec.kind, {
@@ -523,8 +554,10 @@ class Renderer {
   }
 
   // The mark a landed blow leaves on whoever took it.
-  onImpact(t, ab, amount) {
+  onImpact(t, ab, amount, user) {
     if (!this.battle || t.x < 0) return;
+    const sound = impactSound(user || this.battle.active, ab);
+    if (sound) audio.sfx(sound);
     const g = this.battle.grid;
     const share = Math.min(1, amount / Math.max(1, t.maxHp));
     t.hitAt = performance.now();
@@ -613,14 +646,13 @@ class Renderer {
        spear's two tiles are still a thrust, not a throw. Something that
        reaches further by a means of its own is projected, unless what it
        projects is an element, which arrives as the element. */
-    const usesWeaponReach = ab.range === 'weapon';
-    const shoots = !!(wfx && wfx.shot && usesWeaponReach);
-    const thrown = !usesWeaponReach && this.abilityRangeOf(u, ab) > 1 && !ab.element
-      && ab.kind !== 'magic' && ab.kind !== 'support';
+    const shoots = !!(wfx && wfx.shot && ab.range === 'weapon');
+    const thrown = isThrown(ab);
     const reduced = reducedMotion();
 
     if (reduced) {
-      // No lunge, no travel: just say where it landed, briefly.
+      // The flourish goes; the sound is not motion, so it stays.
+      if (wfx && wfx.sound) audio.sfx(wfx.sound);
       this.landFx(ab, tiles);
       if (wfx) for (const t of tiles) this.spawn('impact', { x: t.x, y: t.y, h: g.height(t.x, t.y), dur: 180, color: wfx.color, size: 14, angle });
       await sleep(140);
@@ -631,10 +663,12 @@ class Renderer {
       // A bow is drawn, then the arrow has to get there.
       await tween(wfx.wind, k => { u.anim = { x: u.x - dx * 0.12 * k / Math.max(1, dist), y: u.y - dy * 0.12 * k / Math.max(1, dist), h, z: 0 }; });
       u.anim = null;
+      audio.sfx(wfx.sound);
       await this.travel(u.x, u.y, h, tx, ty, g.height(tx, ty), wfx.shot, 26);
     } else if (thrown) {
       await tween(150, k => { u.anim = { x: u.x, y: u.y, h, z: Math.sin(k * Math.PI) * 5 }; });
       u.anim = null;
+      audio.sfx('throw');
       await this.travel(u.x, u.y, h, tx, ty, g.height(tx, ty), throwShape(u, ab), 34);
     } else if (wfx) {
       // A weapon blow. Within a weapon's reach the attacker leans into it and
@@ -649,6 +683,7 @@ class Renderer {
       u.anim = null;
       const where = near ? tiles : [g.tile(u.x, u.y)];
       for (let i = 0; i < wfx.hits; i++) {
+        audio.sfx(wfx.sound);
         for (const t of where) {
           if (!t) continue;
           this.spawn(wfx.swing, { x: t.x, y: t.y, h: g.height(t.x, t.y), dur: 240, color: wfx.color, angle });
@@ -659,6 +694,7 @@ class Renderer {
       // A spell: the caster gathers it before it arrives.
       const col = ab.element ? ELEMENTS[ab.element].color : '#c8b0ff';
       const cast = this.spawn('ring', { x: u.x, y: u.y, h, dur: 260, color: col, ground: true });
+      audio.sfx('cast');
       await tween(240, k => { u.anim = { x: u.x, y: u.y, h, z: Math.sin(k * Math.PI) * 8 }; });
       u.anim = null;
       cast.dur = 1;   // the gather is done; let the arrival own the screen

@@ -365,6 +365,71 @@ const mk = (n, job, lvl, opts = {}) => {
     // A spear reaches two tiles, which once made it throw a rock.
     ok('a spear thrusts rather than throws', g.ABILITIES.attack.range === 'weapon',
        `attack range=${g.ABILITIES.attack.range}`);
+
+    // Sight and sound describe the same blow. A weapon or element that gained
+    // one but not the other would be silently half-finished, so check that
+    // every name resolves against the audio table.
+    const actx = { window: {}, localStorage: { getItem: () => null, setItem() {} }, Math, JSON };
+    vm.createContext(actx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8'), actx);
+    const SFX = vm.runInContext('COMBAT_SFX', actx);
+
+    const named = [];
+    for (const [k, w] of Object.entries(WFX)) {
+      named.push([`weapon ${k} swing`, w.sound], [`weapon ${k} impact`, w.impact]);
+    }
+    for (const [k, e] of Object.entries(EFX)) named.push([`element ${k}`, e.sound]);
+    named.push(['neutral magic', get('NEUTRAL_MAGIC').sound]);
+    for (const n of ['throw', 'cast']) named.push([`renderer cue ${n}`, n]);
+
+    const silent = named.filter(([, n]) => !n);
+    ok('every weapon and element names a sound', silent.length === 0,
+       silent.map(x => x[0]).join(',') || `${named.length} named`);
+    // 'heal' and 'buff' live in the hand-written cases, not the table.
+    const HANDWRITTEN = ['heal', 'miss', 'ko', 'levelup', 'hit'];
+    const unheard = named.filter(([, n]) => n && !SFX[n] && !HANDWRITTEN.includes(n));
+    ok('every named sound exists in the audio table', unheard.length === 0,
+       unheard.map(x => `${x[0]}=${x[1]}`).join(',') || `${Object.keys(SFX).length} sounds`);
+
+    // Two weapons may share an impact -- an axe and a fist both land dully --
+    // but the swings are what tell them apart, so those must differ.
+    const swings = Object.values(WFX).map(w => w.sound);
+    ok('no two weapons swing with the same sound', new Set(swings).size === swings.length,
+       `${new Set(swings).size} sounds for ${swings.length} weapons`);
+    const elSounds = Object.values(EFX).map(e => e.sound);
+    ok('no two elements sound alike', new Set(elSounds).size === elSounds.length,
+       `${new Set(elSounds).size} sounds for ${elSounds.length} elements`);
+
+    // A sound with no layers plays silence, which is the same as being absent.
+    const empty = Object.entries(SFX).filter(([, l]) => !Array.isArray(l) || !l.length).map(([k]) => k);
+    ok('no sound in the table is silent', empty.length === 0, empty.join(',') || `${Object.keys(SFX).length} sounds`);
+    // Every layer must say how long it lasts and how loud, or WebAudio throws.
+    const malformed = [];
+    for (const [k, layers] of Object.entries(SFX)) {
+      for (const l of layers) {
+        if (!(l.dur > 0) || !(l.vol > 0) || !(l.freq > 0)) malformed.push(k);
+        if (l.n && l.t) malformed.push(k + ' (both tone and noise)');
+      }
+    }
+    ok('every sound layer is playable', malformed.length === 0, [...new Set(malformed)].join(',') || 'all layers sound');
+
+    // An elemental blow is spoken for by its element; anything else falls to
+    // the weapon, and nothing may land in silence.
+    const impactSound = get('impactSound');
+    const bareHands = { weapon: { wtype: 'fist', range: 1 } };
+    ok('an elemental blow leaves the sound to its element',
+       impactSound(bareHands, g.ABILITIES.fire) === null, 'fire');
+    ok('a plain blow is heard as its weapon',
+       impactSound(bareHands, g.ABILITIES.attack) === WFX.fist.impact, WFX.fist.impact);
+    // A thrown stone lands as a stone, whatever the thrower happens to hold.
+    const swordsman = { weapon: { wtype: 'sword', range: 1 } };
+    ok('a thrown stone lands as a stone, not as the sword in hand',
+       impactSound(swordsman, g.ABILITIES.throwStone) === 'impact-blunt',
+       impactSound(swordsman, g.ABILITIES.throwStone));
+    const isThrown = get('isThrown');
+    ok('a weapon used at its own reach is not thrown', !isThrown(g.ABILITIES.attack), 'attack');
+    ok('an ability that reaches on its own is thrown', isThrown(g.ABILITIES.throwStone), 'throwStone');
+    ok('an elemental reach is left to its element', !isThrown(g.ABILITIES.rootSnare), 'rootSnare');
   }
 
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
