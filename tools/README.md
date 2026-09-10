@@ -7,7 +7,7 @@ code the browser runs.
 | command | what it does |
 | --- | --- |
 | `node tools/validate.js` | Content consistency: map shapes, walkable ground, every enemy reachable from the deployment zone, abilities and items that jobs actually refer to, starter kit that cannot be sold. |
-| `node tools/regress.js` | Replays each engine defect an adversarial review once found, so a change that brings one back fails here. Also checks the sprite art and the battle effects as data: template sizes, glyphs that fit the grid, every weapon, hat and armour type having a shape to draw, and every element and healing spell animating as itself. |
+| `node tools/regress.js` | Replays each engine defect an adversarial review once found, so a change that brings one back fails here. Also checks the sprite art and the battle effects as data: template sizes, glyphs that fit the grid, every weapon, hat and armour type having a shape to draw, every element and healing spell animating as itself, and every weapon and element naming a sound that exists, is audible and is not a duplicate of another. |
 | `node tools/soak.js [battles] [seed]` | Plays randomised battles across every map, job, monster, passive and objective, checking the invariants that must hold whatever happened. Deterministic from its seed. |
 | `node tools/test-elements.js` | Elemental affinities: weakness, resistance, absorption, immunity, prediction and AI awareness. |
 | `node tools/test-statuses.js` | Silence, Blind and Berserk, the gear that wards them off and the abilities that lift them. |

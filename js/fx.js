@@ -32,33 +32,45 @@ const easeOut = (k) => 1 - (1 - k) * (1 - k);
 const easeIn = (k) => k * k;
 
 /* How each weapon delivers a blow. `reach` is how far the attacker leans into
-   it as a fraction of a tile, `swing` the shape drawn over the target. */
+   it as a fraction of a tile, `swing` the shape drawn over the target, `sound`
+   the air it moves and `impact` what it sounds like arriving. Sight and sound
+   are named together because they describe the same blow, and a weapon that
+   gained one but not the other would be half-finished. */
 const WEAPON_FX = {
-  sword:      { reach: 0.38, swing: 'slash', hits: 1, wind: 200, color: '#eaf2ff' },
-  ninjablade: { reach: 0.34, swing: 'slash', hits: 2, wind: 130, color: '#dff6ff' },
-  axe:        { reach: 0.32, swing: 'chop', hits: 1, wind: 280, color: '#ffe6c0' },
-  spear:      { reach: 0.55, swing: 'thrust', hits: 1, wind: 190, color: '#dbe6ff' },
-  knife:      { reach: 0.30, swing: 'thrust', hits: 2, wind: 120, color: '#ffffff' },
-  staff:      { reach: 0.30, swing: 'chop', hits: 1, wind: 220, color: '#e8dcff' },
-  rod:        { reach: 0.30, swing: 'chop', hits: 1, wind: 220, color: '#e8dcff' },
-  fist:       { reach: 0.28, swing: 'punch', hits: 2, wind: 110, color: '#ffffff' },
-  bow:        { reach: 0.0, swing: null, hits: 1, wind: 260, color: '#ffe9b0', shot: 'arrow' },
+  sword:      { reach: 0.38, swing: 'slash', hits: 1, wind: 200, color: '#eaf2ff',
+                sound: 'swing-blade', impact: 'impact-slash' },
+  ninjablade: { reach: 0.34, swing: 'slash', hits: 2, wind: 130, color: '#dff6ff',
+                sound: 'swing-fast', impact: 'impact-slash' },
+  axe:        { reach: 0.32, swing: 'chop', hits: 1, wind: 280, color: '#ffe6c0',
+                sound: 'swing-heavy', impact: 'impact-blunt' },
+  spear:      { reach: 0.55, swing: 'thrust', hits: 1, wind: 190, color: '#dbe6ff',
+                sound: 'swing-pierce', impact: 'impact-pierce' },
+  knife:      { reach: 0.30, swing: 'thrust', hits: 2, wind: 120, color: '#ffffff',
+                sound: 'swing-light', impact: 'impact-pierce' },
+  staff:      { reach: 0.30, swing: 'chop', hits: 1, wind: 220, color: '#e8dcff',
+                sound: 'swing-blunt', impact: 'impact-wood' },
+  rod:        { reach: 0.30, swing: 'chop', hits: 1, wind: 220, color: '#e8dcff',
+                sound: 'swing-rod', impact: 'impact-wood' },
+  fist:       { reach: 0.28, swing: 'punch', hits: 2, wind: 110, color: '#ffffff',
+                sound: 'swing-fist', impact: 'impact-blunt' },
+  bow:        { reach: 0.0, swing: null, hits: 1, wind: 260, color: '#ffe9b0', shot: 'arrow',
+                sound: 'bow-release', impact: 'impact-arrow' },
 };
 const DEFAULT_WEAPON_FX = WEAPON_FX.sword;
 
 /* What each element does when it arrives. `dur` is how long the effect owns
    the screen; the engine waits for it before printing damage. */
 const ELEMENT_FX = {
-  fire:    { kind: 'flame', dur: 460, color: '#ff7a30', second: '#ffe07a' },
-  ice:     { kind: 'shards', dur: 460, color: '#7fd8ff', second: '#e8fbff' },
-  thunder: { kind: 'bolt', dur: 380, color: '#ffe040', second: '#fffbe0' },
-  earth:   { kind: 'rubble', dur: 460, color: '#c08a4a', second: '#8a6234' },
-  holy:    { kind: 'column', dur: 480, color: '#fff3b0', second: '#ffffff' },
-  dark:    { kind: 'void', dur: 460, color: '#a05fd6', second: '#2a1040' },
+  fire:    { kind: 'flame', dur: 460, color: '#ff7a30', second: '#ffe07a', sound: 'el-fire' },
+  ice:     { kind: 'shards', dur: 460, color: '#7fd8ff', second: '#e8fbff', sound: 'el-ice' },
+  thunder: { kind: 'bolt', dur: 380, color: '#ffe040', second: '#fffbe0', sound: 'el-thunder' },
+  earth:   { kind: 'rubble', dur: 460, color: '#c08a4a', second: '#8a6234', sound: 'el-earth' },
+  holy:    { kind: 'column', dur: 480, color: '#fff3b0', second: '#ffffff', sound: 'el-holy' },
+  dark:    { kind: 'void', dur: 460, color: '#a05fd6', second: '#2a1040', sound: 'el-dark' },
 };
-const NEUTRAL_MAGIC = { kind: 'column', dur: 400, color: '#b080ff', second: '#e8d8ff' };
-const HEAL_FX = { kind: 'motes', dur: 420, color: '#7cff7c', second: '#e0ffe0' };
-const BUFF_FX = { kind: 'ring', dur: 380, color: '#ffe97c', second: '#fff8d8' };
+const NEUTRAL_MAGIC = { kind: 'column', dur: 400, color: '#b080ff', second: '#e8d8ff', sound: 'el-arcane' };
+const HEAL_FX = { kind: 'motes', dur: 420, color: '#7cff7c', second: '#e0ffe0', sound: 'heal' };
+const BUFF_FX = { kind: 'ring', dur: 380, color: '#ffe97c', second: '#fff8d8', sound: 'buff' };
 
 // A deterministic scatter, so an effect looks the same every frame it is drawn
 // rather than boiling. Seeded off the effect's own start time and index.
@@ -402,6 +414,28 @@ function throwShape(u, ab) {
   if (t === 'bow') return 'arrow';          // a rain of arrows is still arrows
   if (t === 'fist') return 'orb';           // a monk projects force, not a rock
   return 'rock';
+}
+
+/* Whether an ability projects something rather than swinging what is held. A
+   weapon used at its own reach swings, so a spear's two tiles are a thrust;
+   anything that reaches further by a means of its own is thrown, unless what
+   it throws is an element. Shared so that the picture and the sound cannot
+   disagree about which one it is. */
+function isThrown(ab) {
+  return !!ab && ab.range !== 'weapon' && ab.range > 1 && !ab.element
+    && ab.kind !== 'magic' && ab.kind !== 'support';
+}
+
+// A thrown thing lands as itself, not as whatever the thrower is holding.
+const THROW_IMPACT = { rock: 'impact-blunt', star: 'impact-pierce', arrow: 'impact-arrow', orb: 'impact-wood' };
+
+/* What a landed blow sounds like. An element speaks for itself; then what was
+   thrown; and failing both, the weapon that delivered it. */
+function impactSound(u, ab) {
+  if (ab && ab.element && ELEMENT_FX[ab.element]) return null;   // the element already played
+  if (isThrown(ab)) return THROW_IMPACT[throwShape(u, ab)] || 'impact-blunt';
+  const w = weaponFx(u, ab);
+  return w ? w.impact : 'impact-blunt';
 }
 
 // The weapon shape an ability swings, or null if it is not a weapon blow.

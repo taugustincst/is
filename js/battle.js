@@ -74,7 +74,7 @@ class Battle {
     this.grid = new Grid(mapDef);
     this.mapDef = mapDef;
     this.units = [...playerUnits, ...enemyUnits];
-    this.hooks = hooks; // { log, animateMove, animateAction, onImpact, onEvade, showFloat, awaitPlayerTurn, onStateChange, onTurnStart }
+    this.hooks = hooks; // { log, animateMove, animateAction, onImpact, onEvade, onSound, showFloat, awaitPlayerTurn, onStateChange, onTurnStart }
     this.pending = []; // charged actions {unit, ability, tx, ty, ct, speed}
     this.tick = 0;
     this.turnNo = 0;
@@ -160,6 +160,9 @@ class Battle {
   }
 
   log(msg, cls) { if (this.hooks.log) this.hooks.log(msg, cls); }
+  // Events that are neither a blow nor a heal, and so have no animation to
+  // hang a sound on, still need to be heard.
+  sound(name) { if (this.hooks.onSound) this.hooks.onSound(name); }
   // The living unit standing on a tile, for targeting and picking.
   unitAt(x, y) { return this.units.find(u => u.alive && !u.airborne && u.x >= 0 && u.x === x && u.y === y) || null; }
 
@@ -368,6 +371,7 @@ class Battle {
           const heal = Math.min(-v, t.maxHp - t.hp);
           t.hp += heal;
           this.log(`${t.name} drinks in ${ab.name} and recovers ${heal} HP.`, 'heal');
+          this.sound('absorb');
           if (this.hooks.showFloat) this.hooks.showFloat(t, `+${heal}`, ELEMENTS[ab.element].color);
           return true;
         }
@@ -378,7 +382,7 @@ class Battle {
         }
         t.hp = Math.max(0, t.hp - v);
         const aff = affinityOf(t, ab.element);
-        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v);
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
         if (this.checkPhase(t)) {
           this.log(`${user.name}'s ${ab.name} deals ${v} damage.`, 'dmg');
           if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, '#ff6a5a');
@@ -401,7 +405,7 @@ class Battle {
         t.hp -= v; user.hp = Math.min(user.maxHp, user.hp + v);
         if (this.checkPhase(t)) return true;
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
-        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v);
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
         if (t.hp === 0) this.onUnitKO(t);
         else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
@@ -446,6 +450,7 @@ class Battle {
         if (eff.status === 'haste') t.removeStatus('slow');
         if (eff.status === 'slow') t.removeStatus('haste');
         this.log(`${t.name} is affected by ${STATUSES[eff.status].name}.`, STATUSES[eff.status].bad ? 'dmg' : 'heal');
+        this.sound(STATUSES[eff.status].bad ? 'debuff' : 'buff');
         if (this.hooks.showFloat) this.hooks.showFloat(t, STATUSES[eff.status].name, STATUSES[eff.status].color);
         return true;
       }
@@ -459,6 +464,7 @@ class Battle {
         if (!t.alive) return false;
         t.mods[eff.stat] = (t.mods[eff.stat] || 0) + eff.amount;
         this.log(`${t.name}'s ${eff.stat.toUpperCase()} ${eff.amount > 0 ? 'rises' : 'falls'} by ${Math.abs(eff.amount)}.`, eff.amount > 0 ? 'heal' : 'dmg');
+        this.sound(eff.amount > 0 ? 'buff' : 'debuff');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`, eff.amount > 0 ? '#ffe97c' : '#c56aff');
         return true;
       }
@@ -754,6 +760,7 @@ class Battle {
       const v = Math.max(1, Math.floor(unit.maxHp / 8));
       unit.hp = Math.max(0, unit.hp - v);
       this.log(`${unit.name} takes ${v} poison damage.`, 'dmg');
+      this.sound('poison');
       if (this.hooks.showFloat) this.hooks.showFloat(unit, `${v}`, '#a05fd6');
       this.checkPhase(unit);
       if (unit.hp === 0) { this.log(`${unit.name} succumbs to poison!`, 'ko'); this.onUnitKO(unit); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
