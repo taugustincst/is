@@ -37,8 +37,11 @@ class Renderer {
     this.fx = [];
     this.shake = null;
     // How many camera moves are in flight. A tile's screen position is only
-    // stable at zero, which matters to anything translating a tap.
+    // stable at zero, which matters to anything translating a tap. The
+    // generation rises with each battle, so a pan cannot keep dragging the
+    // view around after the board under it has been replaced.
     this.camAnim = 0;
+    this.camGen = 0;
     this.running = false;
     this.time = 0;
   }
@@ -46,6 +49,11 @@ class Renderer {
   setBattle(b) {
     this.battle = b;
     this.floats = []; this.bursts = []; this.fx = []; this.shake = null;
+    // Party units outlive a battle, and so did the animation state hung on
+    // them: a unit interrupted mid-move kept its interpolated position and
+    // was drawn at the wrong tile, at the wrong depth, in the next fight.
+    for (const u of b.units) { u.anim = null; u.hitAt = null; u.recoil = null; u._fromAngle = undefined; }
+    this.camGen++;
     this.clearHighlights();
     this.centerCamera();
   }
@@ -118,14 +126,28 @@ class Renderer {
     else if (minY < top) dy = top - minY;
     else if (maxY > bottom) dy = bottom - maxY;
     if (!dx && !dy) return Promise.resolve();
-    const fx = this.cam.x, fy = this.cam.y;
-    const tx = this.cam.x + dx;
-    const ty = this.cam.y + dy;
+    return this.panTo(this.cam.x + dx, this.cam.y + dy, ms);
+  }
+
+  /* Move the camera, animating it unless there is a reason not to: a zoom is
+     a direct manipulation and should keep up with the fingers rather than
+     chase them, and someone who has asked their system for less motion should
+     not have the whole board slide under them on every turn. */
+  panTo(tx, ty, ms) {
+    const jump = () => { this.cam.x = tx; this.cam.y = ty; this.clampCamera(); return Promise.resolve(); };
+    if (!ms || reducedMotion()) return jump();
+    const fx = this.cam.x, fy = this.cam.y, gen = this.camGen;
     this.camAnim++;
     return tween(ms, k => {
+      if (gen !== this.camGen) return;
       this.cam.x = lerp(fx, tx, k);
       this.cam.y = lerp(fy, ty, k);
-    }).then(() => { this.clampCamera(); this.camAnim--; });
+    }).then(() => {
+      // Never below zero: anything waiting for the camera to settle waits on
+      // this reaching it, and a negative count would never get there.
+      this.camAnim = Math.max(0, this.camAnim - 1);
+      if (gen === this.camGen) this.clampCamera();
+    });
   }
 
   // Keep a point of interest on screen when the board is larger than the view.
@@ -183,7 +205,7 @@ class Renderer {
       const t = g.tile(x, y);
       if (t) tiles.push(t);
     }
-    this.frameTiles(tiles, 120);
+    this.frameTiles(tiles, 0);
   }
 
   unitScreenPos(u) {
@@ -200,16 +222,13 @@ class Renderer {
     const off = this.viewCentre();
     const tx = -(u.x - u.y) * TILE_W / 2 + (off.cx - this.cv.width / 2);
     const ty = -(u.x + u.y) * TILE_H / 2 + g.height(u.x, u.y) * HZ + (off.cy - this.cv.height / 2);
-    const fx = this.cam.x, fy = this.cam.y;
     // Only pan when the unit would otherwise sit outside the comfortable centre zone.
     const z = this.zoom || 1;
     const view = this.viewCentre();
     const cur = this.toScreen(u.x, u.y, g.height(u.x, u.y));
     const dx = (cur.sx - view.cx) * z, dy = (cur.sy - view.cy) * z;
     if (Math.abs(dx) < view.w * 0.3 && Math.abs(dy) < view.h * 0.3) return;
-    this.camAnim++;
-    try { await tween(ms, k => { this.cam.x = lerp(fx, tx, k); this.cam.y = lerp(fy, ty, k); }); }
-    finally { this.camAnim--; }
+    await this.panTo(tx, ty, ms);
   }
 
   // ---- picking -----------------------------------------------------------------

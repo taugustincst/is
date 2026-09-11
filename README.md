@@ -26,7 +26,9 @@ a browser, or serve the folder with any static file server.
   hit flashes its target, shoves them back and shakes the view by how hard it
   was, and a charging spell rings both its caster and the ground it is aimed
   at, so you can see what is coming and move. All of it stands down for
-  anyone whose system asks for reduced motion.
+  anyone whose system asks for reduced motion — the flourishes, the shake,
+  the knockback and the camera pans alike, while the information they carry
+  stays.
 - **Units wear what you give them.** Weapons, shields, helms, hats and armour
   are drawn on the sprite from the unit's actual equipment. Material shows its
   age through colour — iron, steel, mythril, gold — and elemental gear takes
