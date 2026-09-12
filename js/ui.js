@@ -39,6 +39,18 @@ class BattleUI {
     this.refresh();
   }
 
+  /* Turn the board a quarter turn. Whatever panel is open is redrawn after,
+     because the compass arrows in it point at the board and the board has
+     moved. */
+  turnField(dir) {
+    if (!this.r.battle) return;
+    audio.sfx('menu');
+    return this.r.rotate(dir).then(() => {
+      if (this.deploy) this.renderDeploy();
+      else this.refresh();
+    });
+  }
+
   hooks() {
     return {
       log: (m, cls) => this.log(m, cls),
@@ -237,8 +249,8 @@ class BattleUI {
           <span class="mark">${u.x >= 0 ? '●' : '○'}</span>
         </div>`).join('')}</div>
       <div class="dirs deploy-dirs">
-        <button data-d="N">↗ N</button><button data-d="E">↘ E</button>
-        <button data-d="W">↖ W</button><button data-d="S">↙ S</button>
+        <button data-d="N">${dirArrow('N', this.r.rot)} N</button><button data-d="E">${dirArrow('E', this.r.rot)} E</button>
+        <button data-d="W">${dirArrow('W', this.r.rot)} W</button><button data-d="S">${dirArrow('S', this.r.rot)} S</button>
       </div>
       <div class="deploy-actions">
         <button data-a="auto">Auto-place</button>
@@ -387,8 +399,8 @@ class BattleUI {
       hint.textContent = TOUCH_ONLY ? 'Tap a direction to face, or tap a tile.' : 'Choose a direction to face (or click a tile).';
       this.el.menu.innerHTML = `<div class="menu-title">Face</div>
         <div class="dirs">
-          <button data-d="N">↗ North</button><button data-d="E">↘ East</button>
-          <button data-d="W">↖ West</button><button data-d="S">↙ South</button>
+          <button data-d="N">${dirArrow('N', this.r.rot)} North</button><button data-d="E">${dirArrow('E', this.r.rot)} East</button>
+          <button data-d="W">${dirArrow('W', this.r.rot)} West</button><button data-d="S">${dirArrow('S', this.r.rot)} South</button>
         </div><button data-a="keep">Keep facing</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => {
         if (b.dataset.d) u.facing = b.dataset.d;
@@ -547,6 +559,8 @@ class BattleUI {
       else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
       else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
       else if (e.key === '0') this.r.centerCamera();
+      else if (e.key === 'q' || e.key === 'Q') this.turnField(-1);
+      else if (e.key === 'e' || e.key === 'E') this.turnField(1);
       else if (/^[1-9]$/.test(e.key)) {
         // Digits pick the matching command in whichever panel is open.
         const panel = this.deploy ? this.el.roster : this.el.menu;

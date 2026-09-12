@@ -306,6 +306,45 @@ const mk = (n, job, lvl, opts = {}) => {
     for (const [, rows] of shapes) for (const r of rows) for (const ch of r) if (ch !== '.') keys.add(ch);
     const unresolved = [...keys].filter(k => !pal[k]);
     ok('every body palette key resolves to a colour', unresolved.length === 0, unresolved.join(',') || [...keys].sort().join(''));
+
+    // A party of five squires used to be five copies of one person. A look is
+    // derived from a unit's id, and two things must survive it: the team
+    // accent, which says whose side this is, and the job's cloth, which says
+    // what it does.
+    {
+      const resolve = get('resolvePalette');
+      const look = (id, sprite) => resolve(g.JOBS.squire.palette, 'player', 'human', { id, sprite });
+      const a = look('rowan', 'warrior'), b = look('garret', 'warrior');
+      ok('two recruits do not come out as the same person',
+         a.s !== b.s || a.h !== b.h, `${a.s}/${a.h} vs ${b.s}/${b.h}`);
+      ok('the same recruit comes back the same', look('rowan', 'warrior').s === a.s && look('rowan', 'warrior').h === a.h);
+
+      const plain = resolve(g.JOBS.squire.palette, 'player', 'human');
+      ok('a look never touches the team accent', a.d === plain.d, `${a.d} vs ${plain.d}`);
+      // Cloth may shift a shade, but must stay recognisably the job's colour.
+      const dist = (x, y) => {
+        const h = (v) => parseInt(v.slice(1), 16);
+        const [p1, p2] = [h(x), h(y)];
+        return Math.abs(((p1 >> 16) & 255) - ((p2 >> 16) & 255))
+             + Math.abs(((p1 >> 8) & 255) - ((p2 >> 8) & 255))
+             + Math.abs((p1 & 255) - (p2 & 255));
+      };
+      const drift = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(id => dist(look(id, 'warrior').c, plain.c));
+      ok('cloth stays the job\'s colour', Math.max(...drift) <= 45, `worst drift ${Math.max(...drift)}`);
+
+      // Spread: eight recruits should not land on two faces.
+      const faces = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(id => {
+        const l = look(id, 'warrior'); return `${l.s}|${l.h}`;
+      }));
+      ok('eight recruits are not two people', faces.size >= 6, `${faces.size} distinct of 8`);
+
+      // A hatted template spends its hair key on the hat, so it varies the
+      // fringe instead; either way a mage must not come out bald and uniform.
+      const m1 = look('rowan', 'mage'), m2 = look('garret', 'mage');
+      ok('a mage is told apart by the hair under the hat', m1.r !== m2.r, `${m1.r} vs ${m2.r}`);
+      ok('a mage keeps the hat its job was given', m1.h === g.JOBS.whiteMage.palette.h || m1.h === plain.h, m1.h);
+    }
+
   }
 
   // 24. The battle effects are a lookup table over ability data, so the ways

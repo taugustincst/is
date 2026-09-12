@@ -13,6 +13,15 @@ a browser, or serve the folder with any static file server.
 
 - **Isometric height maps** drawn on canvas with pixel-art units, camera pan,
   zoom, and animated moves, leaps and spell bursts.
+- **Turn the field.** The board rotates a quarter at a time, and turns rather
+  than snaps: every angle in between is a real orientation, so you can watch it
+  go. Height hides things, and turning is how you see behind a wall or line up
+  a shot you could not see. A figure keeps its facing; what moves is the side
+  of it you are looking at.
+- **Nobody is a copy of anybody.** Hair, skin and a shade of dye come from a
+  unit's own id, so a party of five squires is five people and stays the same
+  five across a reload. The team colour and the job's cloth never vary, because
+  those are what a player has to read at a glance.
 - **Every blow has a voice.** Nine weapon swings and five impacts, so a knife
   is heard as a knife and an axe as an axe, and six elements that sound as
   different as they look. A bowstring twangs, an arrow thuds, a thrown stone

@@ -30,6 +30,23 @@ function rgba(hex, a) {
 // Ease-out: effects should hit hard and settle, not drift in.
 const easeOut = (k) => 1 - (1 - k) * (1 - k);
 const easeIn = (k) => k * k;
+// Ease in and out, for something that starts and stops rather than lands.
+const easeInOut = (k) => (k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k));
+
+/* The compass turns with the camera. A figure facing east is still facing
+   east after the board is turned; it is the viewer who has moved, so the
+   side of the figure they see moves with them. */
+const FACING_CYCLE = ['E', 'S', 'W', 'N'];
+// Which way an arrow must point on screen to mean a compass direction, once
+// the board has been turned.
+const DIR_ARROWS = { E: '\u2198', S: '\u2199', W: '\u2196', N: '\u2197' };
+function dirArrow(facing, rot) { return DIR_ARROWS[apparentFacing(facing, rot)] || ''; }
+
+function apparentFacing(facing, rot) {
+  const i = FACING_CYCLE.indexOf(facing);
+  if (i < 0) return facing;
+  return FACING_CYCLE[(i + Math.round(rot || 0) % 4 + 4) % 4];
+}
 
 /* How each weapon delivers a blow. `reach` is how far the attacker leans into
    it as a fraction of a tile, `swing` the shape drawn over the target, `sound`

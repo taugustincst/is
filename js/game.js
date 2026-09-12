@@ -48,6 +48,8 @@ class Game {
     $('btn-hire-chemist').onclick = () => this.hire('chemist');
     $('btn-retreat').onclick = () => this.retreat();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
+    $('btn-rot-l').onclick = () => this.ui.turnField(-1);
+    $('btn-rot-r').onclick = () => this.ui.turnField(1);
     for (const id of ['btn-sound', 'btn-sound-world']) {
       const b = $(id);
       if (b) b.onclick = () => { audio.init(); audio.setMuted(!audio.muted); this.renderSound(); };
