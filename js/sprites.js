@@ -195,8 +195,8 @@ const SPRITE_TEMPLATES = {
       '..hhhhhhhh..',
       '..dddddddd..',
       '.HHHHHHHHHH.',
-      '...ssssss...',
-      '...sesses...',
+      '..rssssssr..',
+      '..rsessesr..',
       '....SSSS....',
       '..dccccccd..',
       '.sccccccccs.',
@@ -215,8 +215,8 @@ const SPRITE_TEMPLATES = {
       '..hhhhhhhh..',
       '..dddddddd..',
       '.HHHHHHHHHH.',
-      '...hhhhhh...',
-      '...hhhhhh...',
+      '...rrrrrr...',
+      '...rrrrrr...',
       '....SSSS....',
       '..dccccccd..',
       '.sccccccccs.',
@@ -503,6 +503,13 @@ function shift(hex, amt) {
   return `rgb(${c(r)},${c(g)},${c(b)})`;
 }
 
+// The same nudge, kept as hex so the shading pass can still work on it.
+function shiftHex(hex, amt) {
+  const [r, g, b] = toRgb(hex);
+  const c = (v) => Math.max(0, Math.min(255, Math.round(v + amt))).toString(16).padStart(2, '0');
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+
 function darken(hex, amt) { return shift(hex, -amt); }
 
 // Mix towards a tint, for elemental gear.
@@ -515,13 +522,51 @@ function tint(hex, toHex, k) {
 
 /* Fill in the shaded uppercase tone for every colour in a palette. Shared with
    tools/make-icons.js, which draws the app icon from this same art. */
-function resolvePalette(palette, team, kind) {
+/* Everyone in a party was the same job template in the same colours, so five
+   squires were five copies of one person. A unit's own look is derived from
+   its id, which is stable and saved, so a character keeps their face across a
+   reload and between battles.
+
+   Only what is personal varies. The team accent and the job's cloth carry the
+   two things a player has to read at a glance -- whose side this is and what
+   it does -- so those stay put, give or take a shade. */
+const SKIN_TONES = ['#f6d7b6', '#f0c8a0', '#e3b189', '#cf9468', '#b0764c', '#8e5a38', '#6d422a'];
+const HAIR_COLOURS = ['#241c14', '#3a2a1c', '#5a3a1e', '#7c4a26', '#96602c', '#c9a24a',
+                      '#dcc78a', '#8f4433', '#6a6a74', '#d6d6e0'];
+
+// A small stable hash, so a name or an id always gives the same person back.
+function lookSeed(id) {
+  let h = 2166136261;
+  for (let i = 0; i < String(id).length; i++) {
+    h ^= String(id).charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function personalise(pal, seed, hatted) {
+  const n = lookSeed(seed);
+  pal.s = SKIN_TONES[n % SKIN_TONES.length];
+  pal.r = HAIR_COLOURS[(n >>> 4) % HAIR_COLOURS.length];
+  // A hatted template spends its hair key on the hat, so leave that alone and
+  // let the fringe under it do the talking.
+  if (!hatted) pal.h = pal.r;
+  // A shade either way on the cloth, which reads as different dye rather than
+  // a different job.
+  pal.c = shiftHex(pal.c, ((n >>> 9) % 5 - 2) * 7);
+  return pal;
+}
+
+function resolvePalette(palette, team, kind, look) {
   const pal = Object.assign(
-    { s: '#f0c8a0', e: '#101010', w: '#f8f8f8', k: '#101010' },
+    // `r` is hair as distinct from `h`, which a hatted template spends on the
+    // hat. Without it a mage has no hair at all to tell them apart by.
+    { s: '#f0c8a0', e: '#101010', w: '#f8f8f8', k: '#101010', r: '#3a2a1c' },
     palette,
     { d: TEAM_COLORS[team] || '#888' },
   );
   if (team === 'enemy' && kind === 'human') pal.c = darken(palette.c, 30);
+  if (look && kind === 'human') personalise(pal, look.id, !!SPRITE_HATTED[look.sprite]);
   for (const key of Object.keys(pal)) {
     const up = key.toUpperCase();
     if (up !== key && !pal[up] && typeof pal[key] === 'string' && pal[key][0] === '#') {
@@ -684,15 +729,15 @@ const spriteCache = new Map();
 
 /* `gear` is { weapon, offhand, head, body }, each an item or null. Monsters
    pass none. */
-function getSprite(job, team, view, flip, gear) {
+function getSprite(job, team, view, flip, gear, look) {
   const g = gear || {};
   const sig = ['weapon', 'offhand', 'head', 'body']
     .map(s => (g[s] ? `${g[s].name}:${g[s].tier || 0}` : '-')).join(',');
-  const key = `${job.name}|${team}|${view}|${flip}|${sig}`;
+  const key = `${job.name}|${team}|${view}|${flip}|${sig}|${look || '-'}`;
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const tpl = SPRITE_TEMPLATES[job.sprite][view];
-  const pal = resolvePalette(job.palette, team, job.kind);
+  const pal = resolvePalette(job.palette, team, job.kind, look && { id: look, sprite: job.sprite });
   const cells = [];
   for (let y = 0; y < GRID_H; y++) cells.push(new Array(GRID_W).fill(null));
 
@@ -761,6 +806,13 @@ function getSprite(job, team, view, flip, gear) {
 }
 
 // The gear a sprite draws, read off a unit.
+/* Who this is, for the look. A boss is a written character rather than one of
+   a crowd, so it keeps the face its job was given. */
+function spriteLook(u) {
+  if (!u || u.boss || u.jobData.kind !== 'human') return null;
+  return u.id || u.name || null;
+}
+
 function spriteGear(u) {
   if (!u || u.jobData.kind !== 'human') return null;
   return {
@@ -775,7 +827,7 @@ function spriteGear(u) {
    Equipment shows here too, so a purchase can be seen taking effect on the
    screen where it is made rather than only once the battle starts. */
 function paintUnitSprite(cv, u, scale) {
-  const spr = getSprite(u.jobData, u.team || 'player', 'front', false, spriteGear(u));
+  const spr = getSprite(u.jobData, u.team || 'player', 'front', false, spriteGear(u), spriteLook(u));
   cv.width = spr.width * scale;
   cv.height = spr.height * scale;
   const c = cv.getContext('2d');

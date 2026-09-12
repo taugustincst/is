@@ -42,6 +42,10 @@ class Renderer {
     // view around after the board under it has been replaced.
     this.camAnim = 0;
     this.camGen = 0;
+    /* Which way round the board is, in quarter turns. It is a float rather
+       than one of four states so that a turn can be watched happening: every
+       value in between is a real orientation the projection can draw. */
+    this.rot = 0;
     this.running = false;
     this.time = 0;
   }
@@ -52,7 +56,10 @@ class Renderer {
     // Party units outlive a battle, and so did the animation state hung on
     // them: a unit interrupted mid-move kept its interpolated position and
     // was drawn at the wrong tile, at the wrong depth, in the next fight.
-    for (const u of b.units) { u.anim = null; u.hitAt = null; u.recoil = null; u._fromAngle = undefined; }
+    for (const u of b.units) {
+      u.anim = null; u.hitAt = null; u.recoil = null; u._fromAngle = undefined;
+      if (u.breathPhase === undefined) u.breathPhase = (lookSeed(u.id || u.name) % 628) / 100;
+    }
     this.camGen++;
     this.clearHighlights();
     this.centerCamera();
@@ -176,11 +183,43 @@ class Renderer {
   }
 
   // World (unzoomed canvas) coordinates of a tile centre.
+  /* Turn a grid position by the current rotation, about the middle of the
+     board. At a whole number of quarter turns this lands exactly on another
+     grid square; in between it is the same rotation part-way through, which
+     is what makes the turn watchable. */
+  gridRot(x, y) {
+    const g = this.battle && this.battle.grid;
+    if (!g || !this.rot) return { x, y };
+    const a = this.rot * Math.PI / 2, c = Math.cos(a), s = Math.sin(a);
+    const cx = (g.w - 1) / 2, cy = (g.h - 1) / 2;
+    const dx = x - cx, dy = y - cy;
+    return { x: cx + dx * c - dy * s, y: cy + dx * s + dy * c };
+  }
+
+  // How near the viewer a square is, which is what everything is drawn by.
+  depthOf(x, y) { const r = this.gridRot(x, y); return r.x + r.y; }
+
   toScreen(x, y, h) {
+    const r = this.gridRot(x, y);
     return {
-      sx: this.cv.width / 2 + this.cam.x + (x - y) * TILE_W / 2,
-      sy: this.cv.height / 2 + this.cam.y + (x + y) * TILE_H / 2 - h * HZ,
+      sx: this.cv.width / 2 + this.cam.x + (r.x - r.y) * TILE_W / 2,
+      sy: this.cv.height / 2 + this.cam.y + (r.x + r.y) * TILE_H / 2 - h * HZ,
     };
+  }
+
+  /* Turn the board a quarter turn and watch it go. The camera holds onto
+     whatever it was looking at, so the board turns under the eye rather than
+     sliding out from under it. */
+  rotate(dir) {
+    if (this.rotating || !this.battle) return Promise.resolve();
+    const from = this.rot, to = from + dir;
+    // The turn is about the middle of the board, so the middle of the board
+    // does not move: the camera needs no help to hold onto what it was
+    // looking at, and anchoring it on anything else drags the view off.
+    this.rotating = true;
+    const done = () => { this.rot = ((to % 4) + 4) % 4; this.clampCamera(); this.rotating = false; };
+    if (reducedMotion()) { done(); return Promise.resolve(); }
+    return tween(280, k => { this.rot = lerp(from, to, easeInOut(k)); }).then(done);
   }
 
   // Convert a canvas pixel position to world coordinates (undo the zoom).
@@ -213,6 +252,11 @@ class Renderer {
     const s = this.toScreen(p.x, p.y, p.h);
     let z = p.z || 0;
     if (u.airborne && !u.anim) z = 150 + Math.sin(this.time / 200) * 6;
+    // A held breath. Everyone off their own phase, so a line of soldiers does
+    // not rise and fall as one animal.
+    else if (u.alive && !u.anim && !reducedMotion()) {
+      z += Math.sin(this.time / 640 + (u.breathPhase || 0)) * 0.9 + 0.9;
+    }
     return { sx: s.sx, sy: s.sy - z };
   }
 
@@ -248,7 +292,7 @@ class Renderer {
     // A figure standing in front of a tile answers for it, since that is what
     // the player is looking at.
     let onUnit = null;
-    const units = this.battle.units.filter(u => u.alive && !u.airborne && u.x >= 0).sort((a, b) => (b.x + b.y) - (a.x + a.y));
+    const units = this.battle.units.filter(u => u.alive && !u.airborne && u.x >= 0).sort((a, b) => this.depthOf(b.x, b.y) - this.depthOf(a.x, a.y));
     for (const u of units) {
       const { sx, sy } = this.unitScreenPos(u);
       if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) { onUnit = g.tile(u.x, u.y); break; }
@@ -256,7 +300,7 @@ class Renderer {
     let onGround = null;
     const order = [];
     for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.tiles[y][x].t !== 'x') order.push(g.tiles[y][x]);
-    order.sort((a, b) => (b.x + b.y) - (a.x + a.y) || b.h - a.h);
+    order.sort((a, b) => this.depthOf(b.x, b.y) - this.depthOf(a.x, a.y) || b.h - a.h);
     for (const t of order) {
       const { sx, sy } = this.toScreen(t.x, t.y, t.h);
       const top = [[sx, sy - 16], [sx + 32, sy], [sx, sy + 16], [sx - 32, sy]];
@@ -338,19 +382,19 @@ class Renderer {
     for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
       const t = g.tiles[y][x];
       if (t.t === 'x') continue;
-      items.push({ d: x + y, kind: 'tile', t });
+      items.push({ d: this.depthOf(x, y), kind: 'tile', t });
     }
     for (const u of this.battle.units) {
       if (u.x < 0) continue; // in reserve, not on the field
       const p = u.anim || { x: u.x, y: u.y };
-      items.push({ d: p.x + p.y + 0.5 + (u.alive ? 0 : -0.2), kind: 'unit', u });
+      items.push({ d: this.depthOf(p.x, p.y) + 0.5 + (u.alive ? 0 : -0.2), kind: 'unit', u });
     }
     // Ground effects sit under the figures standing in them; everything else
     // is the flourish and belongs on top of its own tile's depth.
     this.fx = this.fx.filter(f => this.time - f.t0 < f.dur);
     for (const f of this.fx) {
-      if (f.ground) items.push({ d: f.x + f.y - 0.5, kind: 'fx', f });
-      else items.push({ d: (f.d !== undefined ? f.d : f.x + f.y) + 0.9, kind: 'fx', f });
+      if (f.ground) items.push({ d: this.depthOf(f.x, f.y) - 0.5, kind: 'fx', f });
+      else items.push({ d: (f.d !== undefined ? f.d : this.depthOf(f.x, f.y)) + 0.9, kind: 'fx', f });
     }
     items.sort((a, b) => a.d - b.d);
     for (const it of items) {
@@ -435,16 +479,19 @@ class Renderer {
     const c = this.ctx;
     const { sx, sy } = this.unitScreenPos(u);
     const job = u.jobData;
-    const view = (u.facing === 'N' || u.facing === 'W') ? 'back' : 'front';
-    const flip = (u.facing === 'S' || u.facing === 'W');
-    const spr = getSprite(job, u.team, view, flip, spriteGear(u));
+    // Facing is a fact about the board; which side of the figure that puts
+    // towards the viewer depends on where the viewer is standing.
+    const seen = apparentFacing(u.facing, this.rot);
+    const view = (seen === 'N' || seen === 'W') ? 'back' : 'front';
+    const flip = (seen === 'S' || seen === 'W');
+    const spr = getSprite(job, u.team, view, flip, spriteGear(u), spriteLook(u));
     // Shadow
     c.fillStyle = 'rgba(0,0,0,0.35)';
     const groundY = u.airborne ? this.toScreen(u.x, u.y, this.battle.grid.height(u.x, u.y)).sy : sy;
     c.beginPath(); c.ellipse(sx, groundY + 6, 12, 5, 0, 0, Math.PI * 2); c.fill();
     // Facing marker
     if (u.alive) {
-      const dir = { E: [22, 11], S: [-22, 11], W: [-22, -11], N: [22, -11] }[u.facing];
+      const dir = { E: [22, 11], S: [-22, 11], W: [-22, -11], N: [22, -11] }[apparentFacing(u.facing, this.rot)];
       c.fillStyle = TEAM_COLORS[u.team];
       c.beginPath(); c.arc(sx + dir[0], groundY + dir[1], 3, 0, Math.PI * 2); c.fill();
     }
@@ -734,7 +781,8 @@ class Renderer {
   travel(x0, y0, h0, x1, y1, h1, shape, arc) {
     const dist = Math.abs(x1 - x0) + Math.abs(y1 - y0);
     const dur = Math.min(420, 120 + dist * 45);
-    const f = this.spawn('shot', { x0, y0, h0, x: x1, y: y1, h: h1, shape, arc, dur, d: Math.max(x0 + y0, x1 + y1) });
+    const f = this.spawn('shot', { x0, y0, h0, x: x1, y: y1, h: h1, shape, arc, dur,
+      d: Math.max(this.depthOf(x0, y0), this.depthOf(x1, y1)) });
     return sleep(dur).then(() => { f.dur = 1; });
   }
 
