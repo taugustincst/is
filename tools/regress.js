@@ -471,6 +471,77 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('an elemental reach is left to its element', !isThrown(g.ABILITIES.rootSnare), 'rootSnare');
   }
 
+  /* 25. A crowded melee is the moment a player most needs to know whose side
+     a figure is on, and it was the moment the game answered worst: both sides
+     wore a near-black tunic and carried a three-pixel dot. Team identity is
+     now carried three times over -- a base ring on the ground, a frame around
+     the HP bar, and the cloth itself -- so check that each still says it, and
+     that the ring says it in shape as well as in colour for a player who
+     cannot tell red from blue. */
+  {
+    const fs = require('fs'), path = require('path'), vm = require('vm');
+    const { ROOT } = require('./load');
+    const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) } };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/sprites.js'), 'utf8'), ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), ctx);
+    const get = (n) => vm.runInContext(n, ctx);
+    const TEAM = get('TEAM_COLORS'), RING = get('BASE_RING'), resolve = get('resolvePalette');
+    const rgb = (hex) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+    // How far towards red a colour leans, against its own blue.
+    const warmth = (hex) => { const [r, , b] = rgb(hex); return r - b; };
+
+    const noRing = Object.keys(TEAM).filter(t => !RING[t]);
+    ok('every team has a base ring', noRing.length === 0, noRing.join(',') || Object.keys(TEAM).join(','));
+    ok('the ring tells the sides apart by colour',
+       warmth(RING.enemy.line) > 60 && warmth(RING.player.line) < -60,
+       `enemy=${warmth(RING.enemy.line)} player=${warmth(RING.player.line)}`);
+    // Colour alone fails a colour-blind player, so the rings differ in shape.
+    ok('the ring tells the sides apart by shape as well',
+       RING.enemy.teeth !== RING.player.teeth,
+       `enemy teeth=${RING.enemy.teeth} player teeth=${RING.player.teeth}`);
+
+    // The cloth of a human leans towards its own team, and the two sides are
+    // far enough apart that a torso answers the question on its own.
+    const cloths = {};
+    for (const team of ['player', 'enemy']) {
+      cloths[team] = Object.values(g.JOBS)
+        .filter(j => j.kind === 'human' || !j.kind)
+        .map(j => resolve(j.palette, team, 'human', null).c);
+    }
+    const wrongLean = [];
+    for (const team of ['player', 'enemy']) {
+      for (const c of cloths[team]) {
+        const w = warmth(c);
+        if (team === 'enemy' ? w < 5 : w > -5) wrongLean.push(`${team}:${c}`);
+      }
+    }
+    ok('a human tunic leans towards its own team', wrongLean.length === 0,
+       wrongLean.join(',') || `${cloths.player.length} jobs both ways`);
+    const gaps = cloths.player.map((c, i) => warmth(cloths.enemy[i]) - warmth(c));
+    ok('the two sides never wear the same tunic', Math.min(...gaps) > 30,
+       `narrowest gap=${Math.min(...gaps)}`);
+    // A tunic nobody can see is no cue: the old enemy cloth was near black.
+    const dim = [];
+    for (const team of ['player', 'enemy']) {
+      for (const c of cloths[team]) if (Math.max(...rgb(c)) < 70) dim.push(`${team}:${c}`);
+    }
+    ok('no tunic is too dark to read', dim.length === 0, dim.join(',') || 'all legible');
+    // The accent stays the pure team colour, so it still stands out on cloth
+    // that has been pulled part of the way towards it.
+    const flat = [];
+    for (const team of ['player', 'enemy']) {
+      for (const j of Object.values(g.JOBS)) {
+        if (j.kind && j.kind !== 'human') continue;
+        const pal = resolve(j.palette, team, 'human', null);
+        if (pal.d !== TEAM[team]) flat.push(`${j.name}:${team}`);
+        const [dr, dg, db] = rgb(pal.d), [cr, cg, cb] = rgb(pal.c);
+        if (Math.abs(dr - cr) + Math.abs(dg - cg) + Math.abs(db - cb) < 60) flat.push(`${j.name}:${team} accent lost`);
+      }
+    }
+    ok('the team accent still reads against the tunic', flat.length === 0, flat.join(',') || 'accent holds');
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

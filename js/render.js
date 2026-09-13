@@ -3,6 +3,18 @@
    ========================================================================== */
 
 const TILE_W = 64, TILE_H = 32, HZ = 10;
+
+/* Whose side a figure is on has to survive a crowded melee on a small screen,
+   where a handful of accent pixels on a tabard do not. So every unit stands on
+   a team-coloured base ring: it is on the ground, it never overlaps the figure
+   in front of it, and it stays legible at phone scale. Colour alone would fail
+   a colour-blind player, so the ring's shape carries the same fact — allies
+   stand on a smooth ring, enemies on a serrated one. */
+const BASE_RING = {
+  player: { line: '#6fb2ff', fill: 'rgba(70,150,255,0.34)', teeth: 0 },
+  enemy: { line: '#ff6a52', fill: 'rgba(255,70,50,0.34)', teeth: 8 },
+  neutral: { line: '#6ce08a', fill: 'rgba(70,220,110,0.30)', teeth: 4 },
+};
 const TERRAIN = {
   g: { top: '#5f9e4a', l: '#4a7d3a', r: '#3c6630' },
   d: { top: '#a9825a', l: '#8a6a48', r: '#6f5439' },
@@ -358,6 +370,45 @@ class Renderer {
     c.beginPath(); c.moveTo(sx, sy - 16); c.lineTo(sx + 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx - 32, sy); c.closePath();
   }
 
+  // The ring itself: an ellipse laid on the ground, optionally with teeth.
+  ringPath(sx, sy, rx, ry, teeth) {
+    const c = this.ctx;
+    c.beginPath();
+    if (!teeth) { c.ellipse(sx, sy, rx, ry, 0, 0, Math.PI * 2); c.closePath(); return; }
+    const steps = teeth * 2;
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const k = i % 2 ? 0.66 : 1;
+      const x = sx + Math.cos(a) * rx * k, y = sy + Math.sin(a) * ry * k;
+      if (i) c.lineTo(x, y); else c.moveTo(x, y);
+    }
+    c.closePath();
+  }
+
+  /* The base under one figure. The dark stroke goes down first and wider, so
+     the ring reads on pale stone as well as on grass, and a bright wedge on
+     the rim doubles as the facing marker the dot used to be. */
+  drawBase(sx, sy, team, seen, alpha) {
+    const c = this.ctx;
+    const st = BASE_RING[team] || BASE_RING.neutral;
+    c.save();
+    c.globalAlpha = alpha;
+    this.ringPath(sx, sy, 15, 7, st.teeth);
+    c.fillStyle = st.fill; c.fill();
+    c.lineJoin = 'round';
+    c.strokeStyle = 'rgba(0,0,0,0.65)'; c.lineWidth = 3.5; c.stroke();
+    c.strokeStyle = st.line; c.lineWidth = 1.8; c.stroke();
+    if (seen) {
+      // A wedge on the rim, pointing the way the figure is looking.
+      const a = { E: 0.25, S: 0.75, W: 1.25, N: 1.75 }[seen] * Math.PI;
+      const px = sx + Math.cos(a) * 15, py = sy + Math.sin(a) * 7;
+      c.beginPath(); c.ellipse(px, py, 4.5, 3.5, 0, 0, Math.PI * 2);
+      c.fillStyle = st.line; c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 1.4; c.stroke();
+    }
+    c.restore();
+  }
+
   draw() {
     const c = this.ctx, W = this.cv.width, H = this.cv.height;
     const bg = c.createLinearGradient(0, 0, 0, H);
@@ -489,12 +540,9 @@ class Renderer {
     c.fillStyle = 'rgba(0,0,0,0.35)';
     const groundY = u.airborne ? this.toScreen(u.x, u.y, this.battle.grid.height(u.x, u.y)).sy : sy;
     c.beginPath(); c.ellipse(sx, groundY + 6, 12, 5, 0, 0, Math.PI * 2); c.fill();
-    // Facing marker
-    if (u.alive) {
-      const dir = { E: [22, 11], S: [-22, 11], W: [-22, -11], N: [22, -11] }[apparentFacing(u.facing, this.rot)];
-      c.fillStyle = TEAM_COLORS[u.team];
-      c.beginPath(); c.arc(sx + dir[0], groundY + dir[1], 3, 0, Math.PI * 2); c.fill();
-    }
+    // Team base. A downed figure keeps a faint one, so you can still see whose
+    // body you are running to revive.
+    this.drawBase(sx, groundY + 6, u.team, u.alive ? seen : null, u.alive ? 1 : 0.45);
     if (!u.alive) {
       c.save(); c.globalAlpha = 0.6; c.translate(sx, sy + 8); c.scale(1, 0.35); c.filter = 'grayscale(1)';
       c.drawImage(spr, SPRITE_DX, SPRITE_DY - 8); c.restore();
@@ -529,18 +577,22 @@ class Renderer {
         c.restore();
       }
     }
-    // HP bar
+    // HP bar. The fill answers "how hurt", the frame answers "whose" — the
+    // one part of a figure that stays visible when a wall or a neighbour eats
+    // the rest of it.
     const w = 24, hpk = u.hp / u.maxHp;
-    c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(sx - w / 2 - 1, sy - 36, w + 2, 4);
+    c.fillStyle = 'rgba(0,0,0,0.8)'; c.fillRect(sx - w / 2 - 3, sy - 38, w + 6, 8);
+    c.fillStyle = TEAM_COLORS[u.team]; c.fillRect(sx - w / 2 - 2, sy - 37, w + 4, 6);
+    c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(sx - w / 2, sy - 35, w, 2);
     c.fillStyle = hpk > 0.5 ? '#5ad35a' : hpk > 0.25 ? '#e8c840' : '#e85040';
     c.fillRect(sx - w / 2, sy - 35, Math.max(0, Math.round(w * hpk)), 2);
     // Status dots
     let i = 0;
     for (const s of Object.keys(u.statuses)) {
-      c.fillStyle = STATUSES[s].color; c.fillRect(sx - w / 2 + i * 5, sy - 41, 4, 4); i++;
+      c.fillStyle = STATUSES[s].color; c.fillRect(sx - w / 2 + i * 5, sy - 44, 4, 4); i++;
     }
-    if (u.airborne) { c.fillStyle = '#fff'; c.font = '10px monospace'; c.textAlign = 'center'; c.fillText('JUMP', sx, sy - 44); }
-    if (u.boss) { c.fillStyle = '#ffd040'; c.font = 'bold 10px monospace'; c.textAlign = 'center'; c.fillText('★', sx, sy - 44); }
+    if (u.airborne) { c.fillStyle = '#fff'; c.font = '10px monospace'; c.textAlign = 'center'; c.fillText('JUMP', sx, sy - 47); }
+    if (u.boss) { c.fillStyle = '#ffd040'; c.font = 'bold 10px monospace'; c.textAlign = 'center'; c.fillText('★', sx, sy - 47); }
   }
 
   drawBursts() {

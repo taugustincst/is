@@ -557,6 +557,29 @@ function personalise(pal, seed, hatted) {
   return pal;
 }
 
+/* Both sides used to wear a near-black tunic, which told a player nothing
+   about whose side a figure was on. Cloth is washed towards a deep shade of
+   the team's own colour instead: the job's colour and the wearer's own shade
+   both survive, the tunic is darker than the pure accent laid over it, and a
+   torso answers "friend or foe" from across the board. */
+const TEAM_CLOTH = { player: '#2a4f8e', enemy: '#8e2f27', neutral: '#2f6b3a' };
+const CLOTH_WASH = 0.55;
+
+function teamCloth(hex, team) {
+  const washed = tint(hex, TEAM_CLOTH[team] || '#555555', CLOTH_WASH);
+  // A job dressed in orange is still orange after a blue wash. The last of the
+  // lean is forced, because a tunic that sits on the wrong side of neutral is
+  // not answering the question at all.
+  const want = team === 'enemy' ? 1 : team === 'player' ? -1 : 0;
+  if (!want) return washed;
+  const [r, g, b] = toRgb(washed);
+  const need = want * 26, lean = r - b;
+  if (want * lean >= want * need) return washed;
+  const d = (need - lean) / 2;
+  const h = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return `#${h(r + d)}${h(g)}${h(b - d)}`;
+}
+
 function resolvePalette(palette, team, kind, look) {
   const pal = Object.assign(
     // `r` is hair as distinct from `h`, which a hatted template spends on the
@@ -565,7 +588,7 @@ function resolvePalette(palette, team, kind, look) {
     palette,
     { d: TEAM_COLORS[team] || '#888' },
   );
-  if (team === 'enemy' && kind === 'human') pal.c = darken(palette.c, 30);
+  if (kind === 'human') pal.c = teamCloth(palette.c, team);
   if (look && kind === 'human') personalise(pal, look.id, !!SPRITE_HATTED[look.sprite]);
   for (const key of Object.keys(pal)) {
     const up = key.toUpperCase();
