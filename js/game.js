@@ -11,6 +11,8 @@ const WORLD_ROUTE = [
   [0.07, 0.82], [0.19, 0.64], [0.31, 0.80], [0.43, 0.62], [0.55, 0.78], [0.67, 0.58], [0.80, 0.72],
   [0.91, 0.50], [0.78, 0.32], [0.62, 0.20], [0.45, 0.30], [0.27, 0.16],
 ];
+// Where the road would go next: north, over the ice, in an act not yet written.
+const WORLD_NORTH = [0.09, 0.08];
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -241,8 +243,9 @@ class Game {
         : 'Defeat every enemy';
       const topLevel = Math.max(...ch.enemies.map(e => e.level));
       const ready = this.readiness(ch);
+      const act = ACTS.find(a => s.chapter >= a.from && s.chapter <= a.to) || ACTS[0];
       $('world-next').innerHTML = `
-        <div class="chapter-num">Chapter ${s.chapter + 1}</div>
+        <div class="chapter-num">Act ${ACTS.indexOf(act) + 1} · ${act.title} · Chapter ${s.chapter + 1}</div>
         <div class="chapter-title">${ch.title}</div>
         <div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · up to Lv ${topLevel}</div>
         <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>
@@ -252,15 +255,18 @@ class Game {
     } else {
       // The war is won; the trials are what a company does with peace.
       const n = (s.trials || 0) + 1, t = this.trialSpec(n);
+      const act3 = ACTS[ACTS.length - 1];
       $('world-next').innerHTML = `
-        <div class="chapter-num">Trial ${n}</div>
+        <div class="chapter-num">Act ${ACTS.length} · ${act3.title} · Trial ${n}</div>
         <div class="chapter-title">${t.title}</div>
         <div class="chapter-map">${MAPS[t.map].name} · ${t.enemies.length} enemies · Lv ${t.level}</div>
         <div class="chapter-goal">Objective: Defeat every enemy · ${t.gil} gil</div>
-        <div class="chapter-map">The campaign is complete. Each trial is harder than the last, and nothing is lost by failing one. The wagon now carries legendary arms, and a trial won may turn one up.</div>`;
+        <div class="chapter-map">The war is won. Each trial is harder than the last, and nothing is lost by failing one. The wagon now carries legendary arms, and a trial won may turn one up.</div>
+        <div class="chapter-goal act-teaser">${act3.blurb}</div>`;
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = `Trial ${n}`;
     }
+    this.renderCampfire();
     const diff = DIFFICULTIES[s.difficulty] || DIFFICULTIES.knight;
     $('world-difficulty').innerHTML = Object.entries(DIFFICULTIES).map(([id, d]) =>
       `<button data-diff="${id}" class="${id === s.difficulty ? 'sel' : ''}" title="${d.desc}">${d.name}</button>`).join('') +
@@ -278,6 +284,17 @@ class Game {
     this.showScreen('world');
     // Drawn once the screen is showing, so the canvas has a width to fit.
     this.drawWorldMap();
+  }
+
+  // What the company says the night before: the next chapter's talk, or, once
+  // the war is won, the epilogue a line or two at a time as the trials go by.
+  renderCampfire() {
+    const el = $('campfire'); if (!el) return;
+    const s = this.state, ch = CAMPAIGN[s.chapter];
+    let lines;
+    if (ch) lines = ch.camp || [];
+    else { const n = Math.min(EPILOGUE_CAMP.length, 2 + (s.trials || 0)); lines = EPILOGUE_CAMP.slice(0, n); }
+    el.innerHTML = lines.map(l => `<p>${l}</p>`).join('') || '<p class="muted">The fire burns low. Nobody has anything to say.</p>';
   }
 
   // A word of warning when the party is walking into a chapter underprepared.
@@ -823,7 +840,7 @@ class Game {
       if (done) { c.fillStyle = '#c9b98a'; c.fillRect(p.x - 1, p.y - 14, 2, 10); c.fillStyle = '#d8483b'; c.beginPath(); c.moveTo(p.x + 1, p.y - 14); c.lineTo(p.x + 9, p.y - 11); c.lineTo(p.x + 1, p.y - 8); c.closePath(); c.fill(); }
       // Labels are kept inside the canvas; a stop near an edge would
       // otherwise lose half its name.
-      const lx = Math.max(40, Math.min(W - 40, p.x));
+      const lx = Math.max(56, Math.min(W - 56, p.x));
       c.fillStyle = done || next ? '#e6e6f0' : 'rgba(230,230,240,0.35)';
       const label = done || next ? MAPS[ch.map].name : '?';
       c.fillText(label, lx, p.y + 24);
@@ -841,6 +858,16 @@ class Game {
       c.imageSmoothingEnabled = false;
       // Beside the stop, clear of its label.
       c.drawImage(face, at.x + 18, at.y - face.height + 6);
+    }
+    // Beyond the last stop, the road north: dashed, unnamed, not yet open.
+    {
+      const last = pts[pts.length - 1], nx = WORLD_NORTH[0] * W, ny = WORLD_NORTH[1] * H;
+      c.beginPath(); c.setLineDash([3, 7]); c.lineWidth = 2; c.strokeStyle = 'rgba(160,200,255,0.35)';
+      c.moveTo(last.x, last.y); c.quadraticCurveTo((last.x + nx) / 2 - 20, (last.y + ny) / 2 + 10, nx, ny); c.stroke(); c.setLineDash([]);
+      c.beginPath(); c.arc(nx, ny, 7, 0, Math.PI * 2); c.fillStyle = 'rgba(160,200,255,0.12)'; c.fill();
+      c.strokeStyle = 'rgba(160,200,255,0.45)'; c.lineWidth = 1; c.stroke();
+      c.fillStyle = 'rgba(200,220,255,0.55)'; c.font = '10px Georgia, serif'; c.textAlign = 'center';
+      c.fillText(this.state.chapter >= CAMPAIGN.length ? 'North' : '?', nx, ny + 20);
     }
     cv.onclick = (e) => {
       const r = cv.getBoundingClientRect();

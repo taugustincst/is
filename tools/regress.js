@@ -641,6 +641,13 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('every playable job sits at a finite rank on the tree', ranks.every(([, t]) => Number.isInteger(t) && t >= 0 && t < g.run('TIER_NAMES.length')), `${ranks.length} jobs over ${new Set(ranks.map(r => r[1])).size} ranks`);
     const rec = g.run('(() => { const u = new Unit({ job: "knight", name: "R" }); u.record.battles = 4; u.record.kills = 9; u.record.falls = 1; const back = Unit.fromSave(JSON.parse(JSON.stringify(u.toSave()))); return [back.record, recordLine(back), new Unit({ job: "squire" }).record]; })()');
     ok('a battle record survives the save and reads as words', rec[0].battles === 4 && rec[0].kills === 9 && rec[0].falls === 1 && rec[1] === '4 battles, 0 won · 9 felled · fallen once' && rec[2].battles === 0, rec[1]);
+    const acts = g.run('ACTS'), epi = g.run('EPILOGUE_CAMP');
+    const thin = g.CAMPAIGN.filter(ch => !(ch.intro && ch.intro.length >= 3 && ch.intro.length <= 7) || !(ch.outro && ch.outro.length >= 1 && ch.outro.length <= 7) || !(ch.camp && ch.camp.length >= 2 && ch.camp.length <= 4)).map(ch => ch.id);
+    ok('every chapter has an intro, an outro and a night around the fire, none too long for the screen', thin.length === 0, thin.join(',') || `${g.CAMPAIGN.length} chapters`);
+    const covered = g.CAMPAIGN.every((ch, i) => acts.some(a => i >= a.from && i <= a.to && !a.teaser));
+    ok('every chapter belongs to a walkable act, and the next act is only groundwork', covered && acts[acts.length - 1].teaser === true && acts[acts.length - 1].from === g.CAMPAIGN.length && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
+    const hooks = g.CAMPAIGN[g.CAMPAIGN.length - 1].outro.join(' ');
+    ok('the finale plants the next act', /star-iron/.test(hooks) && /north/.test(hooks) && !/THE END\./.test(hooks), hooks.slice(-80));
     const errands = g.run('ERRANDS');
     ok('every errand is a day or two with pay, JP and a chance of a find', errands.length >= 8 && errands.every(e => [1, 2].includes(e.days) && e.gil > 0 && e.jp > 0 && e.item >= 0 && e.item <= 1 && e.title && e.text) && new Set(errands.map(e => e.id)).size === errands.length, `${errands.length} errands`);
     const rvm = require('vm'), rctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };

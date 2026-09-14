@@ -37,6 +37,9 @@ small { color: var(--muted); }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 16px; }
 .chapter-num { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
 .chapter-title { font-family: Georgia, serif; font-size: 26px; color: var(--gold); }
+.act-teaser { color: #9ec0ff; font-style: italic; }
+.campfire h3 small { color: var(--muted); font-weight: normal; font-size: 12px; }
+.campfire p { font-family: Georgia, serif; font-size: 14px; line-height: 1.5; color: #d8d6ea; margin: 6px 0; }
 .chapter-map { color: var(--muted); margin-top: 4px; }
 .world-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .world-actions button { padding: 10px 16px; }
@@ -126,7 +129,7 @@ small { color: var(--muted); }
 
 /* ---------- story ---------- */
 #screen-story { background: radial-gradient(ellipse at 50% 60%, #1e2040 0%, #0b0c18 70%); }
-.story-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, 90%); }
+.story-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, 90%); max-height: calc(100% - 24px); overflow-y: auto; }
 .story-box h2 { color: var(--gold); font-size: 30px; }
 #story-text p { font-size: 17px; line-height: 1.6; color: #ddd; animation: fadein 0.5s; }
 @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

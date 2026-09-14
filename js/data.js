@@ -1199,6 +1199,11 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout' },
     id: 'ch1', title: 'Ambush on the Verdant Road', map: 'verdant',
+    camp: [
+      'Garret: "Four of us, and a road nobody holds. Your father would have called that an opportunity."',
+      'Rowan: "My father is why there are four of us."',
+      'Bram, from the top of the wagon: "Riders on the road. Bandits, by the way they sit. They have not seen us."',
+    ],
     intro: [
       'Elderon bleeds. Two princes claim one crown, and the roads between their armies belong to no one.',
       'Rowan Aldric, youngest son of a house that chose the wrong prince, rides north with his few remaining companions.',
@@ -1220,6 +1225,10 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout' },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
+    camp: [
+      'Mira: "The mill was still turning when I passed this way in spring. Someone should have shut it off."',
+      'Garret: "Someone should have. Nobody did. That is the whole war in a sentence."',
+    ],
     intro: [
       'Millbrook has been abandoned. Its mill wheel turns for no one.',
       'Goblins nest in the mill now, and their wolves have found the scent of travelers on the bridge.',
@@ -1243,6 +1252,10 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout', protectLeader: true },
     id: 'ch3', title: 'Hollowmere Ruins', map: 'hollowmere',
+    camp: [
+      'Lysa: "Deserters, at the temple. Aldous stopped paying his levies in autumn. He did not stop asking them to die."',
+      'Rowan: "Then some of them may listen before they draw."  Garret: "Some. Keep your hand on the hilt for the others."',
+    ],
     intro: [
       'The ruins of Hollowmere were a temple once. Now they shelter deserters from Prince Aldous\'s army.',
       'Deserters with steel and training, who have decided the Aldric name is worth a bounty.',
@@ -1264,6 +1277,10 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout', protectLeader: true },
     id: 'ch4', title: 'Sable Marsh', map: 'sable',
+    camp: [
+      'Bram: "A coven. Actual witches. Do they know we are coming?"  Lysa: "They were paid to know. That is the part I do not like."',
+      'Kael tests his bowstring. "Paid by whom is the only question worth the marsh."',
+    ],
     intro: [
       'The marsh road is the only way east that avoids the royal checkpoints.',
       'It is also where the Sable Coven trades curses for coin, and someone has paid them handsomely.',
@@ -1286,6 +1303,11 @@ const CAMPAIGN = [
   {
     objective: { type: 'survive', rounds: 4, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
+    camp: [
+      'Rowan: "Brannoc taught me the sword. He stood at my mother\'s funeral."',
+      'Garret: "He stood at Redwater too, on the wrong side of the line, and I have not forgiven him that either. It does not have to be personal to be necessary."',
+      'Mira: "It will be personal. Just make it quick."',
+    ],
     intro: [
       'Ser Brannoc was Rowan\'s father\'s sworn brother. Now he hunts the Aldric line for Prince Aldous.',
       'His garrison holds the gate of Dunmarch. Archers on the wall, knights in the courtyard.',
@@ -1309,6 +1331,10 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout', protectLeader: true },
     id: 'ch6', title: 'Ashen Ridge', map: 'ashen',
+    camp: [
+      'Tamsin: "The ridge breathes. When it breathes out, the bombs drift up. When it breathes in, they come down where you are standing."',
+      'Kael: "So we climb between breaths."  Tamsin: "So we climb between breaths."',
+    ],
     intro: [
       'The road to Thornwall climbs the Ashen Ridge, where the old volcano still breathes.',
       'Bombs drift between the vents. Goblins have learned to herd them toward travelers.',
@@ -1331,6 +1357,11 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch7', title: 'Thornwall Cathedral', map: 'thornwall',
+    camp: [
+      'Nobody sleeps. Bram sharpens a blade that is already sharp. Lysa counts potions in the dark.',
+      'Rowan: "Whatever he says at the altar, do not listen. He was always better at talking than I am."',
+      'Garret: "Then let him talk, and hit him while he does."',
+    ],
     intro: [
       'Ser Brannoc waits at the altar in armor that has forgotten its colors.',
       '"Your father learned that the princes are puppets, boy. That the war is a harvest. He would have told the realm."',
@@ -1358,6 +1389,7 @@ const CAMPAIGN = [
     gil: 5000,
     outro: [
       'The thing in Brannoc\'s armour comes apart, and for a moment the man is there again, and almost grateful.',
+      'Tamsin touches the fallen armour and pulls her hand back. It is cold. Not winter-cold. Something older than winter.',
       'In his hand, the last letter: proof of who fed the war between the princes. It is not signed by either prince. It is stamped with a cog inside a circle.',
       '"The Brass Concord," Tamsin says quietly. "Across the Iron Sea. They sell engines to anyone with a war to lose."',
       'Rowan folds the letter away. "Then the war was never ours. Let us go and find whose it was."',
@@ -1368,6 +1400,11 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout', protectLeader: true },
     id: 'ch8', title: 'Smoke on the Coast Road', map: 'fordwater',
+    camp: [
+      'The letter lies open on the wagon boards. The cog inside the circle looks back at everyone.',
+      'Tamsin: "The Concord does not fight wars. It sells them. If it is on our road, it has decided we are bad for business."',
+      'Bram: "Then we are doing something right."  Garret: "We are doing something expensive. Same thing, to them."',
+    ],
     intro: [
       'Word travels faster than a company on foot. By the time Rowan reaches the coast road, the Concord already knows the name Aldric.',
       'Their scouts wear no prince\'s colours. They wear goggles and brass, and the hounds that run with them were never born.',
@@ -1392,6 +1429,10 @@ const CAMPAIGN = [
   {
     objective: { type: 'rout', protectLeader: true },
     id: 'ch9', title: 'The Foundry at Ironhold', map: 'ironhold',
+    camp: [
+      'Ottilie draws a sentinel in the ash with a stick: the boiler, the pistons, the brass. "Here. And here. Lightning, or something heavy, and keep off the front of it."',
+      'Kael: "You built these."  Ottilie: "I built them to carry ore. Somebody else taught them to carry a piston into a man."',
+    ],
     intro: [
       'Ironhold was a mining town. The Concord bought it in a single afternoon and turned the smelter into a foundry that never cools.',
       '"The sentinels are slow," Ottilie says. "Slow and stupid and wrapped in an inch of brass. Lightning gets through it. So does patience."',
@@ -1413,6 +1454,11 @@ const CAMPAIGN = [
   {
     objective: { type: 'survive', rounds: 5, protectLeader: true },
     id: 'ch10', title: 'Cogsworth Bridge', map: 'cogsworth',
+    camp: [
+      'Mira: "Five rounds, on a bridge, in the rain, with charges under our feet. Say the plan again so I can hate it properly."',
+      'Ottilie: "I find the fuses. You keep them off me. The rain is neither here nor there."  Mira: "The rain is here. It is always here."',
+      'Rowan: "Hold the south end. Nobody crosses. Nobody goes north to be a hero."  He is looking at Bram.',
+    ],
     intro: [
       'Cogsworth Bridge is the only crossing for forty miles, and the Concord\'s charges are already set beneath it.',
       '"Ottilie needs five rounds to find the fuses," Mira says. "We hold the south end until she does. Whatever comes across."',
@@ -1437,6 +1483,11 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch11', title: 'The Aether Yards', map: 'aetheryards',
+    camp: [
+      'Bastian cleans his rifle the way other men pray. "Vexley will have the gantry rigged to lift. If the ship gets up, this was for nothing."',
+      'Lysa: "Then it does not get up."  Bastian: "It weighs forty tons."  Lysa: "Then we are efficient about it."',
+      'Tamsin, quietly, to Rowan: "The Director will be watching. Let him see what we are."',
+    ],
     intro: [
       'The Aether Yards are where the Concord builds its airships, and where Marshal Vexley keeps the only one that flies.',
       '"Vexley does not lose," Bastian says. "He retreats, and calls it a lesson. Do not let him reach the gantry."',
@@ -1459,6 +1510,12 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch12', title: 'Brassgate', map: 'brassgate',
+    camp: [
+      'Rowan turns the letter over in his hands one last time. "He killed my father over a bill of lading."',
+      'Garret: "And built a war to hide it. Men like Crane do not think of it as killing. They think of it as a cost."',
+      'Ottilie: "There is something in that hall. Something they did not let me near. Whatever it is, it is not a sentinel."',
+      'Bram: "Good. I was getting bored of sentinels."',
+    ],
     intro: [
       'Brassgate is not a fortress. It is a counting house with walls, and Director Halvard Crane receives Rowan in its great hall like a debtor.',
       '"Two princes, one crown, and a realm that would pay anything to end it. I sold them the anything. I sold it to both."',
@@ -1486,12 +1543,35 @@ const CAMPAIGN = [
     gil: 8000,
     outro: [
       'The Colossus sinks to its knees with its furnace gone dark, and the Director climbs out of it a small man in a singed coat.',
+      'In the machine\'s chest, where a furnace should be, sits a core of grey metal that gives off cold instead of heat. Ottilie will not touch it. "That is not ours," she says. "That is not anybody\'s."',
       'The Concord\'s ledgers go to both princes at once, with Rowan\'s seal beside the cog. By spring there is nothing left for either to fight about, and everyone knows why.',
-      'Rowan Aldric goes home. The road behind him is long. The company that walked it stays together, because that is what it has become.',
-      '--- THE END. The road keeps going: trials await, and the wagon carries legendary arms. ---',
+      'The last page of the last ledger is a shipping order, paid in a script none of them can read: eleven more cores of star-iron, from somewhere north of the ice.',
+      'Rowan Aldric goes home, for a while. The company that walked the road stays together, because that is what it has become, and because the road is not finished.',
+      '--- END OF ACT II. The road north waits for another day. Trials await at camp, and the wagon carries legendary arms. ---',
     ],
     final: true,
   },
+];
+
+// The campaign in acts. The third is groundwork: named, foreshadowed, and not
+// yet walkable.
+const ACTS = [
+  { title: 'The War of Princes', from: 0, to: 6 },
+  { title: 'The Brass Concord', from: 7, to: 11 },
+  { title: 'The Winter Court', from: 12, to: 12, teaser: true,
+    blurb: 'North of the ice, whoever sold the Concord its star-iron is waiting. The road there is not open yet.' },
+];
+
+// Around the fire once the war is won: what the company says while it trains,
+// one line at a time as the trials go by. All of it points north.
+const EPILOGUE_CAMP = [
+  'The Concord\'s ledgers are with the princes, and the princes have discovered, to their disgust, that they agree about something.',
+  'Ottilie has not stopped reading the last ledger. "Star-iron. Eleven shipments, from the north, paid for in a script I cannot read. The Colossus\'s core was made of it. The Concord did not smelt that. Nobody south of the ice can."',
+  'Tamsin: "Brannoc\'s armour was cold. Not cold like iron in winter. Cold like it had never been warm." She does not say more, and nobody asks her to.',
+  'A rider comes down the north road with frost on his cloak in high summer. He asks for Rowan Aldric by name, and he does not say who sent him.',
+  'Kael, on watch: "The lights over the northern sea are wrong. They do not move like weather."',
+  'Bastian: "The Concord had a buyer for the war. Now we find out who had a buyer for the Concord."',
+  'Rowan: "Then we go north. When the company is ready, and not before. Whatever is up there has waited a long time. It can wait for us to be worth its trouble."',
 ];
 
 // Party at the start of a new game.

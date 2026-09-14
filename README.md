@@ -106,7 +106,8 @@ a browser, or serve the folder with any static file server.
 - **Twelve chapters in two acts** with story beats and recruits: the war of
   the princes, then the Brass Concord that sold it to both sides, from the
   coast road to the foundry, the bridge, the airship yards and Brassgate
-  itself. Repeatable training
+  itself, with a night around the fire before every chapter and an epilogue
+  that points north toward a third act. Repeatable training
   battles across ten fields, and a tavern for hiring.
 - **Know your enemy.** An enemy's card lists the skills it has, so a Coven
   Mage's Fire or a priest's Raise is never a surprise.
