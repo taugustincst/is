@@ -77,6 +77,11 @@ const WEAPON_FX = {
   // A harp is played, not swung: the note travels to the target.
   harp:       { reach: 0.0, swing: null, hits: 1, wind: 240, color: '#ffd8f0', shot: 'orb',
                 sound: 'strum', impact: 'impact-chime' },
+  greatsword: { reach: 0.36, swing: 'chop', hits: 1, wind: 320, color: '#f0f4ff',
+                sound: 'swing-great', impact: 'impact-slash' },
+  // A tome is read at the target: the word travels.
+  tome:       { reach: 0.0, swing: null, hits: 1, wind: 260, color: '#d8b0ff', shot: 'orb',
+                sound: 'incant', impact: 'impact-chime' },
 };
 const DEFAULT_WEAPON_FX = WEAPON_FX.sword;
 
@@ -434,7 +439,7 @@ function throwShape(u, ab) {
   const t = u.weapon && u.weapon.wtype;
   if (t === 'ninjablade' || t === 'knife') return 'star';
   if (t === 'bow') return 'arrow';          // a rain of arrows is still arrows
-  if (t === 'harp') return 'orb';           // a note, thrown
+  if (t === 'harp' || t === 'tome') return 'orb';   // a note, a word: thrown
   if (t === 'fist') return 'orb';           // a monk projects force, not a rock
   return 'rock';
 }

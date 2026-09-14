@@ -95,6 +95,17 @@ const COMBAT_SFX = {
     { n: 1, freq: 5200, sweep: 2200, dur: 0.16, vol: 0.50, q: 2.6 },
     { t: 1, freq: 2600, to: 2300, dur: 0.18, vol: 0.07, type: 'sine', d: 0.04 },
   ],
+  // A greatsword takes both hands and all of a second: the lowest, longest
+  // whoosh on the field, with the weight of it in a low tone underneath.
+  'swing-great': [
+    { n: 1, freq: 700, sweep: 120, dur: 0.30, vol: 0.62, q: 1.6 },
+    { t: 1, freq: 180, to: 70, dur: 0.26, vol: 0.16, type: 'triangle' },
+  ],
+  // A word read aloud: a breath of noise falling, and a low hum under it.
+  'incant': [
+    { n: 1, freq: 1400, sweep: 320, dur: 0.22, vol: 0.34, q: 3 },
+    { t: 1, freq: 160, to: 220, dur: 0.24, vol: 0.10, type: 'sine' },
+  ],
   // A harp is not swung; three strings are plucked in a rising run.
   'strum': [
     { t: 1, freq: 660, to: 655, dur: 0.14, vol: 0.12, type: 'triangle' },

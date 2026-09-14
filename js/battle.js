@@ -233,6 +233,7 @@ class Battle {
     if (eff.formula === 'pa') base = user.pa * power;
     else if (eff.formula === 'ma') base = user.ma * power;
     else if (eff.formula === 'curhp') base = user.hp;
+    else if (eff.formula === 'targetpct') base = target.hp * power;   // a share of what the target has left
     else base = eff.flat || 0;
     if (eff.mult) base *= eff.mult;
     if (eff.type === 'damage' || eff.type === 'drain') {
@@ -241,6 +242,7 @@ class Battle {
         const dh = this.grid.height(user.x, user.y) - this.grid.height(target.x, target.y);
         if (dh >= 2) base *= 1.1; else if (dh <= -2) base *= 0.9;
         if (user.hasPassive('attackUp')) base *= 1.25;
+        if (user.hasPassive('firstStrike') && target.hp === target.maxHp) base *= 1.5;
         if (user.hasStatus('berserk')) base *= 1.5;
         if (target.hasPassive('defend')) base *= 0.8;
         if (target.hasStatus('protect')) base *= 2 / 3;
@@ -278,6 +280,8 @@ class Battle {
         else if (eff.type === 'heal') p.heal += this.computeEffect(user, ab, eff, t);
         else if (eff.type === 'mpheal') p.notes.push(`MP +${this.computeEffect(user, ab, eff, t)}`);
         else if (eff.type === 'mpdamage') p.notes.push(`MP -${Math.min(this.computeEffect(user, ab, eff, t), t.mp)}`);
+        else if (eff.type === 'mpdrain') p.notes.push(`MP -${Math.min(this.computeEffect(user, ab, eff, t), t.mp)}`);
+        else if (eff.type === 'slay') p.notes.push(t.boss ? 'immune' : `slay ${eff.hit}%`);
         else if (eff.type === 'revive') p.notes.push(`revive ${Math.round(eff.pct * 100)}%`);
         else if (eff.type === 'status') p.notes.push(`${STATUSES[eff.status].name} ${eff.hit}%`);
         else if (eff.type === 'statmod') p.notes.push(`${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`);
@@ -302,7 +306,10 @@ class Battle {
 
   async applyAbility(user, ab, tx, ty) {
     const targets = this.affectedUnits(user, ab, tx, ty);
-    if (ab.mp) user.mp -= this.mpCost(user, ab);
+    if (ab.mp) {
+      if (user.hasPassive('arcaneEcho') && Math.random() < 0.3) this.log(`${user.name}'s ${ab.name} echoes: no MP spent.`, 'heal');
+      else user.mp -= this.mpCost(user, ab);
+    }
     user.facing = (tx === user.x && ty === user.y) ? user.facing : facingFromDelta(tx - user.x, ty - user.y);
     if (this.hooks.animateAction) await this.hooks.animateAction(user, ab, tx, ty);
     let didSomething = false;
@@ -437,6 +444,28 @@ class Battle {
         if (this.hooks.showFloat) this.hooks.showFloat(t, `-${v} MP`, '#c56aff');
         return true;
       }
+      case 'mpdrain': {
+        if (!t.alive) return false;
+        const v = Math.min(this.computeEffect(user, ab, eff, t), t.mp);
+        if (v <= 0) { this.log(`${t.name} has no MP to take.`, 'miss'); return false; }
+        t.mp -= v; user.mp = Math.min(user.maxMp, user.mp + v);
+        this.log(`${user.name} draws ${v} MP out of ${t.name}.`, 'dmg');
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
+        if (this.hooks.showFloat) { this.hooks.showFloat(t, `-${v} MP`, '#c56aff'); this.hooks.showFloat(user, `+${v} MP`, '#7cc8ff'); }
+        return true;
+      }
+      case 'slay': {
+        // One cut. Commanders and bosses are made of sterner stuff.
+        if (!t.alive) return false;
+        if (t.boss || Math.random() * 100 >= eff.hit) { this.log(`${t.name} slips the killing blow.`, 'miss'); if (this.hooks.onEvade) this.hooks.onEvade(t); return false; }
+        const v = t.hp;
+        t.hp = 0;
+        this.log(`${user.name}'s ${ab.name} fells ${t.name} in one cut!`, 'dmg');
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
+        if (this.hooks.showFloat) this.hooks.showFloat(t, 'Slain', '#ff6a5a');
+        this.onUnitKO(t);
+        return true;
+      }
       case 'mpheal': {
         const v = this.computeEffect(user, ab, eff, t);
         const real = Math.min(v, t.maxMp - t.mp);
@@ -510,6 +539,14 @@ class Battle {
   // Reactions that fire the moment a unit takes damage.
   onDamaged(user, ab, target, amount) {
     if (!target.alive || amount <= 0) return;
+    if (target.hasPassive('secondWind')) {
+      const heal = Math.min(Math.ceil(target.maxHp / 10), target.maxHp - target.hp);
+      if (heal > 0) {
+        target.hp += heal;
+        this.log(`${target.name} finds a second wind: ${heal} HP.`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(target, `+${heal}`, '#7cff7c');
+      }
+    }
     if (target.hasPassive('autoPotion')) {
       const heal = Math.min(35, target.maxHp - target.hp);
       if (heal > 0) {
@@ -596,6 +633,15 @@ class Battle {
   }
 
   onUnitKO(t) {
+    if (t.hasStatus('reraise')) {
+      // The life held in reserve is spent, and the fall never happens.
+      t.statuses = {};
+      t.hp = Math.max(1, Math.floor(t.maxHp / 4));
+      this.log(`${t.name} rises again!`, 'heal');
+      this.sound('heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(t, 'Reraise', STATUSES.reraise.color);
+      return;
+    }
     t.statuses = {};
     t.ct = 0;
     // Cancel anything the unit was charging.
@@ -780,7 +826,11 @@ class Battle {
       this.sound('poison');
       if (this.hooks.showFloat) this.hooks.showFloat(unit, `${v}`, '#a05fd6');
       this.checkPhase(unit);
-      if (unit.hp === 0) { this.log(`${unit.name} succumbs to poison!`, 'ko'); this.onUnitKO(unit); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
+      if (unit.hp === 0) {
+        this.onUnitKO(unit);
+        // Unless a Reraise caught the fall, in which case the turn goes on.
+        if (!unit.alive) { this.log(`${unit.name} succumbs to poison!`, 'ko'); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
+      }
     }
     if (unit.hasPassive('mpRegen') && unit.mp < unit.maxMp) {
       const v = Math.min(Math.ceil(unit.maxMp / 10), unit.maxMp - unit.mp);
@@ -842,7 +892,7 @@ class Battle {
     if (ab.ct > 0) {
       if (ab.mp) { /* MP is spent when the spell resolves */ }
       unit.facing = (tx === unit.x && ty === unit.y) ? unit.facing : facingFromDelta(tx - unit.x, ty - unit.y);
-      this.pending.push({ unit, ability: ab, tx, ty, ct: 0, speed: ab.ct });
+      this.pending.push({ unit, ability: ab, tx, ty, ct: 0, speed: unit.hasPassive('quickCast') ? ab.ct * 1.5 : ab.ct });
       if (ab.airborne) { unit.airborne = true; if (this.hooks.onJump) await this.hooks.onJump(unit); }
       this.log(`${unit.name} begins charging ${ab.name}.`, 'act');
       if (this.hooks.refresh) this.hooks.refresh();
@@ -921,12 +971,14 @@ class Battle {
           const bonus = id === 'silence' ? (casterly ? 20 : -10) : id === 'blind' ? (casterly ? -5 : 15) : 0;
           score += (enemy ? 25 + bonus : -25);
         }
-        else if (/Haste|Protect|Shell|Regen/.test(n)) score += !enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? 20 : 0;
+        else if (/Haste|Protect|Shell|Regen|Reraise/.test(n)) score += !enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? (n.startsWith('Reraise') ? 14 : 20) : 0;
         else if (/PA \+|SPD \+/.test(n)) score += enemy ? -8 : 8;
         else if (/^MP \+/.test(n)) score += !enemy && t.mp < t.maxMp * 0.5 ? 6 : 0;
         else if (/^MP -/.test(n)) { const v = +n.slice(4); score += enemy ? Math.min(20, v * 0.6) : -v; }
         else if (/PA -|SPD -|MA -/.test(n)) score += enemy ? 12 : -12;
         else if (n.startsWith('steal')) score += enemy ? 10 : 0;
+        else if (n.startsWith('slay')) score += enemy ? Math.min(45, t.hp * 0.35) : -60;
+        else if (/EVADE \+|MOVE \+/.test(n)) score += enemy ? -6 : 6;
         else if (n.startsWith('drain')) score += enemy ? 5 : 0;
         else if (n.startsWith('CT =')) score += !enemy ? 30 : 0;
         else if (n === 'no effect') score -= 30;

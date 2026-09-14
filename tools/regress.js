@@ -626,6 +626,13 @@ const mk = (n, job, lvl, opts = {}) => {
     const wtypes = new Set(Object.values(g.ITEMS).filter(i => i.slot === 'weapon').map(i => i.wtype));
     const noShop = [...wtypes].filter(t => !Object.values(g.ITEMS).some(i => i.slot === 'weapon' && i.wtype === t && i.tier > 0));
     ok('every weapon type has something to buy beyond the starter', noShop.length === 0, noShop.join(',') || `${wtypes.size} types`);
+    // The campaign was balanced before the master-tier gear existed; no enemy
+    // of any job at any level may be issued a piece of it.
+    const leaked = [];
+    for (const job of Object.keys(g.JOB_EQUIP)) for (const lvl of [6, 10, 14, 30]) {
+      for (const id of Object.values(g.enemyGearFor(job, lvl, 1))) if (g.ITEMS[id] && g.ITEMS[id].late) leaked.push(`${job}@${lvl}:${id}`);
+    }
+    ok('master-tier gear is never issued to enemies', leaked.length === 0, leaked.slice(0, 4).join(',') || `${Object.values(g.ITEMS).filter(i => i.late).length} late items withheld`);
     const engine = fs.readdirSync(path.join(ROOT, 'js')).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
     const dead = Object.keys(g.PASSIVES).filter(id => !engine.includes(`hasPassive('${id}')`));
     ok('every passive is consulted by the engine', dead.length === 0, dead.join(',') || `${Object.keys(g.PASSIVES).length} passives`);
@@ -642,7 +649,7 @@ const mk = (n, job, lvl, opts = {}) => {
      Storm Mail cannot either, and charged abilities are resolved as the
      engine would resolve them. */
   {
-    const NEW = ['samurai', 'summoner', 'geomancer', 'bard'];
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage'];
     const realRandom = Math.random;
     const silent = [];
     for (const job of NEW) for (const id of g.JOBS[job].abilities) {
@@ -658,8 +665,13 @@ const mk = (n, job, lvl, opts = {}) => {
       caster.mp = caster.maxMp;
       for (const u of b.units) { u.passives = { reaction: null, support: null, movement: null }; if (u.team === 'enemy') u.gear = {}; }
       const helpful = ab.affects === 'ally';
-      const target = helpful ? friend : (id === 'bizenBoat' ? mage : foe);
-      const snap = (u) => JSON.stringify([u.hp, u.mp, Object.keys(u.statuses), u.mods]);
+      // A self-only ability changes the caster; everything else is aimed at
+      // the friend, the caster mage for the MP-taking cuts, or the foe.
+      const target = helpful ? (ab.self && !ab.aoe ? caster : friend) : (/bizenBoat|drainSoul/.test(id) ? mage : foe);
+      if (ab.deadOnly) { friend.hp = 0; friend.koCount = 3; }
+      // The stats themselves, not the modifier table: a buff that changes a
+      // number nothing reads is not a buff.
+      const snap = (u) => JSON.stringify([u.hp, u.mp, Object.keys(u.statuses), u.pa, u.ma, u.spd, u.move, u.jump, u.evade]);
       const before = snap(target);
       Math.random = () => 0.01;
       try {
@@ -671,8 +683,29 @@ const mk = (n, job, lvl, opts = {}) => {
       Math.random = realRandom;
       if (snap(target) === before && !silent.some(x => x.startsWith(id))) silent.push(id);
     }
-    ok('every second-tier ability does what it says', silent.length === 0,
+    ok('every second- and third-tier ability does what it says', silent.length === 0,
        silent.join(',') || `${NEW.reduce((n, j) => n + g.JOBS[j].abilities.length, 0)} abilities cast`);
+
+    // Reraise is the one status that acts at the moment of death: a unit
+    // carrying it, struck down, must be standing afterwards with a quarter
+    // of its HP, and carrying it no longer.
+    {
+      const u = new g.Unit({ name: 'Held', job: 'knight', level: 10, team: 'player' });
+      let b; b = g.Battle.setup(g.MAPS.verdant, [u], [{ job: 'knight', level: 10, x: 3, y: 2 }], { log: () => {}, awaitPlayerTurn: async () => {} }, { type: 'rout' });
+      u.addStatus('reraise'); u.hp = 1;
+      const foe = b.units.find(x => x.team === 'enemy');
+      const before = u.hp;
+      b.onUnitKO(u);
+      ok('a fall under Reraise is not a fall', u.alive && u.hp === Math.floor(u.maxHp / 4) && !u.hasStatus('reraise'), `hp ${before} -> ${u.hp} of ${u.maxHp}`);
+      u.hp = 0; b.onUnitKO(u);
+      ok('Reraise is spent by the rising', !u.alive && u.hp === 0, `hp ${u.hp}`);
+      // A commander cannot be slain outright.
+      foe.boss = true; foe.hp = 50;
+      Math.random = () => 0.01;
+      const did = b.applyEffect(u, g.ABILITIES.assassinate, g.ABILITIES.assassinate.effects[0], foe);
+      Math.random = realRandom;
+      ok('Assassinate cannot fell a commander', !did && foe.hp === 50, `boss hp ${foe.hp}`);
+    }
   }
 
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');

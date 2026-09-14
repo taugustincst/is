@@ -663,6 +663,10 @@ const WEAPONS = {
   katana: G(13, 4, ['..m..', '..m..', '..mm.', '..mm.', '..mm.', '..mm.', '..mm.', '..mm.', '..mm.', '.yyy.', '..nn.', '..nn.', '..nn.']),
   // A harp: a wooden frame with strings, held out at the hip.
   harp: G(12, 9, ['.tttt.', 'tt..wt', 't.w.wt', 't.w.wt', 't.w.wt', 'tt.wtt', '.tttt.']),
+  // A greatsword is a sword and a half: wider, longer, a bigger cross.
+  greatsword: G(13, 2, ['..mm.', '..mm.', '.mmm.', '.mmm.', '.mmm.', '.mmm.', '.mmm.', '.mmm.', '.mmm.', '.mmm.', '.mmm.', 'yymmyy', '..tt.', '..tt.', '..tt.', '..yy.']),
+  // A tome, held open at the hip, with its clasp.
+  tome: G(13, 11, ['tttt', 'twwt', 'twwt', 'twwt', 'tttt', '.yy.']),
 };
 // Bare hands get wraps rather than nothing, so a monk still reads as armed.
 const FIST_WRAPS = [G(4, 14, ['ww']), G(14, 14, ['ww'])];

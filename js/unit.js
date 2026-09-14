@@ -150,9 +150,12 @@ class Unit {
   get pa() { return Math.max(1, this.baseStats().pa + (this.mods.pa || 0)); }
   get ma() { return Math.max(1, this.baseStats().ma + (this.mods.ma || 0)); }
   get spd() { return Math.max(1, this.baseStats().spd + (this.mods.spd || 0)); }
-  get move() { return this.baseStats().move; }
-  get jump() { return this.baseStats().jump; }
-  get evade() { return this.baseStats().evade; }
+  // Battle modifiers reach every stat an ability can raise, not only the
+  // three the first abilities touched: an evasion buff that changed a number
+  // nobody read was a buff in name only.
+  get move() { return Math.max(1, this.baseStats().move + (this.mods.move || 0)); }
+  get jump() { return Math.max(1, this.baseStats().jump + (this.mods.jump || 0)); }
+  get evade() { return Math.max(0, this.baseStats().evade + (this.mods.evade || 0)); }
   // The equipped weapon, or the job's innate one (bare hands, claws, fangs),
   // with support abilities folded into its power.
   get weapon() {

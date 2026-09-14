@@ -25,6 +25,7 @@ const STATUSES = {
   silence: { name: 'Silence', dur: 48, bad: true,  color: '#8f8fa8', desc: 'Cannot use anything that costs MP.' },
   blind:   { name: 'Blind',   dur: 48, bad: true,  color: '#4a4a5a', desc: 'Physical attacks are half as likely to land.' },
   berserk: { name: 'Berserk', dur: 36, bad: true,  color: '#e05a3a', desc: 'Attacks the nearest foe unbidden, for half again the damage.' },
+  reraise: { name: 'Reraise', dur: 72, bad: false, color: '#ffe0a0', desc: 'Rises again with a quarter of max HP the first time it falls.' },
 };
 
 // ------------------------------------------------------------------- elements
@@ -175,6 +176,42 @@ const JOBS = {
     weapon: { name: 'Harp', power: 3, range: 3, vert: 4 },
     abilities: ['battleSong', 'lifeSong', 'angelSong', 'namelessSong'],
     req: { whiteMage: 2, archer: 2 }, desc: 'Fights from the back with a harp and a voice. Songs lift everyone within earshot.',
+  },
+
+  // ------------------------------------------------------ third tier: masters
+  paladin: {
+    name: 'Paladin', skillset: 'Holy Sword', kind: 'human', sprite: 'heavy',
+    palette: { h: '#e8d8a0', c: '#e8e4dc', p: '#3a4a7a', b: '#4a3a2a' },
+    affinity: { holy: 'resist' },
+    hp: 1.4, mp: 1.0, pa: 1.3, ma: 1.1, spd: 0.95, move: 3, jump: 3, evade: 12,
+    weapon: { name: 'Greatsword', power: 9, range: 1, vert: 2 },
+    abilities: ['holyStrike', 'sanctuary', 'judgment', 'oath'],
+    req: { samurai: 2, whiteMage: 3 }, desc: 'A knight sworn to the light. Holy steel for the enemy, a shield of prayer for friends.',
+  },
+  arcanist: {
+    name: 'Arcanist', skillset: 'Arcana', kind: 'human', sprite: 'mage',
+    palette: { h: '#3a1a5a', c: '#5a2a8a', p: '#e8c860', b: '#2a1a1a' },
+    hp: 0.7, mp: 1.7, pa: 0.6, ma: 1.6, spd: 0.95, move: 3, jump: 3, evade: 6,
+    weapon: { name: 'Grimoire', power: 4, range: 2, vert: 3 },
+    abilities: ['meteor', 'gravity', 'drainSoul', 'doomBolt'],
+    req: { summoner: 2, geomancer: 2 }, desc: 'Reads what should not be read. Ruin from the sky, and spells that take rather than strike.',
+  },
+  assassin: {
+    name: 'Assassin', skillset: 'Shadow', kind: 'human', sprite: 'rogue',
+    palette: { h: '#2a1a1a', c: '#1a1a22', p: '#3a1a1a', b: '#101010' },
+    hp: 0.9, mp: 0.9, pa: 1.25, ma: 1.0, spd: 1.45, move: 5, jump: 5, evade: 26,
+    weapon: { name: 'Twin Fangs', power: 5, range: 1, vert: 2 },
+    abilities: ['shadowstitch', 'assassinate', 'vanish', 'smokeStep'],
+    req: { ninja: 3, bard: 2 }, desc: 'The fastest thing on the field. Ends fights with one cut, when the cut lands.',
+  },
+  sage: {
+    name: 'Sage', skillset: 'Sagacity', kind: 'human', sprite: 'mage',
+    palette: { h: '#f0f0f8', c: '#d8e0f0', p: '#3a5a9a', b: '#3a2a1a' },
+    affinity: { dark: 'resist' },
+    hp: 0.8, mp: 1.8, pa: 0.7, ma: 1.55, spd: 1.0, move: 3, jump: 3, evade: 6,
+    weapon: { name: 'Sage\'s Tome', power: 4, range: 2, vert: 3 },
+    abilities: ['holy', 'fullLife', 'reraise', 'ultima'],
+    req: { summoner: 3, bard: 2 }, desc: 'Has read everything the Arcanist has, and closed the book. The last word in magick.',
   },
 
   // ----------------------------------------------------------- monsters/boss
@@ -439,6 +476,52 @@ const ABILITIES = {
     effects: [{ type: 'mpheal', formula: 'ma', power: 2 }], desc: 'A song that gives back what casting takes. MP to every ally within three tiles.' },
   namelessSong: { name: 'Nameless Song', job: 'bard', jp: 300, mp: 14, range: 0, aoe: 2, vert: 4, ct: 20, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'haste', hit: 100 }], desc: 'The old song. Haste for every ally within two tiles, once it is sung through.' },
+
+  // Paladin
+  holyStrike: { name: 'Holy Strike', job: 'paladin', jp: 150, mp: 6, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all', element: 'holy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 3 }], desc: 'A blow wreathed in light. Weapon power +3, and holy.' },
+  sanctuary: { name: 'Sanctuary', job: 'paladin', jp: 200, mp: 12, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 4 }, { type: 'status', status: 'protect', hit: 100 }],
+    desc: 'A prayer over the ground you hold. Heals and grants Protect to every ally within two tiles.' },
+  judgment: { name: 'Judgment', job: 'paladin', jp: 300, mp: 14, range: 3, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'holy',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }, { type: 'status', status: 'silence', hit: 50 }],
+    desc: 'Light falls on an area. Holy damage, and half of those struck are silenced.' },
+  oath: { name: 'Oath', job: 'paladin', jp: 250, mp: 10, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'regen', hit: 100 }, { type: 'statmod', stat: 'pa', amount: 2 }],
+    desc: 'Swear it again. Regen, and PA +2 for the rest of the battle.' },
+
+  // Arcanist
+  meteor: { name: 'Meteor', job: 'arcanist', jp: 400, mp: 28, range: 4, aoe: 2, vert: 9, ct: 8, kind: 'magic', affects: 'all', element: null,
+    effects: [{ type: 'damage', formula: 'ma', power: 12 }], desc: 'Pull a stone down out of the sky. Slow, wide, and it does not care who is underneath.' },
+  gravity: { name: 'Gravity', job: 'arcanist', jp: 200, mp: 12, range: 4, aoe: 1, vert: 9, ct: 18, kind: 'magic', affects: 'all', element: null,
+    effects: [{ type: 'damage', formula: 'targetpct', power: 0.3 }], desc: 'Takes three tenths of what each target has left, however much that is.' },
+  drainSoul: { name: 'Drain Soul', job: 'arcanist', jp: 180, mp: 0, range: 3, aoe: 0, vert: 4, ct: 16, kind: 'magic', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'mpdrain', formula: 'ma', power: 4 }], desc: 'Drink a foe\'s MP into your own. Costs nothing; that is the point.' },
+  doomBolt: { name: 'Doom Bolt', job: 'arcanist', jp: 250, mp: 16, range: 4, aoe: 0, vert: 8, ct: 14, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }, { type: 'status', status: 'slow', hit: 60 }],
+    desc: 'Dark lightning from above. Heavy damage, and most who survive it are Slowed.' },
+
+  // Assassin
+  shadowstitch: { name: 'Shadowstitch', job: 'assassin', jp: 150, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'stop', hit: 50 }],
+    desc: 'Pin the shadow to the ground. A weapon strike; half the time the target is Stopped.' },
+  assassinate: { name: 'Assassinate', job: 'assassin', jp: 400, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'slay', hit: 35 }], desc: 'One cut, in the right place. Fells the target outright a third of the time; commanders are made of sterner stuff.' },
+  vanish: { name: 'Vanish', job: 'assassin', jp: 200, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'evade', amount: 30 }], desc: 'Step out of sight. Evasion +30 for the rest of the battle.' },
+  smokeStep: { name: 'Smoke Step', job: 'assassin', jp: 120, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'statmod', stat: 'spd', amount: 2 }, { type: 'statmod', stat: 'move', amount: 1 }],
+    desc: 'Teach an ally the quick way. Speed +2 and Move +1 for the rest of the battle.' },
+
+  // Sage
+  holy: { name: 'Holy', job: 'sage', jp: 350, mp: 24, range: 4, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'holy',
+    effects: [{ type: 'damage', formula: 'ma', power: 12 }], desc: 'The white spell. Holy ruin over an area.' },
+  fullLife: { name: 'Full-Life', job: 'sage', jp: 300, mp: 20, range: 4, aoe: 0, vert: 4, ct: 14, kind: 'magic', affects: 'ally', deadOnly: true,
+    effects: [{ type: 'revive', pct: 1.0 }], desc: 'Bring a fallen ally back with every point of HP.' },
+  reraise: { name: 'Reraise', job: 'sage', jp: 400, mp: 18, range: 3, aoe: 0, vert: 4, ct: 16, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'reraise', hit: 100 }], desc: 'A life held in reserve. The first time the target falls, it rises with a quarter of its HP.' },
+  ultima: { name: 'Ultima', job: 'sage', jp: 600, mp: 36, range: 4, aoe: 2, vert: 9, ct: 6, kind: 'magic', affects: 'enemy', element: null,
+    effects: [{ type: 'damage', formula: 'ma', power: 14 }], desc: 'The last spell. Wide, slow, and it knows friend from foe.' },
 
   // Monsters
   tackle: { name: 'Tackle', job: 'goblin', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
@@ -989,6 +1072,8 @@ const TRAINING_POOL = [
   ['ninja', 'timeMage', 'knight', 'dragoon'],
   ['samurai', 'summoner', 'knight', 'geomancer'],
   ['bard', 'samurai', 'ninja', 'summoner', 'geomancer'],
+  ['paladin', 'assassin', 'samurai', 'arcanist', 'bard'],
+  ['sage', 'paladin', 'assassin', 'arcanist', 'summoner', 'ninja'],
 ];
 
 // ============================================================================
@@ -1014,6 +1099,10 @@ const JOB_EQUIP = {
   summoner:  { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   geomancer: { w: ['axe', 'sword', 'knife'], a: ['light', 'cloth', 'robe'], head: ['hat'], shield: true },
   bard:      { w: ['harp', 'knife'], a: ['cloth', 'robe', 'light'], head: ['hat'], shield: false },
+  paladin:   { w: ['greatsword', 'sword', 'katana'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+  arcanist:  { w: ['tome', 'rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  assassin:  { w: ['ninjablade', 'knife', 'katana'], a: ['light', 'cloth'], head: ['hat'], shield: false, dual: true },
+  sage:      { w: ['tome', 'staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
 };
 
 // tier: shop stock unlocks at that chapter index. price 0 = starter kit, cannot be sold.
@@ -1052,6 +1141,14 @@ const ITEMS = {
   ramiaHarp:   { name: 'Ramia Harp', slot: 'weapon', wtype: 'harp', power: 3, range: 3, vert: 4, ma: 2, price: 0, tier: 0 },
   bloodstrings:{ name: 'Bloodstrings', slot: 'weapon', wtype: 'harp', power: 6, range: 3, vert: 4, ma: 4, spd: 1, price: 1300, tier: 4 },
   faerieHarp:  { name: 'Faerie Harp', slot: 'weapon', wtype: 'harp', power: 8, range: 4, vert: 5, ma: 6, mp: 20, price: 2200, tier: 6 },
+  ironGreatsword: { name: 'Iron Greatsword', slot: 'weapon', wtype: 'greatsword', power: 9, range: 1, vert: 2, price: 0, tier: 0 },
+  claymore:    { name: 'Claymore', slot: 'weapon', wtype: 'greatsword', power: 14, range: 1, vert: 2, price: 1100, tier: 3 },
+  zweihander:  { name: 'Zweihander', slot: 'weapon', wtype: 'greatsword', power: 18, range: 1, vert: 2, spd: -1, price: 2100, tier: 5 },
+  excalibur:   { name: 'Excalibur', slot: 'weapon', wtype: 'greatsword', power: 20, range: 1, vert: 2, ma: 2, resist: { holy: 'absorb' }, price: 2800, tier: 6 },
+  grimoire:    { name: 'Grimoire', slot: 'weapon', wtype: 'tome', power: 4, range: 2, vert: 3, ma: 2, price: 0, tier: 0 },
+  codex:       { name: 'Codex of Ash', slot: 'weapon', wtype: 'tome', power: 6, range: 2, vert: 3, ma: 6, price: 1200, tier: 3 },
+  omnibus:     { name: 'Omnibus', slot: 'weapon', wtype: 'tome', power: 8, range: 2, vert: 3, ma: 10, mp: 30, price: 2600, tier: 6 },
+  zorlinShape: { name: 'Zorlin Shape', late: true, slot: 'weapon', wtype: 'knife', power: 11, range: 1, vert: 2, spd: 2, evade: 6, price: 2400, tier: 6 },
 
   // ---- offhand ----
   buckler:     { name: 'Buckler', slot: 'offhand', otype: 'shield', evade: 12, price: 300, tier: 1 },
@@ -1066,7 +1163,9 @@ const ITEMS = {
                  wards: ['silence', 'blind', 'berserk', 'poison'], price: 2400, tier: 6 },
   ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 20, price: 450, tier: 1 },
   goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
-  summonersHood: { name: 'Summoner\'s Hood', slot: 'head', htype: 'hat', look: 'wizard', hp: 14, mp: 34, ma: 2, price: 900, tier: 4 },
+  summonersHood: { name: 'Summoner\'s Hood', late: true, slot: 'head', htype: 'hat', look: 'wizard', hp: 14, mp: 34, ma: 2, price: 900, tier: 4 },
+  sageCrown:   { name: 'Sage\'s Crown', late: true, slot: 'head', htype: 'hat', look: 'ribbon', hp: 22, mp: 44, ma: 3, price: 2200, tier: 6 },
+  crusaderHelm:{ name: 'Crusader Helm', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 44, mp: 12, resist: { dark: 'resist' }, price: 2000, tier: 6 },
 
   // ---- body ----
   clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },
@@ -1077,6 +1176,8 @@ const ITEMS = {
   silkRobe:    { name: 'Silk Robe', slot: 'body', atype: 'robe', hp: 18, mp: 20, price: 400, tier: 1 },
   wizardRobe:  { name: 'Wizard Robe', slot: 'body', atype: 'robe', hp: 30, mp: 40, ma: 1, price: 1100, tier: 3 },
   robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
+  crusaderMail:{ name: 'Crusader Mail', late: true, slot: 'body', atype: 'heavy', hp: 70, resist: { holy: 'resist', dark: 'resist' }, price: 2600, tier: 6 },
+  shadowCloth: { name: 'Shadow Cloth', late: true, slot: 'body', atype: 'light', hp: 40, evade: 10, spd: 1, price: 2300, tier: 6 },
 
   // ---- elemental gear: each answers one element ----
   flameShield: { name: 'Flame Shield', slot: 'offhand', otype: 'shield', evade: 14, resist: { fire: 'resist' }, price: 1000, tier: 3 },
@@ -1097,8 +1198,10 @@ const ITEMS = {
   guardianRing:{ name: 'Guardian Ring', slot: 'acc', hp: 30, price: 700, tier: 2 },
   reflexBracer:{ name: 'Reflex Bracer', slot: 'acc', evade: 12, price: 800, tier: 3 },
   chronoAmulet:{ name: 'Chrono Amulet', slot: 'acc', spd: 2, price: 2000, tier: 5 },
-  earthwalkers:{ name: 'Earthwalker Boots', slot: 'acc', move: 1, jump: 1, price: 900, tier: 3 },
-  songstone:   { name: 'Songstone', slot: 'acc', mp: 24, ma: 1, wards: ['silence'], price: 1100, tier: 4 },
+  earthwalkers:{ name: 'Earthwalker Boots', late: true, slot: 'acc', move: 1, jump: 1, price: 900, tier: 3 },
+  songstone:   { name: 'Songstone', late: true, slot: 'acc', mp: 24, ma: 1, wards: ['silence'], price: 1100, tier: 4 },
+  assassinCloak:{ name: 'Assassin\'s Cloak', late: true, slot: 'acc', evade: 16, spd: 1, price: 2000, tier: 5 },
+  angelRing:   { name: 'Angel Ring', late: true, slot: 'acc', hp: 20, mp: 20, wards: ['stop', 'slow'], price: 2200, tier: 6 },
 };
 
 // Free starting kit per job (price-0 items only, so they cannot be sold for gil).
@@ -1118,6 +1221,10 @@ const STARTER_GEAR = {
   summoner:  { weapon: 'rod', body: 'clothes' },
   geomancer: { weapon: 'shortSword', body: 'clothes' },
   bard:      { weapon: 'ramiaHarp', body: 'clothes' },
+  paladin:   { weapon: 'ironGreatsword', body: 'clothes' },
+  arcanist:  { weapon: 'grimoire', body: 'clothes' },
+  assassin:  { weapon: 'kunai', body: 'clothes' },
+  sage:      { weapon: 'grimoire', body: 'clothes' },
 };
 
 const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
@@ -1227,9 +1334,14 @@ function bestGearFor(job, pool, maxTier, extra) {
 // Items an enemy of the given job and level carries. Their gear deliberately
 // lags what the player can buy at the same point, so the shop stays worth
 // visiting and early fights are not decided by equipment the party lacks.
+// The master-tier gear that arrived with the later jobs is marked `late` and is
+// never issued to enemies: the campaign was balanced before it existed, and an
+// evasion cloak on every bandit past chapter five would quietly re-tune every
+// fight.
 function enemyGearFor(job, level, tierShift) {
-  const tier = Math.floor((level - 1) / 1.8) + (tierShift || 0);
-  return bestGearFor(job, null, Math.max(0, Math.min(6, tier)));
+  const tier = Math.max(0, Math.min(6, Math.floor((level - 1) / 1.8) + (tierShift || 0)));
+  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late);
+  return bestGearFor(job, pool, tier);
 }
 
 // ============================================================================
@@ -1254,6 +1366,8 @@ const PASSIVES = {
     desc: 'Physical Attack rises by 1 each time you are damaged.' },
   bladeGrasp: { name: 'Blade Grasp', kind: 'reaction', job: 'samurai', jp: 400,
     desc: 'Catch the blade: half of all physical attacks against you are turned aside.' },
+  secondWind: { name: 'Second Wind', kind: 'reaction', job: 'paladin', jp: 350,
+    desc: 'Recover a tenth of your HP every time you are damaged and left standing.' },
 
   // ---- support: always-on modifiers ----
   attackUp: { name: 'Attack Up', kind: 'support', job: 'knight', jp: 300,
@@ -1276,6 +1390,12 @@ const PASSIVES = {
     desc: 'Recover a tenth of your MP at the start of every turn.' },
   attuned: { name: 'Attunement', kind: 'support', job: 'geomancer', jp: 280,
     desc: 'Anything you do that carries an element does 25% more.' },
+  arcaneEcho: { name: 'Arcane Echo', kind: 'support', job: 'arcanist', jp: 400,
+    desc: 'Three times in ten, a spell costs no MP at all.' },
+  firstStrike: { name: 'First Strike', kind: 'support', job: 'assassin', jp: 380,
+    desc: 'Physical damage against a target at full HP rises by half.' },
+  quickCast: { name: 'Quick Cast', kind: 'support', job: 'sage', jp: 450,
+    desc: 'Everything you charge charges half again as fast.' },
 
   // ---- movement: how the unit gets around ----
   movePlus1: { name: 'Move +1', kind: 'movement', job: 'thief', jp: 220,
