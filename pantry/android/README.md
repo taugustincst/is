@@ -6,14 +6,15 @@ copies `index.html`, `css/`, `js/`, `icons/` and the vendored recogniser in
 the web build. Text recognition needs nothing from the network; identifying
 food by sight talks to Claude's API when a key is set.
 
-## Building
+## Getting the APK
 
-The Android SDK was not reachable from the environment this project was
-written in, so **this project has never been compiled.** Everything here has
-been checked as far as it can be without the SDK: the XML is well formed, the
-Gradle scripts are balanced, the Java is reviewed against the AndroidX APIs
-it uses, and the asset copy gathers the right files. Expect to fix a small
-thing or two on the first real build.
+The easiest way is not to build it: GitHub Actions does, on every push that
+touches `pantry/`, using `.github/workflows/pantry-android.yml`. Download
+the newest `pantry-scan-*.apk` from the repository's
+[releases](https://github.com/taugustincst/is/releases), or from the run's
+Artifacts in the Actions tab.
+
+## Building yourself
 
 With Android Studio, or a command-line SDK with platform 34 and build-tools:
 
