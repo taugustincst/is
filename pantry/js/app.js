@@ -71,6 +71,8 @@ const progress = $('#scan-progress');
 const btnCamera = $('#btn-camera');
 const btnShutter = $('#btn-shutter');
 const btnRetake = $('#btn-retake');
+const btnTorch = $('#btn-torch');
+let torchOn = false;
 const fileInput = $('#file-input');
 const results = $('#scan-results');
 let stream = null;
@@ -94,17 +96,35 @@ async function startCamera() {
   cam.hidden = false; preview.hidden = true; scanEmpty.hidden = true; results.hidden = true;
   btnCamera.hidden = true; btnShutter.hidden = false; btnRetake.hidden = true;
   await cam.play().catch(() => {});
+  // A fridge or a cupboard is dark; offer the phone's light where the camera
+  // exposes one. Capabilities are only known once the track is live.
+  const track = stream.getVideoTracks()[0];
+  const caps = track?.getCapabilities?.() || {};
+  torchOn = false;
+  btnTorch.hidden = !caps.torch;
+  btnTorch.setAttribute('aria-pressed', 'false');
 }
+
+btnTorch.addEventListener('click', async () => {
+  const track = stream?.getVideoTracks()[0];
+  if (!track) return;
+  try {
+    await track.applyConstraints({ advanced: [{ torch: !torchOn }] });
+    torchOn = !torchOn;
+    btnTorch.setAttribute('aria-pressed', String(torchOn));
+  } catch { toast('Could not switch the light.'); }
+});
 
 function stopCamera() {
   if (stream) { for (const t of stream.getTracks()) t.stop(); stream = null; }
   cam.srcObject = null; cam.hidden = true;
-  btnShutter.hidden = true;
+  btnShutter.hidden = true; btnTorch.hidden = true; torchOn = false;
   btnCamera.hidden = !preview.hidden ? true : false;
 }
 
 function resetScan() {
   stopCamera();
+  lastVision = null;
   preview.hidden = true; scanEmpty.hidden = false; results.hidden = true; btnRetake.hidden = true; btnCamera.hidden = false;
   fileInput.value = '';
 }
@@ -140,6 +160,7 @@ async function loadImage(file) {
 }
 
 let scanning = false;
+let lastVision = null; // what Claude saw in the current photo, kept for re-detection
 async function scan(source) {
   if (scanning) return;
   scanning = true;
@@ -155,6 +176,7 @@ async function scan(source) {
 
   const { apiKey, model } = visionPrefs();
   const useVision = Boolean(apiKey);
+  lastVision = null;
   let visionResult = null;
   let visionError = null;
   let ocrDone = false;
@@ -184,6 +206,7 @@ async function scan(source) {
     $('#ocr-text').value = ocr.text.trim();
     const ocrItems = detectFoods(ocr.text);
     const notes = $('#vision-notes');
+    lastVision = visionResult;
     if (visionResult) {
       $('#ocr-confidence').textContent = `${visionResult.items.length} seen · ${ocrItems.length} read`;
       notes.hidden = !visionResult.notes;
@@ -250,7 +273,11 @@ function renderDetected() {
 
 $('#btn-select-all').addEventListener('click', () => { for (const d of detected) d.on = true; renderDetected(); });
 $('#btn-select-none').addEventListener('click', () => { for (const d of detected) d.on = false; renderDetected(); });
-$('#btn-redetect').addEventListener('click', () => showDetected(detectFoods($('#ocr-text').value)));
+$('#btn-redetect').addEventListener('click', () => {
+  // Re-read the edited text, but keep what Claude saw in the photo.
+  const ocrItems = detectFoods($('#ocr-text').value);
+  showDetected(lastVision ? mergeDetections(lastVision.items, ocrItems) : ocrItems);
+});
 $('#btn-add-detected').addEventListener('click', () => {
   const chosen = detected.filter(d => d.on);
   // Something Claude saw on the shelf is the item already there, not a new
