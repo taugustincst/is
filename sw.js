@@ -43,10 +43,20 @@ self.addEventListener('install', (e) => {
   );
 });
 
+// An install that lost a file to a bad connection is completed the next time
+// the game is opened online: anything still missing from the cache is fetched
+// then, so a partial install never stays partial.
+function fillGaps() {
+  return caches.open(CACHE).then(c => Promise.all(ASSETS.map(a =>
+    c.match(a, { ignoreSearch: true }).then(hit => hit ? null : c.add(new Request(a, { cache: 'reload' })).catch(() => {}))
+  )));
+}
+
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => fillGaps())
       .then(() => self.clients.claim())
   );
 });
@@ -56,6 +66,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (req.mode === 'navigate') e.waitUntil(fillGaps());
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then(hit => {
       // Always ask the network as well, and store what comes back. When the
