@@ -559,6 +559,7 @@ class BattleUI {
       else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
       else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
       else if (e.key === '0') this.r.centerCamera();
+      else if (e.key === 'f' || e.key === 'F') game.cyclePace();
       else if (e.key === 'q' || e.key === 'Q') this.turnField(-1);
       else if (e.key === 'e' || e.key === 'E') this.turnField(1);
       else if (/^[1-9]$/.test(e.key)) {

@@ -15,20 +15,152 @@ const BASE_RING = {
   enemy: { line: '#ff6a52', fill: 'rgba(255,70,50,0.34)', teeth: 8 },
   neutral: { line: '#6ce08a', fill: 'rgba(70,220,110,0.30)', teeth: 4 },
 };
+// `lip` is a band of the top's colour along the upper edge of a wall face:
+// turf over earth, moss over stone.
 const TERRAIN = {
-  g: { top: '#5f9e4a', l: '#4a7d3a', r: '#3c6630' },
+  g: { top: '#5f9e4a', l: '#7a5a3c', r: '#5e4430', lip: '#4a7d3a' },
   d: { top: '#a9825a', l: '#8a6a48', r: '#6f5439' },
   s: { top: '#9a9aa8', l: '#7a7a88', r: '#606070' },
   b: { top: '#b08a52', l: '#8f6d40', r: '#6e5330' },
   w: { top: '#3f6fb0', l: '#365f98', r: '#2c4f80' },
-  t: { top: '#5f9e4a', l: '#4a7d3a', r: '#3c6630' },
+  t: { top: '#5f9e4a', l: '#7a5a3c', r: '#5e4430', lip: '#4a7d3a' },
 };
+
+/* The ground had been six flat colours. Each terrain now has a few textured
+   tile tops -- tufts and flowers in the grass, pebbles in the dirt, cracks in
+   the flagstones, planks on a bridge -- drawn once into small canvases and
+   stamped by drawImage, which costs no more than the flat fill did. Which
+   variant a tile gets is a hash of its coordinates, so the field does not
+   shimmer between frames or change when the board is turned. */
+const TILE_VARIANTS = 6;
+const tileTexCache = new Map();
+
+// A tiny deterministic generator, seeded per variant.
+function seeded(seed) {
+  let x = (seed * 2654435761 + 1) >>> 0;
+  return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+}
+
+function tileTexture(kind, variant) {
+  const key = kind + variant;
+  let cv = tileTexCache.get(key);
+  if (cv) return cv;
+  cv = document.createElement('canvas'); cv.width = 64; cv.height = 32;
+  const c = cv.getContext('2d');
+  const col = TERRAIN[kind] || TERRAIN.g;
+  const rnd = seeded(kind.charCodeAt(0) * 31 + variant * 7 + 1);
+  c.fillStyle = col.top; c.fillRect(0, 0, 64, 32);
+  const px = (x, y, w, h, fill) => { c.fillStyle = fill; c.fillRect(Math.round(x), Math.round(y), w, h); };
+  // Points inside the diamond, so nothing is wasted on the corners.
+  const inside = () => { let x, y; do { x = rnd() * 64; y = rnd() * 32; } while (Math.abs(x - 32) / 32 + Math.abs(y - 16) / 16 > 0.88); return [x, y]; };
+  if (kind === 'g' || kind === 't') {
+    for (let i = 0; i < 26; i++) { const [x, y] = inside(); px(x, y, 1, 1, rnd() < 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.12)'); }
+    // Tufts: three blades.
+    for (let i = 0; i < 4; i++) { const [x, y] = inside(); px(x - 1, y, 1, 2, '#3e7a2f'); px(x + 1, y, 1, 2, '#3e7a2f'); px(x, y - 1, 1, 3, '#4f9a3d'); }
+    // A flower now and then -- one tile in six, so a meadow is not confetti.
+    if (variant === 3) { const [x, y] = inside(); px(x, y, 2, 1, rnd() < 0.5 ? '#ffe28a' : '#f2a3c9'); px(x + 1, y + 1, 1, 1, '#3e7a2f'); }
+  } else if (kind === 'd') {
+    for (let i = 0; i < 22; i++) { const [x, y] = inside(); px(x, y, 1, 1, rnd() < 0.5 ? 'rgba(255,240,200,0.14)' : 'rgba(60,30,10,0.16)'); }
+    for (let i = 0; i < 4; i++) { const [x, y] = inside(); px(x, y, 3, 2, '#8a6a48'); px(x, y, 2, 1, '#c9a67a'); }
+  } else if (kind === 's') {
+    // Flagstones: a couple of cracks along the isometric axes, and chips.
+    for (let i = 0; i < 3; i++) {
+      const [x, y] = inside(); const len = 4 + rnd() * 8, dir = rnd() < 0.5 ? 1 : -1;
+      for (let k = 0; k < len; k++) px(x + k * 2 * dir, y + k, 2, 1, 'rgba(0,0,0,0.22)');
+    }
+    for (let i = 0; i < 14; i++) { const [x, y] = inside(); px(x, y, 1, 1, rnd() < 0.5 ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.14)'); }
+  } else if (kind === 'b') {
+    // Planks laid across the span, with a dark seam between each.
+    for (let k = -3; k < 4; k++) {
+      for (let i = -32; i < 32; i++) {
+        const x = 32 + i, y = 16 + i * 0.5 + k * 5;
+        px(x, y, 1, 1, 'rgba(40,20,5,0.35)');
+      }
+    }
+    for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 1, 1, '#3a2510'); }
+    for (let i = 0; i < 10; i++) { const [x, y] = inside(); px(x, y, 2, 1, 'rgba(255,220,160,0.14)'); }
+  } else if (kind === 'w') {
+    for (let i = 0; i < 8; i++) { const [x, y] = inside(); px(x, y, 4 + rnd() * 6, 1, 'rgba(255,255,255,0.10)'); }
+    for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 3, 1, 'rgba(0,0,40,0.14)'); }
+  }
+  // Keep only the diamond.
+  c.globalCompositeOperation = 'destination-in';
+  c.beginPath(); c.moveTo(32, 0); c.lineTo(64, 16); c.lineTo(32, 32); c.lineTo(0, 16); c.closePath(); c.fill();
+  c.globalCompositeOperation = 'source-over';
+  tileTexCache.set(key, cv);
+  return cv;
+}
+
+function tileVariant(x, y) {
+  // Two coordinates in, one of a few variants out, with no visible rows.
+  let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >>> 13)) >>> 0;
+  return h % TILE_VARIANTS;
+}
+
+/* A tree is three rounded clumps of canopy over a trunk, each clump lit from
+   the upper left, with a little variation in size and lean so a wood is not
+   a row of the same tree. Drawn into a canvas once per variant. */
+const treeCache = new Map();
+function treeSprite(variant) {
+  let cv = treeCache.get(variant);
+  if (cv) return cv;
+  cv = document.createElement('canvas'); cv.width = 48; cv.height = 64;
+  const c = cv.getContext('2d');
+  const rnd = seeded(101 + variant * 13);
+  const lean = (rnd() - 0.5) * 6, size = 0.9 + rnd() * 0.25;
+  const bx = 24, by = 60;
+  // Trunk, with its shaded side.
+  c.fillStyle = '#5a3a20'; c.fillRect(bx - 3, by - 26, 6, 26);
+  c.fillStyle = '#3f2814'; c.fillRect(bx + 1, by - 26, 2, 26);
+  c.fillStyle = '#6e4a2a'; c.fillRect(bx - 3, by - 26, 1, 26);
+  const clump = (x, y, r) => {
+    c.fillStyle = '#245a22'; c.beginPath(); c.ellipse(x + 1, y + 2, r, r * 0.85, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#2f6b2a'; c.beginPath(); c.ellipse(x, y, r, r * 0.85, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#3d8a36'; c.beginPath(); c.ellipse(x - r * 0.25, y - r * 0.3, r * 0.62, r * 0.5, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#5aa84a'; c.beginPath(); c.ellipse(x - r * 0.4, y - r * 0.45, r * 0.28, r * 0.22, 0, 0, Math.PI * 2); c.fill();
+  };
+  clump(bx + lean * 0.3 + 7, by - 30, 10 * size);
+  clump(bx + lean * 0.3 - 7, by - 32, 10 * size);
+  clump(bx + lean, by - 42, 12 * size);
+  treeCache.set(variant, cv);
+  return cv;
+}
+
+/* The sky behind the field: a gradient, a scatter of stars that keeps its
+   place when the camera moves, and a vignette that draws the eye inward.
+   Rebuilt only when the canvas changes size. */
+let skyCache = null;
+function skyLayer(W, H) {
+  if (skyCache && skyCache.width === W && skyCache.height === H) return skyCache;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const bg = c.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#1a1c2c'); bg.addColorStop(1, '#0d0e18');
+  c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  const rnd = seeded(7);
+  const n = Math.round((W * H) / 9000);
+  for (let i = 0; i < n; i++) {
+    const x = rnd() * W, y = rnd() * H * 0.7, a = 0.25 + rnd() * 0.55, s = rnd() < 0.15 ? 2 : 1;
+    c.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`; c.fillRect(Math.round(x), Math.round(y), s, s);
+  }
+  const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+  c.fillStyle = vg; c.fillRect(0, 0, W, H);
+  skyCache = cv;
+  return cv;
+}
+
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v) => Math.max(0, Math.min(255, v + amt)).toString(16).padStart(2, '0');
+  return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+}
 
 function tween(ms, fn) {
   return new Promise(res => {
     const t0 = performance.now();
     const step = (t) => {
-      const k = Math.min(1, (t - t0) / ms);
+      const k = Math.min(1, (t - t0) / (ms / PACE.scale));
       fn(k);
       if (k < 1) requestAnimationFrame(step); else res();
     };
@@ -411,9 +543,7 @@ class Renderer {
 
   draw() {
     const c = this.ctx, W = this.cv.width, H = this.cv.height;
-    const bg = c.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#1a1c2c'); bg.addColorStop(1, '#0d0e18');
-    c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    c.drawImage(skyLayer(W, H), 0, 0);
     if (!this.battle) return;
     const z = this.zoom || 1;
     c.save();
@@ -470,6 +600,13 @@ class Renderer {
       c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + wh); c.lineTo(sx - 32, sy + wh); c.closePath(); c.fill();
       c.fillStyle = col.r;
       c.beginPath(); c.moveTo(sx + 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + wh); c.lineTo(sx + 32, sy + wh); c.closePath(); c.fill();
+      if (col.lip) {
+        const lip = Math.min(5, wh);
+        c.fillStyle = col.lip;
+        c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + lip); c.lineTo(sx - 32, sy + lip); c.closePath(); c.fill();
+        c.fillStyle = shade(col.lip, -16);
+        c.beginPath(); c.moveTo(sx + 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + lip); c.lineTo(sx + 32, sy + lip); c.closePath(); c.fill();
+      }
       // Strata lines
       c.strokeStyle = 'rgba(0,0,0,0.18)';
       for (let k = 1; k < t.h; k++) {
@@ -477,8 +614,8 @@ class Renderer {
       }
     }
     // Top
+    c.drawImage(tileTexture(t.t, tileVariant(t.x, t.y)), sx - 32, sy - 16);
     this.diamond(sx, sy);
-    c.fillStyle = col.top; c.fill();
     // Subtle height tint
     c.fillStyle = `rgba(255,255,230,${Math.min(0.25, t.h * 0.035)})`; c.fill();
     c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 1; c.stroke();
@@ -516,13 +653,11 @@ class Renderer {
         c.lineTo(sx - 6, sy + 1); c.closePath(); c.fill();
       }
     }
-    // Tree / pillar
+    // Tree
     if (t.t === 't') {
-      c.fillStyle = '#5a3a20'; c.fillRect(sx - 3, sy - 22, 6, 24);
-      c.fillStyle = '#2f6b2a';
-      c.beginPath(); c.moveTo(sx, sy - 52); c.lineTo(sx + 16, sy - 20); c.lineTo(sx - 16, sy - 20); c.closePath(); c.fill();
-      c.fillStyle = '#3d8a36';
-      c.beginPath(); c.moveTo(sx, sy - 44); c.lineTo(sx + 12, sy - 26); c.lineTo(sx - 12, sy - 26); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(0,0,0,0.30)';
+      c.beginPath(); c.ellipse(sx, sy + 3, 14, 6, 0, 0, Math.PI * 2); c.fill();
+      c.drawImage(treeSprite(tileVariant(t.x, t.y)), sx - 24, sy - 58);
     }
   }
 

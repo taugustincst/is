@@ -46,23 +46,32 @@ const TRACKS = {
    ========================================================================== */
 const COMBAT_SFX = {
   // ---- weapon swings: air, pitched by how heavy the thing is -------------
-  'swing-light': [{ n: 1, freq: 5200, sweep: 2600, dur: 0.06, vol: 0.16, q: 1.5 }],
+  // A swing is a noise burst through a filter that sweeps as the blade
+  // travels, and the burst decays twice over -- in the buffer and in the gain
+  // -- so the levels here are high for what they are: at the old ones a
+  // swing measured a tenth of its own impact and was lost under it.
+  'swing-light': [{ n: 1, freq: 6000, sweep: 3500, dur: 0.07, vol: 0.55, q: 2.0 }],
   'swing-blade': [
-    { n: 1, freq: 3200, sweep: 900, dur: 0.10, vol: 0.20, q: 1.2 },
-    { t: 1, freq: 1400, to: 700, dur: 0.07, vol: 0.06, type: 'sine' },
+    { n: 1, freq: 3000, sweep: 700, dur: 0.13, vol: 0.60, q: 2.2 },
+    { t: 1, freq: 1600, to: 600, dur: 0.09, vol: 0.10, type: 'sine' },
   ],
+  // A ninja blade is two cuts, not one.
   'swing-fast': [
-    { n: 1, freq: 6000, sweep: 3000, dur: 0.06, vol: 0.17, q: 2 },
-    { t: 1, freq: 2400, to: 1600, dur: 0.05, vol: 0.07, type: 'sine' },
+    { n: 1, freq: 6500, sweep: 3000, dur: 0.05, vol: 0.38, q: 1.6 },
+    { n: 1, freq: 6500, sweep: 3000, dur: 0.05, vol: 0.34, q: 1.6, d: 0.07 },
   ],
   'swing-heavy': [
-    { n: 1, freq: 1100, sweep: 220, dur: 0.17, vol: 0.24, q: 0.8 },
-    { t: 1, freq: 320, to: 140, dur: 0.14, vol: 0.08, type: 'triangle' },
+    { n: 1, freq: 900, sweep: 160, dur: 0.24, vol: 0.55, q: 0.7 },
+    { t: 1, freq: 260, to: 110, dur: 0.20, vol: 0.14, type: 'triangle' },
   ],
-  'swing-pierce': [{ n: 1, freq: 4200, sweep: 1600, dur: 0.08, vol: 0.18, q: 3 }],
-  'swing-blunt': [{ n: 1, freq: 800, sweep: 260, dur: 0.12, vol: 0.18, q: 0.9 }],
-  'swing-rod': [{ n: 1, freq: 1300, sweep: 520, dur: 0.09, vol: 0.15, q: 1.3 }],
-  'swing-fist': [{ n: 1, freq: 520, sweep: 160, dur: 0.08, vol: 0.16, q: 0.8 }],
+  // A thrust rises where every other swing falls.
+  'swing-pierce': [{ n: 1, freq: 1200, sweep: 5200, dur: 0.10, vol: 0.55, q: 3 }],
+  'swing-blunt': [{ n: 1, freq: 700, sweep: 220, dur: 0.16, vol: 0.62, q: 2.0 }],
+  'swing-rod': [
+    { n: 1, freq: 1800, sweep: 500, dur: 0.11, vol: 0.58, q: 2.4 },
+    { t: 1, freq: 900, to: 500, dur: 0.06, vol: 0.07, type: 'sine' },
+  ],
+  'swing-fist': [{ n: 1, freq: 500, sweep: 140, dur: 0.07, vol: 0.55, q: 1.2 }],
 
   // ---- what a landed blow sounds like ------------------------------------
   'impact-slash': [
@@ -93,7 +102,11 @@ const COMBAT_SFX = {
     { t: 1, freq: 330, to: 196, dur: 0.16, vol: 0.08, type: 'sine' },
     { n: 1, freq: 2200, sweep: 900, dur: 0.04, vol: 0.09, q: 3 },
   ],
-  'throw': [{ n: 1, freq: 900, sweep: 400, dur: 0.12, vol: 0.13, q: 1 }],
+  // Something thrown whistles as it goes.
+  'throw': [
+    { t: 1, freq: 1500, to: 650, dur: 0.16, vol: 0.09, type: 'sine' },
+    { n: 1, freq: 1400, sweep: 500, dur: 0.12, vol: 0.22, q: 1 },
+  ],
   'cast': [
     { t: 1, freq: 240, to: 900, dur: 0.22, vol: 0.12, type: 'sine' },
     { n: 1, freq: 400, sweep: 1800, dur: 0.20, vol: 0.06, q: 2 },
@@ -258,13 +271,22 @@ class GameAudio {
     for (let i = 0; i < frames; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / frames);
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    const filt = this.ctx.createBiquadFilter();
-    filt.type = filter; filt.frequency.setValueAtTime(freq, t); filt.Q.value = q;
-    if (sweep) filt.frequency.exponentialRampToValueAtTime(Math.max(60, sweep), t + dur);
+    // Two filters in a row, not one. White noise carries most of its energy
+    // up high, and a single biquad's skirts let enough of it through that a
+    // "700 Hz" whoosh hissed like a 5 kHz one; every swing sounded alike.
+    // The second stage steepens the slope so the centre frequency is what
+    // you hear, and a mace swing is finally lower than a knife.
+    const mk = () => {
+      const f = this.ctx.createBiquadFilter();
+      f.type = filter; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
+      if (sweep) f.frequency.exponentialRampToValueAtTime(Math.max(60, sweep), t + dur);
+      return f;
+    };
+    const f1 = mk(), f2 = mk();
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(filt); filt.connect(g); g.connect(this.sfxGain);
+    src.connect(f1); f1.connect(f2); f2.connect(g); g.connect(this.sfxGain);
     src.start(t); src.stop(t + dur + 0.02);
   }
 

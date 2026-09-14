@@ -3,6 +3,7 @@
    ========================================================================== */
 
 const SAVE_KEY = 'elderon-tactics-save';
+const PACE_KEY = 'elderon.pace';
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -48,6 +49,8 @@ class Game {
     $('btn-hire-chemist').onclick = () => this.hire('chemist');
     $('btn-retreat').onclick = () => this.retreat();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
+    $('btn-speed').onclick = () => this.cyclePace();
+    this.setPace(+localStorage.getItem(PACE_KEY) || 1);
     $('btn-rot-l').onclick = () => this.ui.turnField(-1);
     $('btn-rot-r').onclick = () => this.ui.turnField(1);
     for (const id of ['btn-sound', 'btn-sound-world']) {
@@ -630,6 +633,18 @@ class Game {
     }
     await this.results(result, r, battle.endReason);
     return result;
+  }
+
+  // Battle speed: 1x, 2x, 3x, remembered between sessions.
+  setPace(scale) {
+    PACE.scale = [1, 2, 3].includes(scale) ? scale : 1;
+    localStorage.setItem(PACE_KEY, String(PACE.scale));
+    const b = $('btn-speed');
+    if (b) { b.textContent = `${PACE.scale}×`; b.classList.toggle('on', PACE.scale > 1); }
+  }
+  cyclePace() {
+    this.setPace(PACE.scale >= 3 ? 1 : PACE.scale + 1);
+    this.toast(`Battle speed ${PACE.scale}×`);
   }
 
   retreat() {

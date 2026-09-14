@@ -542,6 +542,39 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('the team accent still reads against the tunic', flat.length === 0, flat.join(',') || 'accent holds');
   }
 
+  /* 26. The battle-speed setting divides every pause the engine takes, and
+     the terrain art is data the renderer looks up by kind: a map with a
+     terrain the texture table does not know would draw as bare grass. */
+  {
+    // The sandbox's setTimeout fires at once and ignores the delay, so the
+    // delay is recorded instead: at 3x, a 300ms pause must ask for 100.
+    const asked = g.run(`(() => {
+      let ms = -1; const real = setTimeout;
+      setTimeout = (fn, d) => { ms = d; fn(); };
+      PACE.scale = 3; sleep(300); PACE.scale = 1;
+      setTimeout = real; return ms; })()`);
+    ok('an engine pause honours the battle speed', asked === 100, `300ms at 3x asked for ${asked}ms`);
+
+    const fs = require('fs'), path = require('path'), vm = require('vm');
+    const { ROOT } = require('./load');
+    const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), ctx);
+    const TERRAIN = vm.runInContext('TERRAIN', ctx), variant = vm.runInContext('tileVariant', ctx), N = vm.runInContext('TILE_VARIANTS', ctx);
+    const kinds = new Set();
+    for (const m of Object.values(g.MAPS)) for (const row of m.terrain) for (const ch of row) if (ch !== 'x') kinds.add(ch);
+    const unknown = [...kinds].filter(k => !TERRAIN[k]);
+    ok('every terrain on every map has a look', unknown.length === 0, unknown.join(',') || [...kinds].sort().join(''));
+    // The variant is a pure function of the coordinates, and spreads out.
+    const seen = new Set(); let stable = true;
+    for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) {
+      const v = variant(x, y);
+      if (v !== variant(x, y) || v < 0 || v >= N) stable = false;
+      seen.add(v);
+    }
+    ok('tile variants are stable and use the whole set', stable && seen.size === N, `${seen.size} of ${N} variants over a 12x12 field`);
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

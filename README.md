@@ -84,7 +84,9 @@ a browser, or serve the folder with any static file server.
 - **Fallen units** keep their place in the turn order and count down three
   turns before they are carried off. Revive them in time and they stay.
 - **Seven chapters** with story beats and recruits, repeatable training
-  battles, and a tavern for hiring.
+  battles across ten fields, and a tavern for hiring.
+- **Battle speed** of 1×, 2× or 3× from the bar or the F key, for once you
+  have watched enough enemy turns; nothing is skipped, it just goes faster.
 - **Three difficulty settings** that shift the opposition rather than the party,
   so your own numbers always mean the same thing: enemy level, equipment tier
   and the size of the purse. Changeable at any time from camp.
@@ -144,6 +146,8 @@ pan instead. The back button steps back through the game rather than closing it.
 | Pan the camera | Drag | Drag | Arrow keys |
 | Zoom | Wheel | Pinch | `+` / `-`, `0` to reframe |
 | Back / cancel | Right-click | Android back button | `Esc` |
+| Turn the field | ↺ ↻ buttons | ↺ ↻ buttons | `Q` / `E` |
+| Battle speed | 1× button | 1× button | `F` |
 
 The `?` button in battle opens a rules summary.
 

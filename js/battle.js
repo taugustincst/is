@@ -4,7 +4,11 @@
    `hooks` so the engine stays independent from the renderer.
    ========================================================================== */
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+/* How fast a battle plays out. Every animation and every pause the engine
+   takes is divided by this, so a player who has seen enough enemy turns can
+   run them at double or triple time without anything being skipped. */
+const PACE = { scale: 1 };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms / PACE.scale));
 
 function facingFromDelta(dx, dy) {
   if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'E' : 'W';
