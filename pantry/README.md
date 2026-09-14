@@ -5,6 +5,24 @@ A progressive web app for home cooks: no account, no backend, nothing leaves
 the device. Open `index.html` from any static host (or `node tools/serve.js`)
 and it works; install it from the browser menu and it works offline.
 
+## Get the app
+
+- **Android:** download the newest `pantry-scan-*.apk` from the
+  [releases page](https://github.com/taugustincst/is/releases) and open it on
+  the phone. It is signed with a debug key, so Android asks once to allow
+  installs from your browser or file manager. Every push that touches this
+  directory also builds an APK you can grab from the run's Artifacts in the
+  Actions tab.
+- **Any phone, as a web app:** once GitHub Pages is switched on for the
+  repository (Settings → Pages → Source: GitHub Actions), the app is served
+  from `https://taugustincst.github.io/is/`. Open it in Chrome or Safari and
+  choose "Add to Home Screen"; it installs like an app and works offline.
+- **Self-host:** the `pantry-scan-web-*.zip` on the releases page is the web
+  app ready to drop on any static HTTPS host.
+
+Both builds come out of `.github/workflows/pantry-android.yml` and
+`.github/workflows/pantry-pages.yml`.
+
 ## How it works
 
 1. **Scan.** Open the camera or choose a photo of a fridge shelf, the pantry
