@@ -44,14 +44,20 @@ Both builds come out of `.github/workflows/pantry-android.yml` and
    pre-ticked; near-misses show a `?` for you to confirm, and anything the
    dictionary lacks is kept under the name Claude gave it.
 3. **Pantry.** Items land in the pantry grouped by category with quantities and
-   a "use soon" nudge based on typical shelf life. Loose fruit and vegetables
-   have no words to read, so type them in; the box suggests from the same list.
-4. **Recipes.** Fifty weeknight recipes are ranked against the pantry: **Cook
-   now** has everything in, **Almost there** is one or two things short, and
-   **Ideas** are worth a shop. Optional ingredients never block a recipe. Salt,
-   pepper, oil, flour, sugar, vinegar and stock are assumed present; turn that
-   off in Settings if your cupboard is bare. Filter by vegetarian, vegan or
-   under 30 minutes.
+   a "use soon" nudge based on typical shelf life. Counts come from the photo
+   where they can: Claude counts what it sees, and receipts give "x2" or
+   "6pk". Something seen on a shelf is the item already there, so scanning
+   the fridge never resets how old things are; a receipt line is new stock.
+   Tap an item to set how long it keeps, mark it bought fresh today, rename
+   a custom item, or remove it. Anything the scanner missed, type in; the box
+   suggests from the same food list.
+4. **Recipes.** Nearly sixty weeknight recipes are ranked against the pantry:
+   **Cook now** has everything in, **Almost there** is one or two things
+   short, and **Ideas** are worth a shop. Recipes that use up something on
+   its last days are lifted and say so. Optional ingredients never block a
+   recipe. Salt, pepper, oil, flour, sugar, vinegar and stock are assumed
+   present; turn that off in Settings if your cupboard is bare. Filter by
+   vegetarian, vegan or under 30 minutes, or search by name or ingredient.
 5. **Cook and shop.** "I cooked this" takes one of each ingredient used off
    the pantry. "Add missing to list" puts what you lack on the shopping list;
    ticking things off there moves them straight into the pantry.

@@ -253,7 +253,9 @@ $('#btn-select-none').addEventListener('click', () => { for (const d of detected
 $('#btn-redetect').addEventListener('click', () => showDetected(detectFoods($('#ocr-text').value)));
 $('#btn-add-detected').addEventListener('click', () => {
   const chosen = detected.filter(d => d.on);
-  store.addMany(chosen.map(d => ({ id: d.id || undefined, name: d.name, category: d.category, qty: d.qty })), 'scan');
+  // Something Claude saw on the shelf is the item already there, not a new
+  // purchase; something read off a receipt or a label is new stock.
+  store.addMany(chosen.map(d => ({ id: d.id || undefined, name: d.name, category: d.category, qty: d.qty, seen: d.source === 'vision' || d.source === 'both' })), 'scan');
   toast(`Added ${chosen.length} item${chosen.length === 1 ? '' : 's'} to the pantry`);
   resetScan();
   show('pantry');

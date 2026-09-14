@@ -273,6 +273,23 @@ test('store adds, merges, consumes and shops', () => {
   assert.throws(() => store.import('{"nope":1}'));
 });
 
+test('seeing an item in the fridge does not make it fresh or double it', () => {
+  store._reset();
+  store.add({ id: 'milk', source: 'scan' });
+  const old = new Date(Date.now() - 5 * 86400000).toISOString();
+  store.get().items[0].added = old;
+  store.add({ id: 'milk', qty: 1, source: 'scan', seen: true });
+  assert.equal(store.get().items[0].qty, 1, 'the same milk, not a second one');
+  assert.equal(store.get().items[0].added, old, 'still five days old');
+  store.add({ id: 'milk', qty: 3, source: 'scan', seen: true });
+  assert.equal(store.get().items[0].qty, 3, 'seeing three means there are three');
+  store.add({ id: 'milk', qty: 1, source: 'scan' });
+  assert.equal(store.get().items[0].qty, 4, 'a receipt line is a new purchase');
+  assert.notEqual(store.get().items[0].added, old);
+  store.add({ id: 'egg', qty: 6, seen: true });
+  assert.equal(store.get().items[1].qty, 6, 'unseen-before items are added as seen');
+});
+
 test('items can be edited: shelf life, freshness, and a custom name or category', () => {
   store._reset();
   store.add({ id: 'milk', source: 'scan' });

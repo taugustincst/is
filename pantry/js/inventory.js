@@ -35,13 +35,19 @@ export const store = {
   subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
   /* Add a food. Adding something already present bumps its quantity and
-     refreshes its date, which is what happens when you buy more of it. */
-  add({ id, name, qty = 1, source = 'manual', category } = {}) {
+     refreshes its date, which is what happens when you buy more of it.
+     `seen` means the item was spotted in a photo of the fridge or shelf
+     rather than bought: the same old milk, not a new one. Then the count is
+     brought up to what was seen and the date is left alone, so scanning the
+     fridge never makes everything in it look fresh. */
+  add({ id, name, qty = 1, source = 'manual', category, seen = false } = {}) {
     const food = id && FOOD_BY_ID[id];
     const itemId = food ? food.id : 'custom:' + String(name).trim().toLowerCase().replace(/\s+/g, '_');
     const existing = state.items.find(i => i.id === itemId);
     const now = new Date().toISOString();
-    if (existing) {
+    if (existing && seen) {
+      existing.qty = Math.min(99, Math.max(existing.qty, qty));
+    } else if (existing) {
       existing.qty = Math.min(99, existing.qty + qty);
       existing.added = now;
     } else {
