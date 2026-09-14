@@ -103,6 +103,8 @@ a browser, or serve the folder with any static file server.
   turns before they are carried off. Revive them in time and they stay.
 - **Seven chapters** with story beats and recruits, repeatable training
   battles across ten fields, and a tavern for hiring.
+- **Know your enemy.** An enemy's card lists the skills it has, so a Coven
+  Mage's Fire or a priest's Raise is never a surprise.
 - **Threat range on a tap.** Tap an enemy while choosing an action, or during
   deployment, and every tile it could strike next turn turns violet.
 - **Auto-battle** from the bar or the A key hands your turns to the computer

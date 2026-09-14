@@ -1000,7 +1000,7 @@ const CAMPAIGN = [
       { job: 'knight', level: 3, x: 5, y: 5, name: 'Deserter Knight' },
       { job: 'archer', level: 3, x: 6, y: 5, name: 'Deserter Archer' },
       { job: 'chemist', level: 2, x: 2, y: 1, name: 'Deserter Medic' },
-      { job: 'squire', level: 3, x: 9, y: 1, name: 'Deserter' },
+      { job: 'squire', level: 2, x: 9, y: 1, name: 'Deserter' },
     ],
     gil: 1600,
     recruit: { name: 'Kael', job: 'archer', level: 3 },
@@ -1038,7 +1038,7 @@ const CAMPAIGN = [
     ],
     enemies: [
       { job: 'knight', level: 5, x: 5, y: 5, name: 'Gate Knight' },
-      { job: 'knight', level: 5, x: 6, y: 6, name: 'Gate Knight' },
+      { job: 'knight', level: 4, x: 6, y: 6, name: 'Gate Knight' },
       { job: 'archer', level: 5, x: 3, y: 2, name: 'Wall Archer' },
       { job: 'archer', level: 5, x: 8, y: 2, name: 'Wall Archer' },
       { job: 'whiteMage', level: 5, x: 6, y: 3, name: 'Garrison Priest' },

@@ -155,6 +155,11 @@ class BattleUI {
     const aff = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
       .map(a => `<span class="aff" style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join('');
     const mods = Object.entries(u.mods).filter(([, v]) => v).map(([k, v]) => `${k.toUpperCase()} ${v > 0 ? '+' : ''}${v}`).join(', ');
+    // What the enemy can do, so a Coven Mage's Fire is not a surprise. Your
+    // own units' skills are a menu away; theirs are only knowable here.
+    const skills = u.team !== 'player' && u.alive
+      ? u.allAbilities().filter(id => id !== 'attack').map(id => ABILITIES[id].name).slice(0, 8).join(' · ')
+      : '';
     this.el.card.innerHTML = `
       <div class="card-head ${u.team}"><canvas class="card-face"></canvas><b>${u.name}</b><span>Lv ${u.level} ${u.jobData.name}${u.boss ? ' ★' : ''}</span></div>
       <div class="bar hp"><i style="width:${(u.hp / u.maxHp) * 100}%"></i><span>HP ${u.hp}/${u.maxHp}</span></div>
@@ -167,6 +172,7 @@ class BattleUI {
       ${mods ? `<div class="mods">${mods}</div>` : ''}
       <div class="statuses">${st}</div>
       ${aff ? `<div class="affinities">${aff}</div>` : ''}
+      ${skills ? `<div class="card-skills">${skills}</div>` : ''}
       ${u.alive ? '' : `<div class="ko">KO${u.koCount ? ` — carried off in ${u.koCount}` : ''}</div>`}`;
     // A face on the card, so the figure you tapped and the numbers you read
     // are plainly the same person.

@@ -160,6 +160,7 @@ small { color: var(--muted); }
 .card-face { width: 30px; height: 32px; image-rendering: pixelated; flex: none; margin: -4px 0; }
 .card-head.player { border-color: var(--player); }
 .card-head.enemy { border-color: var(--enemy); }
+.card-skills { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
 .bar { position: relative; height: 14px; background: #111; border-radius: 3px; margin: 3px 0; overflow: hidden; }
 .bar i { display: block; height: 100%; }
 .bar.hp i { background: var(--green); } .bar.mp i { background: #4aa3ff; } .bar.ct i { background: #ffd84a; }
@@ -202,10 +203,11 @@ small { color: var(--muted); }
 .ab-info b { color: var(--gold); } .ab-meta { color: var(--muted); margin-top: 3px; }
 .banner { position: absolute; top: 90px; left: 50%; transform: translateX(-50%) scale(0.9); font-family: Georgia, serif; font-size: 30px; color: #fff; text-shadow: 0 2px 8px #000; opacity: 0; transition: all 0.2s; pointer-events: none; padding: 6px 30px; border-top: 2px solid #888; border-bottom: 2px solid #888; background: rgba(0,0,0,0.45); }
 .banner.show { opacity: 1; transform: translateX(-50%) scale(1); }
+.banner { z-index: 12; } /* over the unit card on a phone, where the two share the top of the screen */
 .banner.player { border-color: var(--player); } .banner.enemy { border-color: var(--enemy); }
-#help { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); }
+#help { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); z-index: 40; }
 #help.open { display: block; }
-.help-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(640px, 90%); background: #181a30; border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+.help-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(640px, 90%); max-height: min(90vh, calc(100% - 24px)); overflow-y: auto; box-sizing: border-box; background: #181a30; border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
 .help-box li { margin-bottom: 8px; line-height: 1.4; }
 
 /* ---------- results ---------- */
