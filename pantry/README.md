@@ -10,9 +10,9 @@ and it works; install it from the browser menu and it works offline.
 1. **Scan.** Open the camera or choose a photo. Receipts, packet labels and
    shelf tags read best. The image is shrunk, greyscaled and contrast-stretched,
    then [Tesseract.js](https://github.com/naptha/tesseract.js) reads the text
-   in a web worker on the phone. The first scan downloads the recogniser and
-   its English model (a few megabytes); the service worker keeps them, so
-   every later scan is offline.
+   in a web worker on the phone. The recogniser and its English model ship
+   with the app under `vendor/tesseract/` (about seven megabytes), so nothing
+   is fetched from a CDN and it works with no network at all.
 2. **Match.** The text is matched against a dictionary of about 190 foods and
    their aliases: "CHKN BRST" is chicken breast, "chopped tomatoes" is a can and
    not a fresh tomato, "TOMAT0ES" is still tomatoes. Sure hits are pre-ticked;
@@ -50,9 +50,18 @@ not need to change.
 | `js/inventory.js` | The pantry, shopping list and preferences in localStorage, plus freshness. |
 | `js/ocr.js` | Image preprocessing and the Tesseract.js worker. |
 | `js/app.js` | Camera, scanning flow and all rendering. |
+| `vendor/tesseract/` | Tesseract.js, its WebAssembly core and the English model, bundled. |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Installable and offline. |
+| `android/` | A native Android app around the same files. See [android/README.md](android/README.md). |
 | `tools/test.js` | Data consistency and logic tests under plain Node. |
 | `tools/serve.js` | A static server for local use (`node tools/serve.js [port]`). |
+
+## Android
+
+`android/` is a Gradle project that wraps the app in a WebView with the camera
+passed through, and bundles these files plus the recogniser into an APK that
+needs no network. `cd android && ./gradlew assembleDebug`. See
+[android/README.md](android/README.md).
 
 ## Running
 

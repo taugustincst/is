@@ -418,6 +418,9 @@ $('#btn-settings').addEventListener('click', () => { $('#pref-staples').checked 
 $('#pref-staples').addEventListener('change', (e) => store.setPref('assumeStaples', e.target.checked));
 $('#btn-export').addEventListener('click', async () => {
   const json = store.export();
+  // Inside the Android app there is no download and no Web Share; the native
+  // side opens the system "save as" picker instead.
+  if (globalThis.PantryAndroid?.exportJson) { globalThis.PantryAndroid.exportJson(json); return; }
   const file = new File([json], 'pantry.json', { type: 'application/json' });
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: 'Pantry' }); return; } catch { /* user cancelled or unsupported; fall back */ }
@@ -449,6 +452,19 @@ let startView = 'scan';
 try { startView = sessionStorage.getItem('pantry-scan:view') || 'scan'; } catch { /* fine */ }
 if (!$(`.tab[data-view="${startView}"]`)) startView = 'scan';
 show(startView);
+
+/* The Android shell calls this on the back button. Returns true when the
+   page consumed it: an open dialog closes, a live camera stops, any other tab
+   returns to Scan. False means there is nowhere left to go and the app may
+   close. */
+window.handleBack = () => {
+  const open = $$('dialog[open]');
+  if (open.length) { open[open.length - 1].close(); return true; }
+  if (stream || !preview.hidden) { resetScan(); return true; }
+  const active = $('.tab.active')?.dataset.view;
+  if (active && active !== 'scan') { show('scan'); return true; }
+  return false;
+};
 
 // Fetch the recogniser in the background once the page is idle, so the
 // first scan does not wait on the download.

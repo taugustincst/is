@@ -1,0 +1,75 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The web app one directory up is the single source of truth. Its files,
+// including the vendored recogniser, are copied into the APK's assets at build
+// time rather than duplicated here, so the app can never drift from the web
+// build. Tools, tests and this project are left out.
+def webRoot = rootProject.file('..')
+def webAssets = layout.buildDirectory.dir('web-assets')
+
+tasks.register('copyWeb', Copy) {
+    description = 'Copies the web app and the recogniser into the APK assets.'
+    from(webRoot) {
+        include 'index.html'
+        include 'manifest.webmanifest'
+        include 'css/**'
+        include 'js/**'
+        include 'icons/**'
+        include 'vendor/**'
+        exclude '**/*.md'
+    }
+    into webAssets
+}
+
+android {
+    namespace 'com.pantryscan.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.pantryscan.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += webAssets
+        }
+    }
+
+    // The WebAssembly core and the language model are already compressed
+    // (the model is gzip, the core is base64 in JS); leave them stored as-is
+    // so the WebView can stream them without inflating the whole APK entry.
+    androidResources {
+        noCompress 'gz', 'wasm'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the debug key so `assembleRelease` produces an APK
+            // that installs. Point this at a real keystore before publishing.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn('copyWeb') }
+
+dependencies {
+    // WebViewAssetLoader serves the bundled files over an https origin, which
+    // is what the camera API and durable localStorage both need.
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.activity:activity:1.9.2'
+    implementation 'androidx.core:core:1.13.1'
+}

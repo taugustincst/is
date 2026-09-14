@@ -5,9 +5,9 @@
    launch without anyone bumping a version string.
 
    The text recogniser is different: Tesseract.js, its WebAssembly core and the
-   English model come from CDNs and total several megabytes, so they are not
-   fetched until the first scan. Once fetched they are kept in their own cache
-   and served from it forever, which makes every later scan work offline. */
+   English model live under vendor/ and total several megabytes, so they are
+   not precached; the first scan fetches them and they are then kept in their
+   own cache and served from it, which makes every later scan work offline. */
 const APP_CACHE = 'pantry-app-v1';
 const OCR_CACHE = 'pantry-ocr-v1';
 
@@ -25,7 +25,6 @@ const ASSETS = [
   'icons/icon.svg',
 ];
 
-const OCR_HOSTS = ['cdn.jsdelivr.net', 'tessdata.projectnaptha.com', 'cdnjs.cloudflare.com', 'unpkg.com'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -47,7 +46,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
 
-  if (OCR_HOSTS.includes(url.hostname)) {
+  if (url.origin === self.location.origin && url.pathname.includes('/vendor/')) {
     e.respondWith(
       caches.open(OCR_CACHE).then(async (c) => {
         const hit = await c.match(e.request);

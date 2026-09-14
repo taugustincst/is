@@ -11,7 +11,8 @@ a browser, or serve the folder with any static file server.
 > separate progressive web app for home cooks. Photograph a receipt or your
 > groceries, it reads the text on the phone and turns it into a pantry, then
 > ranks fifty recipes by what you can cook right now. Same rules as the game:
-> no build step, no dependencies, no backend.
+> no build step, no dependencies, no backend, and its own Android wrapper in
+> [`pantry/android/`](pantry/android/README.md).
 
 ## The game
 

@@ -1,13 +1,18 @@
 /* Reading text out of a photo, in the browser, with Tesseract.js.
 
-   The library is fetched on first use rather than bundled: it is a few hundred
-   kilobytes of JavaScript, a few megabytes of WebAssembly and a language
-   model, all of which the service worker keeps once seen, so the second scan
-   is offline and instant. The image is cleaned up first: shrunk to a sensible
-   size, turned to grey and stretched for contrast. Packaging photographed
-   under a kitchen light is low-contrast and huge, and both hurt recognition. */
+   The library, its WebAssembly core and the English model ship with the app
+   under vendor/tesseract, so nothing is fetched from a CDN and the Android
+   build needs no network permission. They are loaded on first use (about
+   seven megabytes together), and the service worker keeps them once seen.
+   The image is cleaned up first: shrunk to a sensible size, turned to grey
+   and stretched for contrast. Packaging photographed under a kitchen light is
+   low-contrast and huge, and both hurt recognition. */
 
-const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const VENDOR = new URL('../vendor/tesseract/', import.meta.url);
+const TESSERACT_URL = new URL('tesseract.min.js', VENDOR).href;
+const WORKER_URL = new URL('worker.min.js', VENDOR).href;
+const CORE_URL = VENDOR.href.replace(/\/$/, '');
+const LANG_URL = new URL('lang', VENDOR).href;
 const MAX_EDGE = 1800;
 
 let libPromise = null;
@@ -21,7 +26,7 @@ export function loadLibrary() {
       s.src = TESSERACT_URL;
       s.async = true;
       s.onload = () => resolve(globalThis.Tesseract);
-      s.onerror = () => { libPromise = null; reject(new Error('Could not load the text recogniser. Check your connection and try again; after the first successful scan it works offline.')); };
+      s.onerror = () => { libPromise = null; reject(new Error('Could not load the text recogniser. Reload the app and try again.')); };
       document.head.appendChild(s);
     });
   }
@@ -33,6 +38,10 @@ async function getWorker(onProgress) {
     workerPromise = (async () => {
       const T = await loadLibrary();
       const worker = await T.createWorker('eng', 1, {
+        workerPath: WORKER_URL,
+        corePath: CORE_URL,
+        langPath: LANG_URL,
+        gzip: true,
         logger: (m) => onProgress?.(m),
       });
       // Assume a block of text of varying size: labels, receipt lines, shelf
