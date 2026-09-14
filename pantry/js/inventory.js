@@ -2,10 +2,14 @@
    and a couple of preferences. Every mutation writes through and notifies
    listeners, so the UI re-renders from one source of truth. */
 
-import { FOOD_BY_ID } from './foods.js';
+import { FOOD_BY_ID, CATEGORIES } from './foods.js';
+
+const CATEGORY_IDS = new Set(Object.keys(CATEGORIES));
 
 const KEY = 'pantry-scan:v1';
 const DAY = 86400000;
+
+const capitalise = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 const defaults = () => ({ items: [], shopping: [], prefs: { assumeStaples: true, diet: 'any' } });
 
@@ -43,7 +47,7 @@ export const store = {
     } else {
       state.items.push({
         id: itemId,
-        name: food ? food.name : String(name).trim(),
+        name: food ? food.name : capitalise(String(name).trim()),
         category: food ? food.category : (category || 'other'),
         qty,
         added: now,
@@ -64,6 +68,18 @@ export const store = {
     if (!it) return;
     if (qty <= 0) state.items = state.items.filter(i => i.id !== id);
     else it.qty = qty;
+    save();
+  },
+
+  /* Edit an item: its name or category (custom items only keep their own),
+     how many days it keeps, or mark it bought fresh today. */
+  update(id, { name, category, days, fresh } = {}) {
+    const it = state.items.find(i => i.id === id);
+    if (!it) return;
+    if (name != null && String(name).trim()) it.name = String(name).trim();
+    if (category && CATEGORY_IDS.has(category)) it.category = category;
+    if (days !== undefined) it.days = days == null || days === '' ? null : Math.max(1, Math.min(9999, Math.round(Number(days)) || 1));
+    if (fresh) it.added = new Date().toISOString();
     save();
   },
 

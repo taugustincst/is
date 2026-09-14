@@ -312,7 +312,8 @@ function itemRow(i) {
   const d = daysLeft(i);
   const sub = f === 'past' ? 'past its usual life' : f === 'soon' ? (d <= 0 ? 'use today' : `use within ${d} day${d === 1 ? '' : 's'}`) : `added ${relDate(i.added)}`;
   return el('li', { class: 'item' },
-    el('div', {}, el('span', { class: 'name' }, i.name), el('span', { class: `sub ${f || ''}` }, sub)),
+    el('button', { class: 'item-main', onclick: () => openItem(i.id), 'aria-label': `Edit ${i.name}` },
+      el('span', { class: 'name' }, i.name), el('span', { class: `sub ${f || ''}` }, sub)),
     el('span', { class: 'stepper' },
       el('button', { 'aria-label': `one less ${i.name}`, onclick: () => store.setQty(i.id, i.qty - 1) }, '−'),
       el('span', {}, String(i.qty)),
@@ -321,6 +322,43 @@ function itemRow(i) {
     el('button', { class: 'icon-btn remove', 'aria-label': `remove ${i.name}`, onclick: () => { store.remove(i.id); toast(`Removed ${i.name}`); } }, '✕'),
   );
 }
+
+// ---- item sheet
+const itemDialog = $('#item-dialog');
+let openItemId = null;
+for (const [id, name] of Object.entries(CATEGORIES)) $('#item-category').append(el('option', { value: id }, name));
+function openItem(id) {
+  const i = store.get().items.find(x => x.id === id);
+  if (!i) return;
+  openItemId = id;
+  const custom = i.id.startsWith('custom:');
+  $('#item-title').textContent = i.name;
+  $('#item-meta').textContent = `Added ${relDate(i.added)} · ${i.source === 'scan' ? 'from a scan' : i.source === 'shopping' ? 'from the shopping list' : 'typed in'}${custom ? '' : ' · from the food list'}`;
+  $('#item-name').value = i.name;
+  $('#item-name').disabled = !custom;
+  $('#item-category').value = i.category;
+  $('#item-category').disabled = !custom;
+  $('#item-days').value = i.days ?? '';
+  itemDialog.showModal();
+}
+$('#btn-item-save').addEventListener('click', () => {
+  if (!openItemId) return;
+  store.update(openItemId, { name: $('#item-name').value, category: $('#item-category').value, days: $('#item-days').value });
+  itemDialog.close();
+});
+$('#btn-item-fresh').addEventListener('click', () => {
+  if (!openItemId) return;
+  store.update(openItemId, { fresh: true, days: $('#item-days').value });
+  itemDialog.close();
+  toast('Marked as fresh from today');
+});
+$('#btn-item-remove').addEventListener('click', () => {
+  if (!openItemId) return;
+  const i = store.get().items.find(x => x.id === openItemId);
+  store.remove(openItemId);
+  itemDialog.close();
+  if (i) toast(`Removed ${i.name}`);
+});
 
 function relDate(iso) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);

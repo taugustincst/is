@@ -163,6 +163,29 @@
   </div>
 </dialog>
 
+<!-- ================= Item detail ================= -->
+<dialog id="item-dialog">
+  <form method="dialog" class="dialog-head">
+    <h2 id="item-title"></h2>
+    <button class="icon-btn" aria-label="Close">✕</button>
+  </form>
+  <p id="item-meta" class="muted"></p>
+  <label class="field">Name
+    <input id="item-name" autocomplete="off">
+  </label>
+  <label class="field">Category
+    <select id="item-category"></select>
+  </label>
+  <label class="field">Keeps for (days)
+    <input id="item-days" type="number" min="1" max="9999" inputmode="numeric" placeholder="unknown">
+  </label>
+  <div class="row wrap gap dialog-actions">
+    <button id="btn-item-save" class="btn primary">Save</button>
+    <button id="btn-item-fresh" class="btn">Bought fresh today</button>
+    <button id="btn-item-remove" class="btn danger">Remove</button>
+  </div>
+</dialog>
+
 <!-- ================= Settings ================= -->
 <dialog id="settings-dialog">
   <form method="dialog" class="dialog-head">

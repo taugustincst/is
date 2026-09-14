@@ -249,11 +249,12 @@ test('store adds, merges, consumes and shops', () => {
   store._reset();
   store.add({ id: 'egg', qty: 1, source: 'scan' });
   store.add({ id: 'egg', qty: 2, source: 'scan' });
-  store.add({ name: 'Grandma\'s pickles', source: 'manual' });
+  store.add({ name: 'grandma\'s pickles', source: 'manual' });
   let s = store.get();
   assert.equal(s.items.length, 2);
   assert.equal(s.items[0].qty, 3);
   assert.equal(s.items[1].id, 'custom:grandma\'s_pickles');
+  assert.equal(s.items[1].name, 'Grandma\'s pickles', 'typed names are capitalised for display');
   assert.equal(s.items[1].category, 'other');
   store.consume(['egg', 'milk']);
   assert.equal(store.get().items[0].qty, 2);
@@ -270,6 +271,30 @@ test('store adds, merges, consumes and shops', () => {
   store.import(json);
   assert.ok(store.ids().includes('milk'));
   assert.throws(() => store.import('{"nope":1}'));
+});
+
+test('items can be edited: shelf life, freshness, and a custom name or category', () => {
+  store._reset();
+  store.add({ id: 'milk', source: 'scan' });
+  store.add({ name: 'Natto', category: 'other', source: 'scan' });
+  const old = new Date(Date.now() - 8 * 86400000).toISOString();
+  store.get().items[0].added = old;
+  store.update('milk', { days: '10' });
+  assert.equal(store.get().items[0].days, 10);
+  assert.equal(freshness(store.get().items[0]), 'soon', 'eight days into ten is soon');
+  store.update('milk', { fresh: true });
+  assert.equal(freshness(store.get().items[0]), 'fresh');
+  store.update('milk', { name: 'Ignored' });
+  assert.equal(store.get().items[0].name, 'Ignored', 'names can be corrected on any item');
+  store.update('custom:natto', { name: 'Natto (fermented)', category: 'pantry', days: 90 });
+  const natto = store.get().items[1];
+  assert.equal(natto.name, 'Natto (fermented)');
+  assert.equal(natto.category, 'pantry');
+  assert.equal(natto.days, 90);
+  store.update('custom:natto', { category: 'nope', days: '' });
+  assert.equal(natto.category, 'pantry', 'unknown categories are ignored');
+  assert.equal(natto.days, null, 'clearing the days means unknown');
+  store.update('missing', { days: 3 }); // no throw
 });
 
 test('freshness follows shelf life', () => {
