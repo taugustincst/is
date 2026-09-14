@@ -575,6 +575,41 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('tile variants are stable and use the whole set', stable && seen.size === N, `${seen.size} of ${N} variants over a 12x12 field`);
   }
 
+  /* 27. A map names a mood, a mood names a theme, and a theme is thirty-two
+     steps of playable notes. Any link missing and a battle opens in silence
+     on a bare sky. */
+  {
+    const fs = require('fs'), path = require('path'), vm = require('vm');
+    const { ROOT } = require('./load');
+    const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), ctx);
+    const MOODS = vm.runInContext('MOODS', ctx);
+    const actx = { window: {}, localStorage: { getItem: () => null, setItem() {} }, Math, JSON };
+    vm.createContext(actx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8'), actx);
+    const TRACKS = vm.runInContext('TRACKS', actx);
+    const noMood = Object.entries(g.MAPS).filter(([, m]) => !MOODS[m.mood]).map(([id, m]) => `${id}:${m.mood}`);
+    ok('every map has a mood the renderer knows', noMood.length === 0, noMood.join(',') || `${Object.keys(g.MAPS).length} maps`);
+    const noTrack = Object.entries(MOODS).filter(([, m]) => !TRACKS[m.music]).map(([k, m]) => `${k}:${m.music}`);
+    ok('every mood plays a theme that exists', noTrack.length === 0, noTrack.join(',') || Object.keys(MOODS).join(','));
+    const badTrack = [];
+    for (const [k, t] of Object.entries(TRACKS)) {
+      for (const part of ['lead', 'bass']) {
+        if (!Array.isArray(t[part]) || t[part].length !== 32) badTrack.push(`${k}.${part} length`);
+        else if (t[part].some(n => n !== null && (n < 24 || n > 96))) badTrack.push(`${k}.${part} range`);
+        else if (t[part].every(n => n === null)) badTrack.push(`${k}.${part} silent`);
+      }
+      if (!(t.bpm > 40 && t.bpm < 240) || !(t.gain > 0 && t.gain < 0.5)) badTrack.push(`${k} tempo/gain`);
+      if (!['sine', 'square', 'triangle', 'sawtooth'].includes(t.wave)) badTrack.push(`${k} wave`);
+    }
+    ok('every theme is thirty-two playable steps', badTrack.length === 0, badTrack.join(',') || `${Object.keys(TRACKS).length} themes`);
+    const badSky = Object.entries(MOODS).filter(([, m]) => !m.sky || m.sky.length !== 2 || m.sky.some(c => !/^#[0-9a-f]{6}$/i.test(c))).map(([k]) => k);
+    ok('every mood paints a sky', badSky.length === 0, badSky.join(',') || 'all skies');
+    const used = new Set(Object.values(g.MAPS).map(m => m.mood));
+    ok('no mood goes unused', Object.keys(MOODS).every(k => used.has(k)), [...used].sort().join(','));
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

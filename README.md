@@ -87,6 +87,9 @@ a browser, or serve the folder with any static file server.
   battles across ten fields, and a tavern for hiring.
 - **Battle speed** of 1×, 2× or 3× from the bar or the F key, for once you
   have watched enough enemy turns; nothing is skipped, it just goes faster.
+- **Every field has a mood**: its own sky and light, mist over the ruins,
+  embers on the ridge, rain at the gate, fireflies in the marsh, and one of
+  three battle themes chosen to match.
 - **Three difficulty settings** that shift the opposition rather than the party,
   so your own numbers always mean the same thing: enemy level, equipment tier
   and the size of the purse. Changeable at any time from camp.

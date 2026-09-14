@@ -126,28 +126,94 @@ function treeSprite(variant) {
   return cv;
 }
 
-/* The sky behind the field: a gradient, a scatter of stars that keeps its
-   place when the camera moves, and a vignette that draws the eye inward.
-   Rebuilt only when the canvas changes size. */
+/* Every field has a mood: the sky behind it, the light on it, what drifts
+   through the air, and which theme plays. A marsh at dusk and a cathedral
+   at night should not feel like the same green board under different
+   names. `sky` is the gradient top and bottom, `stars` whether there are
+   any, `tint` a wash laid over the whole scene, `air` what the particles
+   are, `music` the track. */
+const MOODS = {
+  day:   { sky: ['#1a1c2c', '#0d0e18'], stars: true,  tint: null,                  air: null,        music: 'battle' },
+  dusk:  { sky: ['#4a2a3a', '#1a1020'], stars: false, tint: 'rgba(255,150,60,0.16)', air: 'motes',    music: 'battle' },
+  mist:  { sky: ['#2a3340', '#141a22'], stars: false, tint: 'rgba(140,170,190,0.18)', air: 'mist',   music: 'dread' },
+  marsh: { sky: ['#1b2a24', '#0b1210'], stars: true,  tint: 'rgba(60,120,80,0.18)',  air: 'fireflies', music: 'dread' },
+  rain:  { sky: ['#232a38', '#0f121a'], stars: false, tint: 'rgba(70,90,130,0.20)',  air: 'rain',     music: 'dread' },
+  ember: { sky: ['#3a1a14', '#140a08'], stars: false, tint: 'rgba(255,80,30,0.18)',  air: 'embers',   music: 'battle' },
+  night: { sky: ['#0c0f22', '#05060e'], stars: true,  tint: 'rgba(30,40,110,0.24)',  air: 'fireflies', music: 'finale' },
+};
+
+/* The sky: a gradient, a scatter of stars that keeps its place when the
+   camera moves, and a vignette that draws the eye inward. Rebuilt only when
+   the canvas changes size or the mood does. */
 let skyCache = null;
-function skyLayer(W, H) {
-  if (skyCache && skyCache.width === W && skyCache.height === H) return skyCache;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+function skyLayer(W, H, mood) {
+  const m = MOODS[mood] || MOODS.day;
+  if (skyCache && skyCache.width === W && skyCache.height === H && skyCache.mood === mood) return skyCache;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.mood = mood;
   const c = cv.getContext('2d');
   const bg = c.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#1a1c2c'); bg.addColorStop(1, '#0d0e18');
+  bg.addColorStop(0, m.sky[0]); bg.addColorStop(1, m.sky[1]);
   c.fillStyle = bg; c.fillRect(0, 0, W, H);
-  const rnd = seeded(7);
-  const n = Math.round((W * H) / 9000);
-  for (let i = 0; i < n; i++) {
-    const x = rnd() * W, y = rnd() * H * 0.7, a = 0.25 + rnd() * 0.55, s = rnd() < 0.15 ? 2 : 1;
-    c.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`; c.fillRect(Math.round(x), Math.round(y), s, s);
+  if (m.stars) {
+    const rnd = seeded(7);
+    const n = Math.round((W * H) / 9000);
+    for (let i = 0; i < n; i++) {
+      const x = rnd() * W, y = rnd() * H * 0.7, a = 0.25 + rnd() * 0.55, s = rnd() < 0.15 ? 2 : 1;
+      c.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`; c.fillRect(Math.round(x), Math.round(y), s, s);
+    }
   }
   const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
   c.fillStyle = vg; c.fillRect(0, 0, W, H);
   skyCache = cv;
   return cv;
+}
+
+/* What drifts through the air, in screen space over the whole scene. Each
+   particle's path is a function of its index and the clock, so there is no
+   state to keep and nothing to reset between battles. With reduced motion
+   the clock is held, so the weather is still there but still. */
+// One soft blob, drawn once; a gradient per bank of mist per frame was the
+// most expensive thing on the screen.
+let mistCache = null;
+function mistBlob() {
+  if (mistCache) return mistCache;
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(200,220,230,0.15)'); g.addColorStop(1, 'rgba(200,220,230,0)');
+  c.fillStyle = g; c.fillRect(0, 0, 256, 256);
+  mistCache = cv;
+  return cv;
+}
+
+function drawAir(c, W, H, kind, time) {
+  const t = reducedMotion() ? 0 : time / 1000;
+  const n = kind === 'mist' ? 5 : kind === 'rain' ? 90 : 34;
+  const rnd = seeded(kind.length * 977);
+  for (let i = 0; i < n; i++) {
+    const ax = rnd(), ay = rnd(), sp = 0.4 + rnd() * 0.8, ph = rnd() * 6.28;
+    if (kind === 'mist') {
+      const x = ((ax + t * 0.012 * sp) % 1) * (W + 400) - 200, y = ay * H, r = 130 + sp * 70;
+      c.drawImage(mistBlob(), x - r, y - r * 0.6, r * 2, r * 1.2);
+    } else if (kind === 'rain') {
+      const x = ((ax + t * 0.05 * sp) % 1) * W, y = ((ay + t * 0.9 * sp) % 1) * H;
+      c.strokeStyle = 'rgba(190,210,240,0.28)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x - 3, y + 14); c.stroke();
+    } else if (kind === 'embers') {
+      const x = ((ax + Math.sin(t * sp + ph) * 0.01) % 1) * W, y = ((ay - t * 0.03 * sp) % 1 + 1) % 1 * H;
+      const a = 0.35 + 0.35 * Math.sin(t * 3 * sp + ph);
+      c.fillStyle = `rgba(255,${120 + Math.round(60 * sp)},40,${a.toFixed(2)})`; c.fillRect(x, y, 2, 2);
+    } else if (kind === 'fireflies') {
+      const x = ((ax + Math.sin(t * 0.3 * sp + ph) * 0.02) % 1) * W, y = ((ay + Math.cos(t * 0.25 * sp + ph) * 0.02) % 1) * H;
+      const a = Math.max(0, Math.sin(t * 1.3 * sp + ph)) * 0.8;
+      if (a > 0.05) { c.fillStyle = `rgba(200,255,120,${a.toFixed(2)})`; c.fillRect(x, y, 2, 2); }
+    } else {
+      // Motes in low light: slow, faint, always there.
+      const x = ((ax + t * 0.006 * sp) % 1) * W, y = ((ay + Math.sin(t * 0.4 * sp + ph) * 0.01) % 1) * H;
+      c.fillStyle = 'rgba(255,220,170,0.22)'; c.fillRect(x, y, 1, 1);
+    }
+  }
 }
 
 function shade(hex, amt) {
@@ -176,6 +242,7 @@ class Renderer {
     this.cam = { x: 0, y: 0 };
     this.battle = null;
     this.hl = { move: new Set(), target: new Set(), area: new Set(), cursor: null };
+    this.mood = 'day';   // which MOODS entry dresses the field; set per map
     this.floats = [];
     this.bursts = [];
     this.fx = [];
@@ -543,7 +610,8 @@ class Renderer {
 
   draw() {
     const c = this.ctx, W = this.cv.width, H = this.cv.height;
-    c.drawImage(skyLayer(W, H), 0, 0);
+    const mood = MOODS[this.mood] || MOODS.day;
+    c.drawImage(skyLayer(W, H, this.mood), 0, 0);
     if (!this.battle) return;
     const z = this.zoom || 1;
     c.save();
@@ -587,6 +655,9 @@ class Renderer {
     this.drawBursts();
     this.drawFloats();
     c.restore();
+    // The mood's light and weather lie over everything, in screen space.
+    if (mood.tint) { c.fillStyle = mood.tint; c.fillRect(0, 0, W, H); }
+    if (mood.air) drawAir(c, W, H, mood.air, this.time);
   }
 
   drawTile(t) {

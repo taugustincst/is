@@ -397,10 +397,11 @@ const ABILITIES = {
 // ---------------------------------------------------------------------- maps
 // heights: rows of digits (y down, x across). terrain: g grass, d dirt,
 // s stone, b wood/bridge, w water (impassable), t tree/pillar (impassable),
-// x void (not drawn). deploy: player start tiles.
+// x void (not drawn). deploy: player start tiles. mood: the sky, light and
+// weather the renderer dresses the field in, and which theme plays (MOODS).
 const MAPS = {
   verdant: {
-    name: 'Verdant Road', w: 11, h: 11,
+    name: 'Verdant Road', w: 11, h: 11, mood: 'day',
     heights: [
       '00000111122',
       '00000011222',
@@ -430,7 +431,7 @@ const MAPS = {
     deploy: [[1, 1], [2, 1], [1, 2], [2, 2], [3, 1]],
   },
   millbrook: {
-    name: 'Millbrook Bridge', w: 12, h: 10,
+    name: 'Millbrook Bridge', w: 12, h: 10, mood: 'dusk',
     heights: [
       '222211112222',
       '222211112222',
@@ -458,7 +459,7 @@ const MAPS = {
     deploy: [[5, 9], [6, 9], [4, 9], [7, 9], [5, 8]],
   },
   hollowmere: {
-    name: 'Hollowmere Ruins', w: 12, h: 12,
+    name: 'Hollowmere Ruins', w: 12, h: 12, mood: 'mist',
     heights: [
       '111111111111',
       '133311112331',
@@ -490,7 +491,7 @@ const MAPS = {
     deploy: [[5, 11], [6, 11], [4, 11], [7, 11], [5, 10]],
   },
   sable: {
-    name: 'Sable Marsh', w: 12, h: 12,
+    name: 'Sable Marsh', w: 12, h: 12, mood: 'marsh',
     heights: [
       '111111100000',
       '111110000000',
@@ -522,7 +523,7 @@ const MAPS = {
     deploy: [[9, 10], [10, 10], [8, 10], [9, 9], [10, 9]],
   },
   dunmarch: {
-    name: 'Dunmarch Gate', w: 12, h: 12,
+    name: 'Dunmarch Gate', w: 12, h: 12, mood: 'rain',
     heights: [
       '666666666666',
       '666666666666',
@@ -554,7 +555,7 @@ const MAPS = {
     deploy: [[5, 11], [6, 11], [4, 11], [7, 11], [5, 10]],
   },
   ashen: {
-    name: 'Ashen Ridge', w: 12, h: 11,
+    name: 'Ashen Ridge', w: 12, h: 11, mood: 'ember',
     heights: [
       '555444333222',
       '554443332221',
@@ -587,7 +588,7 @@ const MAPS = {
   // chapters do not always replay the campaign's own maps. Each has a shape
   // worth reading: a river to ford, a pit to fight around, a keep to storm.
   fordwater: {
-    name: 'Fordwater Crossing', w: 12, h: 10,
+    name: 'Fordwater Crossing', w: 12, h: 10, mood: 'day',
     heights: [
       '111100001111',
       '111100001112',
@@ -615,7 +616,7 @@ const MAPS = {
     deploy: [[1, 1], [2, 1], [1, 2], [2, 2], [1, 3]],
   },
   quarry: {
-    name: 'The Old Quarry', w: 11, h: 11,
+    name: 'The Old Quarry', w: 11, h: 11, mood: 'dusk',
     heights: [
       '33333333333',
       '33322222333',
@@ -645,7 +646,7 @@ const MAPS = {
     deploy: [[0, 5], [0, 4], [0, 6], [1, 5], [0, 3]],
   },
   ruinkeep: {
-    name: 'Ruined Keep', w: 12, h: 11,
+    name: 'Ruined Keep', w: 12, h: 11, mood: 'mist',
     heights: [
       '000000011111',
       '000000012221',
@@ -675,7 +676,7 @@ const MAPS = {
     deploy: [[1, 5], [1, 4], [1, 6], [2, 5], [0, 5]],
   },
   thornwall: {
-    name: 'Thornwall Cathedral', w: 13, h: 13,
+    name: 'Thornwall Cathedral', w: 13, h: 13, mood: 'night',
     heights: [
       '3333333333333',
       '3111111111113',

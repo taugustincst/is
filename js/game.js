@@ -27,7 +27,7 @@ class Game {
     this.screen = name;
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
     // Each part of the game keeps its own theme.
-    if (name === 'battle') audio.playMusic('battle');
+    if (name === 'battle') audio.playMusic(this.battleMusic || 'battle');
     else if (name === 'story') audio.playMusic('ruin');
     else if (name === 'results') audio.stopMusic();
     else if (name !== 'title') audio.playMusic('town');
@@ -596,6 +596,9 @@ class Game {
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
     this.ui.showObjective();
+    // The field's mood: sky, light, weather and which theme plays.
+    this.renderer.mood = mapDef.mood || 'day';
+    this.battleMusic = (MOODS[this.renderer.mood] || MOODS.day).music;
     this.renderer.setBattle(battle);
     this.ui.bind(battle);
     this.showScreen('battle');
@@ -619,6 +622,9 @@ class Game {
     const result = await battle.run();
     await sleep(600);
     this.renderer.stop();
+    // Who stood on the field, for the results screen, before the battle is
+    // let go of.
+    const fought = battle.units.filter(u => u.team === 'player' && u.x >= 0);
     this.battle = null;
     // Revive and reset everyone after the fight.
     for (const u of this.state.party) u.resetBattleState();
@@ -631,7 +637,7 @@ class Game {
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) r.loot = loot;
     }
-    await this.results(result, r, battle.endReason);
+    await this.results(result, r, battle.endReason, fought);
     return result;
   }
 
@@ -660,7 +666,7 @@ class Game {
     this.ui.abort();
   }
 
-  results(result, r, battleEndReason) {
+  results(result, r, battleEndReason, fought = []) {
     return new Promise(resolve => {
       audio.sfx(result === 'victory' ? 'victory' : 'defeat');
       $('results-title').textContent = result === 'victory' ? 'Victory!' : 'Defeat...';
@@ -670,8 +676,23 @@ class Game {
         <div class="res-line">Experience earned: <b>${r.exp}</b></div>
         <div class="res-line">Gil ${result === 'victory' ? 'earned' : 'kept'}: <b>${result === 'victory' ? r.gil : 0}</b></div>
         ${r.loot ? `<div class="res-line res-loot">Recovered: <b>${r.loot}</b></div>` : ''}
+        <div class="res-party"></div>
         ${r.events.length ? `<ul class="res-events">${r.events.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}
         ${result === 'defeat' ? '<p class="res-note">Your party regroups. Train, learn new abilities, and try again.</p>' : ''}`;
+      // Everyone who fought, with a mark on those who came out of it stronger.
+      const roll = $('results-body').querySelector('.res-party');
+      for (const u of fought) {
+        const up = r.events.some(ev => ev.startsWith(u.name + ' ') && /level/i.test(ev));
+        const item = document.createElement('div');
+        item.className = 'res-unit' + (up ? ' up' : '') + (u.alive ? '' : ' down');
+        const cv = document.createElement('canvas');
+        paintUnitSprite(cv, u, 2);
+        item.appendChild(cv);
+        const cap = document.createElement('span');
+        cap.textContent = `${u.name} · Lv${u.level}${up ? ' ↑' : ''}`;
+        item.appendChild(cap);
+        roll.appendChild(item);
+      }
       $('btn-results').onclick = () => { $('btn-results').onclick = null; resolve(); };
       this.showScreen('results');
     });

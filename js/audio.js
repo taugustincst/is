@@ -23,6 +23,23 @@ const TRACKS = {
     bass: [33, 33, 40, 33, 33, 33, 40, 33, 35, 35, 42, 35, 35, 35, 42, 35,
            33, 33, 40, 33, 36, 36, 43, 36, 38, 38, 45, 38, 40, 40, 40, 40],
   },
+  // Slow and low, for the marsh, the mist and the rain: a battle you would
+  // rather not be having.
+  dread: {
+    bpm: 92, wave: 'triangle', gain: 0.15,
+    lead: [57, null, null, 60, null, null, 59, null, 57, null, null, null, 55, null, null, null,
+           57, null, null, 60, null, null, 62, null, 60, null, 59, null, 57, null, null, null],
+    bass: [45, null, null, null, 45, null, null, null, 41, null, null, null, 43, null, null, null,
+           45, null, null, null, 45, null, null, null, 46, null, null, null, 43, null, null, null],
+  },
+  // Fast and bright-edged, for the cathedral: the last of it.
+  finale: {
+    bpm: 152, wave: 'sawtooth', gain: 0.10,
+    lead: [74, 74, 81, 74, 77, 74, 79, 74, 76, 76, 83, 76, 79, 76, 81, 76,
+           74, 74, 81, 74, 77, 81, 84, 81, 82, null, 81, null, 79, null, 77, 76],
+    bass: [38, 38, 45, 38, 38, 38, 45, 38, 40, 40, 47, 40, 40, 40, 47, 40,
+           38, 38, 45, 38, 41, 41, 48, 41, 43, 43, 50, 43, 45, 45, 45, 45],
+  },
   ruin: {
     bpm: 76, wave: 'sine', gain: 0.15,
     lead: [64, null, null, 67, null, null, 69, null, 68, null, null, 64, null, null, null, null,
