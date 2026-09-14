@@ -4,6 +4,8 @@
 
 const SAVE_KEY = 'elderon-tactics-save';
 const PACE_KEY = 'elderon.pace';
+// Where each chapter sits on the map of the realm, as fractions of the canvas.
+const WORLD_ROUTE = [[0.09, 0.74], [0.22, 0.50], [0.37, 0.68], [0.52, 0.42], [0.66, 0.64], [0.79, 0.34], [0.91, 0.20]];
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -84,14 +86,14 @@ class Game {
   newGame() {
     this.state = {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
-      gil: 500, chapter: 0, victories: 0, inventory: {}, difficulty: this.pendingDifficulty || 'knight',
+      gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: this.pendingDifficulty || 'knight',
     };
     this.showWorld();
   }
 
   saveGame() {
     const data = {
-      v: 3, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories,
+      v: 3, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
       difficulty: this.state.difficulty,
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
     };
@@ -119,6 +121,7 @@ class Game {
       gil: Number.isFinite(d.gil) ? d.gil : 0,
       chapter: Number.isFinite(d.chapter) ? Math.max(0, Math.min(CAMPAIGN.length, d.chapter)) : 0,
       victories: d.victories || 0,
+      trials: d.trials || 0,
       inventory: {},
       difficulty: DIFFICULTIES[d.difficulty] ? d.difficulty : 'knight',
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
@@ -226,9 +229,16 @@ class Game {
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = 'March to Battle';
     } else {
-      $('world-next').innerHTML = `<div class="chapter-title">The war is over... for now.</div><div class="chapter-map">Training battles remain available.</div>`;
-      $('btn-battle').disabled = true;
-      $('btn-battle').textContent = 'Campaign complete';
+      // The war is won; the trials are what a company does with peace.
+      const n = (s.trials || 0) + 1, t = this.trialSpec(n);
+      $('world-next').innerHTML = `
+        <div class="chapter-num">Trial ${n}</div>
+        <div class="chapter-title">${t.title}</div>
+        <div class="chapter-map">${MAPS[t.map].name} · ${t.enemies.length} enemies · Lv ${t.level}</div>
+        <div class="chapter-goal">Objective: Defeat every enemy · ${t.gil} gil</div>
+        <div class="chapter-map">The campaign is complete. Each trial is harder than the last, and nothing is lost by failing one.</div>`;
+      $('btn-battle').disabled = false;
+      $('btn-battle').textContent = `Trial ${n}`;
     }
     const diff = DIFFICULTIES[s.difficulty] || DIFFICULTIES.knight;
     $('world-difficulty').innerHTML = Object.entries(DIFFICULTIES).map(([id, d]) =>
@@ -245,6 +255,8 @@ class Game {
     $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max 8).`;
     $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= 8;
     this.showScreen('world');
+    // Drawn once the screen is showing, so the canvas has a width to fit.
+    this.drawWorldMap();
   }
 
   // A word of warning when the party is walking into a chapter underprepared.
@@ -543,9 +555,125 @@ class Game {
   }
 
   // ---- battles ----------------------------------------------------------------------------------
+  /* After the last chapter the road keeps going: numbered trials on a
+     random field, drawn from the campaign's toughest pools and a level or
+     two above the party, climbing one trial at a time. */
+  trialSpec(n) {
+    const s = this.state;
+    const seed = (s.victories * 7919 + n * 104729) >>> 0;
+    const rnd = (k) => ((seed * (k + 1) * 2654435761) >>> 0) / 4294967296;
+    const mapIds = Object.keys(MAPS);
+    const map = mapIds[Math.floor(rnd(1) * mapIds.length)];
+    const pool = TRAINING_POOL[Math.min(TRAINING_POOL.length - 1, 4 + Math.floor(n / 2))];
+    const count = Math.min(7, pool.length + Math.floor((n - 1) / 3));
+    const jobs = []; for (let i = 0; i < count; i++) jobs.push(pool[Math.floor(rnd(10 + i) * pool.length)]);
+    const level = this.avgLevel() + 1 + Math.floor(n / 2);
+    const titles = ['Echoes of the War', 'The Road Not Taken', 'Old Debts', 'A Rumour of Banners', 'Ghosts of Thornwall',
+                    'The Long Watch', 'Hired Steel', 'What the Marsh Kept', 'The Last Company', 'No Crown but Ours'];
+    return { map, jobs, level, enemies: jobs, gil: 400 + 120 * n, title: titles[(n - 1) % titles.length] };
+  }
+
+  async startTrial() {
+    const n = (this.state.trials || 0) + 1, t = this.trialSpec(n);
+    const map = MAPS[t.map];
+    // Spawn on passable ground far from the deploy zone, as training does.
+    const cands = [];
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+      if ('wtx'.includes(map.terrain[y][x])) continue;
+      const d = Math.min(...map.deploy.map(p => Math.abs(p[0] - x) + Math.abs(p[1] - y)));
+      if (d >= 6) cands.push({ x, y, d });
+    }
+    cands.sort(() => Math.random() - 0.5);
+    const enemies = t.jobs.map((job, i) => ({ job, level: t.level, x: cands[i % cands.length].x, y: cands[i % cands.length].y }));
+    await this.story(`Trial ${n}: ${t.title}`, [`${map.name}. Word has spread of the company that ended the war, and ${enemies.length} have come to test it.`]);
+    const res = await this.runBattle(map, enemies, t.gil, { objective: { type: 'rout' } });
+    if (res === 'aborted') return;
+    if (res === 'victory') { this.state.trials = n; this.state.victories++; }
+    this.saveGame();
+    this.showWorld();
+  }
+
+  /* The realm, drawn: the seven chapters as stops along a road, coloured by
+     the mood of the field each is fought on, with the company's own leader
+     standing where the story has reached. */
+  drawWorldMap() {
+    const cv = $('world-map');
+    if (!cv) return;
+    const cssW = Math.max(280, cv.clientWidth || 800), cssH = cssW / 2, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, dpr, 0, 0, 0, 0); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = cssW, H = cssH;
+    const bg = c.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#1c1a2e'); bg.addColorStop(1, '#0f0e1a');
+    c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    // Contours, so the parchment is a land and not a panel.
+    c.strokeStyle = 'rgba(255,255,255,0.05)'; c.lineWidth = 1;
+    for (let i = 0; i < 9; i++) {
+      c.beginPath();
+      for (let x = 0; x <= W; x += 16) {
+        const y = H * (0.12 + i * 0.1) + Math.sin(x / 60 + i) * 8 + Math.sin(x / 23 + i * 2) * 3;
+        if (x) c.lineTo(x, y); else c.moveTo(x, y);
+      }
+      c.stroke();
+    }
+    const pts = WORLD_ROUTE.map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
+    // The road, dashed where it has not yet been walked.
+    const reached = Math.min(this.state.chapter, pts.length - 1);
+    const road = (from, to, dashed) => {
+      c.beginPath(); c.setLineDash(dashed ? [5, 6] : []);
+      c.moveTo(pts[from].x, pts[from].y);
+      for (let i = from + 1; i <= to; i++) {
+        const a = pts[i - 1], b = pts[i], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + (i % 2 ? 18 : -18);
+        c.quadraticCurveTo(mx, my, b.x, b.y);
+      }
+      c.stroke(); c.setLineDash([]);
+    };
+    c.lineWidth = 4; c.strokeStyle = 'rgba(0,0,0,0.5)'; road(0, pts.length - 1, false);
+    c.lineWidth = 2; c.strokeStyle = '#8a7a58'; road(0, reached, false);
+    c.strokeStyle = 'rgba(138,122,88,0.5)'; road(reached, pts.length - 1, true);
+    c.font = '11px Georgia, serif'; c.textAlign = 'center';
+    CAMPAIGN.forEach((ch, i) => {
+      const p = pts[i], mood = MOODS[MAPS[ch.map].mood] || MOODS.day;
+      const done = i < this.state.chapter, next = i === this.state.chapter;
+      c.beginPath(); c.arc(p.x, p.y, 9, 0, Math.PI * 2);
+      c.fillStyle = done || next ? mood.sky[0] : '#1a1a26'; c.fill();
+      c.lineWidth = next ? 3 : 1.5;
+      c.strokeStyle = next ? '#ffd84a' : done ? '#c9b98a' : 'rgba(255,255,255,0.18)'; c.stroke();
+      if (next) { c.beginPath(); c.arc(p.x, p.y, 15, 0, Math.PI * 2); c.strokeStyle = 'rgba(255,216,74,0.35)'; c.lineWidth = 1; c.stroke(); }
+      if (done) { c.fillStyle = '#c9b98a'; c.fillRect(p.x - 1, p.y - 14, 2, 10); c.fillStyle = '#d8483b'; c.beginPath(); c.moveTo(p.x + 1, p.y - 14); c.lineTo(p.x + 9, p.y - 11); c.lineTo(p.x + 1, p.y - 8); c.closePath(); c.fill(); }
+      // Labels are kept inside the canvas; a stop near an edge would
+      // otherwise lose half its name.
+      const lx = Math.max(40, Math.min(W - 40, p.x));
+      c.fillStyle = done || next ? '#e6e6f0' : 'rgba(230,230,240,0.35)';
+      const label = done || next ? MAPS[ch.map].name : '?';
+      c.fillText(label, lx, p.y + 24);
+      // The number sits inside its stop; only the next stop is named above,
+      // so numbers and neighbours' names never collide on a narrow screen.
+      if (next) { c.fillStyle = '#ffd84a'; c.fillText('Chapter ' + (i + 1), lx, p.y - 14); }
+      else { c.fillStyle = done ? '#1a1a26' : 'rgba(230,230,240,0.5)'; c.font = 'bold 10px Georgia, serif'; c.fillText(String(i + 1), p.x, p.y + 4); c.font = '11px Georgia, serif'; }
+    });
+    // The company, where the story has reached.
+    const leader = this.state.party.find(u => u.leader) || this.state.party[0];
+    if (leader) {
+      const at = pts[Math.min(this.state.chapter, pts.length - 1)];
+      const face = document.createElement('canvas');
+      paintUnitSprite(face, leader, 1);
+      c.imageSmoothingEnabled = false;
+      // Beside the stop, clear of its label.
+      c.drawImage(face, at.x + 18, at.y - face.height + 6);
+    }
+    cv.onclick = (e) => {
+      const r = cv.getBoundingClientRect();
+      const x = (e.clientX - r.left) * (W / r.width), y = (e.clientY - r.top) * (H / r.height);
+      const next = pts[this.state.chapter];
+      if (next && Math.hypot(x - next.x, y - next.y) < 22) $('btn-battle').click();
+    };
+  }
+
   async startNextChapter() {
     const ch = CAMPAIGN[this.state.chapter];
-    if (!ch) return;
+    if (!ch) return this.startTrial();
     await this.story(ch.title, ch.intro);
     const result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective });
     if (result === 'aborted') return;
@@ -739,7 +867,7 @@ window.addEventListener('DOMContentLoaded', () => {
     game.renderer.centerCamera();
   };
   window.addEventListener('orientationchange', () => setTimeout(reframe, 250));
-  window.addEventListener('resize', () => { clearTimeout(window.__rt); window.__rt = setTimeout(reframe, 200); });
+  window.addEventListener('resize', () => { clearTimeout(window.__rt); window.__rt = setTimeout(() => { reframe(); if (game.screen === 'world') game.drawWorldMap(); }, 200); });
   // A quiet blip on any button keeps the menus feeling responsive.
   document.addEventListener('click', (e) => {
     if (e.target.tagName === 'BUTTON' && !e.target.disabled) audio.sfx('menu');

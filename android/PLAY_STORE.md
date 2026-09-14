@@ -88,7 +88,7 @@ default language English. Then, in the left-hand menu:
    features, health. Category: Game → Strategy.
 2. **Store listing** — paste the name, short and full descriptions from
    `store/LISTING.md`; upload `store/icon-512.png`, the feature graphic and
-   the phone screenshots (two minimum, all six is better). Tablet
+   the phone screenshots (two minimum, all seven is better). Tablet
    screenshots are optional; the two in `store/` fit both tablet slots.
 3. **Play App Signing** — accept it when the first release asks; upload the
    bundle from step 3.

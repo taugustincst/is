@@ -71,7 +71,7 @@ from this repository, for instance
 |---|---|---|
 | App icon | `icon-512.png` | 512×512 PNG, under 1 MB |
 | Feature graphic | `feature-graphic-1024x500.jpg` | 1024×500, JPEG or PNG without alpha |
-| Phone screenshots (2–8) | `phone-1-title.jpg` … `phone-6-shop.jpg` | 1200×2400, each side 320–3840 px, long side at most twice the short |
+| Phone screenshots (2–8) | `phone-1-title.jpg` … `phone-7-camp.jpg` | 1200×2400, each side 320–3840 px, long side at most twice the short |
 | 7-inch tablet (up to 8) | `tablet-1-battle.jpg`, `tablet-2-formation.jpg` | 2560×1600 |
 | 10-inch tablet (up to 8) | the same two files | 2560×1600 |
 

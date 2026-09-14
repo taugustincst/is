@@ -29,6 +29,8 @@ small { color: var(--muted); }
 /* ---------- world ---------- */
 .world-layout { display: flex; gap: 24px; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
 .world-main { flex: 1; }
+/* The realm: where the company has been and where it goes next. */
+#world-map { display: block; width: 100%; aspect-ratio: 2 / 1; border-radius: 6px; border: 1px solid var(--border); background: #14121f; cursor: pointer; margin-bottom: 12px; }
 .world-side { width: 300px; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 16px; }
 .chapter-num { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
@@ -104,8 +106,10 @@ small { color: var(--muted); }
 .order-row.pending .dot { background: #ffd84a; border-radius: 0; clip-path: none; transform: rotate(45deg); }
 #unit-card { top: 12px; right: 12px; width: 240px; min-height: 0; }
 #unit-card:empty { display: none; }
-.card-head { display: flex; justify-content: space-between; border-bottom: 2px solid #888; padding-bottom: 4px; margin-bottom: 6px; }
+.card-head { display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #888; padding-bottom: 4px; margin-bottom: 6px; }
+.card-head b { flex: 1; }
 .card-head span { color: var(--muted); font-size: 12px; }
+.card-face { width: 30px; height: 32px; image-rendering: pixelated; flex: none; margin: -4px 0; }
 .card-head.player { border-color: var(--player); }
 .card-head.enemy { border-color: var(--enemy); }
 .bar { position: relative; height: 14px; background: #111; border-radius: 3px; margin: 3px 0; overflow: hidden; }

@@ -154,7 +154,7 @@ class BattleUI {
       .map(a => `<span class="aff" style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join('');
     const mods = Object.entries(u.mods).filter(([, v]) => v).map(([k, v]) => `${k.toUpperCase()} ${v > 0 ? '+' : ''}${v}`).join(', ');
     this.el.card.innerHTML = `
-      <div class="card-head ${u.team}"><b>${u.name}</b><span>Lv ${u.level} ${u.jobData.name}${u.boss ? ' ★' : ''}</span></div>
+      <div class="card-head ${u.team}"><canvas class="card-face"></canvas><b>${u.name}</b><span>Lv ${u.level} ${u.jobData.name}${u.boss ? ' ★' : ''}</span></div>
       <div class="bar hp"><i style="width:${(u.hp / u.maxHp) * 100}%"></i><span>HP ${u.hp}/${u.maxHp}</span></div>
       <div class="bar mp"><i style="width:${u.maxMp ? (u.mp / u.maxMp) * 100 : 0}%"></i><span>MP ${u.mp}/${u.maxMp}</span></div>
       <div class="bar ct"><i style="width:${Math.min(100, u.ct)}%"></i><span>CT ${u.ct}</span></div>
@@ -166,6 +166,9 @@ class BattleUI {
       <div class="statuses">${st}</div>
       ${aff ? `<div class="affinities">${aff}</div>` : ''}
       ${u.alive ? '' : `<div class="ko">KO${u.koCount ? ` — carried off in ${u.koCount}` : ''}</div>`}`;
+    // A face on the card, so the figure you tapped and the numbers you read
+    // are plainly the same person.
+    paintUnitSprite(this.el.card.querySelector('.card-face'), u, 1);
   }
 
   renderTileInfo(t) {

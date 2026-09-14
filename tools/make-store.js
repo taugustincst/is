@@ -142,7 +142,13 @@ async function toMenu(page) {
     await page.waitForSelector('#screen-shop.active');
     await page.waitForTimeout(300);
     await shot(page, 'phone-6-shop.jpg');
-    written.push('phone-1-title.jpg', 'phone-2-deploy.jpg', 'phone-3-move.jpg', 'phone-4-attack.jpg', 'phone-5-formation.jpg', 'phone-6-shop.jpg');
+    // The camp, a few chapters in, so the map shows a road already walked.
+    await page.click('#btn-shop-back');
+    await page.waitForSelector('#screen-world.active');
+    await page.evaluate(() => { game.state.chapter = 3; game.showWorld(); });
+    await page.waitForTimeout(300);
+    await shot(page, 'phone-7-camp.jpg');
+    written.push('phone-1-title.jpg', 'phone-2-deploy.jpg', 'phone-3-move.jpg', 'phone-4-attack.jpg', 'phone-5-formation.jpg', 'phone-6-shop.jpg', 'phone-7-camp.jpg');
     await ctx.close();
   }
 
