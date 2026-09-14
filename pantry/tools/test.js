@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { FOODS, FOOD_BY_ID, CATEGORIES } from '../js/foods.js';
 import { RECIPES } from '../js/recipes.js';
-import { normalize, singular, editDistance, detectFoods, rankRecipes } from '../js/match.js';
+import { normalize, singular, editDistance, detectFoods, rankRecipes, quantityAround } from '../js/match.js';
 import { store, freshness } from '../js/inventory.js';
 import { buildRequest, parseVisionItems, mergeDetections, DEFAULT_MODEL } from '../js/vision.js';
 import fs from 'node:fs';
@@ -133,6 +133,10 @@ test('reads a receipt', () => {
   }
   assert.ok(!got.includes('tomato'), 'chopped tomatoes must not also be fresh tomato');
   assert.ok(got.length <= 8, `too many guesses: ${got}`);
+  const qty = Object.fromEntries(detectFoods(receipt).map(m => [m.id, m.qty]));
+  assert.equal(qty.canned_tomato, 2, 'CHOPPED TOMATOES x2');
+  assert.equal(qty.onion, 3, 'RED ONIONS 3PK');
+  assert.equal(qty.chicken_breast, 1, '1.2KG is a weight');
 });
 
 test('fuzzy pass recovers common OCR misreads', () => {
@@ -159,6 +163,25 @@ test('reports the matched text and confidence', () => {
   assert.equal(m.id, 'egg');
   assert.equal(m.confidence, 1);
   assert.ok(m.matched.includes('eggs'));
+});
+
+test('counts are read from around the name, weights and prices are not', () => {
+  const q = (t) => Object.fromEntries(detectFoods(t).map(m => [m.id, m.qty]));
+  assert.equal(q('2 lemons').lemon, 2);
+  assert.equal(q('3 x avocados').avocado, 3);
+  assert.equal(q('2x onions').onion, 2);
+  assert.equal(q('onions x3').onion, 3);
+  assert.equal(q('ONIONS X 3').onion, 3);
+  assert.equal(q('large eggs 6pk').egg, 6);
+  assert.equal(q('bananas 5 @ 0.20').banana, 5);
+  assert.equal(q('2 kg potatoes').potato, 1, 'a weight is not a count');
+  assert.equal(q('potatoes 2kg').potato, 1);
+  assert.equal(q('tomatoes 1 20').tomato, 1, 'a price is not a count');
+  assert.equal(q('milk 2 litres').milk, 1);
+  assert.equal(q('99 bananas').banana, 1, 'implausible counts are ignored');
+  assert.equal(q('tomatoes\ncherry tomatoes').tomato, 2, 'listed twice is two');
+  assert.equal(quantityAround(['x', '4', 'limes'], 2, 3), 4);
+  assert.equal(quantityAround(['limes'], 0, 1), null);
 });
 
 // ------------------------------------------------------------- recipes

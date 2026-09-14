@@ -126,6 +126,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, Menlo, mono
 .chip.off { background: var(--card); border-color: var(--line); color: var(--muted); text-decoration: line-through; }
 .chip.guess::after { content: "?"; font-size: .75em; color: var(--amber); font-weight: 700; }
 .chip input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--green); }
+.chip-label { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
+#recipe-search { flex: 1 1 12rem; }
 .chip .qty { display: inline-flex; align-items: center; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
 .chip .qty button { border: 0; background: none; font: inherit; width: 26px; height: 24px; cursor: pointer; color: var(--ink); }
 .chip .qty span { min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; font-size: .9em; }

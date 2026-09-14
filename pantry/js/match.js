@@ -111,12 +111,51 @@ export const CONF = { exact: 1, singular: 0.9, fuzzy: 0.65 };
 
 /* Returns [{ id, name, category, confidence, matched }] sorted by confidence
    then name. `matched` is the text that caused the hit, for showing the cook. */
+// Units that turn a number into a weight or volume rather than a count.
+const UNITS = new Set(['g', 'kg', 'gm', 'gr', 'grams', 'ml', 'l', 'lt', 'ltr', 'litre', 'litres', 'liter', 'liters', 'oz', 'lb', 'lbs', 'cl', 'pt', 'pint']);
+
+/* How many of a thing the text around a matched phrase says there are:
+   "2 lemons", "onions x3", "3 x avocados", "eggs 6pk", "tomatoes 2 @ 0.89".
+   A number followed by a unit is a weight ("2 kg potatoes") and is ignored.
+   Returns null when nothing is said. */
+export function quantityAround(words, start, end) {
+  const num = (t) => { const m = /^(\d{1,2})(x|pk|pack|pcs|ct)?$/.exec(t); return m ? Number(m[1]) : null; };
+  const ok = (n) => n != null && n >= 1 && n <= 24;
+  // Before: "2 lemons", "2x lemons", "3 x avocados"
+  let i = start - 1;
+  if (i >= 0 && words[i] === 'x' && i - 1 >= 0) i -= 1;
+  if (i >= 0) {
+    const n = num(words[i]);
+    const nextIsUnit = i + 1 < words.length && UNITS.has(words[i + 1]) && i + 1 < start;
+    if (ok(n) && !nextIsUnit) return n;
+  }
+  // After: "onions x3", "onions x 3", "eggs 6pk", "tomatoes 2 @"
+  let j = end;
+  if (j < words.length) {
+    let t = words[j];
+    if (t === 'x' && j + 1 < words.length) t = 'x' + words[j + 1];
+    const m = /^x?(\d{1,2})(pk|pack|pcs|ct)?$/.exec(t);
+    if (m) {
+      const n = Number(m[1]);
+      const after = words[j + (words[j] === 'x' ? 2 : 1)];
+      const bare = /^\d{1,2}$/.test(t);
+      // A bare number after the name is a count only if it is not a weight
+      // and not the start of a price ("tomatoes 1 20" is £1.20).
+      if (ok(n) && (!bare || (!UNITS.has(after) && !/^\d{2}$/.test(after || '')))) return n;
+    }
+  }
+  return null;
+}
+
 export function detectFoods(text) {
   const words = tokens(text);
-  const found = new Map(); // id -> { confidence, matched }
-  const record = (id, confidence, matched) => {
+  const found = new Map(); // id -> { confidence, matched, qty }
+  const record = (id, confidence, matched, qty) => {
     const prev = found.get(id);
-    if (!prev || confidence > prev.confidence) found.set(id, { confidence, matched });
+    if (!prev) { found.set(id, { confidence, matched, qty: qty || 1 }); return; }
+    // The same food twice on a receipt is two of it; an explicit count adds.
+    prev.qty = Math.min(50, prev.qty + (qty || 1));
+    if (confidence > prev.confidence) { prev.confidence = confidence; prev.matched = matched; }
   };
 
   // Longest windows first so "sweet potato" beats "potato" for the same span.
@@ -133,7 +172,7 @@ export function detectFoods(text) {
         if (sing !== phrase) { id = ALIAS.get(sing); conf = CONF.singular; }
       }
       if (id) {
-        record(id, conf, phrase);
+        record(id, conf, phrase, quantityAround(words, i, i + size));
         for (let k = i; k < i + size; k++) used[k] = true;
       }
     }
@@ -154,12 +193,12 @@ export function detectFoods(text) {
         if (d <= max && (!best || d < best.d)) best = { id, d, alias };
       }
     }
-    if (best) record(best.id, CONF.fuzzy, words[i]);
+    if (best) record(best.id, CONF.fuzzy, words[i], quantityAround(words, i, i + 1));
   }
 
   return [...found].map(([id, m]) => {
     const f = FOOD_BY_ID[id];
-    return { id, name: f.name, category: f.category, confidence: m.confidence, matched: m.matched };
+    return { id, name: f.name, category: f.category, confidence: m.confidence, matched: m.matched, qty: m.qty };
   }).sort((a, b) => b.confidence - a.confidence || a.name.localeCompare(b.name));
 }
 

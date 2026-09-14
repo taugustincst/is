@@ -230,8 +230,10 @@ function renderDetected() {
   $('#none-found').hidden = detected.length > 0;
   for (const d of detected) {
     const chip = el('li', { class: `chip${d.on ? '' : ' off'}${d.confidence < 0.9 ? ' guess' : ''}`, title: `read as "${d.matched}"` },
-      el('input', { type: 'checkbox', checked: d.on, 'aria-label': `Add ${d.name}`, onchange: (e) => { d.on = e.target.checked; renderDetected(); } }),
-      el('span', {}, d.name, d.source === 'vision' ? el('span', { class: 'src', title: 'seen by Claude' }, ' 👁') : d.source === 'both' ? el('span', { class: 'src', title: 'seen and read' }, ' 👁📄') : null),
+      el('label', { class: 'chip-label' },
+        el('input', { type: 'checkbox', checked: d.on, 'aria-label': `Add ${d.name}`, onchange: (e) => { d.on = e.target.checked; renderDetected(); } }),
+        el('span', {}, d.name, d.source === 'vision' ? el('span', { class: 'src', title: 'seen by Claude' }, ' 👁') : d.source === 'both' ? el('span', { class: 'src', title: 'seen and read' }, ' 👁📄') : null),
+      ),
       el('span', { class: 'qty' },
         el('button', { type: 'button', 'aria-label': 'fewer', onclick: () => { d.qty = Math.max(1, d.qty - 1); renderDetected(); } }, '−'),
         el('span', {}, String(d.qty)),
@@ -328,6 +330,7 @@ function relDate(iso) {
 // ------------------------------------------------------------- recipes
 $('#diet').addEventListener('change', (e) => { store.setPref('diet', e.target.value); });
 $('#quick-only').addEventListener('change', renderRecipes);
+$('#recipe-search').addEventListener('input', renderRecipes);
 
 /* Food ids in the pantry that are near or past their usual life. */
 function urgentIds() {
@@ -341,6 +344,12 @@ function currentRanking() {
   if (prefs.diet === 'vegetarian') list = list.filter(r => r.tags.includes('vegetarian') || r.tags.includes('vegan'));
   if (prefs.diet === 'vegan') list = list.filter(r => r.tags.includes('vegan'));
   if ($('#quick-only').checked) list = list.filter(r => r.time <= 30);
+  const q = $('#recipe-search').value.trim().toLowerCase();
+  if (q) {
+    // Match the name, a tag, or an ingredient, so "lemon" finds what uses it.
+    list = list.filter(r => r.name.toLowerCase().includes(q) || r.tags.some(t => t.includes(q))
+      || r.ingredients.some(i => FOOD_BY_ID[i.food].name.toLowerCase().includes(q)));
+  }
   return rankRecipes(list, ids, { assumeStaples: prefs.assumeStaples, urgent: urgentIds() });
 }
 
@@ -359,7 +368,8 @@ function renderRecipes() {
   badge.hidden = now.length === 0; badge.textContent = String(now.length);
   if (items.length && !now.length && !almost.length && !ideas.length) {
     $('#recipes-now').hidden = false;
-    $('#recipes-now .cards').replaceChildren(el('p', { class: 'muted' }, 'Nothing matches those filters yet. Add a few more staples or loosen the filters.'));
+    const q = $('#recipe-search').value.trim();
+    $('#recipes-now .cards').replaceChildren(el('p', { class: 'muted' }, q ? `No recipe matches "${q}" with what you have.` : 'Nothing matches those filters yet. Add a few more staples or loosen the filters.'));
   }
 }
 
