@@ -1513,6 +1513,19 @@ const PASSIVES = {
 
 const PASSIVE_KINDS = { reaction: 'Reaction', support: 'Support', movement: 'Movement' };
 
+// How deep a job sits in the tree: the roots are 0, and every other job is one
+// deeper than the deepest job it asks for.
+function jobTier(id, seen = {}) {
+  const j = JOBS[id];
+  if (!j || j.req === null) return -1;
+  if (seen[id] !== undefined) return seen[id];
+  const reqs = Object.keys(j.req);
+  seen[id] = reqs.length ? 1 + Math.max(...reqs.map(r => jobTier(r, seen))) : 0;
+  return seen[id];
+}
+const TIER_NAMES = ['The roots', 'First rank', 'Second rank', 'Third rank', 'Fourth rank', 'Fifth rank', 'The summit'];
+
+
 // The passives taught by a given job, in JP order.
 function passivesOfJob(job) {
   return Object.keys(PASSIVES).filter(id => PASSIVES[id].job === job).sort((a, b) => PASSIVES[a].jp - PASSIVES[b].jp);

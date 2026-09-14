@@ -64,6 +64,11 @@ a browser, or serve the folder with any static file server.
   creatures
   with their own skillsets and elemental identities (goblin, dire wolf, bomb,
   skeleton, marsh wisp, treant) and two shapes of boss.
+- **A job tree you can read.** Every job on one page, in ranks from the
+  roots to the summit, marked current, open, or locked with exactly how far
+  off each requirement is — and a button to make the change from there.
+- **A record for every soldier**: battles fought and won, enemies felled,
+  and how often they have fallen, kept across saves.
 - **JP progression.** Acting earns JP in your current job. Spend it on that
   job's abilities, equip any studied job's skillset as your secondary, and
   reach job levels to unlock the advanced classes.
@@ -89,6 +94,10 @@ a browser, or serve the folder with any static file server.
   turns before they are carried off. Revive them in time and they stay.
 - **Seven chapters** with story beats and recruits, repeatable training
   battles across ten fields, and a tavern for hiring.
+- **Threat range on a tap.** Tap an enemy while choosing an action, or during
+  deployment, and every tile it could strike next turn turns violet.
+- **Auto-battle** from the bar or the A key hands your turns to the computer
+  until you take them back: for training fights, not the hard ones.
 - **Battle speed** of 1×, 2× or 3× from the bar or the F key, for once you
   have watched enough enemy turns; nothing is skipped, it just goes faster.
 - **Every field has a mood**: its own sky and light, mist over the ruins,

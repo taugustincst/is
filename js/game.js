@@ -52,6 +52,7 @@ class Game {
     $('btn-retreat').onclick = () => this.retreat();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
     $('btn-speed').onclick = () => this.cyclePace();
+    $('btn-auto').onclick = () => this.ui.setAuto(!this.ui.auto);
     this.setPace(+localStorage.getItem(PACE_KEY) || 1);
     $('btn-rot-l').onclick = () => this.ui.turnField(-1);
     $('btn-rot-r').onclick = () => this.ui.turnField(1);
@@ -363,6 +364,7 @@ class Game {
       <div class="detail-grid">
         <label>Job <select id="sel-job">${jobOpts}</select></label>
         <label>Secondary <select id="sel-sec">${secOpts}</select></label>
+        <label>&nbsp;<button id="btn-tree" class="mini">Job tree</button></label>
       </div>
       <p class="job-desc">${u.jobData.desc}</p>
       <div class="stat-grid">
@@ -371,6 +373,7 @@ class Game {
       </div>
       <div class="weapon">Weapon: ${u.weapon.name} (power ${u.weapon.power}, range ${u.weapon.range})${u.dualWielding ? ` + ${u.offhandWeapon.name}` : ''}</div>
       <div class="job-levels">Job levels: ${jobLevels}</div>
+      <div class="job-levels">Record: ${recordLine(u)}</div>
       ${affLine ? `<div class="job-levels">Elements: ${affLine}</div>` : ''}
       <h3>Equipment <button id="btn-optimize" class="mini">Optimize</button></h3>
       <div class="equip-grid">${this.equipRows(u)}</div>
@@ -387,6 +390,7 @@ class Game {
       this.openFormation(this.formSel);
     };
     $('sel-sec').onchange = (e) => { u.secondary = e.target.value || null; this.renderFormationDetail(); };
+    $('btn-tree').onclick = () => this.renderJobTree(u.job);
     $('btn-optimize').onclick = () => { this.optimize(u); this.renderFormationDetail(); };
     $('form-detail').querySelectorAll('select[data-slot]').forEach(sel => sel.onchange = (e) => {
       this.equip(u, sel.dataset.slot, e.target.value || null);
@@ -413,6 +417,70 @@ class Game {
       this.toast(note);
       this.renderFormationDetail();
     });
+  }
+
+  // The whole tree at once, for the selected unit: what they are, what they
+  // could be now, and exactly how far off everything else is.
+  renderJobTree(selJob) {
+    const u = this.state.party[this.formSel];
+    const ids = Object.keys(JOBS).filter(id => JOBS[id].req !== null);
+    const tiers = [];
+    for (const id of ids) (tiers[jobTier(id)] = tiers[jobTier(id)] || []).push(id);
+    const reqText = (id) => Object.entries(JOBS[id].req).map(([r, l]) => {
+      const have = u.jobLevel(r);
+      return `<span class="${have >= l ? 'met' : 'unmet'}">${JOBS[r].name} ${Math.min(have, l)}/${l}</span>`;
+    }).join(' · ');
+    const stateOf = (id) => id === u.job ? 'current' : u.canUseJob(id) ? 'open' : 'locked';
+    const rows = tiers.map((list, t) => `
+      <div class="tree-tier">
+        <div class="tier-label">${TIER_NAMES[t] || `Tier ${t}`}</div>
+        <div class="tree-row">${list.map(id => {
+          const j = JOBS[id], st = stateOf(id);
+          const lv = u.jobLevel(id), learned = u.learnedIn(id).length;
+          const sub = st === 'locked' ? reqText(id)
+            : `${u.jpTotal[id] ? `Lv${lv}` : 'unstudied'}${learned ? ` · ${learned}/${j.abilities.length} learned` : ''}`;
+          return `<div class="job-card ${st} ${id === selJob ? 'sel' : ''}" data-job="${id}">
+            <canvas data-tree-portrait="${id}"></canvas><b>${j.name}</b><small>${sub}</small></div>`;
+        }).join('')}</div>
+      </div>`).join('');
+    $('form-detail').innerHTML = `
+      <div class="tree-head"><h2>Job Tree</h2><span class="muted">${u.name} · ${u.jobData.name}</span><button id="btn-tree-back" class="mini">Back to ${u.name}</button></div>
+      <p class="muted tree-key"><span class="key current">current</span> <span class="key open">open to ${u.name}</span> <span class="key locked">locked, with what it asks for</span></p>
+      ${rows}
+      <div class="tree-detail" id="tree-detail"></div>`;
+    $('form-detail').querySelectorAll('canvas[data-tree-portrait]').forEach(cv => {
+      // The unit's own face in each job's dress: this is you, as that.
+      const ghost = new Unit({ job: cv.dataset.treePortrait, name: u.name, id: u.id });
+      paintUnitSprite(cv, ghost, 1);
+    });
+    $('btn-tree-back').onclick = () => this.renderFormationDetail();
+    $('form-detail').querySelectorAll('.job-card').forEach(card => card.onclick = () => this.renderJobTree(card.dataset.job));
+    // The detail panel for the selected job.
+    if (!selJob || !JOBS[selJob]) return;
+    const j = JOBS[selJob], st = stateOf(selJob);
+    const eq = JOB_EQUIP[selJob] || { w: [] };
+    const abilities = j.abilities.map(id => `<span class="tree-ab ${u.learned[id] ? 'learned' : ''}">${ABILITIES[id].name} <small>${ABILITIES[id].jp} JP</small></span>`).join('');
+    const passives = passivesOfJob(selJob).map(id => `<span class="tree-ab ${u.learned[id] ? 'learned' : ''}">${PASSIVES[id].name} <small>${PASSIVE_KINDS[PASSIVES[id].kind]}</small></span>`).join('');
+    const mult = (v) => `×${v}`;
+    $('tree-detail').innerHTML = `
+      <div class="tree-detail-head"><h3>${j.name}</h3><span class="muted">${j.skillset}</span></div>
+      <p class="job-desc">${j.desc}</p>
+      <div class="job-levels">HP ${mult(j.hp)} · MP ${mult(j.mp)} · PA ${mult(j.pa)} · MA ${mult(j.ma)} · Speed ${mult(j.spd)} · Move ${j.move} · Jump ${j.jump} · Evade ${j.evade}%</div>
+      <div class="job-levels">Arms: ${eq.w.join(', ')}${eq.shield ? ', shields' : ''}</div>
+      ${Object.keys(j.req).length ? `<div class="job-levels">Asks for: ${reqText(selJob)}</div>` : '<div class="job-levels">A root job: open to everyone.</div>'}
+      <div class="tree-abs">${abilities}${passives}</div>
+      ${st === 'current' ? `<span class="tag">${u.name}'s current job</span>`
+        : st === 'open' ? `<button id="btn-tree-become" class="primary">Make ${u.name} a ${j.name}</button>`
+        : `<span class="muted">Earn the job levels above to open it. Job levels come from JP earned while in that job.</span>`}`;
+    const become = $('tree-detail').querySelector('#btn-tree-become');
+    if (become) become.onclick = () => {
+      u.job = selJob;
+      if (u.secondary === u.job) u.secondary = null;
+      this.syncGear(u);
+      audio.sfx('select');
+      this.toast(`${u.name} is now a ${j.name}.`);
+      this.openFormation(this.formSel);
+    };
   }
 
   // A one-line summary of an item's bonuses, e.g. "Pw 8 · Rng 1 · HP +15".
@@ -753,7 +821,8 @@ class Game {
     this.renderer.stop();
     // Who stood on the field, for the results screen, before the battle is
     // let go of.
-    const fought = battle.units.filter(u => u.team === 'player' && u.x >= 0);
+    const fought = battle.units.filter(u => u.team === 'player' && (u.x >= 0 || u.carriedOff));
+    for (const u of fought) { u.record.battles++; if (result === 'victory') u.record.wins++; }
     this.battle = null;
     // Revive and reset everyone after the fight.
     for (const u of this.state.party) u.resetBattleState();

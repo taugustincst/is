@@ -241,7 +241,7 @@ class Renderer {
     this.ctx = canvas.getContext('2d');
     this.cam = { x: 0, y: 0 };
     this.battle = null;
-    this.hl = { move: new Set(), target: new Set(), area: new Set(), cursor: null };
+    this.hl = { move: new Set(), target: new Set(), area: new Set(), threat: new Set(), cursor: null };
     this.mood = 'day';   // which MOODS entry dresses the field; set per map
     this.floats = [];
     this.bursts = [];
@@ -276,7 +276,7 @@ class Renderer {
     this.centerCamera();
   }
 
-  clearHighlights() { this.hl.move.clear(); this.hl.target.clear(); this.hl.area.clear(); this.hl.cursor = null; }
+  clearHighlights() { this.hl.move.clear(); this.hl.target.clear(); this.hl.area.clear(); this.hl.threat.clear(); this.hl.cursor = null; }
 
   // The part of the canvas the panels are not sitting on. The board is framed
   // inside this rather than the whole screen, so on a phone it lands in the
@@ -700,6 +700,13 @@ class Renderer {
     if (this.hl.move.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(70,130,255,0.45)'; c.fill(); }
     if (this.hl.target.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(255,80,60,0.42)'; c.fill(); }
     if (this.hl.area.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(255,220,60,0.55)'; c.fill(); }
+    if (this.hl.threat.has(key)) {
+      // Where an enemy could strike next turn: a violet wash with a hatched
+      // edge, so it never reads as one of your own move or target offers.
+      const pulse = 0.36 + 0.08 * Math.sin(this.time / 300);
+      this.diamond(sx, sy); c.fillStyle = `rgba(200,50,230,${pulse})`; c.fill();
+      c.strokeStyle = 'rgba(255,150,255,0.7)'; c.setLineDash([4, 3]); c.lineWidth = 1.5; c.stroke(); c.setLineDash([]); c.lineWidth = 1;
+    }
     if (this.battle.active && this.battle.active.alive && this.battle.active.x === t.x && this.battle.active.y === t.y && !this.battle.active.anim) {
       const a = 0.5 + 0.4 * Math.sin(this.time / 180);
       this.diamond(sx, sy); c.strokeStyle = `rgba(255,255,255,${a})`; c.lineWidth = 2; c.stroke(); c.lineWidth = 1;

@@ -30,6 +30,8 @@ class BattleUI {
   }
 
   bind(battle) {
+    this.setAuto(false);
+    this.threatOf = null;
     this.battle = battle;
     this.turn = null;
     this.deploy = null;
@@ -291,8 +293,9 @@ class BattleUI {
       if (occupant === d.sel) b.withdraw(occupant); else d.sel = occupant;
       return this.renderDeploy();
     }
-    if (occupant) return; // an enemy stands there
+    if (occupant) return this.toggleThreat(occupant); // an enemy stands there: show its reach
     if (!d.sel) return;
+    if (this.threatOf) { this.threatOf = null; this.r.hl.threat.clear(); }
     if (!b.placeUnit(d.sel, tile.x, tile.y)) {
       this.toastHint(b.deployKeys.has(`${tile.x},${tile.y}`) ? `Only ${b.maxDeploy} units may deploy.` : 'Outside the deployment zone.');
       return;
@@ -304,7 +307,33 @@ class BattleUI {
   }
 
   // ---- player turn ------------------------------------------------------------------
+  // Auto hands your turns to the same AI the enemy uses, until you take them
+  // back. It is a convenience for training fights, not a way to play well.
+  setAuto(on) {
+    this.auto = !!on;
+    const b = document.getElementById('btn-auto');
+    if (b) { b.classList.toggle('on', this.auto); b.setAttribute('aria-pressed', this.auto ? 'true' : 'false'); }
+    if (this.battle && !this.battle.over) {
+      this.el.hint.textContent = this.auto ? 'Auto: your units act on their own. Press Auto again to take back command.' : 'Auto off: command returns to you at the next turn.';
+      this.placeHint();
+    }
+    // Switching Auto on in the middle of a unit's menu hands that turn over now.
+    if (this.auto && this.turn && this.turn.mode !== 'busy' && this.turn.mode !== 'auto') {
+      const t = this.turn;
+      t.mode = 'auto';
+      this.r.clearHighlights(); this.threatOf = null;
+      this.el.menu.innerHTML = `<div class="menu-title">${t.unit.name}</div><div class="muted">acting on Auto</div>`;
+      this.el.pred.innerHTML = '';
+      this.battle.aiTurn(t.unit).then(() => { if (this.turn === t) this.endTurn(); });
+    }
+  }
+
   awaitPlayerTurn(unit) {
+    if (this.auto) {
+      this.turn = { unit, mode: 'auto', ability: null, reach: null, targets: null, resolve: null };
+      this.el.menu.innerHTML = `<div class="menu-title">${unit.name}</div><div class="muted">acting on Auto</div>`;
+      return this.battle.aiTurn(unit).then(() => { if (this.turn && this.turn.unit === unit) this.endTurn(); });
+    }
     return new Promise(resolve => {
       this.turn = { unit, mode: 'menu', ability: null, reach: null, targets: null, resolve };
       this.setMode('menu');
@@ -318,7 +347,7 @@ class BattleUI {
     this.el.menu.innerHTML = '';
     this.el.pred.innerHTML = '';
     this.el.hint.textContent = '';
-    if (t) t.resolve();
+    if (t && t.resolve) t.resolve();
   }
 
   // Called from the game screen when the player retreats.
@@ -340,6 +369,7 @@ class BattleUI {
     const t = this.turn; if (!t) return;
     t.mode = mode;
     this.r.clearHighlights();
+    this.threatOf = null;
     this.el.pred.innerHTML = '';
     const u = t.unit;
     const hint = this.el.hint;
@@ -563,6 +593,7 @@ class BattleUI {
       else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
       else if (e.key === '0') this.r.centerCamera();
       else if (e.key === 'f' || e.key === 'F') game.cyclePace();
+      else if (e.key === 'a' || e.key === 'A') this.setAuto(!this.auto);
       else if (e.key === 'q' || e.key === 'Q') this.turnField(-1);
       else if (e.key === 'e' || e.key === 'E') this.turnField(1);
       else if (/^[1-9]$/.test(e.key)) {
@@ -592,10 +623,35 @@ class BattleUI {
     if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
   }
 
+  // Tap an enemy while choosing what to do and the field shows every tile it
+  // could strike on its next turn. Tap it again, or do anything else, to clear.
+  toggleThreat(unit) {
+    const b = this.battle;
+    if (this.threatOf === unit) { this.threatOf = null; this.r.hl.threat.clear(); this.el.hint.textContent = this.deploy ? '' : `Choose an action. ${CANCEL_HINT}`; this.placeHint(); return; }
+    this.threatOf = unit;
+    this.r.hl.threat.clear();
+    for (const k of this.threatTiles(unit)) this.r.hl.threat.add(k);
+    audio.sfx('menu');
+    this.el.hint.textContent = `Violet: where ${unit.name} can strike next turn. Tap ${unit.name} again to clear.`;
+    this.placeHint();
+  }
+
+  threatTiles(unit) {
+    const b = this.battle, keys = new Set();
+    const reach = b.grid.reachable(unit, b.units);
+    for (const c of reach.values()) for (const t of b.targetTilesFor(unit, ABILITIES.attack, c.x, c.y)) keys.add(`${t.x},${t.y}`);
+    return keys;
+  }
+
   onClick(tile) {
     if (this.deploy) return this.onDeployClick(tile);
     const t = this.turn;
     if (!t || !tile) return;
+    if (t.mode === 'menu') {
+      const who = this.battle.unitAt(tile.x, tile.y);
+      if (who && who.alive && who.team !== t.unit.team) this.toggleThreat(who);
+      return;
+    }
     if (t.mode === 'move') this.confirmMove(tile);
     else if (t.mode === 'target') this.confirmTarget(tile);
     else if (t.mode === 'wait') {

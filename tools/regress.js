@@ -637,6 +637,10 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('legendary arms are all withheld from enemies', legendary.length > 0 && legendary.every(i => i.late), `${legendary.length} legendary items`);
     const openEnded = Object.entries(g.JOBS).filter(([, j]) => j.kind === 'human' && j.req && Object.keys(j.req).length && Object.values(j.req).some(l => l > 7));
     ok('no job asks for a job level that cannot be reached', openEnded.length === 0, openEnded.map(([k]) => k).join(',') || `max level ${g.JOB_LEVEL_JP.length - 1}`);
+    const ranks = g.run('Object.keys(JOBS).filter(id => JOBS[id].req !== null).map(id => [id, jobTier(id)])');
+    ok('every playable job sits at a finite rank on the tree', ranks.every(([, t]) => Number.isInteger(t) && t >= 0 && t < g.run('TIER_NAMES.length')), `${ranks.length} jobs over ${new Set(ranks.map(r => r[1])).size} ranks`);
+    const rec = g.run('(() => { const u = new Unit({ job: "knight", name: "R" }); u.record.battles = 4; u.record.kills = 9; u.record.falls = 1; const back = Unit.fromSave(JSON.parse(JSON.stringify(u.toSave()))); return [back.record, recordLine(back), new Unit({ job: "squire" }).record]; })()');
+    ok('a battle record survives the save and reads as words', rec[0].battles === 4 && rec[0].kills === 9 && rec[0].falls === 1 && rec[1] === '4 battles, 0 won · 9 felled · fallen once' && rec[2].battles === 0, rec[1]);
     const engine = fs.readdirSync(path.join(ROOT, 'js')).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
     const dead = Object.keys(g.PASSIVES).filter(id => !engine.includes(`hasPassive('${id}')`));
     ok('every passive is consulted by the engine', dead.length === 0, dead.join(',') || `${Object.keys(g.PASSIVES).length} passives`);

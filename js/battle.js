@@ -409,7 +409,7 @@ class Battle {
           const back = Math.min(Math.floor(v / 5), user.maxHp - user.hp);
           if (back > 0) { user.hp += back; this.log(`${user.name} feeds on the wound: ${back} HP.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(user, `+${back}`, '#c56aff'); }
         }
-        if (t.hp === 0) this.onUnitKO(t);
+        if (t.hp === 0) { if (user.record && t.team !== user.team) user.record.kills++; this.onUnitKO(t); }
         else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
@@ -425,7 +425,7 @@ class Battle {
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
         if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
-        if (t.hp === 0) this.onUnitKO(t);
+        if (t.hp === 0) { if (user.record && t.team !== user.team) user.record.kills++; this.onUnitKO(t); }
         else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
       }
@@ -651,6 +651,7 @@ class Battle {
       if (this.hooks.showFloat) this.hooks.showFloat(t, 'Reraise', STATUSES.reraise.color);
       return;
     }
+    if (t.record) t.record.falls++;
     t.statuses = {};
     t.ct = 0;
     // Cancel anything the unit was charging.
@@ -673,6 +674,7 @@ class Battle {
     this.log(`${unit.name} is carried from the field.`, 'ko');
     if (this.hooks.showFloat) this.hooks.showFloat(unit, 'Lost', '#ff6a5a');
     unit.x = -1; unit.y = -1;
+    unit.carriedOff = true; // still counts among those who fought
     unit.koCount = 0;
     if (this.hooks.refresh) this.hooks.refresh();
   }

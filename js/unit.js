@@ -46,6 +46,9 @@ class Unit {
       this.gear = Object.assign({}, STARTER_GEAR[this.job]);
     }
     this.gilStolen = 0;
+    // What the war has written about this unit so far.
+    const r = opts.record || {};
+    this.record = { battles: r.battles | 0, wins: r.wins | 0, kills: r.kills | 0, falls: r.falls | 0 };
     if (opts.autoLearn) this.autoLearn(opts.autoLearn);
     this.resetBattleState();
   }
@@ -58,7 +61,7 @@ class Unit {
   toSave() {
     return {
       id: this.id, name: this.name, job: this.job, level: this.level, exp: this.exp, team: this.team,
-      leader: this.leader, jp: this.jp, jpTotal: this.jpTotal, learned: this.learned, secondary: this.secondary,
+      leader: this.leader, jp: this.jp, jpTotal: this.jpTotal, learned: this.learned, secondary: this.secondary, record: this.record,
       gear: this.gear, passives: this.passives,
     };
   }
@@ -190,6 +193,7 @@ class Unit {
     this.mp = this.maxMp;
     this.ct = 0;
     this.x = -1; this.y = -1;
+    this.carriedOff = false;
     this.facing = 'S';
     this.mods = {};
     this.statuses = {}; // id -> remaining ticks
@@ -296,4 +300,12 @@ function makeEnemy(spec, difficulty) {
   }
   u.x = spec.x; u.y = spec.y;
   return u;
+}
+
+// "12 battles, 9 won · 31 felled · fallen twice", or "no battles yet".
+function recordLine(u) {
+  const r = u.record;
+  if (!r.battles) return 'no battles yet';
+  const times = (n) => n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
+  return `${r.battles} battle${r.battles === 1 ? '' : 's'}, ${r.wins} won · ${r.kills} felled · ${r.falls ? `fallen ${times(r.falls)}` : 'never fallen'}`;
 }
