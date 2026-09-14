@@ -7,6 +7,7 @@ import { RECIPES } from './recipes.js';
 import { detectFoods, rankRecipes } from './match.js';
 import { store, freshness, daysLeft } from './inventory.js';
 import { preprocess, recognize, loadLibrary } from './ocr.js';
+import { identify, mergeDetections, MODELS, DEFAULT_MODEL, VisionError } from './vision.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -152,20 +153,49 @@ async function scan(source) {
   setProgress('Preparing image…', 0.02);
   progress.hidden = false;
 
+  const { apiKey, model } = visionPrefs();
+  const useVision = Boolean(apiKey);
+  let visionResult = null;
+  let visionError = null;
+  let ocrDone = false;
+  const ocrLabel = (m) => ({
+    'loading tesseract core': 'Loading text reader…', 'initializing tesseract': 'Starting text reader…',
+    'loading language traineddata': 'Loading English model…', 'initializing api': 'Warming up…',
+    'recognizing text': 'Reading text…',
+  }[m.status] || m.status || 'Working…');
+
   try {
+    // Vision and OCR run side by side: Claude identifies what things are,
+    // Tesseract reads labels and receipts. Either alone is still useful.
+    const visionTask = useVision
+      ? identify(preprocess(source, { enhance: false }), { apiKey, model })
+        .then(r => { visionResult = r; }, e => { visionError = e; })
+      : Promise.resolve();
+    if (useVision) setProgress('Asking Claude what it sees…', 0.15);
+
     const clean = preprocess(source);
-    const { text, confidence } = await recognize(clean, (m) => {
-      const label = {
-        'loading tesseract core': 'Loading recogniser…', 'initializing tesseract': 'Starting recogniser…',
-        'loading language traineddata': 'Downloading English model (first time only)…', 'initializing api': 'Warming up…',
-        'recognizing text': 'Reading text…',
-      }[m.status] || m.status || 'Working…';
-      setProgress(label, m.status === 'recognizing text' ? 0.3 + 0.7 * (m.progress || 0) : 0.1 + 0.2 * (m.progress || 0));
-    });
+    const ocrTask = recognize(clean, (m) => {
+      if (m.status === 'recognizing text') setProgress(useVision && !visionResult ? `Reading text… ${Math.round((m.progress || 0) * 100)}%` : ocrLabel(m), 0.3 + 0.7 * (m.progress || 0));
+      else setProgress(ocrLabel(m), 0.1 + 0.2 * (m.progress || 0));
+    }).then(r => { ocrDone = true; return r; }, () => ({ text: '', confidence: 0 }));
+
+    const [ocr] = await Promise.all([ocrTask, visionTask]);
     progress.hidden = true;
-    $('#ocr-text').value = text.trim();
-    $('#ocr-confidence').textContent = confidence ? `text confidence ${Math.round(confidence)}%` : '';
-    showDetected(detectFoods(text));
+    $('#ocr-text').value = ocr.text.trim();
+    const ocrItems = detectFoods(ocr.text);
+    const notes = $('#vision-notes');
+    if (visionResult) {
+      $('#ocr-confidence').textContent = `${visionResult.items.length} seen · ${ocrItems.length} read`;
+      notes.hidden = !visionResult.notes;
+      notes.textContent = visionResult.notes;
+      showDetected(mergeDetections(visionResult.items, ocrItems));
+    } else {
+      $('#ocr-confidence').textContent = ocr.confidence ? `text confidence ${Math.round(ocr.confidence)}%` : '';
+      notes.hidden = !visionError;
+      notes.textContent = visionError ? `Claude could not help this time: ${visionError.message}` : '';
+      showDetected(ocrItems);
+      if (!ocrDone && !visionResult) toast('Text recognition failed. You can still type what you have.', 4000);
+    }
     $('.ocr-text').open = false;
   } catch (e) {
     progress.hidden = true;
@@ -173,8 +203,6 @@ async function scan(source) {
     $('#ocr-text').value = '';
     $('#ocr-confidence').textContent = 'recogniser unavailable';
     showDetected([]);
-    // With nothing read, the only way forward is to type what is in the
-    // photo, so put the box in front of the cook.
     $('.ocr-text').open = true;
   } finally {
     scanning = false;
@@ -187,7 +215,7 @@ function setProgress(label, frac) {
 }
 
 function showDetected(list) {
-  detected = list.map(m => ({ ...m, qty: 1, on: m.confidence >= 0.9 }));
+  detected = list.map(m => ({ ...m, qty: m.qty || 1, on: m.confidence >= 0.9 }));
   results.hidden = false;
   renderDetected();
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -200,7 +228,7 @@ function renderDetected() {
   for (const d of detected) {
     const chip = el('li', { class: `chip${d.on ? '' : ' off'}${d.confidence < 0.9 ? ' guess' : ''}`, title: `read as "${d.matched}"` },
       el('input', { type: 'checkbox', checked: d.on, 'aria-label': `Add ${d.name}`, onchange: (e) => { d.on = e.target.checked; renderDetected(); } }),
-      el('span', {}, d.name),
+      el('span', {}, d.name, d.source === 'vision' ? el('span', { class: 'src', title: 'seen by Claude' }, ' 👁') : d.source === 'both' ? el('span', { class: 'src', title: 'seen and read' }, ' 👁📄') : null),
       el('span', { class: 'qty' },
         el('button', { type: 'button', 'aria-label': 'fewer', onclick: () => { d.qty = Math.max(1, d.qty - 1); renderDetected(); } }, '−'),
         el('span', {}, String(d.qty)),
@@ -220,7 +248,7 @@ $('#btn-select-none').addEventListener('click', () => { for (const d of detected
 $('#btn-redetect').addEventListener('click', () => showDetected(detectFoods($('#ocr-text').value)));
 $('#btn-add-detected').addEventListener('click', () => {
   const chosen = detected.filter(d => d.on);
-  store.addMany(chosen.map(d => ({ id: d.id, qty: d.qty })), 'scan');
+  store.addMany(chosen.map(d => ({ id: d.id || undefined, name: d.name, category: d.category, qty: d.qty })), 'scan');
   toast(`Added ${chosen.length} item${chosen.length === 1 ? '' : 's'} to the pantry`);
   resetScan();
   show('pantry');
@@ -414,7 +442,44 @@ $('#shop-add').addEventListener('submit', (e) => {
 
 // ------------------------------------------------------------- settings
 const settings = $('#settings-dialog');
-$('#btn-settings').addEventListener('click', () => { $('#pref-staples').checked = store.get().prefs.assumeStaples; settings.showModal(); });
+const KEY_STORE = 'pantry-scan:anthropic';
+function visionPrefs() {
+  try {
+    const raw = localStorage.getItem(KEY_STORE);
+    const p = raw ? JSON.parse(raw) : {};
+    return { apiKey: (p.apiKey || '').trim(), model: MODELS.some(m => m.id === p.model) ? p.model : DEFAULT_MODEL };
+  } catch { return { apiKey: '', model: DEFAULT_MODEL }; }
+}
+function saveVisionPrefs(p) {
+  try { localStorage.setItem(KEY_STORE, JSON.stringify(p)); } catch { /* fine */ }
+  updateScanHint();
+}
+for (const m of MODELS) $('#pref-model').append(el('option', { value: m.id }, m.name));
+$('#btn-settings').addEventListener('click', () => {
+  $('#pref-staples').checked = store.get().prefs.assumeStaples;
+  const p = visionPrefs();
+  $('#pref-api-key').value = p.apiKey;
+  $('#pref-model').value = p.model;
+  updateKeyStatus();
+  settings.showModal();
+});
+$('#pref-api-key').addEventListener('input', () => { saveVisionPrefs({ apiKey: $('#pref-api-key').value.trim(), model: $('#pref-model').value }); updateKeyStatus(); });
+$('#pref-model').addEventListener('change', () => saveVisionPrefs({ apiKey: $('#pref-api-key').value.trim(), model: $('#pref-model').value }));
+function updateKeyStatus() {
+  const k = $('#pref-api-key').value.trim();
+  $('#key-status').textContent = !k ? 'No key: scans read text only.'
+    : !k.startsWith('sk-ant-') ? 'That does not look like an Anthropic key (they start with sk-ant-).'
+    : 'Key saved on this device. Scans will identify food by sight.';
+}
+function updateScanHint() {
+  const on = Boolean(visionPrefs().apiKey);
+  $('#scan-mode-hint').textContent = on
+    ? 'Fill the frame, keep the light even, and let things overlap as little as you can. Claude will name what it sees and the text reader picks up labels.'
+    : 'Without an API key the scanner reads text only: receipts, labels and packets. Add a key in Settings to identify loose food by sight.';
+  $('#quick-add-hint').textContent = on
+    ? 'Anything the scanner missed, type in here. Suggestions come from the same list the scanner uses.'
+    : 'Loose fruit and vegetables carry no text to read, so type those in here, or add an API key in Settings.';
+}
 $('#pref-staples').addEventListener('change', (e) => store.setPref('assumeStaples', e.target.checked));
 $('#btn-export').addEventListener('click', async () => {
   const json = store.export();
@@ -447,6 +512,7 @@ function renderAll() {
 }
 store.subscribe(renderAll);
 renderAll();
+updateScanHint();
 
 let startView = 'scan';
 try { startView = sessionStorage.getItem('pantry-scan:view') || 'scan'; } catch { /* fine */ }

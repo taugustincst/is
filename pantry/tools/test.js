@@ -6,6 +6,7 @@ import { FOODS, FOOD_BY_ID, CATEGORIES } from '../js/foods.js';
 import { RECIPES } from '../js/recipes.js';
 import { normalize, singular, editDistance, detectFoods, rankRecipes } from '../js/match.js';
 import { store, freshness } from '../js/inventory.js';
+import { buildRequest, parseVisionItems, mergeDetections, DEFAULT_MODEL } from '../js/vision.js';
 
 let passed = 0;
 const test = (name, fn) => { try { fn(); passed++; } catch (e) { console.error(`FAIL ${name}\n  ${e.message}`); process.exitCode = 1; } };
@@ -222,6 +223,64 @@ test('freshness follows shelf life', () => {
   assert.equal(freshness({ days: 7, added: at(8) }, now), 'past');
   assert.equal(freshness({ days: 720, added: at(0) }, now), null);
   assert.equal(freshness({ days: null, added: at(0) }, now), null);
+});
+
+// ------------------------------------------------------------- vision
+test('vision request carries the image, the schema and the fallback opt-in', () => {
+  const { body, headers } = buildRequest({ imageBase64: 'QUJD', model: DEFAULT_MODEL });
+  assert.equal(body.model, 'claude-opus-5');
+  assert.equal(body.messages[0].content[0].type, 'image');
+  assert.equal(body.messages[0].content[0].source.media_type, 'image/jpeg');
+  assert.equal(body.messages[0].content[0].source.data, 'QUJD');
+  assert.equal(body.output_config.format.type, 'json_schema');
+  assert.ok(body.output_config.format.schema.properties.items);
+  assert.equal(body.fallbacks, 'default');
+  assert.equal(headers['anthropic-beta'], 'server-side-fallback-2026-07-01');
+  assert.equal(headers['anthropic-dangerous-direct-browser-access'], 'true');
+  assert.ok(!('x-api-key' in headers), 'the key is added at send time, never baked into the request');
+  assert.ok(body.system.includes('chicken breast'), 'dictionary names are offered to the model');
+  const sonnet = buildRequest({ imageBase64: 'QUJD', model: 'claude-sonnet-5' });
+  assert.ok(!('fallbacks' in sonnet.body) && !sonnet.headers['anthropic-beta']);
+});
+
+test('vision items map onto the dictionary, merge duplicates and keep unknowns', () => {
+  const got = parseVisionItems({ items: [
+    { name: 'tomatoes', quantity: 4, category: 'produce', confidence: 'high', label_text: '' },
+    { name: 'tomato', quantity: 2, category: 'produce', confidence: 'medium', label_text: '' },
+    { name: 'chopped tomatoes', quantity: 1, category: 'pantry', confidence: 'high', label_text: 'Napolina' },
+    { name: 'kimchi', quantity: 1, category: 'other', confidence: 'medium', label_text: '' },
+    { name: 'greek yogurt', quantity: 1, category: 'dairy', confidence: 'low', label_text: 'FAGE Total 5%' },
+    { name: '', quantity: 1, category: 'other', confidence: 'high', label_text: '' },
+    { name: 'mystery jar', quantity: 1, category: 'not-a-category', confidence: 'low', label_text: '' },
+  ], notes: '' });
+  const byName = Object.fromEntries(got.map(g => [g.name, g]));
+  assert.equal(byName.Tomato.qty, 6, 'two tomato rows add up');
+  assert.equal(byName.Tomato.confidence, 0.95);
+  assert.equal(byName['Canned tomatoes'].id, 'canned_tomato');
+  assert.equal(byName.Kimchi.id, null);
+  assert.equal(byName.Kimchi.category, 'other');
+  assert.equal(byName.Yogurt.id, 'yogurt');
+  assert.equal(byName['Mystery jar'].category, 'other', 'unknown category falls back');
+  assert.equal(got.length, 5);
+  assert.ok(got.every(g => g.source === 'vision'));
+  assert.deepEqual(parseVisionItems(null), []);
+  assert.deepEqual(parseVisionItems({ items: 'nope' }), []);
+});
+
+test('merging keeps vision quantities and marks foods seen and read', () => {
+  const vision = parseVisionItems({ items: [
+    { name: 'lemon', quantity: 3, category: 'produce', confidence: 'high', label_text: '' },
+    { name: 'butter', quantity: 1, category: 'dairy', confidence: 'medium', label_text: 'Lurpak' },
+  ] });
+  const ocr = detectFoods('LURPAK BUTTER 250g\nBASMATI RICE');
+  const merged = mergeDetections(vision, ocr);
+  const byId = Object.fromEntries(merged.map(m => [m.id, m]));
+  assert.equal(byId.lemon.source, 'vision');
+  assert.equal(byId.butter.source, 'both');
+  assert.equal(byId.butter.confidence, 1);
+  assert.equal(byId.rice.source, 'ocr');
+  assert.equal(byId.rice.qty, 1);
+  assert.equal(merged.length, 3);
 });
 
 console.log(process.exitCode ? `${passed} passed, some failed` : `all ${passed} tests passed`);

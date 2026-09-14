@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- The camera is the whole point. Nothing else: no INTERNET, because the
-         recogniser and its model are bundled, so photos cannot leave the
-         phone even in principle. -->
+    <!-- The camera is the whole point. INTERNET is there for one thing: when
+         the cook has entered their own Anthropic API key, a scan sends the
+         photo to Claude to identify food by sight. Without a key nothing
+         leaves the phone; text recognition runs from bundled files. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application

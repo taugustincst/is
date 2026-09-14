@@ -36,8 +36,8 @@
     <video id="cam" playsinline muted autoplay hidden></video>
     <canvas id="preview" hidden></canvas>
     <div id="scan-empty" class="scan-empty">
-      <p class="big">Point the camera at your shopping.</p>
-      <p>Receipts, labels, packets and shelf tags read best. Lay things flat, fill the frame with text, and keep the light even.</p>
+      <p class="big">Point the camera at a shelf, the fridge or your shopping.</p>
+      <p id="scan-mode-hint">Fill the frame, keep the light even, and let things overlap as little as you can.</p>
     </div>
     <div id="scan-progress" class="progress" hidden>
       <div class="bar"><div id="progress-fill"></div></div>
@@ -58,7 +58,8 @@
       <h2>What I found</h2>
       <span id="ocr-confidence" class="muted"></span>
     </div>
-    <p id="none-found" class="muted" hidden>No food words in that photo. Try a closer, flatter shot with the text filling the frame, or edit the text below and detect again.</p>
+    <p id="vision-notes" class="muted" hidden></p>
+    <p id="none-found" class="muted" hidden>No food found in that photo. Try a closer shot with less clutter, or edit the text below and detect again.</p>
     <ul id="detected" class="chips" aria-label="Detected foods"></ul>
     <div class="row wrap gap">
       <button id="btn-add-detected" class="btn primary">Add to pantry</button>
@@ -74,7 +75,7 @@
 
   <div class="card tip">
     <h2>Quick add</h2>
-    <p class="muted">Loose fruit and vegetables carry no text to read, so type those in here. Suggestions come from the same list the scanner uses.</p>
+    <p class="muted" id="quick-add-hint">Loose fruit and vegetables carry no text to read, so type those in here. Suggestions come from the same list the scanner uses.</p>
     <form id="quick-add" class="row gap">
       <input id="quick-name" list="food-list" placeholder="e.g. bananas" autocomplete="off" required>
       <button class="btn primary" type="submit">Add</button>
@@ -167,6 +168,16 @@
     <h2>Settings</h2>
     <button class="icon-btn" aria-label="Close">✕</button>
   </form>
+  <h3>Identifying food</h3>
+  <p class="muted">Reading text works offline and needs no key, but it only knows labels and receipts. To identify loose food by sight, the app can send the photo to Claude with your own Anthropic API key. Photos then leave the phone only for that request; the key is stored on this device.</p>
+  <label class="field">Anthropic API key
+    <input id="pref-api-key" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+  </label>
+  <label class="field">Model
+    <select id="pref-model"></select>
+  </label>
+  <p id="key-status" class="muted"></p>
+  <h3>Recipes</h3>
   <label class="check"><input type="checkbox" id="pref-staples"> Assume I have staples (salt, pepper, oil, flour, sugar, vinegar, stock)</label>
   <h3>Your data</h3>
   <p class="muted">Everything lives on this device. Export to move it to another phone.</p>
@@ -176,7 +187,7 @@
     <input id="import-input" type="file" accept="application/json,.json" hidden>
   </div>
   <h3>About</h3>
-  <p class="muted">Text is read on your phone with Tesseract, an open-source recogniser. The first scan downloads it (a few megabytes); after that it works offline. Photos never leave the device.</p>
+  <p class="muted">Text is read on your phone with Tesseract, an open-source recogniser bundled with the app, so it works offline. Identifying food by sight uses Claude and only happens when you have entered an API key above.</p>
 </dialog>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

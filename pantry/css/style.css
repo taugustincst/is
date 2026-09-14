@@ -131,6 +131,11 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, Menlo, mono
 .chip .qty span { min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; font-size: .9em; }
 .ocr-text summary { cursor: pointer; color: var(--muted); font-size: .9rem; margin-top: .5rem; }
 
+/* settings fields */
+.field { display: flex; flex-direction: column; gap: .3rem; font-size: .9rem; color: var(--muted); margin: .6rem 0; }
+.field input, .field select { color: var(--ink); width: 100%; }
+.chip .src { font-size: .75em; opacity: .7; }
+
 /* ---- pantry */
 .group { margin: 1rem 0; }
 .group h3 { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }

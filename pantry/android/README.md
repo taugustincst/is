@@ -3,7 +3,8 @@
 A thin native shell around the web app one directory up. `app/build.gradle`
 copies `index.html`, `css/`, `js/`, `icons/` and the vendored recogniser in
 `vendor/` into the APK's assets at build time, so the app can never drift from
-the web build and needs nothing from the network.
+the web build. Text recognition needs nothing from the network; identifying
+food by sight talks to Claude's API when a key is set.
 
 ## Building
 
@@ -64,9 +65,11 @@ The service worker the page registers in a browser also registers here, so a
 `ServiceWorkerClientCompat` routes its requests through the same asset loader.
 Without that the assets stop resolving on the second launch.
 
-**Permissions:** `CAMERA` only. There is no `INTERNET` permission. The
-recogniser runs in the WebView from bundled files, so a photo cannot leave
-the phone even in principle.
+**Permissions:** `CAMERA`, and `INTERNET` for one purpose: identifying food
+by sight sends the photo to Claude, and only when the cook has entered their
+own Anthropic API key in Settings. Text recognition runs in the WebView from
+bundled files and never uses the network. The API call is made by the page
+itself with `fetch`; the native side adds nothing to it.
 
 ## Icons
 

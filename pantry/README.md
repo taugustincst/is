@@ -7,17 +7,24 @@ and it works; install it from the browser menu and it works offline.
 
 ## How it works
 
-1. **Scan.** Open the camera or choose a photo. Receipts, packet labels and
-   shelf tags read best. The image is shrunk, greyscaled and contrast-stretched,
-   then [Tesseract.js](https://github.com/naptha/tesseract.js) reads the text
-   in a web worker on the phone. The recogniser and its English model ship
-   with the app under `vendor/tesseract/` (about seven megabytes), so nothing
-   is fetched from a CDN and it works with no network at all.
-2. **Match.** The text is matched against a dictionary of about 190 foods and
+1. **Scan.** Open the camera or choose a photo of a fridge shelf, the pantry
+   or a bag of shopping. Two recognisers look at it side by side:
+   - **Sight.** With your own Anthropic API key entered in Settings, the photo
+     goes to Claude, which names every food it can see, counts what is
+     countable, reads labels, and says how sure it is. This is what identifies
+     a bare tomato, a bunch of herbs or a bowl of leftovers. The reply is
+     constrained to a JSON schema and mapped onto the food dictionary, so the
+     pantry and the recipes speak one language. See `js/vision.js`.
+   - **Text.** [Tesseract.js](https://github.com/naptha/tesseract.js) reads
+     the text in a web worker on the phone: receipts, packet labels, shelf
+     tags. The recogniser and its English model ship with the app under
+     `vendor/tesseract/`, so it works with no network and no key.
+2. **Match.** Text is matched against a dictionary of about 190 foods and
    their aliases: "CHKN BRST" is chicken breast, "chopped tomatoes" is a can and
-   not a fresh tomato, "TOMAT0ES" is still tomatoes. Sure hits are pre-ticked;
-   near-misses are shown with a `?` for you to confirm. Edit the text and detect
-   again if the camera got a word wrong.
+   not a fresh tomato, "TOMAT0ES" is still tomatoes. What Claude saw is merged
+   with what was read: a food in both lists is marked 👁📄. Sure hits are
+   pre-ticked; near-misses show a `?` for you to confirm, and anything the
+   dictionary lacks is kept under the name Claude gave it.
 3. **Pantry.** Items land in the pantry grouped by category with quantities and
    a "use soon" nudge based on typical shelf life. Loose fruit and vegetables
    have no words to read, so type them in; the box suggests from the same list.
@@ -31,13 +38,22 @@ and it works; install it from the browser menu and it works offline.
    the pantry. "Add missing to list" puts what you lack on the shopping list;
    ticking things off there moves them straight into the pantry.
 
-## What OCR can and cannot do
+## Sight versus text
 
-OCR reads **words**. It is very good at a receipt, a label or a shelf tag, and
-it cannot recognise a bare apple. That is why the Quick add box sits under the
-scanner. If you want the scanner to identify unlabelled produce you would add
-an image classifier alongside it; the matching, pantry and recipe layers would
-not need to change.
+Text recognition reads **words**. It is very good at a receipt, a label or a
+shelf tag, it runs offline, and it cannot recognise a bare apple. Identifying
+food by sight needs a vision model, and the app uses Claude for that with the
+cook's own key: an API key from <https://platform.claude.com>, pasted into
+Settings and stored only on the device. A scan of a full fridge costs about a
+cent on the default model (Claude Opus 5); Sonnet 5 and Haiku 4.5 are offered
+as cheaper, faster options. Without a key the scanner is text-only and the
+Quick add box covers loose produce.
+
+The request goes straight from the page to the API, which permits browser
+calls when asked to with a header. That is the right shape for an app where
+the only user of the key is the person who typed it in; a shared or public
+deployment would put a small server in between so the key never reaches the
+browser.
 
 ## Files
 
@@ -49,6 +65,7 @@ not need to change.
 | `js/match.js` | Text normalising, alias index, longest-phrase-first detection, fuzzy fallback, recipe ranking. |
 | `js/inventory.js` | The pantry, shopping list and preferences in localStorage, plus freshness. |
 | `js/ocr.js` | Image preprocessing and the Tesseract.js worker. |
+| `js/vision.js` | The Claude request: prompt, JSON schema, mapping the answer onto the dictionary, merging with OCR. |
 | `js/app.js` | Camera, scanning flow and all rendering. |
 | `vendor/tesseract/` | Tesseract.js, its WebAssembly core and the English model, bundled. |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Installable and offline. |
