@@ -149,6 +149,12 @@ const COMBAT_SFX = {
     { t: 1, freq: 330, to: 196, dur: 0.16, vol: 0.08, type: 'sine' },
     { n: 1, freq: 2200, sweep: 900, dur: 0.04, vol: 0.09, q: 3 },
   ],
+  // A gun: a sharp crack, a low thump behind it, and the powder's hiss.
+  'gunshot': [
+    { n: 1, freq: 3200, sweep: 1800, dur: 0.05, vol: 0.55, q: 0.5 },
+    { t: 1, freq: 110, to: 40, dur: 0.18, vol: 0.30, type: 'square' },
+    { n: 1, freq: 900, sweep: 300, dur: 0.22, vol: 0.18, q: 0.8, d: 0.03 },
+  ],
   // Something thrown whistles as it goes.
   'throw': [
     { t: 1, freq: 1500, to: 650, dur: 0.16, vol: 0.09, type: 'sine' },

@@ -293,7 +293,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const weapons = get('WEAPONS');
     const noGlyph = Object.values(g.ITEMS).filter(i => i.slot === 'weapon' && !weapons[i.wtype] && i.wtype !== 'fist');
     ok('every weapon type has a glyph', noGlyph.length === 0, noGlyph.map(i => i.name).join(',') || 'all drawn');
-    const looks = ['helm', 'cap', 'feather', 'wizard', 'ribbon'];
+    const looks = ['helm', 'cap', 'feather', 'wizard', 'ribbon', 'goggles'];
     const badLook = Object.values(g.ITEMS).filter(i => i.slot === 'head' && i.look && !looks.includes(i.look));
     ok('every head item declares a look the renderer knows', badLook.length === 0, badLook.map(i => i.name).join(',') || 'all known');
     const armour = get('ARMOUR');
@@ -681,7 +681,7 @@ const mk = (n, job, lvl, opts = {}) => {
      Storm Mail cannot either, and charged abilities are resolved as the
      engine would resolve them. */
   {
-    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight'];
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer'];
     const realRandom = Math.random;
     const silent = [];
     for (const job of NEW) for (const id of g.JOBS[job].abilities) {

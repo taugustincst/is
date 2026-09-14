@@ -5,7 +5,12 @@
 const SAVE_KEY = 'elderon-tactics-save';
 const PACE_KEY = 'elderon.pace';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
-const WORLD_ROUTE = [[0.09, 0.74], [0.22, 0.50], [0.37, 0.68], [0.52, 0.42], [0.66, 0.64], [0.79, 0.34], [0.91, 0.20]];
+// Twelve stops: Act I runs east along the lower road, Act II turns back west
+// along the coast above it, so the two never cross on the parchment.
+const WORLD_ROUTE = [
+  [0.07, 0.82], [0.19, 0.64], [0.31, 0.80], [0.43, 0.62], [0.55, 0.78], [0.67, 0.58], [0.80, 0.72],
+  [0.91, 0.50], [0.78, 0.32], [0.62, 0.20], [0.45, 0.30], [0.27, 0.16],
+];
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -197,8 +202,8 @@ class Game {
   }
 
   // Gear the shop stocks, widening as the campaign advances.
-  // Once the war is won the wagon carries the legendary arms, tier 7.
-  shopTier() { return CAMPAIGN[this.state.chapter] ? Math.min(6, this.state.chapter + 1) : 7; }
+  // From the Aether Yards on, and after the war, the wagon carries the legendary arms, tier 7.
+  shopTier() { const c = this.state.chapter; return !CAMPAIGN[c] || c >= 10 ? 7 : Math.min(6, c + 1); }
 
   // Reconcile a unit's gear with its job after a job change: anything the new job
   // cannot wear goes back into stock, and empty core slots are refilled from
@@ -767,7 +772,7 @@ class Game {
     this.showWorld();
   }
 
-  /* The realm, drawn: the seven chapters as stops along a road, coloured by
+  /* The realm, drawn: the twelve chapters as stops along a road, coloured by
      the mood of the field each is fought on, with the company's own leader
      standing where the story has reached. */
   drawWorldMap() {
@@ -870,7 +875,7 @@ class Game {
 
   async startTraining() {
     const s = this.state;
-    const mapIds = Object.keys(MAPS).filter(m => m !== 'thornwall');
+    const mapIds = Object.keys(MAPS).filter(m => m !== 'thornwall' && m !== 'brassgate');
     const map = MAPS[mapIds[Math.floor(Math.random() * mapIds.length)]];
     const poolIdx = Math.min(TRAINING_POOL.length - 1, Math.floor(Math.random() * (s.chapter + 1)));
     const pool = TRAINING_POOL[poolIdx];

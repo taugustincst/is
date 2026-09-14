@@ -37,8 +37,9 @@ below is maintained by hand. Character limits are Play's.
     JOBS AND ABILITIES
     Squires become knights, archers, monks, thieves, mages, ninja, dragoons,
     and beyond them samurai, summoners, geomancers and bards; beyond those,
-    paladins, arcanists, assassins and sages; and at the very top, the
-    legendary Dragonlord, Hierophant and Fell Knight.
+    paladins, arcanists, assassins and sages; the Brass Concord's engineers,
+    gunners, aeronauts and artificers; and at the very top, the legendary
+    Dragonlord, Hierophant and Fell Knight.
     Earn job points in battle, learn abilities, equip a second skillset from
     any job you have studied, and pick your reaction, support and movement
     passives.
@@ -118,5 +119,5 @@ health features. **News**: not a news app.
 
 ## Release notes for the first version
 
-    First release. Seven chapters, twenty-two jobs, three difficulties,
+    First release. Twelve chapters, twenty-six jobs, three difficulties,
     and nothing to buy.

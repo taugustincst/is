@@ -82,6 +82,9 @@ const WEAPON_FX = {
   // A tome is read at the target: the word travels.
   tome:       { reach: 0.0, swing: null, hits: 1, wind: 260, color: '#d8b0ff', shot: 'orb',
                 sound: 'incant', impact: 'impact-chime' },
+  // A gun is fired: a flash at the muzzle, and the shot is a streak.
+  gun:        { reach: 0.0, swing: null, hits: 1, wind: 140, color: '#ffd080', shot: 'bullet',
+                sound: 'gunshot', impact: 'impact-pierce' },
 };
 const DEFAULT_WEAPON_FX = WEAPON_FX.sword;
 
@@ -233,6 +236,14 @@ const FX_DRAW = {
       c.beginPath(); c.moveTo(10, 0); c.lineTo(4, -3); c.lineTo(4, 3); c.closePath(); c.fill();
       c.strokeStyle = '#e8e8f0'; c.lineWidth = 1;
       c.beginPath(); c.moveTo(-10, 0); c.lineTo(-6, -3); c.moveTo(-10, 0); c.lineTo(-6, 3); c.stroke();
+    } else if (f.shape === 'bullet') {
+      // A streak with a hot head, fading behind: too fast to see as a thing.
+      const grad = c.createLinearGradient(-16, 0, 4, 0);
+      grad.addColorStop(0, 'rgba(255,200,120,0)'); grad.addColorStop(1, 'rgba(255,240,200,0.95)');
+      c.strokeStyle = grad; c.lineWidth = 2.5; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-16, 0); c.lineTo(4, 0); c.stroke();
+      c.fillStyle = '#fff8e0';
+      c.beginPath(); c.arc(4, 0, 2, 0, Math.PI * 2); c.fill();
     } else if (f.shape === 'star') {
       c.rotate(k * 22);
       c.fillStyle = '#dfe8f4';
@@ -439,6 +450,7 @@ function throwShape(u, ab) {
   const t = u.weapon && u.weapon.wtype;
   if (t === 'ninjablade' || t === 'knife') return 'star';
   if (t === 'bow') return 'arrow';          // a rain of arrows is still arrows
+  if (t === 'gun') return 'bullet';         // shot is shot, however far
   if (t === 'harp' || t === 'tome') return 'orb';   // a note, a word: thrown
   if (t === 'fist') return 'orb';           // a monk projects force, not a rock
   return 'rock';
@@ -455,7 +467,7 @@ function isThrown(ab) {
 }
 
 // A thrown thing lands as itself, not as whatever the thrower is holding.
-const THROW_IMPACT = { rock: 'impact-blunt', star: 'impact-pierce', arrow: 'impact-arrow', orb: 'impact-wood' };
+const THROW_IMPACT = { rock: 'impact-blunt', star: 'impact-pierce', arrow: 'impact-arrow', orb: 'impact-wood', bullet: 'impact-pierce' };
 
 /* What a landed blow sounds like. An element speaks for itself; then what was
    thrown; and failing both, the weapon that delivered it. */

@@ -190,7 +190,7 @@ class Battle {
   }
 
   // ---- ability geometry ----------------------------------------------------
-  abilityRange(unit, ab) { return ab.range === 'weapon' ? unit.weapon.range : ab.range; }
+  abilityRange(unit, ab) { return ab.range === 'weapon' ? unit.weapon.range + (unit.hasPassive('deadeye') ? 1 : 0) : ab.range; }
   abilityVert(unit, ab) { return ab.vert === 'weapon' ? unit.weapon.vert : ab.vert; }
 
   targetTilesFor(unit, ab, fromX = unit.x, fromY = unit.y) {
@@ -432,7 +432,8 @@ class Battle {
       }
       case 'heal': {
         if (!t.alive) return false;
-        const v = this.computeEffect(user, ab, eff, t);
+        let v = this.computeEffect(user, ab, eff, t);
+        if (user.hasPassive('fieldRepair')) v = Math.ceil(v * 1.3);
         const real = Math.min(v, t.maxHp - t.hp);
         t.hp += real;
         this.log(`${t.name} recovers ${real} HP.`, 'heal');
@@ -573,6 +574,11 @@ class Battle {
       target.addStatus('regen');
       this.log(`${target.name}'s wounds begin to close.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'Regen', STATUSES.regen.color);
+    }
+    if (target.hasPassive('overcharge')) {
+      target.mods.spd = (target.mods.spd || 0) + 1;
+      this.log(`${target.name} winds tighter: SPD +1.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'SPD +1', '#ffe97c');
     }
     if (target.hasPassive('dragonHeart')) {
       target.mods.pa = (target.mods.pa || 0) + 1; target.mods.ma = (target.mods.ma || 0) + 1;

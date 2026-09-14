@@ -270,6 +270,48 @@ const SPRITE_TEMPLATES = {
       '..bbb..bbb..',
     ],
   },
+  sentinel: {
+    front: [
+      '............',
+      '....hhhh....',
+      '...hhhhhh...',
+      '...hehheh...',
+      '...hhhhhh...',
+      '....HHHH....',
+      '..ddhhhhdd..',
+      '.hhhhhhhhhh.',
+      '.hcccccccch.',
+      '.hcccccccch.',
+      '.hccHHHHcch.',
+      '..cccccccc..',
+      '..HHHHHHHH..',
+      '...pp..pp...',
+      '...pp..pp...',
+      '...pp..pp...',
+      '..bbb..bbb..',
+      '..bbb..bbb..',
+    ],
+    back: [
+      '............',
+      '....hhhh....',
+      '...hhhhhh...',
+      '...hhhhhh...',
+      '...hhhhhh...',
+      '....HHHH....',
+      '..ddhhhhdd..',
+      '.hhhhhhhhhh.',
+      '.hcccccccch.',
+      '.hccHHHHcch.',
+      '.hcccccccch.',
+      '..cccccccc..',
+      '..HHHHHHHH..',
+      '...pp..pp...',
+      '...pp..pp...',
+      '...pp..pp...',
+      '..bbb..bbb..',
+      '..bbb..bbb..',
+    ],
+  },
   wolf: {
     front: [
       '............',
@@ -655,6 +697,8 @@ const WEAPONS = {
   spear: G(13, 0, ['..mm.', '.mmmm', '.mmmm', '..mm.', '..tt.', '..tt.', '..tt.', '..tt.', '..tt.', '..tt.',
                    '..tt.', '..tt.', '..tt.', '..tt.', '..tt.', '..tt.', '..tt.', '..yy.']),
   bow: G(13, 5, ['..tt..', '..w.tt', '..w.tt', '..w.tt', '..w.tt', '..w.tt', '..w.tt', '..w.tt', '..w.tt', '..tt..']),
+  // A long gun is held level: barrel forward, stock back against the shoulder.
+  gun: G(11, 9, ['mmmmmmmm.', '.......mt', '......ttt', '......tt.']),
   staff: G(13, 1, ['..qq..', '.qqqq.', '.qqqq.', '..qq..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..',
                    '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..yy..']),
   rod: G(13, 7, ['..qq..', '..qq..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..yy..']),
@@ -683,6 +727,7 @@ const CAP = G(5, 3, ['...llll...', '..llllll..', '.LLLLLLLL.']);
 const FEATHER = G(13, 1, ['..y', '.y.', 'y..']);
 const POINTED_HAT = G(5, 0, ['....mm....', '...mmmm...', '..mmmmmm..', '..mmmmmm..', '.mmmmmmmm.', 'MMMMMMMMMM']);
 const RIBBON = G(6, 2, ['.yy..yy.', '.yyyyyy.']);
+const GOGGLES = G(5, 5, ['LLLLLLLLLL', 'LllLLLLllL']);
 
 const ARMOUR = {
   heavy: G(5, 11, ['.mmmmmmmm.', 'mmmmmmmmmm', '.mmmmmmmm.', '..mmmmmm..', '..MMMMMM..']),
@@ -699,6 +744,7 @@ function headGlyphs(item, hatted) {
   const look = item.look || (item.htype === 'helm' ? 'helm' : 'cap');
   if (look === 'helm') return (item.tier || 0) >= 4 ? [HELM, PLUME] : [HELM];
   if (look === 'ribbon') return [RIBBON];
+  if (look === 'goggles') return hatted ? [] : [GOGGLES];
   if (look === 'feather') return hatted ? [FEATHER] : [CAP, FEATHER];
   if (look === 'wizard') return hatted ? [] : [POINTED_HAT];
   return hatted ? [] : [CAP];

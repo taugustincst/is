@@ -157,7 +157,7 @@ class Unit {
   // three the first abilities touched: an evasion buff that changed a number
   // nobody read was a buff in name only.
   get move() { return Math.max(1, this.baseStats().move + (this.mods.move || 0)); }
-  get jump() { return Math.max(1, this.baseStats().jump + (this.mods.jump || 0)); }
+  get jump() { return Math.max(1, this.baseStats().jump + (this.mods.jump || 0) + (this.hasPassive('jumpPlus3') ? 3 : 0)); }
   get evade() { return Math.max(0, this.baseStats().evade + (this.mods.evade || 0)); }
   // The equipped weapon, or the job's innate one (bare hands, claws, fangs),
   // with support abilities folded into its power.
