@@ -329,6 +329,11 @@ function relDate(iso) {
 $('#diet').addEventListener('change', (e) => { store.setPref('diet', e.target.value); });
 $('#quick-only').addEventListener('change', renderRecipes);
 
+/* Food ids in the pantry that are near or past their usual life. */
+function urgentIds() {
+  return store.get().items.filter(i => ['soon', 'past'].includes(freshness(i))).map(i => i.id);
+}
+
 function currentRanking() {
   const { prefs } = store.get();
   const ids = store.ids();
@@ -336,7 +341,7 @@ function currentRanking() {
   if (prefs.diet === 'vegetarian') list = list.filter(r => r.tags.includes('vegetarian') || r.tags.includes('vegan'));
   if (prefs.diet === 'vegan') list = list.filter(r => r.tags.includes('vegan'));
   if ($('#quick-only').checked) list = list.filter(r => r.time <= 30);
-  return rankRecipes(list, ids, { assumeStaples: prefs.assumeStaples });
+  return rankRecipes(list, ids, { assumeStaples: prefs.assumeStaples, urgent: urgentIds() });
 }
 
 function renderRecipes() {
@@ -374,6 +379,7 @@ function recipeCard(r) {
       : r.flexible && !r.canCook
         ? el('span', { class: 'missing' }, 'Needs a few more of the optional ingredients')
         : el('span', { class: 'uses' }, `Uses ${uses} thing${uses === 1 ? '' : 's'} you have`),
+    r.usesUrgent.length ? el('span', { class: 'urgent' }, `⏳ Uses up ${r.usesUrgent.map(f => FOOD_BY_ID[f].name.toLowerCase()).join(', ')}`) : null,
     r.tags.length ? el('span', { class: 'tags' }, r.tags.slice(0, 3).map(t => el('span', { class: 'tag' }, t))) : null,
   );
 }
@@ -381,7 +387,7 @@ function recipeCard(r) {
 const dialog = $('#recipe-dialog');
 let openId = null;
 function openRecipe(id) {
-  const r = currentRanking().find(x => x.id === id) || rankRecipes(RECIPES, store.ids(), { assumeStaples: store.get().prefs.assumeStaples }).find(x => x.id === id);
+  const r = currentRanking().find(x => x.id === id) || rankRecipes(RECIPES, store.ids(), { assumeStaples: store.get().prefs.assumeStaples, urgent: urgentIds() }).find(x => x.id === id);
   if (!r) return;
   openId = id;
   $('#recipe-title').textContent = r.name;
@@ -391,8 +397,9 @@ function openRecipe(id) {
   $('#recipe-ingredients').replaceChildren(...r.ingredients.map(i => {
     const got = have.has(i.food) || staple(i.food);
     const cls = got ? '' : i.opt ? 'optional-missing' : 'missing';
+    const urgent = r.usesUrgent.includes(i.food);
     return el('li', { class: cls },
-      el('span', {}, FOOD_BY_ID[i.food].name, i.opt ? el('span', { class: 'muted' }, ' (optional)') : null, !have.has(i.food) && staple(i.food) ? el('span', { class: 'muted' }, ' (staple)') : null),
+      el('span', {}, FOOD_BY_ID[i.food].name, urgent ? el('span', { class: 'urgent' }, ' ⏳ use soon') : null, i.opt ? el('span', { class: 'muted' }, ' (optional)') : null, !have.has(i.food) && staple(i.food) ? el('span', { class: 'muted' }, ' (staple)') : null),
       el('span', { class: 'amount' }, i.amount),
     );
   }));

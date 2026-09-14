@@ -192,6 +192,25 @@ test('a complete match that uses more of the pantry ranks higher', () => {
   assert.ok(ranked.indexOf('omelette') < ranked.indexOf('grilled_cheese'), `${ranked}`);
 });
 
+test('recipes that use up food on its last days are lifted, but never over a cookable one', () => {
+  // The omelette normally beats grilled cheese here: it uses more of the shelf.
+  const pantry = ['egg', 'butter', 'cheddar', 'bread', 'ham', 'mushroom', 'spring_onion', 'parsley'];
+  const plain = rankRecipes(RECIPES, pantry).filter(r => r.canCook).map(r => r.id);
+  assert.ok(plain.indexOf('omelette') < plain.indexOf('grilled_cheese'));
+  // With the bread on its last day, grilled cheese moves ahead.
+  const urgent = rankRecipes(RECIPES, pantry, { urgent: ['bread'] });
+  const grilled = urgent.find(r => r.id === 'grilled_cheese');
+  assert.deepEqual(grilled.usesUrgent, ['bread']);
+  const cookable = urgent.filter(r => r.canCook).map(r => r.id);
+  assert.ok(cookable.indexOf('grilled_cheese') < cookable.indexOf('omelette'), `${cookable}`);
+  // An incomplete recipe using the urgent food still sits below every cookable one.
+  const firstIncomplete = urgent.findIndex(r => !r.canCook);
+  const lastCookable = urgent.map(r => r.canCook).lastIndexOf(true);
+  assert.ok(lastCookable < firstIncomplete, 'cookable recipes stay ahead of incomplete ones');
+  // Urgent foods the pantry does not hold do not count.
+  assert.deepEqual(rankRecipes(RECIPES, ['egg'], { urgent: ['bread'] }).find(r => r.id === 'grilled_cheese').usesUrgent, []);
+});
+
 // ------------------------------------------------------------- inventory
 test('store adds, merges, consumes and shops', () => {
   store._reset();

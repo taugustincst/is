@@ -166,10 +166,14 @@ export function detectFoods(text) {
 // ------------------------------------------------------------- recipes
 /* Scores every recipe against a set of food ids in the pantry.
    `assumeStaples` treats salt, oil, flour and the like as always present.
-   Returns recipes decorated with have/missing lists and a match ratio,
-   sorted so complete matches come first, then fewest missing, then quickest. */
-export function rankRecipes(recipes, pantryIds, { assumeStaples = true } = {}) {
+   `urgent` is the set of food ids that need using soon; recipes that use
+   them are lifted so tonight's dinner clears the shelf before the bin does.
+   Returns recipes decorated with have/missing lists, the urgent foods each
+   one uses, and a match ratio, sorted so complete matches come first, then
+   fewest missing, then quickest. */
+export function rankRecipes(recipes, pantryIds, { assumeStaples = true, urgent = [] } = {}) {
   const have = new Set(pantryIds);
+  const urgentSet = new Set(urgent);
   const has = (food) => have.has(food) || (assumeStaples && FOOD_BY_ID[food]?.staple);
   return recipes.map(r => {
     const required = r.ingredients.filter(i => !i.opt);
@@ -181,16 +185,20 @@ export function rankRecipes(recipes, pantryIds, { assumeStaples = true } = {}) {
     // Recipes built out of optional choices (a tray of whatever vegetables)
     // need at least two of them to be worth suggesting.
     const flexible = optional.length >= 6 && haveOpt.length < 2;
+    const usesUrgent = r.ingredients.filter(i => have.has(i.food) && urgentSet.has(i.food)).map(i => i.food);
     return {
       ...r,
       required, optional, missing, haveReq, haveOpt, ratio,
-      flexible,
+      flexible, usesUrgent,
       canCook: missing.length === 0 && !flexible,
       // Bonus for every ingredient the pantry really holds, so between two
       // complete matches the one that clears more shelf space wins, and a
       // recipe carried by assumed staples does not outrank one built from
       // what was actually scanned.
-      score: ratio * 100 + (haveReq.length + haveOpt.length) * 3 - (flexible ? 50 : 0) - r.time / 60,
+      // Using up something on its last day is worth more than any other
+      // single ingredient, but never enough to lift an incomplete recipe over
+      // one that can be cooked tonight.
+      score: ratio * 100 + (haveReq.length + haveOpt.length) * 3 + usesUrgent.length * 10 - (flexible ? 50 : 0) - r.time / 60,
     };
   }).sort((a, b) => b.score - a.score || a.missing.length - b.missing.length || a.time - b.time);
 }

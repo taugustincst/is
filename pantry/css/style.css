@@ -168,6 +168,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, Menlo, mono
 .recipe .meta { color: var(--muted); font-size: .82rem; display: flex; gap: .6rem; flex-wrap: wrap; }
 .recipe .missing { font-size: .85rem; color: var(--amber); }
 .recipe .uses { font-size: .82rem; color: var(--green); }
+.recipe .urgent, .ingredients .urgent { font-size: .82rem; color: var(--amber); font-weight: 600; }
 .recipe .tags { display: flex; gap: .3rem; flex-wrap: wrap; }
 .tag { font-size: .7rem; padding: .1rem .45rem; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
 
