@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f6b3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="Photograph your groceries, read them into a pantry, and cook from what you have.">
+<title>Pantry Scan</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="top">
+  <h1><span class="logo" aria-hidden="true"></span>Pantry Scan</h1>
+  <button id="btn-settings" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
+</header>
+
+<nav class="tabs" aria-label="Sections">
+  <button class="tab active" data-view="scan" aria-controls="view-scan">📷<span>Scan</span></button>
+  <button class="tab" data-view="pantry" aria-controls="view-pantry">🧺<span>Pantry</span><b id="count-pantry" class="badge" hidden></b></button>
+  <button class="tab" data-view="recipes" aria-controls="view-recipes">🍳<span>Recipes</span><b id="count-recipes" class="badge" hidden></b></button>
+  <button class="tab" data-view="shop" aria-controls="view-shop">🛒<span>List</span><b id="count-shop" class="badge" hidden></b></button>
+</nav>
+
+<main>
+
+<!-- ================= Scan ================= -->
+<section id="view-scan" class="view active">
+  <div class="scan-stage" id="scan-stage">
+    <video id="cam" playsinline muted autoplay hidden></video>
+    <canvas id="preview" hidden></canvas>
+    <div id="scan-empty" class="scan-empty">
+      <p class="big">Point the camera at your shopping.</p>
+      <p>Receipts, labels, packets and shelf tags read best. Lay things flat, fill the frame with text, and keep the light even.</p>
+    </div>
+    <div id="scan-progress" class="progress" hidden>
+      <div class="bar"><div id="progress-fill"></div></div>
+      <span id="progress-text">Starting…</span>
+    </div>
+  </div>
+
+  <div class="scan-controls">
+    <button id="btn-camera" class="btn">Open camera</button>
+    <button id="btn-shutter" class="btn primary" hidden>Take photo</button>
+    <label class="btn" for="file-input">Choose photo</label>
+    <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
+    <button id="btn-retake" class="btn" hidden>Retake</button>
+  </div>
+
+  <div id="scan-results" class="card" hidden>
+    <div class="row between">
+      <h2>What I found</h2>
+      <span id="ocr-confidence" class="muted"></span>
+    </div>
+    <p id="none-found" class="muted" hidden>No food words in that photo. Try a closer, flatter shot with the text filling the frame, or edit the text below and detect again.</p>
+    <ul id="detected" class="chips" aria-label="Detected foods"></ul>
+    <div class="row wrap gap">
+      <button id="btn-add-detected" class="btn primary">Add to pantry</button>
+      <button id="btn-select-all" class="btn small">Select all</button>
+      <button id="btn-select-none" class="btn small">None</button>
+    </div>
+    <details class="ocr-text">
+      <summary>Text read from the photo</summary>
+      <textarea id="ocr-text" rows="6" spellcheck="false"></textarea>
+      <button id="btn-redetect" class="btn small">Detect again from edited text</button>
+    </details>
+  </div>
+
+  <div class="card tip">
+    <h2>Quick add</h2>
+    <p class="muted">Loose fruit and vegetables carry no text to read, so type those in here. Suggestions come from the same list the scanner uses.</p>
+    <form id="quick-add" class="row gap">
+      <input id="quick-name" list="food-list" placeholder="e.g. bananas" autocomplete="off" required>
+      <button class="btn primary" type="submit">Add</button>
+    </form>
+    <datalist id="food-list"></datalist>
+  </div>
+</section>
+
+<!-- ================= Pantry ================= -->
+<section id="view-pantry" class="view">
+  <div class="row between wrap gap">
+    <h2>Your pantry</h2>
+    <div class="row gap">
+      <input id="pantry-search" type="search" placeholder="Filter…" aria-label="Filter pantry">
+      <button id="btn-clear-pantry" class="btn small danger">Clear</button>
+    </div>
+  </div>
+  <div id="use-soon" class="card soon" hidden>
+    <h3>Use soon</h3>
+    <ul id="use-soon-list" class="plain"></ul>
+  </div>
+  <div id="pantry-empty" class="empty">
+    <p class="big">Nothing here yet.</p>
+    <p>Scan a receipt or a shelf, or add things by hand on the Scan tab.</p>
+    <button class="btn primary" data-goto="scan">Scan something</button>
+  </div>
+  <div id="pantry-groups"></div>
+</section>
+
+<!-- ================= Recipes ================= -->
+<section id="view-recipes" class="view">
+  <div class="row between wrap gap">
+    <h2>What can I cook?</h2>
+    <div class="row gap">
+      <select id="diet" aria-label="Diet">
+        <option value="any">Any diet</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+      </select>
+      <label class="check"><input type="checkbox" id="quick-only"> Under 30 min</label>
+    </div>
+  </div>
+  <div id="recipes-empty" class="empty" hidden>
+    <p class="big">Add a few things to your pantry first.</p>
+    <p>Recipes are matched against what you have. Even eggs and bread will get you started.</p>
+    <button class="btn primary" data-goto="scan">Scan something</button>
+  </div>
+  <section id="recipes-now" class="recipe-group" hidden><h3>Cook now <span class="muted">everything is in</span></h3><div class="cards"></div></section>
+  <section id="recipes-almost" class="recipe-group" hidden><h3>Almost there <span class="muted">one or two things short</span></h3><div class="cards"></div></section>
+  <section id="recipes-ideas" class="recipe-group" hidden><h3>Ideas <span class="muted">worth a shop</span></h3><div class="cards"></div></section>
+</section>
+
+<!-- ================= Shopping list ================= -->
+<section id="view-shop" class="view">
+  <div class="row between wrap gap">
+    <h2>Shopping list</h2>
+    <button id="btn-clear-shop" class="btn small danger">Clear</button>
+  </div>
+  <p class="muted">Tick things off as you buy them and they move straight into the pantry.</p>
+  <div id="shop-empty" class="empty"><p class="big">Nothing to buy.</p><p>Open a recipe that is missing something and add it here.</p></div>
+  <ul id="shop-list" class="plain"></ul>
+  <form id="shop-add" class="row gap">
+    <input id="shop-name" list="food-list" placeholder="Add something…" autocomplete="off" required>
+    <button class="btn" type="submit">Add</button>
+  </form>
+</section>
+
+</main>
+
+<!-- ================= Recipe detail ================= -->
+<dialog id="recipe-dialog">
+  <form method="dialog" class="dialog-head">
+    <h2 id="recipe-title"></h2>
+    <button class="icon-btn" aria-label="Close">✕</button>
+  </form>
+  <p id="recipe-meta" class="muted"></p>
+  <h3>Ingredients</h3>
+  <ul id="recipe-ingredients" class="ingredients"></ul>
+  <h3>Method</h3>
+  <ol id="recipe-steps"></ol>
+  <div class="row wrap gap dialog-actions">
+    <button id="btn-cooked" class="btn primary">I cooked this</button>
+    <button id="btn-shop-missing" class="btn">Add missing to list</button>
+  </div>
+</dialog>
+
+<!-- ================= Settings ================= -->
+<dialog id="settings-dialog">
+  <form method="dialog" class="dialog-head">
+    <h2>Settings</h2>
+    <button class="icon-btn" aria-label="Close">✕</button>
+  </form>
+  <label class="check"><input type="checkbox" id="pref-staples"> Assume I have staples (salt, pepper, oil, flour, sugar, vinegar, stock)</label>
+  <h3>Your data</h3>
+  <p class="muted">Everything lives on this device. Export to move it to another phone.</p>
+  <div class="row wrap gap">
+    <button id="btn-export" class="btn">Export pantry</button>
+    <label class="btn" for="import-input">Import</label>
+    <input id="import-input" type="file" accept="application/json,.json" hidden>
+  </div>
+  <h3>About</h3>
+  <p class="muted">Text is read on your phone with Tesseract, an open-source recogniser. The first scan downloads it (a few megabytes); after that it works offline. Photos never leave the device.</p>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
