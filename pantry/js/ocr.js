@@ -103,6 +103,35 @@ export async function recognize(canvas, onProgress) {
   return { text: data.text || '', confidence: data.confidence || 0, lines };
 }
 
+/* A copy of the canvas turned by 90, 180 or 270 degrees. */
+export function rotated(canvas, degrees) {
+  const out = document.createElement('canvas');
+  const swap = degrees % 180 !== 0;
+  out.width = swap ? canvas.height : canvas.width;
+  out.height = swap ? canvas.width : canvas.height;
+  const ctx = out.getContext('2d');
+  ctx.translate(out.width / 2, out.height / 2);
+  ctx.rotate(degrees * Math.PI / 180);
+  ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  return out;
+}
+
+/* Recognise, and if the read looks like nonsense (a receipt photographed
+   sideways reads as a wall of stray letters at low confidence), try the
+   image turned each way and keep the most confident result. `isPoor`
+   decides from a result whether a retry is worth the time. */
+export async function recognizeUpright(canvas, onProgress, isPoor = (r) => r.confidence < 45) {
+  let best = await recognize(canvas, onProgress);
+  if (!isPoor(best)) return best;
+  for (const deg of [90, 270, 180]) {
+    onProgress?.({ status: 'retrying rotated', progress: 0, degrees: deg });
+    const r = await recognize(rotated(canvas, deg), onProgress);
+    if (r.confidence > best.confidence) best = { ...r, rotated: deg };
+    if (!isPoor(best)) break;
+  }
+  return best;
+}
+
 export async function terminate() {
   if (!workerPromise) return;
   const w = await workerPromise.catch(() => null);

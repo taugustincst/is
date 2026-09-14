@@ -134,7 +134,10 @@
 <section id="view-shop" class="view">
   <div class="row between wrap gap">
     <h2>Shopping list</h2>
-    <button id="btn-clear-shop" class="btn small danger">Clear</button>
+    <div class="row gap">
+      <button id="btn-share-shop" class="btn small">Share</button>
+      <button id="btn-clear-shop" class="btn small danger">Clear</button>
+    </div>
   </div>
   <p class="muted">Tick things off as you buy them and they move straight into the pantry.</p>
   <div id="shop-empty" class="empty"><p class="big">Nothing to buy.</p><p>Open a recipe that is missing something and add it here.</p></div>
@@ -154,7 +157,13 @@
     <button class="icon-btn" aria-label="Close">✕</button>
   </form>
   <p id="recipe-meta" class="muted"></p>
-  <h3>Ingredients</h3>
+  <div class="row between wrap gap">
+    <h3>Ingredients</h3>
+    <div class="row gap serves">
+      <span class="stepper"><button id="serves-less" aria-label="fewer servings">−</button><span id="serves-count">4</span><button id="serves-more" aria-label="more servings">+</button></span>
+      <span id="serves-note" class="muted"></span>
+    </div>
+  </div>
   <ul id="recipe-ingredients" class="ingredients"></ul>
   <h3>Method</h3>
   <ol id="recipe-steps"></ol>

@@ -7,6 +7,7 @@ import { RECIPES } from '../js/recipes.js';
 import { normalize, singular, editDistance, detectFoods, rankRecipes, quantityAround } from '../js/match.js';
 import { store, freshness } from '../js/inventory.js';
 import { buildRequest, parseVisionItems, mergeDetections, DEFAULT_MODEL } from '../js/vision.js';
+import { scaleAmount, formatNumber } from '../js/amounts.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -322,6 +323,33 @@ test('freshness follows shelf life', () => {
   assert.equal(freshness({ days: 7, added: at(8) }, now), 'past');
   assert.equal(freshness({ days: 720, added: at(0) }, now), null);
   assert.equal(freshness({ days: null, added: at(0) }, now), null);
+});
+
+// ------------------------------------------------------------- amounts
+test('amounts scale their leading numbers and leave the words alone', () => {
+  assert.equal(scaleAmount('400 g', 2), '800 g');
+  assert.equal(scaleAmount('400 g', 0.5), '200 g');
+  assert.equal(scaleAmount('2 cloves', 1.5), '3 cloves');
+  assert.equal(scaleAmount('1 can (400 g)', 2), '2 can (400 g)');
+  assert.equal(scaleAmount('1/2 red', 2), '1 red');
+  assert.equal(scaleAmount('1/2', 0.5), '¼');
+  assert.equal(scaleAmount('1–2 tsp', 2), '2–4 tsp');
+  assert.equal(scaleAmount('2 + 1 yolk', 2), '4 + 2 yolk');
+  assert.equal(scaleAmount('1 tbsp', 0.75), '¾ tbsp');
+  assert.equal(scaleAmount('3 tbsp', 1 / 3), '1 tbsp');
+  assert.equal(scaleAmount('150 g', 1 / 3), '50 g');
+  assert.equal(scaleAmount('300 g cooked (or 150 g raw)', 2), '600 g cooked (or 150 g raw)');
+  assert.equal(scaleAmount('a handful', 2), 'a handful');
+  assert.equal(scaleAmount('to serve', 3), 'to serve');
+  assert.equal(scaleAmount('plenty', 2), 'plenty');
+  assert.equal(scaleAmount('', 2), '');
+  assert.equal(scaleAmount('2', 1), '2');
+  assert.equal(scaleAmount('2 thick', 1.5), '3 thick');
+  assert.equal(scaleAmount('1 litre', 2), '2 litre');
+  assert.equal(formatNumber(2 / 3), '⅔');
+  assert.equal(formatNumber(1.5), '1½');
+  assert.equal(formatNumber(1.2), '1.2');
+  assert.equal(formatNumber(250), '250');
 });
 
 // ------------------------------------------------------------- offline

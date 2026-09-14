@@ -6,7 +6,8 @@ import { FOODS, FOOD_BY_ID, CATEGORIES } from './foods.js';
 import { RECIPES } from './recipes.js';
 import { detectFoods, rankRecipes } from './match.js';
 import { store, freshness, daysLeft } from './inventory.js';
-import { preprocess, recognize, loadLibrary } from './ocr.js';
+import { preprocess, recognizeUpright, loadLibrary } from './ocr.js';
+import { scaleAmount } from './amounts.js';
 import { identify, mergeDetections, MODELS, DEFAULT_MODEL, VisionError } from './vision.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -183,7 +184,7 @@ async function scan(source) {
   const ocrLabel = (m) => ({
     'loading tesseract core': 'Loading text reader…', 'initializing tesseract': 'Starting text reader…',
     'loading language traineddata': 'Loading English model…', 'initializing api': 'Warming up…',
-    'recognizing text': 'Reading text…',
+    'recognizing text': 'Reading text…', 'retrying rotated': 'Trying the photo turned round…',
   }[m.status] || m.status || 'Working…');
 
   try {
@@ -196,10 +197,13 @@ async function scan(source) {
     if (useVision) setProgress('Asking Claude what it sees…', 0.15);
 
     const clean = preprocess(source);
-    const ocrTask = recognize(clean, (m) => {
+    // A read is poor when it is low confidence and names no food; then the
+    // photo is tried turned each way, which is what a sideways receipt needs.
+    const poor = (r) => r.confidence < 45 && detectFoods(r.text).length < 2;
+    const ocrTask = recognizeUpright(clean, (m) => {
       if (m.status === 'recognizing text') setProgress(useVision && !visionResult ? `Reading text… ${Math.round((m.progress || 0) * 100)}%` : ocrLabel(m), 0.3 + 0.7 * (m.progress || 0));
       else setProgress(ocrLabel(m), 0.1 + 0.2 * (m.progress || 0));
-    }).then(r => { ocrDone = true; return r; }, () => ({ text: '', confidence: 0 }));
+    }, poor).then(r => { ocrDone = true; return r; }, () => ({ text: '', confidence: 0 }));
 
     const [ocr] = await Promise.all([ocrTask, visionTask]);
     progress.hidden = true;
@@ -463,12 +467,29 @@ function recipeCard(r) {
 
 const dialog = $('#recipe-dialog');
 let openId = null;
+let openServes = 0;
+function findRecipe(id) {
+  return currentRanking().find(x => x.id === id) || rankRecipes(RECIPES, store.ids(), { assumeStaples: store.get().prefs.assumeStaples, urgent: urgentIds() }).find(x => x.id === id);
+}
 function openRecipe(id) {
-  const r = currentRanking().find(x => x.id === id) || rankRecipes(RECIPES, store.ids(), { assumeStaples: store.get().prefs.assumeStaples, urgent: urgentIds() }).find(x => x.id === id);
+  const r = findRecipe(id);
   if (!r) return;
   openId = id;
+  openServes = r.serves;
   $('#recipe-title').textContent = r.name;
-  $('#recipe-meta').textContent = `${r.time} minutes · serves ${r.serves}${r.tags.length ? ' · ' + r.tags.join(', ') : ''}`;
+  $('#recipe-meta').textContent = `${r.time} minutes${r.tags.length ? ' · ' + r.tags.join(', ') : ''}`;
+  renderIngredients(r);
+  $('#recipe-steps').replaceChildren(...r.steps.map(s => el('li', {}, s)));
+  $('#btn-cooked').disabled = !r.canCook && r.missing.length > 0;
+  $('#btn-shop-missing').hidden = r.missing.length === 0;
+  $('#btn-shop-missing').textContent = `Add ${r.missing.length} missing to list`;
+  dialog.showModal();
+}
+
+function renderIngredients(r) {
+  const factor = openServes / r.serves;
+  $('#serves-count').textContent = String(openServes);
+  $('#serves-note').textContent = factor === 1 ? `serves ${r.serves} as written` : `scaled from ${r.serves}`;
   const have = new Set(store.ids());
   const staple = (food) => store.get().prefs.assumeStaples && FOOD_BY_ID[food].staple;
   $('#recipe-ingredients').replaceChildren(...r.ingredients.map(i => {
@@ -477,15 +498,12 @@ function openRecipe(id) {
     const urgent = r.usesUrgent.includes(i.food);
     return el('li', { class: cls },
       el('span', {}, FOOD_BY_ID[i.food].name, urgent ? el('span', { class: 'urgent' }, ' ⏳ use soon') : null, i.opt ? el('span', { class: 'muted' }, ' (optional)') : null, !have.has(i.food) && staple(i.food) ? el('span', { class: 'muted' }, ' (staple)') : null),
-      el('span', { class: 'amount' }, i.amount),
+      el('span', { class: 'amount' }, scaleAmount(i.amount, factor)),
     );
   }));
-  $('#recipe-steps').replaceChildren(...r.steps.map(s => el('li', {}, s)));
-  $('#btn-cooked').disabled = !r.canCook && r.missing.length > 0;
-  $('#btn-shop-missing').hidden = r.missing.length === 0;
-  $('#btn-shop-missing').textContent = `Add ${r.missing.length} missing to list`;
-  dialog.showModal();
 }
+$('#serves-less').addEventListener('click', () => { const r = findRecipe(openId); if (r && openServes > 1) { openServes -= 1; renderIngredients(r); } });
+$('#serves-more').addEventListener('click', () => { const r = findRecipe(openId); if (r && openServes < 12) { openServes += 1; renderIngredients(r); } });
 
 $('#btn-cooked').addEventListener('click', () => {
   const r = RECIPES.find(x => x.id === openId);
@@ -517,6 +535,16 @@ function renderShop() {
   badge.hidden = shopping.length === 0; badge.textContent = String(shopping.length);
 }
 $('#btn-clear-shop').addEventListener('click', () => { store.clearShopping(); });
+$('#btn-share-shop').addEventListener('click', async () => {
+  const { shopping } = store.get();
+  if (!shopping.length) return;
+  const text = 'Shopping list\n' + shopping.map(s => `☐ ${s.name}`).join('\n');
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Shopping list', text }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(text); toast('List copied'); }
+  catch { toast('Could not share the list.'); }
+});
 $('#shop-add').addEventListener('submit', (e) => {
   e.preventDefault();
   const input = $('#shop-name');

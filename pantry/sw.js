@@ -22,6 +22,7 @@ const ASSETS = [
   'js/inventory.js',
   'js/ocr.js',
   'js/vision.js',
+  'js/amounts.js',
   'js/app.js',
   'icons/icon.svg',
 ];
