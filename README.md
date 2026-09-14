@@ -56,8 +56,9 @@ a browser, or serve the folder with any static file server.
 
 **Building a party**
 
-- **Eleven jobs** on an unlock tree — Squire, Chemist, Knight, Archer, Monk,
-  Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon — plus six creatures
+- **Fifteen jobs** on an unlock tree — Squire, Chemist, Knight, Archer, Monk,
+  Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon, and a second tier
+  of Samurai, Summoner, Geomancer and Bard — plus six creatures
   with their own skillsets and elemental identities (goblin, dire wolf, bomb,
   skeleton, marsh wisp, treant) and two shapes of boss.
 - **JP progression.** Acting earns JP in your current job. Spend it on that

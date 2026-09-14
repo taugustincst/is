@@ -143,6 +143,40 @@ const JOBS = {
     req: { thief: 2 }, desc: 'Leaps to the sky and crashes down on distant enemies.',
   },
 
+  // ---------------------------------------------------- advanced jobs, second tier
+  samurai: {
+    name: 'Samurai', skillset: 'Iaido', kind: 'human', sprite: 'heavy',
+    palette: { h: '#1a1a1a', c: '#b03030', p: '#e8e0d0', b: '#2a2a2a' },
+    hp: 1.15, mp: 0.9, pa: 1.3, ma: 1.05, spd: 1.0, move: 3, jump: 3, evade: 12,
+    weapon: { name: 'Katana', power: 7, range: 1, vert: 2 },
+    abilities: ['ashura', 'bizenBoat', 'kiyomori', 'muramasa'],
+    req: { knight: 3, dragoon: 2 }, desc: 'Draws the spirit out of the blade. Iaido strikes an area and asks nothing of the target\'s guard.',
+  },
+  summoner: {
+    name: 'Summoner', skillset: 'Summon', kind: 'human', sprite: 'mage',
+    palette: { h: '#2f6b3a', c: '#3a8a5a', p: '#e8d8a0', b: '#3a2a1a' },
+    hp: 0.7, mp: 1.6, pa: 0.65, ma: 1.45, spd: 0.95, move: 3, jump: 3, evade: 5,
+    weapon: { name: 'Summoner\'s Rod', power: 3, range: 1, vert: 2 },
+    abilities: ['ifrit', 'shiva', 'ramuh', 'titan', 'moogle', 'carbuncle'],
+    req: { blackMage: 3, timeMage: 2 }, desc: 'Calls down the espers. Wide, slow, and the spirits know friend from foe.',
+  },
+  geomancer: {
+    name: 'Geomancer', skillset: 'Geomancy', kind: 'human', sprite: 'rogue',
+    palette: { h: '#3a2a1a', c: '#8a9a5a', p: '#5a4a30', b: '#4a3a2a' },
+    hp: 1.05, mp: 1.0, pa: 1.1, ma: 1.1, spd: 1.05, move: 4, jump: 4, evade: 10,
+    weapon: { name: 'Hatchet', power: 6, range: 1, vert: 3 },
+    abilities: ['tremor', 'windSlash', 'quicksand', 'torrent'],
+    req: { monk: 3 }, desc: 'Turns the land itself against the enemy. Geomancy costs nothing and lands at once.',
+  },
+  bard: {
+    name: 'Bard', skillset: 'Song', kind: 'human', sprite: 'rogue',
+    palette: { h: '#c8a060', c: '#6a4aa0', p: '#3a2a5a', b: '#2a1a1a' },
+    hp: 0.8, mp: 1.2, pa: 0.8, ma: 1.15, spd: 1.1, move: 4, jump: 3, evade: 12,
+    weapon: { name: 'Harp', power: 3, range: 3, vert: 4 },
+    abilities: ['battleSong', 'lifeSong', 'angelSong', 'namelessSong'],
+    req: { whiteMage: 2, archer: 2 }, desc: 'Fights from the back with a harp and a voice. Songs lift everyone within earshot.',
+  },
+
   // ----------------------------------------------------------- monsters/boss
   goblin: {
     name: 'Goblin', skillset: 'Goblin', kind: 'monster', sprite: 'goblin',
@@ -353,6 +387,58 @@ const ABILITIES = {
     effects: [{ type: 'drain', formula: 'pa', power: 3 }], desc: 'Drain HP from the target.' },
   dragonRoar: { name: 'Dragon Roar', job: 'dragoon', jp: 250, mp: 0, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }], desc: 'A roar that grants Protect to nearby allies.' },
+
+  // Samurai. Iaido is magickal in its reckoning and cares nothing for evasion
+  // or for how the target stands; it costs MP rather than the blade.
+  ashura: { name: 'Ashura', job: 'samurai', jp: 100, mp: 6, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
+    effects: [{ type: 'damage', formula: 'ma', power: 5 }], desc: 'Draw and cut the air in an arc. Strikes an area; cannot be evaded.' },
+  bizenBoat: { name: 'Bizen Boat', job: 'samurai', jp: 150, mp: 6, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
+    effects: [{ type: 'mpdamage', formula: 'ma', power: 4 }], desc: 'A cut that bleeds MP rather than blood. Silences casters the slow way.' },
+  kiyomori: { name: 'Kiyomori', job: 'samurai', jp: 200, mp: 10, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }],
+    desc: 'The blade\'s spirit wards you and every ally nearby with Protect and Shell.' },
+  muramasa: { name: 'Muramasa', job: 'samurai', jp: 350, mp: 14, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }, { type: 'status', status: 'blind', hit: 45 }],
+    desc: 'The cursed blade. Heavy dark damage over an area, and some are left blinded by it.' },
+
+  // Summoner. Espers are wide and slow, and they know friend from foe.
+  ifrit: { name: 'Ifrit', job: 'summoner', jp: 120, mp: 16, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'enemy', element: 'fire',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the fire esper. Burns every enemy in a wide area; allies are spared.' },
+  shiva: { name: 'Shiva', job: 'summoner', jp: 120, mp: 16, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'enemy', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the ice esper. Freezes every enemy in a wide area.' },
+  ramuh: { name: 'Ramuh', job: 'summoner', jp: 160, mp: 18, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'enemy', element: 'thunder',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the thunder esper. Strikes from above; height is no shelter.' },
+  titan: { name: 'Titan', job: 'summoner', jp: 220, mp: 20, range: 4, aoe: 2, vert: 1, ct: 10, kind: 'magic', affects: 'enemy', element: 'earth',
+    effects: [{ type: 'damage', formula: 'ma', power: 10 }, { type: 'status', status: 'slow', hit: 35 }],
+    desc: 'Call the earth esper. The ground heaves under every enemy on the same level.' },
+  moogle: { name: 'Moogle', job: 'summoner', jp: 100, mp: 12, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 6 }], desc: 'Call the little esper. Mends every ally in a wide area.' },
+  carbuncle: { name: 'Carbuncle', job: 'summoner', jp: 200, mp: 14, range: 4, aoe: 2, vert: 4, ct: 12, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }],
+    desc: 'Call the gem esper. Shell and Regen for every ally in a wide area.' },
+
+  // Geomancer. The land answers at once and asks no MP.
+  tremor: { name: 'Tremor', job: 'geomancer', jp: 80, mp: 0, range: 4, aoe: 1, vert: 1, ct: 0, kind: 'magic', affects: 'all', element: 'earth',
+    effects: [{ type: 'damage', formula: 'ma', power: 4 }, { type: 'status', status: 'slow', hit: 35 }],
+    desc: 'Shake the ground under an area on your own level. Some are left Slowed.' },
+  windSlash: { name: 'Wind Slash', job: 'geomancer', jp: 120, mp: 0, range: 4, aoe: 0, vert: 5, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 5 }], desc: 'A blade of wind that reaches four tiles and climbs.' },
+  quicksand: { name: 'Quicksand', job: 'geomancer', jp: 200, mp: 0, range: 3, aoe: 1, vert: 1, ct: 0, kind: 'magic', affects: 'all', element: 'earth',
+    effects: [{ type: 'damage', formula: 'ma', power: 3 }, { type: 'status', status: 'stop', hit: 30 }],
+    desc: 'The ground turns to sand. Light damage, and some are held fast by Stop.' },
+  torrent: { name: 'Torrent', job: 'geomancer', jp: 160, mp: 0, range: 4, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 4 }, { type: 'status', status: 'silence', hit: 35 }],
+    desc: 'A wall of cold water over an area. Some come up unable to speak.' },
+
+  // Bard. Songs carry to everyone within earshot of the singer.
+  battleSong: { name: 'Battle Song', job: 'bard', jp: 100, mp: 6, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'pa', amount: 1 }], desc: 'A marching song. PA +1 for every ally within three tiles, for the battle.' },
+  lifeSong: { name: 'Life Song', job: 'bard', jp: 120, mp: 8, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 3 }], desc: 'A song of mending. Restores HP to every ally within three tiles.' },
+  angelSong: { name: 'Angel Song', job: 'bard', jp: 180, mp: 0, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'mpheal', formula: 'ma', power: 2 }], desc: 'A song that gives back what casting takes. MP to every ally within three tiles.' },
+  namelessSong: { name: 'Nameless Song', job: 'bard', jp: 300, mp: 14, range: 0, aoe: 2, vert: 4, ct: 20, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'haste', hit: 100 }], desc: 'The old song. Haste for every ally within two tiles, once it is sung through.' },
 
   // Monsters
   tackle: { name: 'Tackle', job: 'goblin', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
@@ -901,6 +987,8 @@ const TRAINING_POOL = [
   ['bomb', 'bomb', 'goblin', 'skeleton'],
   ['skeleton', 'skeleton', 'wisp', 'treant'],
   ['ninja', 'timeMage', 'knight', 'dragoon'],
+  ['samurai', 'summoner', 'knight', 'geomancer'],
+  ['bard', 'samurai', 'ninja', 'summoner', 'geomancer'],
 ];
 
 // ============================================================================
@@ -922,6 +1010,10 @@ const JOB_EQUIP = {
   timeMage:  { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   ninja:     { w: ['ninjablade', 'knife'], a: ['light', 'cloth'], head: ['hat'], shield: false, dual: true },
   dragoon:   { w: ['spear', 'sword'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+  samurai:   { w: ['katana', 'sword'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: false },
+  summoner:  { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  geomancer: { w: ['axe', 'sword', 'knife'], a: ['light', 'cloth', 'robe'], head: ['hat'], shield: true },
+  bard:      { w: ['harp', 'knife'], a: ['cloth', 'robe', 'light'], head: ['hat'], shield: false },
 };
 
 // tier: shop stock unlocks at that chapter index. price 0 = starter kit, cannot be sold.
@@ -954,6 +1046,12 @@ const ITEMS = {
   kunai:       { name: 'Kunai', slot: 'weapon', wtype: 'ninjablade', power: 5, range: 1, vert: 2, spd: 1, price: 0, tier: 0 },
   ninjaBlade:  { name: 'Ninja Blade', slot: 'weapon', wtype: 'ninjablade', power: 8, range: 1, vert: 2, spd: 1, price: 1200, tier: 4 },
   murasame:    { name: 'Murasame', slot: 'weapon', wtype: 'ninjablade', power: 11, range: 1, vert: 2, spd: 2, price: 2200, tier: 6 },
+  ashuraBlade: { name: 'Ashura Blade', slot: 'weapon', wtype: 'katana', power: 7, range: 1, vert: 2, price: 0, tier: 0 },
+  kotetsu:     { name: 'Kotetsu', slot: 'weapon', wtype: 'katana', power: 12, range: 1, vert: 2, evade: 4, price: 950, tier: 3 },
+  masamune:    { name: 'Masamune', slot: 'weapon', wtype: 'katana', power: 15, range: 1, vert: 2, spd: 1, evade: 6, price: 2300, tier: 6 },
+  ramiaHarp:   { name: 'Ramia Harp', slot: 'weapon', wtype: 'harp', power: 3, range: 3, vert: 4, ma: 2, price: 0, tier: 0 },
+  bloodstrings:{ name: 'Bloodstrings', slot: 'weapon', wtype: 'harp', power: 6, range: 3, vert: 4, ma: 4, spd: 1, price: 1300, tier: 4 },
+  faerieHarp:  { name: 'Faerie Harp', slot: 'weapon', wtype: 'harp', power: 8, range: 4, vert: 5, ma: 6, mp: 20, price: 2200, tier: 6 },
 
   // ---- offhand ----
   buckler:     { name: 'Buckler', slot: 'offhand', otype: 'shield', evade: 12, price: 300, tier: 1 },
@@ -968,6 +1066,7 @@ const ITEMS = {
                  wards: ['silence', 'blind', 'berserk', 'poison'], price: 2400, tier: 6 },
   ironHelm:    { name: 'Iron Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 20, price: 450, tier: 1 },
   goldenHelm:  { name: 'Golden Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 36, mp: 8, price: 1300, tier: 4 },
+  summonersHood: { name: 'Summoner\'s Hood', slot: 'head', htype: 'hat', look: 'wizard', hp: 14, mp: 34, ma: 2, price: 900, tier: 4 },
 
   // ---- body ----
   clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },
@@ -998,6 +1097,8 @@ const ITEMS = {
   guardianRing:{ name: 'Guardian Ring', slot: 'acc', hp: 30, price: 700, tier: 2 },
   reflexBracer:{ name: 'Reflex Bracer', slot: 'acc', evade: 12, price: 800, tier: 3 },
   chronoAmulet:{ name: 'Chrono Amulet', slot: 'acc', spd: 2, price: 2000, tier: 5 },
+  earthwalkers:{ name: 'Earthwalker Boots', slot: 'acc', move: 1, jump: 1, price: 900, tier: 3 },
+  songstone:   { name: 'Songstone', slot: 'acc', mp: 24, ma: 1, wards: ['silence'], price: 1100, tier: 4 },
 };
 
 // Free starting kit per job (price-0 items only, so they cannot be sold for gil).
@@ -1013,6 +1114,10 @@ const STARTER_GEAR = {
   timeMage:  { weapon: 'staff', body: 'clothes' },
   ninja:     { weapon: 'kunai', body: 'clothes' },
   dragoon:   { weapon: 'spear', body: 'clothes' },
+  samurai:   { weapon: 'ashuraBlade', body: 'clothes' },
+  summoner:  { weapon: 'rod', body: 'clothes' },
+  geomancer: { weapon: 'shortSword', body: 'clothes' },
+  bard:      { weapon: 'ramiaHarp', body: 'clothes' },
 };
 
 const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
@@ -1147,6 +1252,8 @@ const PASSIVES = {
     desc: 'Gain Regen the first time you are damaged in a battle.' },
   vengeance: { name: 'Vengeance', kind: 'reaction', job: 'dragoon', jp: 260,
     desc: 'Physical Attack rises by 1 each time you are damaged.' },
+  bladeGrasp: { name: 'Blade Grasp', kind: 'reaction', job: 'samurai', jp: 400,
+    desc: 'Catch the blade: half of all physical attacks against you are turned aside.' },
 
   // ---- support: always-on modifiers ----
   attackUp: { name: 'Attack Up', kind: 'support', job: 'knight', jp: 300,
@@ -1165,6 +1272,10 @@ const PASSIVES = {
     desc: 'Wear light and heavy armor whatever your job.' },
   martialArts: { name: 'Martial Arts', kind: 'support', job: 'monk', jp: 260,
     desc: 'Fist weapons strike for 50% more power.' },
+  mpRegen: { name: 'Mana Well', kind: 'support', job: 'summoner', jp: 300,
+    desc: 'Recover a tenth of your MP at the start of every turn.' },
+  attuned: { name: 'Attunement', kind: 'support', job: 'geomancer', jp: 280,
+    desc: 'Anything you do that carries an element does 25% more.' },
 
   // ---- movement: how the unit gets around ----
   movePlus1: { name: 'Move +1', kind: 'movement', job: 'thief', jp: 220,
@@ -1179,6 +1290,8 @@ const PASSIVES = {
     desc: 'Recover a tenth of your HP whenever you move.' },
   moveFindItem: { name: 'Treasure Hunter', kind: 'movement', job: 'thief', jp: 300,
     desc: 'Turn up 25 gil each time you move.' },
+  moveMpUp: { name: 'Move-MP-Up', kind: 'movement', job: 'bard', jp: 240,
+    desc: 'Recover a tenth of your MP whenever you move.' },
 };
 
 const PASSIVE_KINDS = { reaction: 'Reaction', support: 'Support', movement: 'Movement' };

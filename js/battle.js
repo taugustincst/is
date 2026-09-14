@@ -248,6 +248,7 @@ class Battle {
         if (user.hasPassive('magickUp')) base *= 1.25;
         if (target.hasStatus('shell')) base *= 2 / 3;
       }
+      if (ab.element && user.hasPassive('attuned')) base *= 1.25;
       // Element last, so it scales everything else. A negative result means the
       // target drinks the attack in; the caller turns that into healing.
       const aff = affinityOf(target, ab.element);
@@ -276,6 +277,7 @@ class Battle {
         }
         else if (eff.type === 'heal') p.heal += this.computeEffect(user, ab, eff, t);
         else if (eff.type === 'mpheal') p.notes.push(`MP +${this.computeEffect(user, ab, eff, t)}`);
+        else if (eff.type === 'mpdamage') p.notes.push(`MP -${Math.min(this.computeEffect(user, ab, eff, t), t.mp)}`);
         else if (eff.type === 'revive') p.notes.push(`revive ${Math.round(eff.pct * 100)}%`);
         else if (eff.type === 'status') p.notes.push(`${STATUSES[eff.status].name} ${eff.hit}%`);
         else if (eff.type === 'statmod') p.notes.push(`${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`);
@@ -320,8 +322,9 @@ class Battle {
           continue;
         }
         // Parry turns a physical blow aside outright.
-        if (ab.kind === 'physical' && t.team !== user.team && t.hasPassive('parry') && Math.random() < 0.35) {
-          this.log(`${t.name} parries ${user.name}'s ${ab.name}!`, 'miss');
+        const parryChance = t.hasPassive('bladeGrasp') ? 0.5 : t.hasPassive('parry') ? 0.35 : 0;
+        if (ab.kind === 'physical' && t.team !== user.team && parryChance && Math.random() < parryChance) {
+          this.log(`${t.name} ${t.hasPassive('bladeGrasp') ? 'catches' : 'parries'} ${user.name}'s ${ab.name}!`, 'miss');
           if (this.hooks.onEvade) this.hooks.onEvade(t);
           if (this.hooks.showFloat) this.hooks.showFloat(t, 'Parry', '#9fd6ff');
           continue;
@@ -422,6 +425,16 @@ class Battle {
         t.hp += real;
         this.log(`${t.name} recovers ${real} HP.`, 'heal');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `+${real}`, '#7cff7c');
+        return true;
+      }
+      case 'mpdamage': {
+        if (!t.alive) return false;
+        const v = Math.min(this.computeEffect(user, ab, eff, t), t.mp);
+        if (v <= 0) { this.log(`${t.name} has no MP to lose.`, 'miss'); return false; }
+        t.mp -= v;
+        this.log(`${user.name}'s ${ab.name} burns ${v} MP from ${t.name}.`, 'dmg');
+        if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
+        if (this.hooks.showFloat) this.hooks.showFloat(t, `-${v} MP`, '#c56aff');
         return true;
       }
       case 'mpheal': {
@@ -769,6 +782,12 @@ class Battle {
       this.checkPhase(unit);
       if (unit.hp === 0) { this.log(`${unit.name} succumbs to poison!`, 'ko'); this.onUnitKO(unit); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
     }
+    if (unit.hasPassive('mpRegen') && unit.mp < unit.maxMp) {
+      const v = Math.min(Math.ceil(unit.maxMp / 10), unit.maxMp - unit.mp);
+      unit.mp += v;
+      this.log(`${unit.name} draws ${v} MP from the well.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v} MP`, '#7cc8ff');
+    }
     if (unit.hasStatus('regen')) {
       const v = Math.min(Math.max(1, Math.floor(unit.maxHp / 8)), unit.maxHp - unit.hp);
       unit.hp += v;
@@ -801,6 +820,10 @@ class Battle {
     if (unit.hasPassive('moveHpUp')) {
       const v = Math.min(Math.ceil(unit.maxHp / 10), unit.maxHp - unit.hp);
       if (v > 0) { unit.hp += v; this.log(`${unit.name} recovers ${v} HP on the move.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v}`, '#7cff7c'); }
+    }
+    if (unit.hasPassive('moveMpUp')) {
+      const v = Math.min(Math.ceil(unit.maxMp / 10), unit.maxMp - unit.mp);
+      if (v > 0) { unit.mp += v; this.log(`${unit.name} recovers ${v} MP on the move.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v} MP`, '#7cc8ff'); }
     }
     if (unit.hasPassive('moveFindItem')) {
       if (unit.team === 'player') this.rewards.gil += 25;
@@ -900,6 +923,8 @@ class Battle {
         }
         else if (/Haste|Protect|Shell|Regen/.test(n)) score += !enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? 20 : 0;
         else if (/PA \+|SPD \+/.test(n)) score += enemy ? -8 : 8;
+        else if (/^MP \+/.test(n)) score += !enemy && t.mp < t.maxMp * 0.5 ? 6 : 0;
+        else if (/^MP -/.test(n)) { const v = +n.slice(4); score += enemy ? Math.min(20, v * 0.6) : -v; }
         else if (/PA -|SPD -|MA -/.test(n)) score += enemy ? 12 : -12;
         else if (n.startsWith('steal')) score += enemy ? 10 : 0;
         else if (n.startsWith('drain')) score += enemy ? 5 : 0;

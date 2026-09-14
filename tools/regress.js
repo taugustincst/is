@@ -610,6 +610,71 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('no mood goes unused', Object.keys(MOODS).every(k => used.has(k)), [...used].sort().join(','));
   }
 
+  /* 28. A new job is a bundle: a starter kit it can wear, an equipment row,
+     gear in the shop for its weapon type, a swing for that type, and every
+     passive it teaches actually consulted by the engine. A passive the
+     engine never asks about is a JP sink that does nothing, which is the
+     kind of thing that ships by accident. */
+  {
+    const fs = require('fs'), path = require('path');
+    const { ROOT } = require('./load');
+    const playable = Object.entries(g.JOBS).filter(([, j]) => j.kind === 'human' && j.req !== null).map(([id]) => id);
+    const noKit = playable.filter(id => !g.STARTER_GEAR[id] || !g.JOB_EQUIP[id]);
+    ok('every playable job has a starter kit and an equipment row', noKit.length === 0, noKit.join(',') || `${playable.length} jobs`);
+    const unlockable = playable.filter(id => Object.keys(g.JOBS[id].req).length && Object.keys(g.JOBS[id].req).every(r => g.JOBS[r] && g.JOBS[r].req !== null));
+    ok('every advanced job unlocks from playable jobs', unlockable.length === playable.filter(id => Object.keys(g.JOBS[id].req).length).length);
+    const wtypes = new Set(Object.values(g.ITEMS).filter(i => i.slot === 'weapon').map(i => i.wtype));
+    const noShop = [...wtypes].filter(t => !Object.values(g.ITEMS).some(i => i.slot === 'weapon' && i.wtype === t && i.tier > 0));
+    ok('every weapon type has something to buy beyond the starter', noShop.length === 0, noShop.join(',') || `${wtypes.size} types`);
+    const engine = fs.readdirSync(path.join(ROOT, 'js')).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
+    const dead = Object.keys(g.PASSIVES).filter(id => !engine.includes(`hasPassive('${id}')`));
+    ok('every passive is consulted by the engine', dead.length === 0, dead.join(',') || `${Object.keys(g.PASSIVES).length} passives`);
+    // Every effect type an ability uses must be one the engine applies.
+    const applied = (engine.match(/case '([a-z]+)': \{/g) || []).map(m => m.slice(6, -4));
+    const unhandled = [...new Set(Object.values(g.ABILITIES).flatMap(a => a.effects.map(e => e.type)))].filter(t => !applied.includes(t));
+    ok('every ability effect type is one the engine applies', unhandled.length === 0, unhandled.join(',') || applied.join(','));
+  }
+
+  /* 29. Every ability of the second-tier jobs, cast once by the engine at a
+     legal target, has to visibly do its thing: damage, MP burned, healing, a
+     status or a stat change. Rolls are forced so a 30% status cannot hide a
+     defect, reactions and gear are stripped from the targets so a Parry or a
+     Storm Mail cannot either, and charged abilities are resolved as the
+     engine would resolve them. */
+  {
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard'];
+    const realRandom = Math.random;
+    const silent = [];
+    for (const job of NEW) for (const id of g.JOBS[job].abilities) {
+      const ab = g.ABILITIES[id];
+      const caster = new g.Unit({ name: 'Caster', job, level: 10, team: 'player' });
+      caster.learned[id] = true;
+      const friend = new g.Unit({ name: 'Friend', job: 'knight', level: 10, team: 'player' });
+      let b; const hooks = { log: () => {}, awaitPlayerTurn: async () => {} };
+      b = g.Battle.setup(g.MAPS.verdant, [caster, friend], [{ job: 'knight', level: 10, x: 3, y: 2 }, { job: 'blackMage', level: 10, x: 4, y: 2 }], hooks, { type: 'rout' });
+      const foe = b.units.find(u => u.team === 'enemy' && u.job === 'knight');
+      const mage = b.units.find(u => u.team === 'enemy' && u.job === 'blackMage');
+      caster.x = 2; caster.y = 2; friend.x = 1; friend.y = 2; friend.hp = Math.floor(friend.maxHp / 2); friend.mp = 0;
+      caster.mp = caster.maxMp;
+      for (const u of b.units) { u.passives = { reaction: null, support: null, movement: null }; if (u.team === 'enemy') u.gear = {}; }
+      const helpful = ab.affects === 'ally';
+      const target = helpful ? friend : (id === 'bizenBoat' ? mage : foe);
+      const snap = (u) => JSON.stringify([u.hp, u.mp, Object.keys(u.statuses), u.mods]);
+      const before = snap(target);
+      Math.random = () => 0.01;
+      try {
+        const tiles = b.targetTilesFor(caster, ab);
+        const at = tiles.find(t => t.x === target.x && t.y === target.y) || tiles[0];
+        await b.useAbility(caster, ab, at.x, at.y);
+        for (const p of b.pending.splice(0)) await b.applyAbility(p.unit, p.ability, p.tx, p.ty);
+      } catch (e) { silent.push(`${id} threw ${e.message}`); }
+      Math.random = realRandom;
+      if (snap(target) === before && !silent.some(x => x.startsWith(id))) silent.push(id);
+    }
+    ok('every second-tier ability does what it says', silent.length === 0,
+       silent.join(',') || `${NEW.reduce((n, j) => n + g.JOBS[j].abilities.length, 0)} abilities cast`);
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

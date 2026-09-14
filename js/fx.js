@@ -72,6 +72,11 @@ const WEAPON_FX = {
                 sound: 'swing-fist', impact: 'impact-blunt' },
   bow:        { reach: 0.0, swing: null, hits: 1, wind: 260, color: '#ffe9b0', shot: 'arrow',
                 sound: 'bow-release', impact: 'impact-arrow' },
+  katana:     { reach: 0.44, swing: 'slash', hits: 1, wind: 160, color: '#f4f8ff',
+                sound: 'swing-katana', impact: 'impact-slash' },
+  // A harp is played, not swung: the note travels to the target.
+  harp:       { reach: 0.0, swing: null, hits: 1, wind: 240, color: '#ffd8f0', shot: 'orb',
+                sound: 'strum', impact: 'impact-chime' },
 };
 const DEFAULT_WEAPON_FX = WEAPON_FX.sword;
 
@@ -416,7 +421,7 @@ const FX_DRAW = {
 function abilityFx(ab) {
   if (ab.element && ELEMENT_FX[ab.element]) return ELEMENT_FX[ab.element];
   const heals = (ab.effects || []).some(e =>
-    e.type === 'heal' || e.type === 'revive' || e.type === 'restoreMp' || e.type === 'cure');
+    e.type === 'heal' || e.type === 'revive' || e.type === 'mpheal' || e.type === 'cure');
   if (heals) return HEAL_FX;
   if (ab.kind === 'magic') return NEUTRAL_MAGIC;
   if (ab.kind === 'support' || ab.kind === 'item') return BUFF_FX;
@@ -429,6 +434,7 @@ function throwShape(u, ab) {
   const t = u.weapon && u.weapon.wtype;
   if (t === 'ninjablade' || t === 'knife') return 'star';
   if (t === 'bow') return 'arrow';          // a rain of arrows is still arrows
+  if (t === 'harp') return 'orb';           // a note, thrown
   if (t === 'fist') return 'orb';           // a monk projects force, not a rock
   return 'rock';
 }

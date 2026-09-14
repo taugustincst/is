@@ -658,6 +658,11 @@ const WEAPONS = {
   staff: G(13, 1, ['..qq..', '.qqqq.', '.qqqq.', '..qq..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..',
                    '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..yy..']),
   rod: G(13, 7, ['..qq..', '..qq..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..tt..', '..yy..']),
+  // A katana is longer and thinner than a sword, with a round guard and a
+  // wrapped grip rather than a cross.
+  katana: G(13, 4, ['..m..', '..m..', '..mm.', '..mm.', '..mm.', '..mm.', '..mm.', '..mm.', '..mm.', '.yyy.', '..nn.', '..nn.', '..nn.']),
+  // A harp: a wooden frame with strings, held out at the hip.
+  harp: G(12, 9, ['.tttt.', 'tt..wt', 't.w.wt', 't.w.wt', 't.w.wt', 'tt.wtt', '.tttt.']),
 };
 // Bare hands get wraps rather than nothing, so a monk still reads as armed.
 const FIST_WRAPS = [G(4, 14, ['ww']), G(14, 14, ['ww'])];

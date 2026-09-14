@@ -89,6 +89,18 @@ const COMBAT_SFX = {
     { t: 1, freq: 900, to: 500, dur: 0.06, vol: 0.07, type: 'sine' },
   ],
   'swing-fist': [{ n: 1, freq: 500, sweep: 140, dur: 0.07, vol: 0.55, q: 1.2 }],
+  // A katana is drawn and cut in one motion: a long bright whoosh with the
+  // ring of the steel left hanging after it.
+  'swing-katana': [
+    { n: 1, freq: 5200, sweep: 2200, dur: 0.16, vol: 0.50, q: 2.6 },
+    { t: 1, freq: 2600, to: 2300, dur: 0.18, vol: 0.07, type: 'sine', d: 0.04 },
+  ],
+  // A harp is not swung; three strings are plucked in a rising run.
+  'strum': [
+    { t: 1, freq: 660, to: 655, dur: 0.14, vol: 0.12, type: 'triangle' },
+    { t: 1, freq: 880, to: 875, dur: 0.14, vol: 0.11, type: 'triangle', d: 0.05 },
+    { t: 1, freq: 1100, to: 1090, dur: 0.16, vol: 0.10, type: 'triangle', d: 0.10 },
+  ],
 
   // ---- what a landed blow sounds like ------------------------------------
   'impact-slash': [
@@ -111,6 +123,13 @@ const COMBAT_SFX = {
   'impact-arrow': [
     { n: 1, freq: 2400, sweep: 700, dur: 0.05, vol: 0.24, q: 3 },
     { t: 1, freq: 560, to: 240, dur: 0.05, vol: 0.14, type: 'square' },
+  ],
+
+  // A note that lands rings like a struck bell.
+  'impact-chime': [
+    { t: 1, freq: 1760, to: 1700, dur: 0.24, vol: 0.14, type: 'sine' },
+    { t: 1, freq: 2640, to: 2600, dur: 0.16, vol: 0.06, type: 'sine' },
+    { n: 1, freq: 3000, sweep: 1500, dur: 0.03, vol: 0.20, q: 2 },
   ],
 
   // ---- things leaving the hand -------------------------------------------

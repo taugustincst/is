@@ -35,7 +35,8 @@ below is maintained by hand. Character limits are Play's.
     wall is hiding.
 
     JOBS AND ABILITIES
-    Squires become knights, archers, monks, thieves, mages, ninja, dragoons.
+    Squires become knights, archers, monks, thieves, mages, ninja, dragoons,
+    and beyond them samurai, summoners, geomancers and bards.
     Earn job points in battle, learn abilities, equip a second skillset from
     any job you have studied, and pick your reaction, support and movement
     passives.
@@ -115,5 +116,5 @@ health features. **News**: not a news app.
 
 ## Release notes for the first version
 
-    First release. Seven chapters, thirteen jobs, three difficulties,
+    First release. Seven chapters, fifteen jobs, three difficulties,
     and nothing to buy.
