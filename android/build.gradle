@@ -1,5 +1,7 @@
 // Root build file. The Android Gradle Plugin version is pinned so the build is
-// reproducible; raise it together with the Gradle wrapper version.
+// reproducible; raise it together with the Gradle wrapper version. AGP 8.13
+// needs Gradle 8.13 or newer and a JDK 17 or newer, and it is the first line
+// to support compileSdk 36 without a warning.
 plugins {
-    id 'com.android.application' version '8.5.2' apply false
+    id 'com.android.application' version '8.13.0' apply false
 }

@@ -17,3 +17,9 @@ node_modules/
 # Editors and OS
 .DS_Store
 *.swp
+
+# Release signing: the upload key and the file that points at it never enter
+# the repository. See android/PLAY_STORE.md.
+android/keystore.properties
+*.jks
+*.keystore

@@ -214,10 +214,12 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
    and sit inside the safe area on notched screens.
    ========================================================================== */
 :root {
-  --safe-t: env(safe-area-inset-top, 0px);
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --safe-l: env(safe-area-inset-left, 0px);
-  --safe-r: env(safe-area-inset-right, 0px);
+  /* The browser fills these in; the Android app, whose WebView does not,
+     sets the --cut-* variables from the window's display cutout instead. */
+  --safe-t: env(safe-area-inset-top, var(--cut-t, 0px));
+  --safe-b: env(safe-area-inset-bottom, var(--cut-b, 0px));
+  --safe-l: env(safe-area-inset-left, var(--cut-l, 0px));
+  --safe-r: env(safe-area-inset-right, var(--cut-r, 0px));
 }
 html, body { overscroll-behavior: none; }
 /* `manipulation` keeps taps instant and kills double-tap zoom without

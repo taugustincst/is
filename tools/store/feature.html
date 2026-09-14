@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Feature graphic</title>
+<style>
+  /* Google Play's feature graphic: exactly 1024x500, no alpha. Rendered by
+     tools/make-store.js; open it in a browser from the repository root to
+     preview it. */
+  html, body { margin: 0; width: 1024px; height: 500px; overflow: hidden; background: #0f1020; }
+  #art { position: absolute; inset: 0; }
+  .copy { position: absolute; left: 64px; top: 0; height: 500px; display: flex; flex-direction: column; justify-content: center; color: #e6e6f0; font-family: Georgia, "Times New Roman", serif; }
+  .sub { letter-spacing: 6px; text-transform: uppercase; color: #9a9ab4; font-size: 15px; margin-bottom: 6px; }
+  h1 { margin: 0; font-size: 74px; line-height: 1; color: #ffd84a; text-shadow: 0 3px 0 #6b4d00, 0 8px 24px rgba(0,0,0,0.6); font-weight: normal; }
+  .tag { font-style: italic; color: #c8c6e0; font-size: 20px; margin-top: 16px; }
+  .chips { display: flex; gap: 10px; margin-top: 26px; }
+  .chip { border: 1px solid #3a3f5f; background: rgba(20,22,40,0.85); color: #c3d9ff; border-radius: 999px; padding: 5px 13px; font-size: 13px; font-family: "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.3px; }
+</style>
+</head>
+<body>
+<canvas id="art" width="1024" height="500"></canvas>
+<div class="copy">
+  <div class="sub">A tactical role-playing game</div>
+  <h1>Chronicles<br>of Elderon</h1>
+  <div class="tag">Two princes. One crown. A squire who knows too much.</div>
+  <div class="chips"><span class="chip">Charge-time turns</span><span class="chip">Height &amp; facing</span><span class="chip">No ads · no accounts · offline</span></div>
+</div>
+<script src="../../js/data.js"></script>
+<script src="../../js/sprites.js"></script>
+<script>
+  // The right-hand side: a strip of the game's own tiles with the party on it,
+  // drawn with the same sprite code the game uses, so the art never drifts.
+  const c = document.getElementById('art').getContext('2d');
+  const W = 1024, H = 500, TW = 96, TH = 48, HZ = 15;
+  const bg = c.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#1d2033'); bg.addColorStop(1, '#0c0d17');
+  c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  // A faint moon and stars, so the sky is a sky.
+  c.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 70; i++) { const x = (i * 127.3) % W, y = (i * 61.7) % 300; c.fillRect(x, y, i % 3 ? 1 : 2, i % 3 ? 1 : 2); }
+  c.fillStyle = '#e8e4c8'; c.beginPath(); c.arc(900, 78, 30, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#1d2033'; c.beginPath(); c.arc(913, 70, 27, 0, Math.PI * 2); c.fill();
+
+  const diamond = (sx, sy) => { c.beginPath(); c.moveTo(sx, sy - TH / 2); c.lineTo(sx + TW / 2, sy); c.lineTo(sx, sy + TH / 2); c.lineTo(sx - TW / 2, sy); c.closePath(); };
+  const tile = (gx, gy, h, kind) => {
+    const sx = 700 + (gx - gy) * TW / 2, sy = 300 + (gx + gy) * TH / 2 - h * HZ;
+    const col = { g: ['#5f9e4a', '#4a7d3a', '#3c6630'], s: ['#9a9aa8', '#7a7a88', '#606070'], d: ['#a9825a', '#8a6a48', '#6f5439'] }[kind];
+    const wh = h * HZ + 26;
+    c.fillStyle = col[1]; c.beginPath(); c.moveTo(sx - TW / 2, sy); c.lineTo(sx, sy + TH / 2); c.lineTo(sx, sy + TH / 2 + wh); c.lineTo(sx - TW / 2, sy + wh); c.closePath(); c.fill();
+    c.fillStyle = col[2]; c.beginPath(); c.moveTo(sx + TW / 2, sy); c.lineTo(sx, sy + TH / 2); c.lineTo(sx, sy + TH / 2 + wh); c.lineTo(sx + TW / 2, sy + wh); c.closePath(); c.fill();
+    diamond(sx, sy); c.fillStyle = col[0]; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.25)'; c.stroke();
+    return { sx, sy };
+  };
+  const map = [
+    [0, 0, 1, 'g'], [1, 0, 1, 'g'], [2, 0, 2, 's'], [3, 0, 2, 's'],
+    [-1, 1, 0, 'd'], [0, 1, 0, 'g'], [1, 1, 0, 'g'], [2, 1, 1, 'g'], [3, 1, 1, 'g'],
+    [-1, 2, 0, 'd'], [0, 2, 0, 'd'], [1, 2, 0, 'g'], [2, 2, 0, 'g'],
+  ];
+  const spots = {};
+  for (const [x, y, h, k] of map) spots[`${x},${y}`] = tile(x, y, h, k);
+  // Whose side is whose, at a glance: blue rings for the party, red for foes.
+  const ring = (sx, sy, team) => {
+    const line = team === 'player' ? '#6fb2ff' : '#ff6a52';
+    c.beginPath(); c.ellipse(sx, sy + 8, 22, 10, 0, 0, Math.PI * 2);
+    c.fillStyle = team === 'player' ? 'rgba(70,150,255,0.34)' : 'rgba(255,70,50,0.34)'; c.fill();
+    c.strokeStyle = 'rgba(0,0,0,0.65)'; c.lineWidth = 4; c.stroke();
+    c.strokeStyle = line; c.lineWidth = 2; c.stroke();
+  };
+  const S = 3;
+  c.imageSmoothingEnabled = false;
+  const cast = [
+    ['knight', 'player', '2,1', { weapon: 'longsword', offhand: 'kiteShield', head: 'ironHelm', body: 'plateMail' }],
+    ['blackMage', 'player', '1,1', { weapon: 'sageStaff', head: 'wizardHat', body: 'wizardRobe' }],
+    ['archer', 'player', '0,2', { weapon: 'yoichiBow', head: 'featherHat', body: 'leatherArmor' }],
+    ['squire', 'enemy', '3,0', { weapon: 'broadsword', body: 'leatherArmor' }],
+    ['wolf', 'enemy', '3,1', null],
+  ];
+  const order = cast.slice().sort((a, b) => { const [ax, ay] = a[2].split(','), [bx, by] = b[2].split(','); return (+ax + +ay) - (+bx + +by); });
+  for (const [job, team, at, kit] of order) {
+    const j = JOBS[job]; if (!j) continue;
+    const p = spots[at];
+    const gear = kit ? Object.fromEntries(Object.entries(kit).map(([s, id]) => [s, ITEMS[id]])) : null;
+    ring(p.sx, p.sy, team);
+    const spr = getSprite(j, team, 'front', team === 'enemy', gear, job + team);
+    c.drawImage(spr, p.sx - spr.width * S / 2 + 3, p.sy - spr.height * S + 26, spr.width * S, spr.height * S);
+  }
+  // Fade the strip into the copy on the left.
+  const fade = c.createLinearGradient(380, 0, 620, 0);
+  fade.addColorStop(0, 'rgba(15,16,32,1)'); fade.addColorStop(1, 'rgba(15,16,32,0)');
+  c.fillStyle = fade; c.fillRect(380, 0, 240, H);
+</script>
+</body>
+</html>

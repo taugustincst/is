@@ -188,6 +188,16 @@ class GameAudio {
     const pref = saved ? JSON.parse(saved) : {};
     this.muted = !!pref.muted;
     this.musicMuted = !!pref.musicMuted;
+    // A game in the background should be silent, on a phone above all: the
+    // engine is suspended when the page is hidden and picks up where it left
+    // off when it is shown again. (The tools load this file without a DOM.)
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', () => {
+        if (!this.ctx) return;
+        if (document.hidden) this.ctx.suspend();
+        else if (this.ctx.state === 'suspended') this.ctx.resume();
+      });
+    }
   }
 
   save() { localStorage.setItem(AUDIO_KEY, JSON.stringify({ muted: this.muted, musicMuted: this.musicMuted })); }

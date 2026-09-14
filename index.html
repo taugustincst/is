@@ -166,7 +166,10 @@
 <script>
   // Register the offline cache. It is optional: the game runs perfectly well
   // without it, so a failure here is not worth interrupting anyone over.
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  // Inside the Android app the files are already on the device, so the worker
+  // has nothing to add and is not bundled; the origin says which case this is.
+  const inApp = location.hostname === 'appassets.androidplatform.net';
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !inApp) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
 </script>

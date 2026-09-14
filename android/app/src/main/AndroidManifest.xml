@@ -2,7 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- The game is entirely local: no permissions are requested, and without
-         INTERNET the app cannot reach the network even if it tried. -->
+         INTERNET the app cannot reach the network even if it tried. That is
+         also the whole of the Play data-safety story: nothing leaves the
+         device because nothing can. -->
+
+    <!-- Playable with a keyboard and mouse too, so devices without a touch
+         screen are not filtered out of the listing. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -10,6 +16,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:hardwareAccelerated="true"
+        android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Elderon">
 
         <activity

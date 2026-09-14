@@ -119,11 +119,15 @@ with its own icon, launches fullscreen and runs offline. The single-file build
 builds its own manifest at runtime, so it offers to install too.
 
 **Build the Android app.** `android/` holds a Gradle project that wraps the game
-in a WebView and bundles it into an APK with no permissions at all — it cannot
-reach the network. `cd android && ./gradlew assembleDebug`. See
-[android/README.md](android/README.md), which is honest about the fact that the
-project has never been compiled: the Android SDK was not reachable from the
-environment it was written in.
+in a WebView and bundles it into an app with no permissions at all — it cannot
+reach the network. `cd android && ./gradlew assembleDebug` for a debug APK,
+`./gradlew bundleRelease` for the bundle Google Play takes. See
+[android/README.md](android/README.md) for how the shell works and
+[android/PLAY_STORE.md](android/PLAY_STORE.md) for the path through the Play
+Console; the listing copy, policy answers and graphics are in
+[store/](store/LISTING.md). The project targets Android 16 as Play requires,
+but it was written without access to the Android SDK, so the first real build
+is yours.
 
 On a phone the layout changes shape: portrait turns the turn order into a strip
 across the top and gives the command panel the full width, landscape puts
@@ -170,6 +174,9 @@ manifest.webmanifest  install metadata for the web app
 sw.js             offline cache for the installed web app
 icons/            generated app icons
 android/          Gradle project wrapping the game in an Android WebView
+store/            Google Play listing: graphics, copy and policy answers
+tools/make-store.js renders the listing graphics from the running game
+PRIVACY.md        the privacy policy Play asks for (privacy.html is the same, as a page)
 ```
 
 ## Tools

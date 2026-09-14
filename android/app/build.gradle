@@ -3,13 +3,15 @@ plugins {
 }
 
 // The game's own files live at the repository root and are the single source of
-// truth. They are copied into the APK's assets at build time rather than being
+// truth. They are copied into the app's assets at build time rather than being
 // duplicated in this directory, so the app can never drift from the web build.
+// sw.js is left out on purpose: the assets are already local, and the page
+// skips registering the worker when it finds itself on the app's origin.
 def gameRoot = rootProject.file('..')
 def gameAssets = layout.buildDirectory.dir('game-assets')
 
 tasks.register('copyGame', Copy) {
-    description = 'Copies the game into the APK assets.'
+    description = 'Copies the game into the app assets.'
     from(gameRoot) {
         include 'index.html'
         include 'manifest.webmanifest'
@@ -20,16 +22,33 @@ tasks.register('copyGame', Copy) {
     into gameAssets
 }
 
+// Release signing. Google Play will not accept a bundle signed with the debug
+// key, so a real upload key is read from android/keystore.properties when the
+// file exists (see PLAY_STORE.md for its four lines). The file and the
+// keystore it points at are ignored by git; neither may ever be committed.
+// Without the file, release builds fall back to the debug key so a developer
+// can still install them on their own device.
+def keystoreFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace 'com.elderon.tactics'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.elderon.tactics'
         minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        // Google Play requires new apps and updates to target the previous
+        // year's Android release or newer; 36 is Android 16.
+        targetSdk 36
+        // Play needs every upload to carry a higher versionCode than the last.
+        // Override from the command line for a release without editing this
+        // file: ./gradlew bundleRelease -PversionCode=7 -PversionName=1.2
+        versionCode (project.findProperty('versionCode') ?: '1').toString().toInteger()
+        versionName (project.findProperty('versionName') ?: '1.0').toString()
     }
 
     sourceSets {
@@ -38,12 +57,23 @@ android {
         }
     }
 
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false      // there is no Java worth shrinking
-            // Signed with the debug key so `assembleRelease` produces an APK
-            // that installs. Point this at a real keystore before publishing.
-            signingConfig signingConfigs.debug
+            // There is no Java worth shrinking; the app is a hundred lines
+            // around a WebView. Shrinking would only add a step that can fail.
+            minifyEnabled false
+            signingConfig keystoreFile.exists() ? signingConfigs.release : signingConfigs.debug
         }
     }
 
@@ -58,8 +88,8 @@ tasks.named('preBuild') { dependsOn('copyGame') }
 dependencies {
     // WebViewAssetLoader serves the bundled files over an https origin, which
     // gives the game durable localStorage instead of a file:// opaque origin.
-    implementation 'androidx.webkit:webkit:1.11.0'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'androidx.activity:activity:1.9.2'
-    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.core:core:1.16.0'
 }

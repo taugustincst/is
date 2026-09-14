@@ -123,7 +123,7 @@ function drawSprite(s, name, palette, ox, oy, scale) {
 }
 
 // `pad` leaves room for Android's maskable safe zone, which crops to a circle.
-function icon(size, pad, transparent) {
+function icon(size, pad, transparent, mono) {
   const s = surface(size);
   const inner = size * (1 - pad * 2);
   const y0 = size * pad;
@@ -152,6 +152,12 @@ function icon(size, pad, transparent) {
   // A knight standing on the raised tile, feet on its centre.
   const scale = Math.max(1, Math.round(inner / 34));
   drawSprite(s, 'warrior', g.JOBS.knight.palette, cx - 6 * scale, stepY - 18 * scale + 2, scale);
+  if (mono) {
+    // Every painted pixel becomes solid white; the launcher supplies the colour.
+    for (let i = 0; i < s.px.length; i += 4) {
+      if (s.px[i + 3]) { s.px[i] = 255; s.px[i + 1] = 255; s.px[i + 2] = 255; s.px[i + 3] = 255; }
+    }
+  }
   return encodePng(size, size, s.px);
 }
 
@@ -185,7 +191,10 @@ if (fs.existsSync(path.join(ROOT, 'android'))) {
     fs.writeFileSync(path.join(dir, 'ic_launcher_round.png'), icon(Math.round(48 * k), 0.14));
     // The adaptive foreground: 108dp canvas, art kept inside the safe circle.
     fs.writeFileSync(path.join(dir, 'ic_launcher_foreground.png'), icon(Math.round(108 * k), 0.28, true));
-    android += 3;
+    // The monochrome layer for themed icons: Android keeps only the alpha and
+    // tints it, so this is the foreground as a flat silhouette.
+    fs.writeFileSync(path.join(dir, 'ic_launcher_monochrome.png'), icon(Math.round(108 * k), 0.28, true, true));
+    android += 4;
   }
   console.log(`wrote ${android} Android launcher icons into android/app/src/main/res/`);
 }

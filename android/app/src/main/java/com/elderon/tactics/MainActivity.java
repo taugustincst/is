@@ -13,23 +13,24 @@ import android.webkit.WebViewClient;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
-import androidx.webkit.ServiceWorkerClientCompat;
-import androidx.webkit.ServiceWorkerControllerCompat;
 import androidx.webkit.WebViewAssetLoader;
-import androidx.webkit.WebViewFeature;
+
+import java.util.Locale;
 
 /**
  * Hosts the game in a WebView.
  *
- * <p>The game's files are bundled in the APK's assets and served through
+ * <p>The game's files are bundled in the app's assets and served through
  * {@link WebViewAssetLoader}, which puts them on an https origin. That matters:
  * loading from {@code file://} gives the page an opaque origin, where saved
  * games in localStorage are not durable.
  *
- * <p>There is no network permission. Everything the game needs is in the APK.
+ * <p>There is no network permission. Everything the game needs is in the app.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -37,14 +38,17 @@ public class MainActivity extends AppCompatActivity {
     private static final String DOMAIN = "appassets.androidplatform.net";
 
     private WebView web;
+    private boolean pageReady;
+    /** The last display-cutout insets seen, in CSS pixels, top/right/bottom/left. */
+    private final float[] cutout = new float[4];
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Draw behind the system bars; the page keeps its own layout clear of
-        // them through the CSS safe-area insets.
+        // Draw behind the system bars. Android 15 and later insist on it for
+        // apps targeting them, and the game wants the whole screen anyway.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -66,6 +70,10 @@ public class MainActivity extends AppCompatActivity {
         web.setHorizontalScrollBarEnabled(false);
         web.setVerticalScrollBarEnabled(false);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        // A long press on a menu is not a request to select text.
+        web.setOnLongClickListener(v -> true);
+        web.setHapticFeedbackEnabled(false);
+
         // Remote debugging only for a debuggable build. Read from the package
         // flags rather than BuildConfig, which AGP 8 does not generate unless
         // the build feature is turned on.
@@ -90,23 +98,28 @@ public class MainActivity extends AppCompatActivity {
                 // The game never navigates away; refuse anything that tries.
                 return !DOMAIN.equals(request.getUrl().getHost());
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                pushCutout();
+            }
         });
 
-        // The page is served over https, so it registers its offline service
-        // worker here as it would in a browser. A WebView routes requests made
-        // by a service worker through a separate client rather than the one
-        // above, so without this the assets stop resolving the moment the
-        // worker takes control, which is the second launch.
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
-                && WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
-            ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(
-                    new ServiceWorkerClientCompat() {
-                        @Override
-                        public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
-                            return loader.shouldInterceptRequest(request.getUrl());
-                        }
-                    });
-        }
+        // A notch or a rounded corner is reported by the window, not by the
+        // page: an Android WebView does not fill in the CSS safe-area insets
+        // by itself. The insets are handed to the page as CSS variables the
+        // stylesheet falls back to, so panels stay clear of the cutout.
+        ViewCompat.setOnApplyWindowInsetsListener(web, (v, insets) -> {
+            Insets c = insets.getInsets(WindowInsetsCompat.Type.displayCutout());
+            float d = getResources().getDisplayMetrics().density;
+            cutout[0] = c.top / d;
+            cutout[1] = c.right / d;
+            cutout[2] = c.bottom / d;
+            cutout[3] = c.left / d;
+            pushCutout();
+            return insets;
+        });
 
         web.loadUrl("https://" + DOMAIN + "/index.html");
 
@@ -125,6 +138,17 @@ public class MainActivity extends AppCompatActivity {
                         });
             }
         });
+    }
+
+    /** Tell the page where the display cutout is, once it is there to listen. */
+    private void pushCutout() {
+        if (web == null || !pageReady) return;
+        String js = String.format(Locale.ROOT,
+                "(function(s){s.setProperty('--cut-t','%.1fpx');s.setProperty('--cut-r','%.1fpx');"
+                        + "s.setProperty('--cut-b','%.1fpx');s.setProperty('--cut-l','%.1fpx')})"
+                        + "(document.documentElement.style)",
+                cutout[0], cutout[1], cutout[2], cutout[3]);
+        web.evaluateJavascript(js, null);
     }
 
     /** Hide the status and navigation bars, and keep them hidden after a swipe. */
