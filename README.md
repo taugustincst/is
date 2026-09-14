@@ -56,10 +56,12 @@ a browser, or serve the folder with any static file server.
 
 **Building a party**
 
-- **Nineteen jobs** on an unlock tree — Squire, Chemist, Knight, Archer, Monk,
-  Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon; a second tier of
-  Samurai, Summoner, Geomancer and Bard; and a third of Paladin, Arcanist,
-  Assassin and Sage — plus six creatures
+- **Twenty-two jobs** on an unlock tree — Squire, Chemist, Knight, Archer,
+  Monk, Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon; a second
+  tier of Samurai, Summoner, Geomancer and Bard; a third of Paladin, Arcanist,
+  Assassin and Sage; and at the top, the legendary Dragonlord, Hierophant and
+  Fell Knight, whose arms the wagon sells only once the war is won — plus six
+  creatures
   with their own skillsets and elemental identities (goblin, dire wolf, bomb,
   skeleton, marsh wisp, treant) and two shapes of boss.
 - **JP progression.** Acting earns JP in your current job. Spend it on that

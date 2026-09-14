@@ -405,6 +405,10 @@ class Battle {
         const note = aff > 1 ? ' It strikes a weakness!' : aff < 1 ? ' The blow is blunted.' : '';
         this.log(`${user.name}'s ${ab.name} deals ${v} damage to ${t.name}.${note}`, 'dmg');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `${v}`, aff > 1 ? '#ffb45a' : '#ff6a5a');
+        if (ab.kind === 'physical' && user.hasPassive('lifesteal') && user.alive && t.team !== user.team) {
+          const back = Math.min(Math.floor(v / 5), user.maxHp - user.hp);
+          if (back > 0) { user.hp += back; this.log(`${user.name} feeds on the wound: ${back} HP.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(user, `+${back}`, '#c56aff'); }
+        }
         if (t.hp === 0) this.onUnitKO(t);
         else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
         return true;
@@ -568,6 +572,11 @@ class Battle {
       target.addStatus('regen');
       this.log(`${target.name}'s wounds begin to close.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'Regen', STATUSES.regen.color);
+    }
+    if (target.hasPassive('dragonHeart')) {
+      target.mods.pa = (target.mods.pa || 0) + 1; target.mods.ma = (target.mods.ma || 0) + 1;
+      this.log(`${target.name}'s blood is up: PA and MA +1.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'PA/MA +1', '#ffe97c');
     }
     if (target.hasPassive('vengeance')) {
       target.mods.pa = (target.mods.pa || 0) + 1;
@@ -892,7 +901,8 @@ class Battle {
     if (ab.ct > 0) {
       if (ab.mp) { /* MP is spent when the spell resolves */ }
       unit.facing = (tx === unit.x && ty === unit.y) ? unit.facing : facingFromDelta(tx - unit.x, ty - unit.y);
-      this.pending.push({ unit, ability: ab, tx, ty, ct: 0, speed: unit.hasPassive('quickCast') ? ab.ct * 1.5 : ab.ct });
+      const haste = unit.hasPassive('spellweave') ? 2 : unit.hasPassive('quickCast') ? 1.5 : 1;
+      this.pending.push({ unit, ability: ab, tx, ty, ct: 0, speed: ab.ct * haste });
       if (ab.airborne) { unit.airborne = true; if (this.hooks.onJump) await this.hooks.onJump(unit); }
       this.log(`${unit.name} begins charging ${ab.name}.`, 'act');
       if (this.hooks.refresh) this.hooks.refresh();
@@ -906,7 +916,7 @@ class Battle {
   // What this unit actually pays for an ability, after support abilities.
   mpCost(unit, ab) {
     const base = ab.mp || 0;
-    return unit.hasPassive('halfMp') ? Math.ceil(base / 2) : base;
+    return unit.hasPassive('halfMp') || unit.hasPassive('spellweave') ? Math.ceil(base / 2) : base;
   }
 
   canAfford(unit, ab) {
@@ -972,7 +982,13 @@ class Battle {
           score += (enemy ? 25 + bonus : -25);
         }
         else if (/Haste|Protect|Shell|Regen|Reraise/.test(n)) score += !enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? (n.startsWith('Reraise') ? 14 : 20) : 0;
-        else if (/PA \+|SPD \+/.test(n)) score += enemy ? -8 : 8;
+        else if (/^(PA|MA|SPD) \+/.test(n)) {
+          // Worth more the bigger the rise, and less the more of it the unit already carries.
+          const [stat, amt] = n.split(' '); const v = +amt.slice(1);
+          const weight = stat === 'SPD' ? 8 : stat === 'PA' ? 5 : (t.allAbilities().some(a => ABILITIES[a].mp > 0) ? 5 : 2);
+          const have = (t.mods[stat.toLowerCase()] || 0);
+          score += (enemy ? -1 : 1) * (v * weight) / (1 + have / Math.max(1, v));
+        }
         else if (/^MP \+/.test(n)) score += !enemy && t.mp < t.maxMp * 0.5 ? 6 : 0;
         else if (/^MP -/.test(n)) { const v = +n.slice(4); score += enemy ? Math.min(20, v * 0.6) : -v; }
         else if (/PA -|SPD -|MA -/.test(n)) score += enemy ? 12 : -12;

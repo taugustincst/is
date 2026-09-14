@@ -214,6 +214,38 @@ const JOBS = {
     req: { summoner: 3, bard: 2 }, desc: 'Has read everything the Arcanist has, and closed the book. The last word in magick.',
   },
 
+  // ------------------------------------------------------- the legendary tier
+  // Three jobs at the top of the tree, each the end of a road: the dragon's,
+  // the book's, and the bargain's. Their arms are sold only once the war is
+  // won, and the trials after it are where they are meant to be worn.
+  dragonlord: {
+    name: 'Dragonlord', skillset: 'Dragon Arts', kind: 'human', sprite: 'heavy',
+    palette: { h: '#3a1010', c: '#a02020', p: '#3a2a1a', b: '#1a1010' },
+    affinity: { fire: 'resist' },
+    hp: 1.6, mp: 1.0, pa: 1.6, ma: 1.1, spd: 1.05, move: 4, jump: 6, evade: 14,
+    weapon: { name: 'Dragon Lance', power: 9, range: 2, vert: 4 },
+    abilities: ['dragonBreath', 'skyRend', 'scaleWard', 'roarOfKings'],
+    req: { samurai: 3, dragoon: 3, paladin: 2 }, desc: 'The dragon\'s road ends here. Fire from the throat, death from the sky, and a roar that lifts an army.',
+  },
+  hierophant: {
+    name: 'Hierophant', skillset: 'Revelation', kind: 'human', sprite: 'mage',
+    palette: { h: '#f0d060', c: '#f4ecd0', p: '#8a5a2a', b: '#3a2a1a' },
+    affinity: { holy: 'resist', dark: 'resist' },
+    hp: 0.9, mp: 2.0, pa: 0.7, ma: 1.9, spd: 1.0, move: 3, jump: 3, evade: 8,
+    weapon: { name: 'Apocryphon', power: 5, range: 2, vert: 3 },
+    abilities: ['starfall', 'ascension', 'aegis', 'timeStop'],
+    req: { sage: 3, arcanist: 3 }, desc: 'The book\'s road ends here. Stars fall, the fallen rise, and time itself can be told to wait.',
+  },
+  fellKnight: {
+    name: 'Fell Knight', skillset: 'Black Bargain', kind: 'human', sprite: 'heavy',
+    palette: { h: '#c0c0d0', c: '#2a1a2a', p: '#1a0a1a', b: '#0a0a0a' },
+    affinity: { dark: 'absorb', holy: 'weak' },
+    hp: 1.5, mp: 1.1, pa: 1.55, ma: 1.3, spd: 1.1, move: 4, jump: 4, evade: 14,
+    weapon: { name: 'Fell Blade', power: 9, range: 1, vert: 3 },
+    abilities: ['fellSlash', 'abyss', 'soulRend', 'darkPact'],
+    req: { paladin: 3, assassin: 3 }, desc: 'The bargain\'s road ends here, the same one Brannoc made. Every blow feeds the one who strikes it.',
+  },
+
   // ----------------------------------------------------------- monsters/boss
   goblin: {
     name: 'Goblin', skillset: 'Goblin', kind: 'monster', sprite: 'goblin',
@@ -522,6 +554,41 @@ const ABILITIES = {
     effects: [{ type: 'status', status: 'reraise', hit: 100 }], desc: 'A life held in reserve. The first time the target falls, it rises with a quarter of its HP.' },
   ultima: { name: 'Ultima', job: 'sage', jp: 600, mp: 36, range: 4, aoe: 2, vert: 9, ct: 6, kind: 'magic', affects: 'enemy', element: null,
     effects: [{ type: 'damage', formula: 'ma', power: 14 }], desc: 'The last spell. Wide, slow, and it knows friend from foe.' },
+
+  // Dragonlord
+  dragonBreath: { name: 'Dragon Breath', job: 'dragonlord', jp: 250, mp: 14, range: 3, aoe: 2, vert: 4, ct: 0, kind: 'magic', affects: 'all', element: 'fire',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Fire from the throat, at once, over a wide area. It does not ask who is standing in it.' },
+  skyRend: { name: 'Sky Rend', job: 'dragonlord', jp: 400, mp: 0, range: 5, aoe: 1, vert: 9, ct: 24, kind: 'physical', affects: 'all', airborne: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.8 }], desc: 'Leap beyond sight and fall on an area for 1.8x weapon damage. Untargetable while airborne.' },
+  scaleWard: { name: 'Scale Ward', job: 'dragonlord', jp: 300, mp: 12, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }],
+    desc: 'Scales over skin. Protect, Shell and Regen on yourself at once.' },
+  roarOfKings: { name: 'Roar of Kings', job: 'dragonlord', jp: 500, mp: 16, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'pa', amount: 2 }, { type: 'statmod', stat: 'spd', amount: 1 }],
+    desc: 'A roar the whole field hears. PA +2 and Speed +1 for every ally within two tiles, for the battle.' },
+
+  // Hierophant
+  starfall: { name: 'Starfall', job: 'hierophant', jp: 600, mp: 32, range: 4, aoe: 2, vert: 9, ct: 8, kind: 'magic', affects: 'enemy', element: null,
+    effects: [{ type: 'damage', formula: 'ma', power: 16 }], desc: 'Pull the stars down on a wide area. The spirits of the sky spare your own.' },
+  ascension: { name: 'Ascension', job: 'hierophant', jp: 500, mp: 30, range: 4, aoe: 2, vert: 9, ct: 16, kind: 'magic', affects: 'ally', deadOnly: true,
+    effects: [{ type: 'revive', pct: 0.5 }], desc: 'Every fallen ally within the area rises with half their HP.' },
+  aegis: { name: 'Aegis', job: 'hierophant', jp: 450, mp: 26, range: 3, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'reraise', hit: 100 }, { type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }],
+    desc: 'Reraise, Protect and Shell on every ally in a wide area. Nothing in it dies today.' },
+  timeStop: { name: 'Time Stop', job: 'hierophant', jp: 400, mp: 20, range: 4, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'stop', hit: 80 }], desc: 'Tell time to wait. Most of those in the area are Stopped.' },
+
+  // Fell Knight
+  fellSlash: { name: 'Fell Slash', job: 'fellKnight', jp: 250, mp: 6, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'drain', formula: 'pa', power: 'weapon', bonus: 2 }], desc: 'A draining cut with the weapon in hand, and dark.' },
+  abyss: { name: 'Abyss', job: 'fellKnight', jp: 400, mp: 18, range: 3, aoe: 2, vert: 4, ct: 10, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'The floor opens. Dark damage over a wide area, friend and foe alike.' },
+  soulRend: { name: 'Soul Rend', job: 'fellKnight', jp: 350, mp: 10, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'magic', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 6 }, { type: 'mpdamage', formula: 'ma', power: 4 }],
+    desc: 'Tears at body and mind both: dark damage, and MP burned away.' },
+  darkPact: { name: 'Dark Pact', job: 'fellKnight', jp: 500, mp: 20, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'pa', amount: 3 }, { type: 'statmod', stat: 'ma', amount: 3 }],
+    desc: 'Sign it again. PA +3 and MA +3 for the rest of the battle.' },
 
   // Monsters
   tackle: { name: 'Tackle', job: 'goblin', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
@@ -1074,6 +1141,7 @@ const TRAINING_POOL = [
   ['bard', 'samurai', 'ninja', 'summoner', 'geomancer'],
   ['paladin', 'assassin', 'samurai', 'arcanist', 'bard'],
   ['sage', 'paladin', 'assassin', 'arcanist', 'summoner', 'ninja'],
+  ['dragonlord', 'hierophant', 'fellKnight', 'sage', 'paladin', 'assassin'],
 ];
 
 // ============================================================================
@@ -1103,9 +1171,14 @@ const JOB_EQUIP = {
   arcanist:  { w: ['tome', 'rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   assassin:  { w: ['ninjablade', 'knife', 'katana'], a: ['light', 'cloth'], head: ['hat'], shield: false, dual: true },
   sage:      { w: ['tome', 'staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  dragonlord:{ w: ['spear', 'greatsword', 'katana'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
+  hierophant:{ w: ['tome', 'staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  fellKnight:{ w: ['sword', 'greatsword', 'katana'], a: ['heavy', 'light', 'cloth'], head: ['helm', 'hat'], shield: true },
 };
 
-// tier: shop stock unlocks at that chapter index. price 0 = starter kit, cannot be sold.
+// tier: shop stock unlocks at that chapter index; tier 7 is sold only once the
+// campaign is won. price 0 = starter kit, cannot be sold. late: never issued
+// to an enemy (see enemyGearFor).
 const ITEMS = {
   // ---- weapons ----
   shortSword:  { name: 'Short Sword', slot: 'weapon', wtype: 'sword', power: 5, range: 1, vert: 2, price: 0, tier: 0 },
@@ -1149,6 +1222,12 @@ const ITEMS = {
   codex:       { name: 'Codex of Ash', slot: 'weapon', wtype: 'tome', power: 6, range: 2, vert: 3, ma: 6, price: 1200, tier: 3 },
   omnibus:     { name: 'Omnibus', slot: 'weapon', wtype: 'tome', power: 8, range: 2, vert: 3, ma: 10, mp: 30, price: 2600, tier: 6 },
   zorlinShape: { name: 'Zorlin Shape', late: true, slot: 'weapon', wtype: 'knife', power: 11, range: 1, vert: 2, spd: 2, evade: 6, price: 2400, tier: 6 },
+  // ---- legendary arms, for the road after the war ----
+  ragnarok:    { name: 'Ragnarok', late: true, slot: 'weapon', wtype: 'greatsword', power: 24, range: 1, vert: 2, ma: 3, resist: { holy: 'resist' }, price: 4200, tier: 7 },
+  chaosBlade:  { name: 'Chaos Blade', late: true, slot: 'weapon', wtype: 'katana', power: 21, range: 1, vert: 2, spd: 1, evade: 8, resist: { dark: 'resist' }, price: 4000, tier: 7 },
+  gungnir:     { name: 'Gungnir', late: true, slot: 'weapon', wtype: 'spear', power: 20, range: 2, vert: 4, jump: 2, price: 3800, tier: 7 },
+  apocrypha:   { name: 'Apocrypha', late: true, slot: 'weapon', wtype: 'tome', power: 10, range: 2, vert: 3, ma: 14, mp: 40, price: 4200, tier: 7 },
+  escutcheon:  { name: 'Escutcheon', late: true, slot: 'offhand', otype: 'shield', evade: 34, hp: 40, resist: { holy: 'resist', dark: 'resist' }, price: 3600, tier: 7 },
 
   // ---- offhand ----
   buckler:     { name: 'Buckler', slot: 'offhand', otype: 'shield', evade: 12, price: 300, tier: 1 },
@@ -1166,6 +1245,9 @@ const ITEMS = {
   summonersHood: { name: 'Summoner\'s Hood', late: true, slot: 'head', htype: 'hat', look: 'wizard', hp: 14, mp: 34, ma: 2, price: 900, tier: 4 },
   sageCrown:   { name: 'Sage\'s Crown', late: true, slot: 'head', htype: 'hat', look: 'ribbon', hp: 22, mp: 44, ma: 3, price: 2200, tier: 6 },
   crusaderHelm:{ name: 'Crusader Helm', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 44, mp: 12, resist: { dark: 'resist' }, price: 2000, tier: 6 },
+  genjiHelm:   { name: 'Genji Helm', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 60, mp: 20, price: 3000, tier: 7 },
+  crownOfKings:{ name: 'Crown of Kings', late: true, slot: 'head', htype: 'hat', look: 'ribbon', hp: 40, mp: 60, ma: 4, spd: 1,
+                 wards: ['silence', 'blind', 'berserk', 'poison', 'slow', 'stop'], price: 4500, tier: 7 },
 
   // ---- body ----
   clothes:     { name: 'Clothes', slot: 'body', atype: 'cloth', hp: 10, price: 0, tier: 0 },
@@ -1178,6 +1260,10 @@ const ITEMS = {
   robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
   crusaderMail:{ name: 'Crusader Mail', late: true, slot: 'body', atype: 'heavy', hp: 70, resist: { holy: 'resist', dark: 'resist' }, price: 2600, tier: 6 },
   shadowCloth: { name: 'Shadow Cloth', late: true, slot: 'body', atype: 'light', hp: 40, evade: 10, spd: 1, price: 2300, tier: 6 },
+  genjiArmor:  { name: 'Genji Armor', late: true, slot: 'body', atype: 'heavy', hp: 96, spd: 1, price: 4200, tier: 7 },
+  dragonMail:  { name: 'Dragon Mail', late: true, slot: 'body', atype: 'heavy', hp: 84, pa: 2, resist: { fire: 'absorb', ice: 'weak' }, price: 3800, tier: 7 },
+  archmageRobe:{ name: 'Archmage Robe', late: true, slot: 'body', atype: 'robe', hp: 66, mp: 90, ma: 5, price: 4200, tier: 7 },
+  nightweave:  { name: 'Nightweave', late: true, slot: 'body', atype: 'light', hp: 56, evade: 14, spd: 2, price: 4000, tier: 7 },
 
   // ---- elemental gear: each answers one element ----
   flameShield: { name: 'Flame Shield', slot: 'offhand', otype: 'shield', evade: 14, resist: { fire: 'resist' }, price: 1000, tier: 3 },
@@ -1202,6 +1288,8 @@ const ITEMS = {
   songstone:   { name: 'Songstone', late: true, slot: 'acc', mp: 24, ma: 1, wards: ['silence'], price: 1100, tier: 4 },
   assassinCloak:{ name: 'Assassin\'s Cloak', late: true, slot: 'acc', evade: 16, spd: 1, price: 2000, tier: 5 },
   angelRing:   { name: 'Angel Ring', late: true, slot: 'acc', hp: 20, mp: 20, wards: ['stop', 'slow'], price: 2200, tier: 6 },
+  heartOfDragon: { name: 'Heart of the Dragon', late: true, slot: 'acc', pa: 3, ma: 3, price: 3800, tier: 7 },
+  sevenLeague: { name: 'Seven-League Boots', late: true, slot: 'acc', move: 2, jump: 2, spd: 1, price: 4200, tier: 7 },
 };
 
 // Free starting kit per job (price-0 items only, so they cannot be sold for gil).
@@ -1225,6 +1313,9 @@ const STARTER_GEAR = {
   arcanist:  { weapon: 'grimoire', body: 'clothes' },
   assassin:  { weapon: 'kunai', body: 'clothes' },
   sage:      { weapon: 'grimoire', body: 'clothes' },
+  dragonlord:{ weapon: 'spear', body: 'clothes' },
+  hierophant:{ weapon: 'grimoire', body: 'clothes' },
+  fellKnight:{ weapon: 'shortSword', body: 'clothes' },
 };
 
 const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
@@ -1368,6 +1459,8 @@ const PASSIVES = {
     desc: 'Catch the blade: half of all physical attacks against you are turned aside.' },
   secondWind: { name: 'Second Wind', kind: 'reaction', job: 'paladin', jp: 350,
     desc: 'Recover a tenth of your HP every time you are damaged and left standing.' },
+  dragonHeart: { name: 'Dragon Heart', kind: 'reaction', job: 'dragonlord', jp: 500,
+    desc: 'Every wound makes you angrier: PA and MA both rise by 1 each time you are damaged.' },
 
   // ---- support: always-on modifiers ----
   attackUp: { name: 'Attack Up', kind: 'support', job: 'knight', jp: 300,
@@ -1396,6 +1489,10 @@ const PASSIVES = {
     desc: 'Physical damage against a target at full HP rises by half.' },
   quickCast: { name: 'Quick Cast', kind: 'support', job: 'sage', jp: 450,
     desc: 'Everything you charge charges half again as fast.' },
+  spellweave: { name: 'Spellweave', kind: 'support', job: 'hierophant', jp: 600,
+    desc: 'Spells cost half their MP and charge twice as fast.' },
+  lifesteal: { name: 'Fell Hunger', kind: 'support', job: 'fellKnight', jp: 550,
+    desc: 'A fifth of every physical wound you deal comes back to you as HP.' },
 
   // ---- movement: how the unit gets around ----
   movePlus1: { name: 'Move +1', kind: 'movement', job: 'thief', jp: 220,

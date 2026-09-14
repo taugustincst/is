@@ -633,6 +633,10 @@ const mk = (n, job, lvl, opts = {}) => {
       for (const id of Object.values(g.enemyGearFor(job, lvl, 1))) if (g.ITEMS[id] && g.ITEMS[id].late) leaked.push(`${job}@${lvl}:${id}`);
     }
     ok('master-tier gear is never issued to enemies', leaked.length === 0, leaked.slice(0, 4).join(',') || `${Object.values(g.ITEMS).filter(i => i.late).length} late items withheld`);
+    const legendary = Object.values(g.ITEMS).filter(i => i.tier >= 7);
+    ok('legendary arms are all withheld from enemies', legendary.length > 0 && legendary.every(i => i.late), `${legendary.length} legendary items`);
+    const openEnded = Object.entries(g.JOBS).filter(([, j]) => j.kind === 'human' && j.req && Object.keys(j.req).length && Object.values(j.req).some(l => l > 7));
+    ok('no job asks for a job level that cannot be reached', openEnded.length === 0, openEnded.map(([k]) => k).join(',') || `max level ${g.JOB_LEVEL_JP.length - 1}`);
     const engine = fs.readdirSync(path.join(ROOT, 'js')).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
     const dead = Object.keys(g.PASSIVES).filter(id => !engine.includes(`hasPassive('${id}')`));
     ok('every passive is consulted by the engine', dead.length === 0, dead.join(',') || `${Object.keys(g.PASSIVES).length} passives`);
@@ -649,7 +653,7 @@ const mk = (n, job, lvl, opts = {}) => {
      Storm Mail cannot either, and charged abilities are resolved as the
      engine would resolve them. */
   {
-    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage'];
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight'];
     const realRandom = Math.random;
     const silent = [];
     for (const job of NEW) for (const id of g.JOBS[job].abilities) {
@@ -667,7 +671,7 @@ const mk = (n, job, lvl, opts = {}) => {
       const helpful = ab.affects === 'ally';
       // A self-only ability changes the caster; everything else is aimed at
       // the friend, the caster mage for the MP-taking cuts, or the foe.
-      const target = helpful ? (ab.self && !ab.aoe ? caster : friend) : (/bizenBoat|drainSoul/.test(id) ? mage : foe);
+      const target = helpful ? (ab.self && !ab.aoe ? caster : friend) : (/bizenBoat|drainSoul|soulRend/.test(id) ? mage : foe);
       if (ab.deadOnly) { friend.hp = 0; friend.koCount = 3; }
       // The stats themselves, not the modifier table: a buff that changes a
       // number nothing reads is not a buff.
@@ -683,7 +687,7 @@ const mk = (n, job, lvl, opts = {}) => {
       Math.random = realRandom;
       if (snap(target) === before && !silent.some(x => x.startsWith(id))) silent.push(id);
     }
-    ok('every second- and third-tier ability does what it says', silent.length === 0,
+    ok('every advanced ability does what it says', silent.length === 0,
        silent.join(',') || `${NEW.reduce((n, j) => n + g.JOBS[j].abilities.length, 0)} abilities cast`);
 
     // Reraise is the one status that acts at the moment of death: a unit

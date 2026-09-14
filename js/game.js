@@ -187,7 +187,8 @@ class Game {
   }
 
   // Gear the shop stocks, widening as the campaign advances.
-  shopTier() { return Math.min(6, this.state.chapter + 1); }
+  // Once the war is won the wagon carries the legendary arms, tier 7.
+  shopTier() { return CAMPAIGN[this.state.chapter] ? Math.min(6, this.state.chapter + 1) : 7; }
 
   // Reconcile a unit's gear with its job after a job change: anything the new job
   // cannot wear goes back into stock, and empty core slots are refilled from
@@ -236,7 +237,7 @@ class Game {
         <div class="chapter-title">${t.title}</div>
         <div class="chapter-map">${MAPS[t.map].name} · ${t.enemies.length} enemies · Lv ${t.level}</div>
         <div class="chapter-goal">Objective: Defeat every enemy · ${t.gil} gil</div>
-        <div class="chapter-map">The campaign is complete. Each trial is harder than the last, and nothing is lost by failing one.</div>`;
+        <div class="chapter-map">The campaign is complete. Each trial is harder than the last, and nothing is lost by failing one. The wagon now carries legendary arms, and a trial won may turn one up.</div>`;
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = `Trial ${n}`;
     }
