@@ -21,6 +21,7 @@ const ASSETS = [
   'js/match.js',
   'js/inventory.js',
   'js/ocr.js',
+  'js/vision.js',
   'js/app.js',
   'icons/icon.svg',
 ];

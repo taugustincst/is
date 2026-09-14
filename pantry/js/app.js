@@ -215,7 +215,10 @@ function setProgress(label, frac) {
 }
 
 function showDetected(list) {
-  detected = list.map(m => ({ ...m, qty: m.qty || 1, on: m.confidence >= 0.9 }));
+  // Pre-tick what is probably right: exact and plural text hits, and what
+  // Claude saw with high or medium confidence. Fuzzy text guesses and low
+  // confidence sightings stay unticked with a "?" for the cook to confirm.
+  detected = list.map(m => ({ ...m, qty: m.qty || 1, on: m.confidence >= 0.8 }));
   results.hidden = false;
   renderDetected();
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -7,6 +7,11 @@ import { RECIPES } from '../js/recipes.js';
 import { normalize, singular, editDistance, detectFoods, rankRecipes } from '../js/match.js';
 import { store, freshness } from '../js/inventory.js';
 import { buildRequest, parseVisionItems, mergeDetections, DEFAULT_MODEL } from '../js/vision.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 let passed = 0;
 const test = (name, fn) => { try { fn(); passed++; } catch (e) { console.error(`FAIL ${name}\n  ${e.message}`); process.exitCode = 1; } };
@@ -223,6 +228,26 @@ test('freshness follows shelf life', () => {
   assert.equal(freshness({ days: 7, added: at(8) }, now), 'past');
   assert.equal(freshness({ days: 720, added: at(0) }, now), null);
   assert.equal(freshness({ days: null, added: at(0) }, now), null);
+});
+
+// ------------------------------------------------------------- offline
+test('the service worker precaches every script and stylesheet the page loads', () => {
+  const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  const listed = new Set([...sw.matchAll(/'([^']+\.(?:js|css|html|webmanifest|svg))'/g)].map(m => m[1]));
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  for (const m of html.matchAll(/(?:src|href)="([^"]+\.(?:js|css|webmanifest|svg))"/g)) {
+    assert.ok(listed.has(m[1]), `index.html loads ${m[1]} but sw.js does not precache it`);
+  }
+  // Every module reachable from app.js, transitively.
+  const seen = new Set();
+  const walk = (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    for (const m of src.matchAll(/from '\.\/([^']+)'/g)) walk('js/' + m[1]);
+  };
+  walk('js/app.js');
+  for (const f of seen) assert.ok(listed.has(f), `${f} is imported but sw.js does not precache it; the installed app would fail to start offline`);
 });
 
 // ------------------------------------------------------------- vision
