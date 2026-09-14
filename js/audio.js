@@ -281,6 +281,7 @@ class GameAudio {
     this.sfxGain.gain.value = 1;
     this.sfxGain.connect(this.master);
     if (this.pendingTrack) this.playMusic(this.pendingTrack);
+    if (this.pendingAmbient) this.startAmbient(this.pendingAmbient);
   }
 
   setMuted(v) {
@@ -437,5 +438,98 @@ class GameAudio {
     osc.start(t); osc.stop(t + dur + 0.02);
   }
 }
+
+// What a field sounds like under the music: keyed by the map's mood.
+const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night' };
+
+// Continuous weather and wildlife, built from the same noise and tones as the
+// effects, sitting quietly under the theme and muted with it.
+GameAudio.prototype.startAmbient = function (kind) {
+  if (!kind) { this.stopAmbient(); return; }
+  if (!this.ctx) { this.pendingAmbient = kind; return; }
+  if (this.ambient && this.ambient.kind === kind) return;
+  this.stopAmbient();
+  const ctx = this.ctx;
+  const out = ctx.createGain(); out.gain.value = 0.0001; out.connect(this.musicGain);
+  out.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.5);
+  const amb = { kind, out, nodes: [], timers: [] };
+  const loop = (vol, filters, lfo) => {
+    const frames = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < frames; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    let node = src;
+    for (const f of filters) { const b = ctx.createBiquadFilter(); b.type = f.type; b.frequency.value = f.freq; b.Q.value = f.q || 0.7; node.connect(b); node = b; if (f.lfo) f.lfo(b); }
+    const g = ctx.createGain(); g.gain.value = vol; node.connect(g); g.connect(out);
+    src.start();
+    amb.nodes.push(src, g);
+    return g;
+  };
+  const swell = (param, base, depth, rate) => {
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = rate;
+    const g = ctx.createGain(); g.gain.value = depth;
+    o.connect(g); g.connect(param); param.value = base; o.start();
+    amb.nodes.push(o);
+  };
+  const every = (minMs, maxMs, fn) => {
+    const tick = () => { fn(); amb.timers.push(setTimeout(tick, minMs + Math.random() * (maxMs - minMs))); };
+    amb.timers.push(setTimeout(tick, Math.random() * maxMs));
+  };
+  const chirp = (freq, dur, vol, type = 'sine') => {
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
+  };
+  const patter = (freq, dur, vol) => {
+    const t = ctx.currentTime, n = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate); const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 2;
+    const g = ctx.createGain(); g.gain.value = vol;
+    src.connect(f); f.connect(g); g.connect(out); src.start(t);
+  };
+  if (kind === 'rain') {
+    // A steady hush with a slow swell, and drops landing on stone and leaf.
+    const g = loop(0.08, [{ type: 'highpass', freq: 400 }, { type: 'lowpass', freq: 2600 }]);
+    swell(g.gain, 0.08, 0.02, 0.11);
+    every(70, 220, () => patter(2400 + Math.random() * 2500, 0.03, 0.05));
+  } else if (kind === 'wind') {
+    // Wind over the ridge: a band of noise whose pitch wanders.
+    const g = loop(0.11, [{ type: 'bandpass', freq: 380, q: 0.9, lfo: (b) => swell(b.frequency, 380, 160, 0.07) }, { type: 'lowpass', freq: 1200 }]);
+    swell(g.gain, 0.11, 0.05, 0.05);
+  } else if (kind === 'marsh') {
+    // Low water, frogs, and now and then something moving in the reeds.
+    loop(0.14, [{ type: 'lowpass', freq: 240 }]);
+    every(900, 3200, () => { chirp(150 + Math.random() * 40, 0.16, 0.05, 'sawtooth'); if (Math.random() < 0.5) setTimeout(() => chirp(130, 0.14, 0.04, 'sawtooth'), 180); });
+    every(2500, 7000, () => patter(900, 0.25, 0.03));
+  } else if (kind === 'embers') {
+    // Heat in the air and the crackle of what is still burning.
+    loop(0.06, [{ type: 'bandpass', freq: 2200, q: 1.5 }]);
+    every(90, 420, () => patter(3200 + Math.random() * 2000, 0.02, 0.08));
+    every(1500, 5000, () => patter(600, 0.4, 0.03));
+  } else if (kind === 'night') {
+    // Crickets in short bursts over the faintest breeze.
+    loop(0.08, [{ type: 'bandpass', freq: 300, q: 0.8 }]);
+    every(500, 1400, () => { for (let i = 0; i < 3; i++) setTimeout(() => chirp(4300 + Math.random() * 300, 0.035, 0.06), i * 70); });
+  }
+  this.ambient = amb;
+};
+
+GameAudio.prototype.stopAmbient = function () {
+  this.pendingAmbient = null;
+  const amb = this.ambient;
+  this.ambient = null;
+  if (!amb) return;
+  for (const t of amb.timers) clearTimeout(t);
+  const ctx = this.ctx;
+  try {
+    amb.out.gain.setValueAtTime(amb.out.gain.value, ctx.currentTime);
+    amb.out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+  } catch (e) { /* context gone */ }
+  setTimeout(() => { for (const n of amb.nodes) { try { n.stop && n.stop(); } catch (e) { /* already stopped */ } try { n.disconnect(); } catch (e) { /* fine */ } } try { amb.out.disconnect(); } catch (e) { /* fine */ } }, 700);
+};
 
 const audio = new GameAudio();

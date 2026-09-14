@@ -16,6 +16,8 @@ small { color: var(--muted); }
 
 .screen { display: none; position: fixed; inset: 0; }
 .screen.active { display: block; }
+/* Camp, Formation and the shop grow with the party; a short window must scroll them. */
+.screen:not(#screen-battle) { overflow-y: auto; }
 
 /* ---------- title ---------- */
 #screen-title { background: radial-gradient(ellipse at 50% 30%, #2a2d5a 0%, #0f1020 70%); }
@@ -43,6 +45,20 @@ small { color: var(--muted); }
 .gil { font-size: 22px; color: var(--gold); }
 .party-chip { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; display: flex; justify-content: space-between; }
 .party-chip.reserve { opacity: 0.55; }
+.party-chip.away { opacity: 0.6; font-style: italic; }
+.learn-mark { color: var(--gold); }
+.errands-card h3 small { color: var(--muted); font-weight: normal; font-size: 12px; }
+.errand { padding: 8px 0; border-top: 1px solid #2a2d50; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.errand:first-child { border-top: none; }
+.errand small { color: var(--muted); font-size: 12px; }
+.errand-text { flex: 1; min-width: 200px; }
+.errand-flavour { color: #c8c6e0; font-style: italic; font-size: 12px; margin-top: 2px; }
+.errand-send { display: flex; gap: 6px; align-items: center; }
+.errand-send select { max-width: 170px; }
+.errand.active { color: var(--muted); }
+.errand.report { color: var(--gold); }
+.res-jp { color: var(--muted); font-size: 11px; }
+.res-jp.learn { color: var(--gold); }
 
 /* ---------- formation ---------- */
 .tree-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }

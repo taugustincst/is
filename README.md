@@ -67,6 +67,12 @@ a browser, or serve the folder with any static file server.
 - **A job tree you can read.** Every job on one page, in ranks from the
   roots to the summit, marked current, open, or locked with exactly how far
   off each requirement is — and a button to make the change from there.
+- **Errands.** Send a unit who is not the leader away from camp for a battle
+  or two. They come back with gil, JP in the job they left in, and sometimes
+  something found. Ten errands, two on the board at a time.
+- **JP where you can see it**: the results roll-call shows what each unit
+  earned and marks anyone with enough for something new; the camp and
+  Formation lists carry the same mark.
 - **A record for every soldier**: battles fought and won, enemies felled,
   and how often they have fallen, kept across saves.
 - **JP progression.** Acting earns JP in your current job. Spend it on that
@@ -90,6 +96,9 @@ a browser, or serve the folder with any static file server.
   tick, with the enemy roster laid out in front of you.
 - **Objectives** beyond routing the field: defeat the commander, or hold out a
   set number of turns. Campaign battles are lost if the party leader is lost.
+- **Crystals of the fallen.** Where a unit is carried off, a crystal remains;
+  end a move on it and that unit is restored in full. The enemy goes for one
+  when badly hurt, and so should you.
 - **Fallen units** keep their place in the turn order and count down three
   turns before they are carried off. Revive them in time and they stay.
 - **Seven chapters** with story beats and recruits, repeatable training
@@ -121,6 +130,9 @@ a browser, or serve the folder with any static file server.
   hands for half again the damage. Remedy, Esuna and the Ribbon answer them.
 - **A two-shape final battle.** At about a third of his health the man goes
   down and something else stands up in his armour.
+- **Every field has a voice** under the music: rain on the marsh road, wind
+  over the ridge, frogs in the marsh, crackle in the embers, crickets at
+  night, all synthesised, and muted with the music.
 - **Procedural audio**: sound effects and three looping pieces synthesised at
   runtime with WebAudio, with sound and music toggles.
 - **Save and continue** through localStorage.

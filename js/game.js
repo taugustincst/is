@@ -29,11 +29,11 @@ class Game {
     this.screen = name;
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
     // Each part of the game keeps its own theme.
-    if (name === 'battle') audio.playMusic(this.battleMusic || 'battle');
-    else if (name === 'story') audio.playMusic('ruin');
-    else if (name === 'results') audio.stopMusic();
-    else if (name !== 'title') audio.playMusic('town');
-    else audio.stopMusic();
+    if (name === 'battle') { audio.playMusic(this.battleMusic || 'battle'); audio.startAmbient(AMBIENCE[this.renderer.mood] || null); }
+    else if (name === 'story') { audio.playMusic('ruin'); audio.stopAmbient(); }
+    else if (name === 'results') { audio.stopMusic(); audio.stopAmbient(); }
+    else if (name !== 'title') { audio.playMusic('town'); audio.stopAmbient(); }
+    else { audio.stopMusic(); audio.stopAmbient(); }
   }
 
   bindScreens() {
@@ -88,6 +88,7 @@ class Game {
     this.state = {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
       gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: this.pendingDifficulty || 'knight',
+      errands: { offered: [], active: [], reports: [] },
     };
     this.showWorld();
   }
@@ -95,7 +96,7 @@ class Game {
   saveGame() {
     const data = {
       v: 3, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
-      difficulty: this.state.difficulty,
+      difficulty: this.state.difficulty, errands: this.state.errands,
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -126,7 +127,15 @@ class Game {
       inventory: {},
       difficulty: DIFFICULTIES[d.difficulty] ? d.difficulty : 'knight',
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
+      errands: { offered: [], active: [], reports: [] },
     };
+    // Errands are kept only where they still make sense: a known errand, sent
+    // with a unit that is still in the party.
+    const e = d.errands || {};
+    const ids = new Set(this.state.party.map(u => u.id));
+    this.state.errands.offered = (e.offered || []).filter(id => ERRANDS.some(x => x.id === id));
+    this.state.errands.active = (e.active || []).filter(a => a && ERRANDS.some(x => x.id === a.id) && ids.has(a.unit) && a.left > 0);
+    this.state.errands.reports = (e.reports || []).filter(r => typeof r === 'string').slice(-3);
     for (const [id, n] of Object.entries(d.inventory || {})) {
       if (ITEMS[id] && n > 0) this.state.inventory[id] = n;
     }
@@ -214,7 +223,12 @@ class Game {
     const s = this.state;
     const ch = CAMPAIGN[s.chapter];
     $('world-gil').textContent = `${s.gil} gil`;
-    $('world-party').innerHTML = s.party.map((u, i) => `<div class="party-chip ${i < 5 ? '' : 'reserve'}">${u.name} <small>Lv${u.level} ${u.jobData.name}</small></div>`).join('');
+    $('world-party').innerHTML = s.party.map((u, i) => {
+      const away = this.errandOf(u);
+      const learn = !away && this.canLearnSomething(u);
+      return `<div class="party-chip ${i < 5 ? '' : 'reserve'} ${away ? 'away' : ''}" title="${away ? `Away: ${ERRANDS.find(x => x.id === away.id).title}` : learn ? 'Has JP to spend in Formation' : ''}">${u.name}${learn ? ' <span class="learn-mark">✦</span>' : ''} <small>${away ? 'on an errand' : `Lv${u.level} ${u.jobData.name}`}</small></div>`;
+    }).join('');
+    this.renderErrands();
     if (ch) {
       const o = ch.objective || { type: 'rout' };
       const goal = o.type === 'survive' ? `Hold out for ${o.rounds} rounds`
@@ -312,7 +326,7 @@ class Game {
         <span class="slot">${i < 5 ? i + 1 : 'R'}</span>
         <canvas class="row-portrait" data-portrait="${i}"></canvas>
         <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
-        <span class="job">Lv${u.level} ${u.jobData.name}</span>
+        <span class="job">Lv${u.level} ${u.jobData.name}${this.errandOf(u) ? ' · away' : ''}${this.canLearnSomething(u) ? ' <span class="learn-mark" title="JP to spend">✦</span>' : ''}</span>
         <span class="btns"><button data-up="${i}" ${i === 0 ? 'disabled' : ''}>▲</button><button data-down="${i}" ${i === s.party.length - 1 ? 'disabled' : ''}>▼</button></span>
       </div>`).join('');
     $('form-list').querySelectorAll('canvas[data-portrait]').forEach(cv => paintUnitSprite(cv, s.party[+cv.dataset.portrait], 1));
@@ -481,6 +495,97 @@ class Game {
       this.toast(`${u.name} is now a ${j.name}.`);
       this.openFormation(this.formSel);
     };
+  }
+
+  // Can this unit afford an ability or passive of its current job it has not learned?
+  canLearnSomething(u) {
+    const jp = u.jp[u.job] || 0;
+    return u.jobData.abilities.some(id => !u.learned[id] && ABILITIES[id].jp <= jp)
+      || passivesOfJob(u.job).some(id => !u.learned[id] && PASSIVES[id].jp <= jp);
+  }
+
+  // ---- errands ---------------------------------------------------------------------------
+  errandOf(u) { return (this.state.errands.active || []).find(a => a.unit === u.id) || null; }
+
+  // Two errands on the board at a time, drawn from the list in an order the
+  // chapter sets, so the same camp does not offer the same work twice running.
+  offeredErrands() {
+    const e = this.state.errands;
+    const activeIds = new Set(e.active.map(a => a.id));
+    e.offered = e.offered.filter(id => !activeIds.has(id));
+    let seed = (this.state.chapter * 7 + (this.state.victories || 0) * 3 + (this.state.trials || 0)) % ERRANDS.length;
+    for (let i = 0; e.offered.length < 2 && i < ERRANDS.length * 2; i++) {
+      const cand = ERRANDS[(seed + i) % ERRANDS.length].id;
+      if (!e.offered.includes(cand) && !activeIds.has(cand)) e.offered.push(cand);
+    }
+    return e.offered.map(id => ERRANDS.find(x => x.id === id));
+  }
+
+  errandPay(spec) {
+    const lvl = this.avgLevel();
+    return { gil: Math.round((120 + lvl * 45) * spec.gil), jp: Math.round((50 + lvl * 8) * spec.jp) };
+  }
+
+  sendOnErrand(spec, unit) {
+    if (!unit || unit.leader || this.errandOf(unit)) return false;
+    const free = this.state.party.filter(u => !this.errandOf(u) && u !== unit).length;
+    if (free < 1) { this.toast('Someone has to stay and fight.'); return false; }
+    this.state.errands.active.push({ id: spec.id, unit: unit.id, left: spec.days });
+    this.state.errands.offered = this.state.errands.offered.filter(id => id !== spec.id);
+    audio.sfx('select');
+    this.toast(`${unit.name} sets out: ${spec.title.toLowerCase()}.`);
+    this.showWorld();
+    return true;
+  }
+
+  // Called once per battle fought. Errands that come due pay out, and the
+  // report waits at camp.
+  advanceErrands() {
+    const e = this.state.errands;
+    if (!e || !e.active.length) return;
+    e.reports = [];
+    const still = [];
+    for (const a of e.active) {
+      a.left -= 1;
+      const u = this.state.party.find(x => x.id === a.unit), spec = ERRANDS.find(x => x.id === a.id);
+      if (!u || !spec) continue;
+      if (a.left > 0) { still.push(a); continue; }
+      const pay = this.errandPay(spec);
+      this.state.gil += pay.gil;
+      u.gainJP(pay.jp);
+      let found = null;
+      if (Math.random() < spec.item) {
+        const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= this.shopTier() && ITEMS[id].tier >= Math.max(0, this.shopTier() - 2));
+        if (pool.length) { found = pool[Math.floor(Math.random() * pool.length)]; this.invAdd(found); }
+      }
+      e.reports.push(`${u.name} returns from "${spec.title}": ${pay.gil} gil and ${pay.jp} JP as a ${u.jobData.name}${found ? `, and brings back a ${ITEMS[found].name}` : ''}.`);
+    }
+    e.active = still;
+  }
+
+  renderErrands() {
+    const el = $('errands'); if (!el) return;
+    const s = this.state, e = s.errands;
+    const offered = this.offeredErrands();
+    const eligible = s.party.filter(u => !u.leader && !this.errandOf(u));
+    const active = e.active.map(a => {
+      const u = s.party.find(x => x.id === a.unit), spec = ERRANDS.find(x => x.id === a.id);
+      return `<div class="errand active"><span class="errand-text"><b>${u ? u.name : '?'}</b> · ${spec.title}</span><small>back after ${a.left} more battle${a.left === 1 ? '' : 's'}</small></div>`;
+    }).join('');
+    const reports = e.reports.map(r => `<div class="errand report">${r}</div>`).join('');
+    const offers = offered.map(spec => {
+      const pay = this.errandPay(spec);
+      const opts = eligible.map(u => `<option value="${u.id}">${u.name} (Lv${u.level} ${u.jobData.name})</option>`).join('');
+      return `<div class="errand offer" data-errand="${spec.id}">
+        <div class="errand-text"><b>${spec.title}</b> <small>${spec.days} battle${spec.days === 1 ? '' : 's'} · ${pay.gil} gil · ${pay.jp} JP${spec.item >= 0.4 ? ' · likely something found' : spec.item >= 0.2 ? ' · maybe something found' : ''}</small><div class="errand-flavour">${spec.text}</div></div>
+        <div class="errand-send">${eligible.length ? `<select data-unit>${opts}</select><button data-send="${spec.id}">Send</button>` : '<small class="muted">No one free to send.</small>'}</div>
+      </div>`;
+    }).join('');
+    el.innerHTML = `${reports}${active}${offers}`;
+    el.querySelectorAll('button[data-send]').forEach(b => b.onclick = () => {
+      const row = b.closest('.errand'); const id = row.querySelector('select[data-unit]').value;
+      this.sendOnErrand(ERRANDS.find(x => x.id === b.dataset.send), s.party.find(u => u.id === id));
+    });
   }
 
   // A one-line summary of an item's bonuses, e.g. "Pw 8 · Rng 1 · HP +15".
@@ -788,7 +893,8 @@ class Game {
   }
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
-    const roster = this.state.party;
+    const roster = this.state.party.filter(u => !this.errandOf(u));
+    const jpBefore = new Map(roster.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
     const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty);
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
@@ -824,6 +930,10 @@ class Game {
     const fought = battle.units.filter(u => u.team === 'player' && (u.x >= 0 || u.carriedOff));
     for (const u of fought) { u.record.battles++; if (result === 'victory') u.record.wins++; }
     this.battle = null;
+    const r0 = battle.rewards;
+    r0.jpBy = new Map(fought.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0) - (jpBefore.get(u) || 0)]));
+    // A battle is a day gone by for anyone away on an errand.
+    this.advanceErrands();
     // Revive and reset everyone after the fight.
     for (const u of this.state.party) u.resetBattleState();
     const r = battle.rewards;
@@ -889,7 +999,20 @@ class Game {
         const cap = document.createElement('span');
         cap.textContent = `${u.name} · Lv${u.level}${up ? ' ↑' : ''}`;
         item.appendChild(cap);
+        const jp = r.jpBy ? (r.jpBy.get(u) || 0) : 0;
+        const learn = this.canLearnSomething(u);
+        const sub = document.createElement('small');
+        sub.className = 'res-jp' + (learn ? ' learn' : '');
+        sub.textContent = `${jp ? `+${jp} JP` : 'no JP'}${learn ? ' ✦' : ''}`;
+        item.appendChild(sub);
+        if (learn) item.classList.add('learn');
         roll.appendChild(item);
+      }
+      if (fought.some(u => this.canLearnSomething(u))) {
+        const note = document.createElement('p');
+        note.className = 'res-note';
+        note.textContent = '✦ has JP enough for something new. Spend it in Formation.';
+        roll.after(note);
       }
       $('btn-results').onclick = () => { $('btn-results').onclick = null; resolve(); };
       this.showScreen('results');

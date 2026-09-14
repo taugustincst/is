@@ -124,6 +124,7 @@ class Battle {
     }
     // Random initial CT so the opening order isn't purely by speed.
     for (const u of b.units) u.ct = Math.floor(Math.random() * 30);
+    b.crystals = []; // left where the fallen were carried off; taken by whoever stands there
     return b;
   }
 
@@ -673,6 +674,11 @@ class Battle {
     }
     this.log(`${unit.name} is carried from the field.`, 'ko');
     if (this.hooks.showFloat) this.hooks.showFloat(unit, 'Lost', '#ff6a5a');
+    // What is left behind: a crystal that restores whoever takes it up.
+    if (unit.x >= 0 && !this.crystalAt(unit.x, unit.y)) {
+      this.crystals.push({ x: unit.x, y: unit.y, from: unit.name, team: unit.team, t0: this.tick });
+      this.log(`A crystal remains where ${unit.name} fell.`, 'heal');
+    }
     unit.x = -1; unit.y = -1;
     unit.carriedOff = true; // still counts among those who fought
     unit.koCount = 0;
@@ -895,7 +901,24 @@ class Battle {
     const last = path[path.length - 1], prev = path[path.length - 2];
     unit.x = last.x; unit.y = last.y;
     unit.facing = facingFromDelta(last.x - prev.x, last.y - prev.y);
+    this.takeCrystal(unit);
     if (this.hooks.refresh) this.hooks.refresh();
+  }
+
+  crystalAt(x, y) { return (this.crystals || []).find(c => c.x === x && c.y === y) || null; }
+
+  // Standing where a crystal lies takes it up: HP and MP restored in full.
+  takeCrystal(unit) {
+    const c = this.crystalAt(unit.x, unit.y);
+    if (!c || !unit.alive) return false;
+    this.crystals = this.crystals.filter(k => k !== c);
+    const hp = unit.maxHp - unit.hp, mp = unit.maxMp - unit.mp;
+    unit.hp = unit.maxHp; unit.mp = unit.maxMp;
+    this.log(`${unit.name} takes up ${c.from}'s crystal: restored in full.`, 'heal');
+    this.sound('heal');
+    if (this.hooks.showFloat) this.hooks.showFloat(unit, hp || mp ? `+${hp} HP +${mp} MP` : 'Crystal', '#9ef0ff');
+    if (this.hooks.onCrystal) this.hooks.onCrystal(unit, c);
+    return true;
   }
 
   async useAbility(unit, ab, tx, ty) {
@@ -1029,6 +1052,16 @@ class Battle {
       }
     }
     const near = this.nearestEnemyOf(unit);
+    // Badly hurt, with a crystal in reach: a full restore is worth more than
+    // one more blow, unless that blow ends the fight for someone.
+    if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
+      const c = candidates.find(c => this.crystalAt(c.x, c.y) && (c.x !== unit.x || c.y !== unit.y));
+      if (c && best.score < 60) {
+        await this.moveUnit(unit, this.grid.pathTo(reach, c.x, c.y));
+        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
+        return;
+      }
+    }
     const involvesEnemy = best.ab && this.affectedUnits(unit, best.ab, best.tx, best.ty).some(t => t.team !== unit.team);
     if (best.tile && (involvesEnemy || best.ab.effects.some(e => e.type === 'heal' || e.type === 'revive'))) {
       const path = this.grid.pathTo(reach, best.tile.x, best.tile.y);

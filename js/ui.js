@@ -176,7 +176,8 @@ class BattleUI {
   renderTileInfo(t) {
     if (!t) { this.el.tileInfo.textContent = ''; return; }
     const names = { g: 'Grass', d: 'Dirt', s: 'Stone', b: 'Wood', w: 'Water', t: 'Tree' };
-    this.el.tileInfo.textContent = `${names[t.t] || '?'}  (${t.x},${t.y})  height ${t.h}`;
+    const k = this.battle && this.battle.crystalAt && this.battle.crystalAt(t.x, t.y);
+    this.el.tileInfo.textContent = `${names[t.t] || '?'}  (${t.x},${t.y})  height ${t.h}${k ? `  · ${k.from}'s crystal: restores whoever stands here` : ''}`;
   }
 
   // ---- deployment -------------------------------------------------------------------

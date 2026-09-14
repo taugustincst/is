@@ -638,6 +638,7 @@ class Renderer {
       const p = u.anim || { x: u.x, y: u.y };
       items.push({ d: this.depthOf(p.x, p.y) + 0.5 + (u.alive ? 0 : -0.2), kind: 'unit', u });
     }
+    for (const k of this.battle.crystals || []) items.push({ d: this.depthOf(k.x, k.y) + 0.3, kind: 'crystal', k });
     // Ground effects sit under the figures standing in them; everything else
     // is the flourish and belongs on top of its own tile's depth.
     this.fx = this.fx.filter(f => this.time - f.t0 < f.dur);
@@ -649,6 +650,7 @@ class Renderer {
     for (const it of items) {
       if (it.kind === 'tile') this.drawTile(it.t);
       else if (it.kind === 'unit') this.drawUnit(it.u);
+      else if (it.kind === 'crystal') this.drawCrystal(it.k);
       else this.drawFx(it.f);
     }
     this.drawCharges();
@@ -737,6 +739,27 @@ class Renderer {
       c.beginPath(); c.ellipse(sx, sy + 3, 14, 6, 0, 0, Math.PI * 2); c.fill();
       c.drawImage(treeSprite(tileVariant(t.x, t.y)), sx - 24, sy - 58);
     }
+  }
+
+  // A crystal where someone fell: a pale gem hanging a little off the ground,
+  // turning slowly, with a glow on the tile beneath it.
+  drawCrystal(k) {
+    const c = this.ctx, g = this.battle.grid;
+    const { sx, sy } = this.toScreen(k.x, k.y, g.height(k.x, k.y));
+    const t = this.time / 1000;
+    const bob = Math.sin(t * 2.2 + k.x) * 2;
+    const w = 5 + 2 * Math.abs(Math.cos(t * 1.3 + k.y)); // turning: the gem narrows and widens
+    const glow = 0.25 + 0.12 * Math.sin(t * 3 + k.x + k.y);
+    this.diamond(sx, sy); c.fillStyle = `rgba(140,230,255,${glow})`; c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.25)';
+    c.beginPath(); c.ellipse(sx, sy + 3, 6, 3, 0, 0, Math.PI * 2); c.fill();
+    const cy = sy - 12 + bob;
+    c.fillStyle = '#bff4ff';
+    c.beginPath(); c.moveTo(sx, cy - 11); c.lineTo(sx + w, cy); c.lineTo(sx, cy + 11); c.lineTo(sx - w, cy); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(60,150,210,0.55)';
+    c.beginPath(); c.moveTo(sx, cy - 11); c.lineTo(sx + w, cy); c.lineTo(sx, cy + 11); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.9)';
+    c.fillRect(sx - 1, cy - 7, 1.5, 4);
   }
 
   drawUnit(u) {

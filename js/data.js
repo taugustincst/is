@@ -1523,6 +1523,21 @@ function jobTier(id, seen = {}) {
   seen[id] = reqs.length ? 1 + Math.max(...reqs.map(r => jobTier(r, seen))) : 0;
   return seen[id];
 }
+// Work for a soldier away from the line: gone for a battle or two, back with
+// pay, a little JP in whatever job they went in, and sometimes something found.
+const ERRANDS = [
+  { id: 'tithe', title: 'Escort the tithe wagon', days: 1, gil: 1.0, jp: 1.0, item: 0.2, text: 'The abbey pays for a blade beside its silver on the road to Millbrook.' },
+  { id: 'wolves', title: 'Clear wolves from the high pasture', days: 1, gil: 0.9, jp: 1.3, item: 0.1, text: 'A shepherd has lost four ewes. He offers what he has, and it is honest.' },
+  { id: 'survey', title: 'Survey the old quarry road', days: 2, gil: 1.5, jp: 1.4, item: 0.45, text: 'The guild wants the road walked end to end and every washout marked.' },
+  { id: 'letters', title: 'Carry letters to the marsh towns', days: 1, gil: 0.8, jp: 0.9, item: 0.25, text: 'Nobody else will cross Sable Marsh with a satchel. The pay reflects that.' },
+  { id: 'drill', title: 'Drill the town militia', days: 2, gil: 1.2, jp: 1.8, item: 0.1, text: 'Fordwater raises a militia and wants someone who has stood in a line to teach it.' },
+  { id: 'relic', title: 'Recover a relic from the ruins', days: 2, gil: 1.3, jp: 1.2, item: 0.7, text: 'A scholar will pay for whatever comes out of Hollowmere intact. Something usually does.' },
+  { id: 'ferry', title: 'Guard the night ferry', days: 1, gil: 1.1, jp: 1.0, item: 0.15, text: 'Two crossings, one lantern, and whatever is on the far bank.' },
+  { id: 'tourney', title: 'Stand in a tourney', days: 1, gil: 1.4, jp: 1.5, item: 0.3, text: 'A lord wants a name on the lists that will draw a crowd. Win or lose, the purse is real.' },
+  { id: 'cellar', title: 'Clear the abbey cellar', days: 1, gil: 0.9, jp: 1.1, item: 0.35, text: 'Something has moved in beneath the abbey. The brothers would rather not say what.' },
+  { id: 'census', title: 'Take the census at Dunmarch', days: 2, gil: 1.6, jp: 0.8, item: 0.2, text: 'Every household counted and no one offended. Slower than fighting, better paid.' },
+];
+
 const TIER_NAMES = ['The roots', 'First rank', 'Second rank', 'Third rank', 'Fourth rank', 'Fifth rank', 'The summit'];
 
 
