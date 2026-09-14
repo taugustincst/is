@@ -69,7 +69,10 @@ public class MainActivity extends AppCompatActivity {
     private String pendingExport;
 
     private ActivityResultLauncher<String> cameraPermission;
+    private ActivityResultLauncher<String> chooserPermission;
     private ActivityResultLauncher<Intent> chooser;
+    private boolean pendingChooserWantsCapture;
+    private CharSequence pendingChooserTitle;
     private ActivityResultLauncher<Intent> exporter;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -88,6 +91,13 @@ public class MainActivity extends AppCompatActivity {
                     }
                     pendingCamera = null;
                 });
+
+        // The file chooser wants to offer the system camera, which the OS only
+        // allows once the app holds CAMERA. Ask, then open the chooser either
+        // way: refused just means the gallery is offered alone.
+        chooserPermission = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> launchChooser(pendingChooserWantsCapture, pendingChooserTitle));
 
         chooser = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -188,27 +198,15 @@ public class MainActivity extends AppCompatActivity {
                                              FileChooserParams params) {
                 if (pendingChooser != null) pendingChooser.onReceiveValue(null);
                 pendingChooser = callback;
-
-                Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
-                pick.addCategory(Intent.CATEGORY_OPENABLE);
-                pick.setType("image/*");
-
-                Intent open = pick;
-                Intent capture = captureIntent();
-                if (capture != null) {
-                    // Offer the camera alongside the gallery. If the page asked
-                    // for capture specifically, lead with the camera.
-                    Intent primary = params.isCaptureEnabled() ? capture : pick;
-                    Intent secondary = params.isCaptureEnabled() ? pick : capture;
-                    open = Intent.createChooser(primary, params.getTitle());
-                    open.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{secondary});
-                }
-                try {
-                    chooser.launch(open);
-                } catch (ActivityNotFoundException e) {
-                    pendingChooser.onReceiveValue(null);
-                    pendingChooser = null;
-                    return false;
+                pendingChooserWantsCapture = params.isCaptureEnabled();
+                pendingChooserTitle = params.getTitle();
+                boolean hasCamera = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY);
+                boolean allowed = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED;
+                if (hasCamera && !allowed) {
+                    chooserPermission.launch(Manifest.permission.CAMERA);
+                } else {
+                    launchChooser(pendingChooserWantsCapture, pendingChooserTitle);
                 }
                 return true;
             }
@@ -251,15 +249,35 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /** Open the gallery, with the system camera alongside where allowed. */
+    private void launchChooser(boolean preferCapture, CharSequence title) {
+        if (pendingChooser == null) return;
+        Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        pick.setType("image/*");
+
+        Intent open = pick;
+        Intent capture = captureIntent();
+        if (capture != null) {
+            Intent primary = preferCapture ? capture : pick;
+            Intent secondary = preferCapture ? pick : capture;
+            open = Intent.createChooser(primary, title);
+            open.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{secondary});
+        }
+        try {
+            chooser.launch(open);
+        } catch (ActivityNotFoundException e) {
+            pendingChooser.onReceiveValue(null);
+            pendingChooser = null;
+        }
+    }
+
     /** An intent for the system camera app writing into our cache, or null. */
     private Intent captureIntent() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED
-                && getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+                != PackageManager.PERMISSION_GRANTED) {
             // Declaring CAMERA in the manifest means the OS refuses to hand
             // an IMAGE_CAPTURE intent to an app that has not been granted it.
-            // The in-page camera asks for the permission on first use; until
-            // then the gallery is offered alone.
             return null;
         }
         try {
