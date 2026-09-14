@@ -356,6 +356,56 @@ export const RECIPES = [
     'Add the rice and stir 2 minutes, then the wine. Add hot stock a ladle at a time, stirring, until the rice is creamy and just tender, about 18 minutes.',
     'Beat in the rest of the butter, parmesan and mushrooms. Rest 2 minutes off the heat, then serve with parsley.',
   ]),
+  R('squash_soup', 'Butternut squash soup', { time: 45, serves: 4, tags: ['vegan', 'freezes well', 'comfort'] }, [
+    need('squash', '1 butternut'), need('onion', '1'), need('stock', '1 litre'), need('olive_oil', '2 tbsp'), opt('garlic', '2 cloves'), opt('ginger', '1 thumb'), opt('coconut_milk', '200 ml'), opt('chili_powder', 'a pinch'), opt('cream', '50 ml'), opt('bread', 'to serve'), opt('seeds', '1 tbsp pumpkin'),
+  ], [
+    'Peel and cube the squash. Soften the chopped onion in the oil for 8 minutes, then add garlic and ginger.',
+    'Add the squash and stock, cover and simmer 20 minutes until soft.',
+    'Blend smooth with the coconut milk or cream. Season well, add a pinch of chili, and top with toasted seeds.',
+  ]),
+  R('halloumi_wraps', 'Halloumi and roast pepper wraps', { time: 20, serves: 2, tags: ['vegetarian', 'quick'] }, [
+    need('halloumi', '1 block'), need('tortilla', '2 large'), need('bell_pepper', '1'), need('olive_oil', '1 tbsp'), opt('hummus', '3 tbsp'), opt('lettuce', 'a handful'), opt('tomato', '1'), opt('cucumber', '1/2'), opt('lemon', '1/2'), opt('hot_sauce', 'to taste'), opt('mint', 'a few leaves'), opt('onion', '1/2 red'),
+  ], [
+    'Slice the halloumi and pepper. Fry the pepper in the oil until soft and charred, then the halloumi 2 minutes a side until golden.',
+    'Warm the wraps. Spread with hummus, pile in the halloumi, pepper and salad, squeeze over lemon, add hot sauce and roll.',
+  ]),
+  R('sausage_bean_stew', 'Sausage and bean stew', { time: 40, serves: 4, tags: ['comfort', 'freezes well', 'one pot'] }, [
+    need('sausage', '6'), need('white_beans', '1 can'), need('canned_tomato', '1 can'), need('onion', '1'), need('garlic', '2 cloves'), need('olive_oil', '1 tbsp'), opt('paprika', '1 tsp smoked'), opt('carrot', '1'), opt('kale', 'a handful'), opt('spinach', 'a handful'), opt('stock', '200 ml'), opt('bread', 'to serve'), opt('bay_leaf', '1'), opt('dried_thyme', '1/2 tsp'),
+  ], [
+    'Brown the sausages in the oil, then lift out and slice into chunks.',
+    'Soften the onion and carrot in the pan, add garlic, paprika and herbs, then the tomatoes, beans, stock and sausages. Simmer 20 minutes.',
+    'Stir in the greens for the last 3 minutes and serve with bread.',
+  ]),
+  R('salmon_bagel', 'Smoked salmon bagel', { time: 5, serves: 1, tags: ['quick', 'breakfast', 'no cook'] }, [
+    need('bagel', '1'), need('cream_cheese', '2 tbsp'), need('salmon', '2 slices smoked'), opt('lemon', 'a squeeze'), opt('capers', '1 tsp'), opt('onion', 'a few slices red'), opt('dill', 'a few sprigs'), opt('cucumber', 'a few slices'), opt('black_pepper', 'plenty'),
+  ], [
+    'Toast the bagel and spread thickly with cream cheese.',
+    'Lay on the salmon, then capers, onion, cucumber and dill. Finish with lemon and pepper.',
+  ]),
+  R('beetroot_salad', 'Beetroot, goat cheese and walnut salad', { time: 15, serves: 2, tags: ['vegetarian', 'no cook', 'quick'] }, [
+    need('beetroot', '3 cooked'), need('goat_cheese', '100 g'), need('lettuce', '2 handfuls'), need('olive_oil', '2 tbsp'), need('vinegar', '1 tbsp balsamic'), opt('nuts', '50 g walnuts'), opt('honey', '1 tsp'), opt('orange', '1'), opt('mint', 'a few leaves'), opt('bread', 'to serve'),
+  ], [
+    'Cut the beetroot into wedges and toss with the oil, vinegar, honey and seasoning.',
+    'Pile onto the leaves with orange segments, crumble over the goat cheese and scatter with walnuts and mint.',
+  ]),
+  R('roast_sprouts', 'Crispy roasted Brussels sprouts', { time: 30, serves: 4, tags: ['vegan', 'side', 'one pan'] }, [
+    need('brussels_sprouts', '500 g'), need('olive_oil', '2 tbsp'), opt('garlic', '2 cloves'), opt('bacon', '4 rashers'), opt('lemon', '1/2'), opt('parmesan', '30 g'), opt('honey', '1 tbsp'), opt('chili_powder', 'a pinch'), opt('vinegar', '1 tbsp balsamic'),
+  ], [
+    'Heat the oven to 220°C / 425°F. Halve the sprouts and toss with the oil, salt and any bacon or garlic.',
+    'Roast cut side down for 20–25 minutes until deeply browned and crisp at the edges. Finish with lemon, parmesan, honey or balsamic.',
+  ]),
+  R('turkey_chili_lettuce', 'Turkey lettuce cups', { time: 20, serves: 3, tags: ['quick'] }, [
+    need('turkey', '400 g mince'), need('lettuce', '1 head'), need('soy_sauce', '2 tbsp'), need('garlic', '2 cloves'), need('vegetable_oil', '1 tbsp'), opt('ginger', '1 thumb'), opt('hot_sauce', '1 tsp'), opt('spring_onion', '2'), opt('carrot', '1'), opt('nuts', '2 tbsp peanuts'), opt('lime', '1'), opt('honey', '1 tsp'), opt('rice', 'to serve'),
+  ], [
+    'Fry the turkey in the oil until browned and crumbly. Add garlic, ginger and grated carrot for 2 minutes.',
+    'Season with soy, honey, hot sauce and lime. Spoon into lettuce leaves and top with spring onion and peanuts.',
+  ]),
+  R('polenta_mushrooms', 'Polenta with garlic mushrooms', { time: 25, serves: 2, tags: ['vegetarian', 'comfort'] }, [
+    need('polenta', '150 g'), need('mushroom', '300 g'), need('butter', '40 g'), need('garlic', '2 cloves'), need('stock', '600 ml'), opt('parmesan', '40 g'), opt('thyme', '2 sprigs'), opt('parsley', 'a handful'), opt('cream', '3 tbsp'), opt('lemon', '1/2'),
+  ], [
+    'Bring the stock to a simmer and whisk in the polenta. Cook, stirring, 10–15 minutes until thick. Beat in half the butter and the parmesan.',
+    'Fry the mushrooms hard in the rest of the butter until browned, add garlic and thyme for a minute, then a splash of cream and lemon. Spoon over the polenta with parsley.',
+  ]),
 ];
 
 export const RECIPE_BY_ID = Object.fromEntries(RECIPES.map(r => [r.id, r]));

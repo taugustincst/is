@@ -58,9 +58,19 @@ test('every food is used by at least one recipe or is a plausible purchase', () 
   for (const r of RECIPES) for (const i of r.ingredients) used.add(i.food);
   const unused = FOODS.filter(f => !used.has(f.id)).map(f => f.id);
   // Things you buy and eat as they are; nothing cooks with them here.
-  const allowed = new Set(['grapes', 'pear', 'orange', 'raspberry', 'pineapple', 'ice_cream', 'salt', 'coffee', 'tea', 'juice', 'jam', 'crackers', 'hummus', 'baked_beans', 'pickles', 'ketchup', 'bbq_sauce', 'worcestershire', 'pesto', 'oyster_sauce', 'puff_pastry', 'frozen_spinach', 'raisins', 'cardamom', 'five_spice', 'mustard_seed', 'ginger_powder', 'garlic_powder', 'nutmeg', 'quinoa', 'couscous', 'ground_pork', 'cream_cheese', 'pickles', 'shallot', 'kale', 'asparagus', 'mango', 'strawberry', 'dill', 'sausage', 'ham', 'tortilla', 'seeds', 'maple_syrup', 'vanilla', 'cocoa', 'salsa', 'tahini', 'miso']);
+  const allowed = new Set(['grapes', 'pear', 'orange', 'raspberry', 'pineapple', 'ice_cream', 'salt', 'coffee', 'tea', 'juice', 'jam', 'crackers', 'hummus', 'baked_beans', 'pickles', 'ketchup', 'bbq_sauce', 'worcestershire', 'pesto', 'oyster_sauce', 'puff_pastry', 'frozen_spinach', 'raisins', 'cardamom', 'five_spice', 'mustard_seed', 'ginger_powder', 'garlic_powder', 'nutmeg', 'quinoa', 'couscous', 'ground_pork', 'cream_cheese', 'pickles', 'shallot', 'kale', 'asparagus', 'mango', 'strawberry', 'dill', 'sausage', 'ham', 'tortilla', 'seeds', 'maple_syrup', 'vanilla', 'cocoa', 'salsa', 'tahini', 'miso',
+    'cottage_cheese', 'ricotta', 'brie', 'paneer', 'blue_cheese', 'hot_dogs', 'meatballs', 'sardines', 'anchovies', 'fish_fingers', 'chicken_nuggets', 'kiwi', 'peach', 'plum', 'cherry', 'melon', 'grapefruit', 'pomegranate', 'coconut', 'radish', 'parsnip', 'turnip', 'fennel', 'bok_choy', 'chard', 'artichoke', 'edamame', 'sauerkraut', 'kimchi', 'tempeh', 'croissant', 'english_muffin', 'cereal', 'granola', 'barley', 'yeast', 'tortilla_chips', 'popcorn', 'beer', 'sparkling_water', 'salad_dressing', 'gravy', 'canned_soup', 'pasta_sauce', 'cranberry_sauce', 'horseradish', 'nori', 'ghee', 'frozen_pizza', 'dumplings', 'ice_lolly', 'custard', 'apple_sauce', 'chocolate_spread']);
   const bad = unused.filter(id => !allowed.has(id));
   assert.deepEqual(bad, [], `foods no recipe uses: ${bad.join(', ')}`);
+});
+
+test('a named cheese is itself, not cheddar', () => {
+  assert.deepEqual(ids(detectFoods('cottage cheese')), ['cottage_cheese']);
+  assert.deepEqual(ids(detectFoods('goats cheese')), ['goat_cheese']);
+  assert.deepEqual(ids(detectFoods('grated cheese')), ['cheddar']);
+  assert.deepEqual(ids(detectFoods('butternut squash')), ['squash']);
+  assert.deepEqual(ids(detectFoods('pasta sauce')), ['pasta_sauce']);
+  assert.deepEqual(ids(detectFoods('tomato soup')), ['canned_soup']);
 });
 
 // ------------------------------------------------------------- normalising
@@ -292,7 +302,7 @@ test('vision items map onto the dictionary, merge duplicates and keep unknowns',
     { name: 'tomatoes', quantity: 4, category: 'produce', confidence: 'high', label_text: '' },
     { name: 'tomato', quantity: 2, category: 'produce', confidence: 'medium', label_text: '' },
     { name: 'chopped tomatoes', quantity: 1, category: 'pantry', confidence: 'high', label_text: 'Napolina' },
-    { name: 'kimchi', quantity: 1, category: 'other', confidence: 'medium', label_text: '' },
+    { name: 'natto', quantity: 1, category: 'other', confidence: 'medium', label_text: '' },
     { name: 'greek yogurt', quantity: 1, category: 'dairy', confidence: 'low', label_text: 'FAGE Total 5%' },
     { name: '', quantity: 1, category: 'other', confidence: 'high', label_text: '' },
     { name: 'mystery jar', quantity: 1, category: 'not-a-category', confidence: 'low', label_text: '' },
@@ -301,8 +311,8 @@ test('vision items map onto the dictionary, merge duplicates and keep unknowns',
   assert.equal(byName.Tomato.qty, 6, 'two tomato rows add up');
   assert.equal(byName.Tomato.confidence, 0.95);
   assert.equal(byName['Canned tomatoes'].id, 'canned_tomato');
-  assert.equal(byName.Kimchi.id, null);
-  assert.equal(byName.Kimchi.category, 'other');
+  assert.equal(byName.Natto.id, null);
+  assert.equal(byName.Natto.category, 'other');
   assert.equal(byName.Yogurt.id, 'yogurt');
   assert.equal(byName['Mystery jar'].category, 'other', 'unknown category falls back');
   assert.equal(got.length, 5);
