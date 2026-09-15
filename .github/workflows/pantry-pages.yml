@@ -1,0 +1,45 @@
+# Publishes the Pantry Scan web app to GitHub Pages, so it can be opened and
+# installed on any phone from https://<owner>.github.io/<repo>/
+#
+# One-time setup: repository Settings -> Pages -> Source: "GitHub Actions".
+name: Pantry Scan Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pantry/**'
+      - '.github/workflows/pantry-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the site
+        run: |
+          mkdir -p site
+          cp -r pantry/index.html pantry/manifest.webmanifest pantry/sw.js pantry/css pantry/js pantry/icons pantry/vendor site/
+          # The repository root keeps the game; Pages serves the pantry app.
+          cat > site/404.html <<'HTML'
+          <!DOCTYPE html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./"><title>Pantry Scan</title>
+          HTML
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

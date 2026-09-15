@@ -7,6 +7,13 @@ a browser, or serve the folder with any static file server.
 > Two princes claim one crown. Rowan Aldric, youngest son of a house that chose
 > the wrong side, rides north with the last of his companions.
 
+> **Also in this repository:** [`pantry/`](pantry/README.md) is Pantry Scan, a
+> separate progressive web app for home cooks. Photograph a receipt or your
+> groceries, it reads the text on the phone and turns it into a pantry, then
+> ranks fifty recipes by what you can cook right now. Same rules as the game:
+> no build step, no dependencies, no backend, and its own Android wrapper in
+> [`pantry/android/`](pantry/android/README.md).
+
 ## The game
 
 **Battle system**

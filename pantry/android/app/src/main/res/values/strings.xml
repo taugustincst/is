@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pantry Scan</string>
+    <string name="camera_denied">Camera permission was refused. You can still choose a photo from the gallery.</string>
+    <string name="export_saved">Pantry saved.</string>
+    <string name="export_failed">Could not save the pantry file.</string>
+</resources>

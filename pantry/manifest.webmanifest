@@ -1,0 +1,17 @@
+{
+  "name": "Pantry Scan",
+  "short_name": "Pantry",
+  "description": "Photograph your groceries, read them into a pantry, and cook from what you have.",
+  "id": "/pantry-scan",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf7f0",
+  "theme_color": "#2f6b3a",
+  "categories": ["food", "lifestyle", "utilities"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
