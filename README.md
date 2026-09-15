@@ -106,6 +106,9 @@ a browser, or serve the folder with any static file server.
 
 **Battles and campaign**
 
+- **Camp and unit pages in tabs**: the camp is Road, Company, Cities and
+  Options; the unit page in Formation is Unit, Gear and Skills, with a mark
+  on Skills when there is JP to spend. Nothing is more than a scroll away.
 - **Deployment phase.** Choose who fights and where they stand before the first
   tick, with the enemy roster laid out in front of you.
 - **Objectives** beyond routing the field: defeat the commander, or hold out a

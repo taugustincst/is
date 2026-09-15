@@ -249,6 +249,9 @@ small { color: var(--muted); }
 .shop-head h2 { color: var(--gold); }
 #shop-gil { font-size: 20px; color: var(--gold); }
 .tabs { display: flex; gap: 6px; margin: 8px 0; }
+.camp-tabs, .form-tabs { flex-wrap: wrap; margin: 0 0 12px; }
+.camp-tabs button .badge, .form-tabs button .badge { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--gold); color: #1a1408; font-size: 11px; line-height: 16px; }
+.tab-hidden { display: none !important; }
 .tabs button.sel { background: #4a3a10; border-color: var(--gold); color: var(--gold); }
 #shop-list { flex: 1; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
 #shop-list h3 { color: var(--gold); margin-top: 12px; border-bottom: 1px solid #2a2d50; }

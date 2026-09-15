@@ -272,6 +272,7 @@ class Game {
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = `Trial ${n}`;
     }
+    this.renderCampTabs();
     this.renderCampfire();
     this.renderCities();
     const diff = DIFFICULTIES[s.difficulty] || DIFFICULTIES.knight;
@@ -291,6 +292,29 @@ class Game {
     this.showScreen('world');
     // Drawn once the screen is showing, so the canvas has a width to fit.
     this.drawWorldMap();
+  }
+
+  // The camp in four pages, so the screen is never a scroll of every card at
+  // once. The page stays where it was left, across visits and sessions.
+  renderCampTabs() {
+    const el = $('camp-tabs'); if (!el) return;
+    const s = this.state;
+    const cur = this.campTab || localStorage.getItem('elderon.campTab') || 'road';
+    const liberable = CITIES.filter(c => this.cityReachable(c) && !this.cityOpen(c.id)).length;
+    const reports = (s.errands && s.errands.reports || []).length;
+    const tabs = [
+      ['road', 'Road', 0], ['company', 'Company', reports], ['cities', 'Cities', liberable], ['options', 'Options', 0],
+    ];
+    el.innerHTML = tabs.map(([id, label, n]) => `<button data-camp="${id}" class="${id === cur ? 'sel' : ''}">${label}${n ? `<span class="badge">${n}</span>` : ''}</button>`).join('');
+    el.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.showCampTab(b.dataset.camp); });
+    this.showCampTab(cur, true);
+  }
+
+  showCampTab(id, silent) {
+    this.campTab = id;
+    try { localStorage.setItem('elderon.campTab', id); } catch (e) { /* private mode */ }
+    document.querySelectorAll('[data-camp-tab]').forEach(el => el.classList.toggle('tab-hidden', el.dataset.campTab !== id));
+    document.querySelectorAll('#camp-tabs button').forEach(b => b.classList.toggle('sel', b.dataset.camp === id));
   }
 
   // What the company says the night before: the next chapter's talk, or, once
@@ -399,32 +423,46 @@ class Game {
         <div>${learned ? '<span class="tag">Learned</span>' : `<button data-learn="${id}" ${jp >= p.jp ? '' : 'disabled'}>${p.jp} JP</button>`}</div>
       </div>`;
     }).join('');
+    const tab = this.formTab || 'unit';
+    const learnable = this.canLearnSomething(u);
     $('form-detail').innerHTML = `
       <div class="detail-head">
         <canvas id="form-portrait" class="portrait"></canvas>
-        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP</span></div>
+        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP · ${u.jobData.name}</span></div>
       </div>
-      <div class="detail-grid">
-        <label>Job <select id="sel-job">${jobOpts}</select></label>
-        <label>Secondary <select id="sel-sec">${secOpts}</select></label>
-        <label>&nbsp;<button id="btn-tree" class="mini">Job tree</button></label>
+      <div id="form-tabs" class="tabs form-tabs">
+        <button data-form="unit" class="${tab === 'unit' ? 'sel' : ''}">Unit</button>
+        <button data-form="gear" class="${tab === 'gear' ? 'sel' : ''}">Gear</button>
+        <button data-form="skills" class="${tab === 'skills' ? 'sel' : ''}">Skills${learnable ? '<span class="badge">✦</span>' : ''}</button>
       </div>
-      <p class="job-desc">${u.jobData.desc}</p>
-      <div class="stat-grid">
-        <span>HP ${st.maxHp}</span><span>MP ${st.maxMp}</span><span>PA ${st.pa}</span><span>MA ${st.ma}</span>
-        <span>Speed ${st.spd}</span><span>Move ${st.move}</span><span>Jump ${st.jump}</span><span>Evade ${st.evade}%</span>
+      <div data-form-tab="unit" class="${tab === 'unit' ? '' : 'tab-hidden'}">
+        <div class="detail-grid">
+          <label>Job <select id="sel-job">${jobOpts}</select></label>
+          <label>Secondary <select id="sel-sec">${secOpts}</select></label>
+          <label>&nbsp;<button id="btn-tree" class="mini">Job tree</button></label>
+        </div>
+        <p class="job-desc">${u.jobData.desc}</p>
+        <div class="stat-grid">
+          <span>HP ${st.maxHp}</span><span>MP ${st.maxMp}</span><span>PA ${st.pa}</span><span>MA ${st.ma}</span>
+          <span>Speed ${st.spd}</span><span>Move ${st.move}</span><span>Jump ${st.jump}</span><span>Evade ${st.evade}%</span>
+        </div>
+        <div class="weapon">Weapon: ${u.weapon.name} (power ${u.weapon.power}, range ${u.weapon.range})${u.dualWielding ? ` + ${u.offhandWeapon.name}` : ''}</div>
+        <div class="job-levels">Job levels: ${jobLevels}</div>
+        <div class="job-levels">Record: ${recordLine(u)}</div>
+        ${affLine ? `<div class="job-levels">Elements: ${affLine}</div>` : ''}
       </div>
-      <div class="weapon">Weapon: ${u.weapon.name} (power ${u.weapon.power}, range ${u.weapon.range})${u.dualWielding ? ` + ${u.offhandWeapon.name}` : ''}</div>
-      <div class="job-levels">Job levels: ${jobLevels}</div>
-      <div class="job-levels">Record: ${recordLine(u)}</div>
-      ${affLine ? `<div class="job-levels">Elements: ${affLine}</div>` : ''}
-      <h3>Equipment <button id="btn-optimize" class="mini">Optimize</button></h3>
-      <div class="equip-grid">${this.equipRows(u)}</div>
-      <h3>Abilities Equipped</h3>
-      <div class="equip-grid">${this.passiveRows(u)}</div>
-      <h3>${u.jobData.skillset} <small>${jp} JP available · ${u.jobData.name} Lv${u.jobLevel(u.job)}</small></h3>
-      <div class="ab-list">${abilities}</div>
-      ${passiveLearn ? `<h3>${u.jobData.name} Passives</h3><div class="ab-list">${passiveLearn}</div>` : ''}`;
+      <div data-form-tab="gear" class="${tab === 'gear' ? '' : 'tab-hidden'}">
+        <h3>Equipment <button id="btn-optimize" class="mini">Optimize</button></h3>
+        <div class="equip-grid">${this.equipRows(u)}</div>
+        <h3>Abilities Equipped</h3>
+        <div class="equip-grid">${this.passiveRows(u)}</div>
+      </div>
+      <div data-form-tab="skills" class="${tab === 'skills' ? '' : 'tab-hidden'}">
+        <h3>${u.jobData.skillset} <small>${jp} JP available · ${u.jobData.name} Lv${u.jobLevel(u.job)}</small></h3>
+        <div class="ab-list">${abilities}</div>
+        ${passiveLearn ? `<h3>${u.jobData.name} Passives</h3><div class="ab-list">${passiveLearn}</div>` : ''}
+      </div>`;
+    $('form-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.formTab = b.dataset.form; this.renderFormationDetail(); });
     paintUnitSprite($('form-portrait'), u, 3);
     $('sel-job').onchange = (e) => {
       u.job = e.target.value;

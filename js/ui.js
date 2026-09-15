@@ -282,7 +282,19 @@ class BattleUI {
     });
     this.el.roster.querySelectorAll('button[data-a]').forEach(btn => btn.onclick = () => {
       const a = btn.dataset.a;
-      if (a === 'auto') b.autoDeploy(d.roster);
+      if (a === 'auto') {
+        // Place the company afresh, whatever was standing where: the button
+        // used to fill only empty slots, which on a field that opens already
+        // filled did nothing at all.
+        for (const u of d.roster) b.withdraw(u);
+        b.autoDeploy(d.roster);
+        d.sel = d.roster.find(u => u.x < 0 && b.deployed().length < b.maxDeploy) || d.roster.find(u => u.x >= 0) || d.roster[0];
+        if (d.sel && d.sel.x >= 0) this.r.focus(d.sel);
+        this.renderDeploy();
+        // After the redraw, so the panel's own hint does not wipe it.
+        this.toastHint(`Placed ${b.deployed().length} of ${Math.min(b.maxDeploy, d.roster.length)}, facing the enemy.`);
+        return;
+      }
       else if (a === 'clear') for (const u of d.roster) b.withdraw(u);
       else return this.endDeploy();
       this.renderDeploy();
