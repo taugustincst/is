@@ -1922,6 +1922,93 @@ const EPILOGUE_CAMP = [
   'The trials go on because the company likes them. Nobody is paying for them. That, Mira says, is how you can tell they are honest.',
 ];
 
+// ------------------------------------------------------------------ cities
+/* Towns on the road, each held by someone who should not have it. Open one
+   with a battle and it stays open: a tavern that hires trained hands, and a
+   market that sells what the wagon never carries. Levels rise to meet a party
+   that comes late. */
+const CITIES = [
+  { id: 'redwater', name: 'Redwater', from: 1, pos: [0.94, 0.84], map: 'quarry', level: 2, gil: 900, hireCost: 450,
+    held: 'held by the Redwater Reavers', blurb: 'A market town on the quarry road, taken by the guard that was paid to hold it.',
+    intro: [
+      'Redwater sits on the quarry road with its gates shut and its own guard on the walls, and the guard have decided the town belongs to them now.',
+      '"Reavers," Garret says. "They were paid to hold it and nobody came to relieve them. Now they hold it for themselves."',
+      '"The quarry is the back door. Take the high stone and they will come down to us."',
+    ],
+    enemies: [{ job: 'squire', name: 'Reaver' }, { job: 'squire', name: 'Reaver' }, { job: 'archer', name: 'Reaver Archer' }, { job: 'thief', name: 'Reaver Cutpurse' }],
+    outro: [
+      'The reavers throw down their arms when the last of the high stone falls. Redwater opens its gates that evening, and its market the next morning.',
+      'Redwater is open. Its smiths and its tavern are yours to call on.',
+    ],
+    hires: ['knight', 'archer', 'thief'], stock: ['redwaterSteel', 'reaverCloak'],
+    open: 'Smoke from the smithies again, and a tavern that remembers your name.' },
+  { id: 'dunmarchTown', name: 'Dunmarch Town', from: 4, pos: [0.36, 0.44], map: 'dunmarch', level: 6, gil: 1300, hireCost: 500,
+    held: 'held by the garrison holdouts', blurb: 'The town under the keep, still flying colours nobody pays for.',
+    intro: [
+      'Dunmarch town still flies Aldous\'s colours from the garrison, though the garrison has not been paid since Brannoc rode for Thornwall.',
+      '"Holdouts," Tamsin says. "Good soldiers with no one left to be good for. They will fight because it is what they have."',
+    ],
+    enemies: [{ job: 'knight', name: 'Holdout Knight' }, { job: 'knight', name: 'Holdout Knight' }, { job: 'whiteMage', name: 'Holdout Priest' }, { job: 'archer', name: 'Holdout Archer' }],
+    outro: [
+      'The holdouts lay down their arms on the gate steps. The town has been waiting behind them for weeks.',
+      'Dunmarch is open. Its chapel trains mages, and its armoury sells what the garrison wore.',
+    ],
+    hires: ['whiteMage', 'blackMage', 'timeMage'], stock: ['garrisonPlate', 'priestStaff'],
+    open: 'The chapel bell rings the hours again. The armoury door stands open.' },
+  { id: 'fordwaterTown', name: 'Fordwater', from: 7, pos: [0.56, 0.42], map: 'fordwater', level: 9, gil: 1800, hireCost: 600,
+    held: 'held by the Concord customs house', blurb: 'A crossing town taxed to the bone by the Concord\'s customs men and their hounds.',
+    intro: [
+      'The Concord has a customs house at Fordwater, and the customs house has a garrison, and the garrison has hounds.',
+      '"They tax the crossing," Ottilie says. "They tax the road. They would tax the river if they could make it stand still."',
+    ],
+    enemies: [{ job: 'gunner', name: 'Customs Guard' }, { job: 'gunner', name: 'Customs Guard' }, { job: 'engineer', name: 'Assessor' }, { job: 'ironhound' }],
+    outro: [
+      'The customs house burns its ledgers before it falls. The town keeps the crossing, and keeps it free.',
+      'Fordwater is open. Its workshops hire out engineers and gunners who have had enough of the Concord.',
+    ],
+    hires: ['engineer', 'gunner'], stock: ['customsPistol', 'ledgerCoat'],
+    open: 'The ferry runs for nothing. The workshops have taken down the Concord\'s sign.' },
+  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.76, 0.40], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700,
+    held: 'held by the Concord engine sheds', blurb: 'The town that grew up around the bridge, with sentinels walking its streets.',
+    intro: [
+      'Cogsworth town grew up around the bridge and the Concord\'s engine sheds. The sheds are still running and the sentinels still walk the streets.',
+      '"Nobody in that town has slept through a night in a year," Bastian says. "Let us see if we can fix that."',
+    ],
+    enemies: [{ job: 'sentinel' }, { job: 'sentinel' }, { job: 'gunner', name: 'Shed Guard' }, { job: 'aeronaut', name: 'Shed Aeronaut' }],
+    outro: [
+      'The last sentinel winds down in the square, and the town comes out of its houses to look at it.',
+      'Cogsworth is open. Its bridgewrights build well, and its aeronauts will fly for coin.',
+    ],
+    hires: ['aeronaut', 'artificer'], stock: ['bridgewright', 'aetherLantern'],
+    open: 'The engine sheds are quiet. Somebody has planted flowers in a sentinel\'s boiler.' },
+  { id: 'hearthold', name: 'Hearthold', from: 13, pos: [0.88, 0.28], map: 'rimewater', level: 14, gil: 3000, hireCost: 800,
+    held: 'besieged by the Court', blurb: 'The last village on the ice with a fire in it, and the Court has come to put it out.',
+    intro: [
+      'Hearthold was the last village on the ice with a fire in it. The Court has come to put the fire out.',
+      '"They cannot abide a hearth," Ingrid says. "It is the one thing they have never learned to take."',
+    ],
+    enemies: [{ job: 'hollowKnight' }, { job: 'hollowKnight' }, { job: 'rimeWight' }, { job: 'rimeWight' }, { job: 'frostweaver', name: 'Court Frostweaver' }],
+    outro: [
+      'The wights go back into the ice and the hearth is still lit. Hearthold keeps it that way.',
+      'Hearthold is open. Its wardens and weavers know the north, and its forge remembers fire.',
+    ],
+    hires: ['warden', 'frostweaver'], stock: ['hearthBlade', 'wardenCloak'],
+    open: 'The hearth is lit. It is always lit. Somebody sits up with it all night to be sure.' },
+  { id: 'hollowMarket', name: 'The Hollow Market', from: 16, pos: [0.80, 0.12], map: 'hollowcourt', level: 16, gil: 4000, hireCost: 900,
+    held: 'held by the Court\'s creatures', blurb: 'The market beneath the Court, where the star-iron was traded for a hundred years.',
+    intro: [
+      'Beneath the Hollow Court a market once served a people who are mostly gone. The Court\'s creatures have it now, and the star-iron that was traded there.',
+      '"Whatever is sold here has been sold to the Cold for a hundred years," Eirik says. "Let us see what it fetches from us."',
+    ],
+    enemies: [{ job: 'rimeWight' }, { job: 'rimeWight' }, { job: 'hollowKnight' }, { job: 'frostweaver', name: 'Market Weaver' }, { job: 'iceDrake' }],
+    outro: [
+      'The market is silent when the fighting stops, and then, slowly, it is not.',
+      'The Hollow Market is open. Runeblades and artificers wait there, and the last of the star-iron.',
+    ],
+    hires: ['runeblade', 'samurai'], stock: ['starIronRing', 'auroraStaff'],
+    open: 'Lamps in the stalls. The star-iron is sold by weight now, like anything else.' },
+];
+
 // Party at the start of a new game.
 const STARTING_PARTY = [
   { name: 'Rowan', job: 'squire', level: 1, leader: true },
@@ -2146,6 +2233,19 @@ const ITEMS = {
   runeSigil:   { name: 'Rune Sigil', slot: 'acc', ma: 3, mp: 20, price: 2200, tier: 6 },
   frostCharm:  { name: 'Frost Charm', slot: 'acc', resist: { ice: 'absorb' }, price: 1600, tier: 5 },
   warmthStone: { name: 'Warmth Stone', slot: 'acc', hp: 25, wards: ['slow', 'stop'], price: 1500, tier: 5 },
+  // ---- what the cities sell, and nowhere else ----
+  redwaterSteel: { name: 'Redwater Steel', city: 'redwater', slot: 'weapon', wtype: 'sword', power: 9, range: 1, vert: 2, price: 700, tier: 2 },
+  reaverCloak:   { name: 'Reaver Cloak', city: 'redwater', slot: 'body', atype: 'light', hp: 24, evade: 4, price: 600, tier: 2 },
+  garrisonPlate: { name: 'Garrison Plate', city: 'dunmarchTown', slot: 'body', atype: 'heavy', hp: 38, price: 900, tier: 3 },
+  priestStaff:   { name: 'Priest\'s Staff', city: 'dunmarchTown', slot: 'weapon', wtype: 'staff', power: 5, range: 1, vert: 2, ma: 5, price: 800, tier: 3 },
+  customsPistol: { name: 'Customs Pistol', city: 'fordwaterTown', slot: 'weapon', wtype: 'gun', power: 8, range: 5, vert: 9, price: 1200, tier: 4 },
+  ledgerCoat:    { name: 'Ledger Coat', city: 'fordwaterTown', slot: 'body', atype: 'cloth', hp: 22, mp: 15, price: 1000, tier: 4 },
+  bridgewright:  { name: 'Bridgewright', city: 'cogsworthTown', slot: 'weapon', wtype: 'axe', power: 11, range: 1, vert: 2, ma: 3, price: 1600, tier: 5 },
+  aetherLantern: { name: 'Aether Lantern', city: 'cogsworthTown', slot: 'acc', ma: 2, spd: 1, price: 1700, tier: 5 },
+  hearthBlade:   { name: 'Hearth Blade', city: 'hearthold', slot: 'weapon', wtype: 'sword', power: 13, range: 1, vert: 2, price: 2400, tier: 6 },
+  wardenCloak:   { name: 'Warden\'s Cloak', city: 'hearthold', slot: 'body', atype: 'light', hp: 44, resist: { ice: 'resist' }, price: 2200, tier: 6 },
+  starIronRing:  { name: 'Star-iron Ring', city: 'hollowMarket', late: true, slot: 'acc', pa: 3, ma: 3, price: 3800, tier: 7 },
+  auroraStaff:   { name: 'Aurora Staff', city: 'hollowMarket', late: true, slot: 'weapon', wtype: 'staff', power: 8, range: 1, vert: 2, ma: 8, price: 4000, tier: 7 },
 };
 
 // Free starting kit per job (price-0 items only, so they cannot be sold for gil).
@@ -2294,7 +2394,7 @@ function bestGearFor(job, pool, maxTier, extra) {
 // fight.
 function enemyGearFor(job, level, tierShift) {
   const tier = Math.max(0, Math.min(6, Math.floor((level - 1) / 1.8) + (tierShift || 0)));
-  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late);
+  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late && !ITEMS[i].city);
   return bestGearFor(job, pool, tier);
 }
 

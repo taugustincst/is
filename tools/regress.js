@@ -651,6 +651,11 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('the road ends once, at the end, with the end', /THE END\./.test(hooks) && finals.length === 1 && finals[0] === g.CAMPAIGN[g.CAMPAIGN.length - 1].id && /END OF ACT II/.test(g.CAMPAIGN[11].outro.join(' ')), finals.join(','));
     const northMaps = g.CAMPAIGN.slice(12).map(ch => g.MAPS[ch.map]);
     ok('the north is fought on snow and ice under its own skies', northMaps.every(m => /[ni]/.test(m.terrain.join('')) && ['snow', 'aurora'].includes(m.mood)), northMaps.map(m => m.mood).join(','));
+    const cities = g.run('CITIES');
+    const badCity = cities.filter(c => !g.MAPS[c.map] || !c.enemies.length || !c.hires.every(j => g.JOBS[j] && g.JOBS[j].req !== null) || !c.stock.every(i => g.ITEMS[i] && g.ITEMS[i].city === c.id) || !(c.intro.length >= 2 && c.intro.length <= 4) || !(c.outro.length >= 1 && c.outro.length <= 3) || c.from < 0 || c.from > g.CAMPAIGN.length).map(c => c.id);
+    ok('every city has a field, holders, trained trades to hire and a market of its own', cities.length >= 6 && badCity.length === 0 && new Set(cities.map(c => c.id)).size === cities.length, badCity.join(',') || `${cities.length} cities`);
+    const strayCity = Object.entries(g.ITEMS).filter(([, it]) => it.city && !cities.some(c => c.id === it.city && c.stock.includes(Object.keys(g.ITEMS).find(k => g.ITEMS[k] === it)))).map(([k]) => k);
+    ok('every city-only item is sold by exactly the city that claims it', strayCity.length === 0, strayCity.join(',') || `${Object.values(g.ITEMS).filter(i => i.city).length} city items`);
     const errands = g.run('ERRANDS');
     ok('every errand is a day or two with pay, JP and a chance of a find', errands.length >= 8 && errands.every(e => [1, 2].includes(e.days) && e.gil > 0 && e.jp > 0 && e.item >= 0 && e.item <= 1 && e.title && e.text) && new Set(errands.map(e => e.id)).size === errands.length, `${errands.length} errands`);
     const rvm = require('vm'), rctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };

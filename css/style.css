@@ -50,7 +50,21 @@ small { color: var(--muted); }
 .party-chip.reserve { opacity: 0.55; }
 .party-chip.away { opacity: 0.6; font-style: italic; }
 .learn-mark { color: var(--gold); }
-.errands-card h3 small { color: var(--muted); font-weight: normal; font-size: 12px; }
+.errands-card h3 small, .cities-card h3 small { color: var(--muted); font-weight: normal; font-size: 12px; }
+.city { padding: 8px 0; border-top: 1px solid #2a2d50; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.city:first-child { border-top: none; }
+.city small { color: var(--muted); font-size: 12px; }
+.city-text { flex: 1; min-width: 200px; }
+.city-blurb { color: #c8c6e0; font-style: italic; font-size: 12px; margin-top: 2px; }
+.city.held b { color: #ffb3a8; }
+.city.open b { color: var(--gold); }
+.city-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.city-head b { color: var(--gold); font-size: 16px; }
+.city-head button { margin-left: auto; }
+.cities-card h4 { margin: 12px 0 6px; }
+.cities-card h4 small { color: var(--muted); font-weight: normal; font-size: 12px; }
+.city-hires { display: flex; gap: 8px; flex-wrap: wrap; }
+.city-stock .shop-row { padding: 6px 0; }
 .errand { padding: 8px 0; border-top: 1px solid #2a2d50; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .errand:first-child { border-top: none; }
 .errand small { color: var(--muted); font-size: 12px; }

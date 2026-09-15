@@ -96,7 +96,7 @@ class Game {
     this.state = {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
       gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: this.pendingDifficulty || 'knight',
-      errands: { offered: [], active: [], reports: [] },
+      errands: { offered: [], active: [], reports: [] }, cities: {},
     };
     this.showWorld();
   }
@@ -104,7 +104,7 @@ class Game {
   saveGame() {
     const data = {
       v: 3, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
-      difficulty: this.state.difficulty, errands: this.state.errands,
+      difficulty: this.state.difficulty, errands: this.state.errands, cities: this.state.cities || {},
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -136,7 +136,9 @@ class Game {
       difficulty: DIFFICULTIES[d.difficulty] ? d.difficulty : 'knight',
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
       errands: { offered: [], active: [], reports: [] },
+      cities: {},
     };
+    for (const id of Object.keys(d.cities || {})) if (CITIES.some(c => c.id === id) && d.cities[id]) this.state.cities[id] = true;
     // Errands are kept only where they still make sense: a known errand, sent
     // with a unit that is still in the party.
     const e = d.errands || {};
@@ -267,6 +269,7 @@ class Game {
       $('btn-battle').textContent = `Trial ${n}`;
     }
     this.renderCampfire();
+    this.renderCities();
     const diff = DIFFICULTIES[s.difficulty] || DIFFICULTIES.knight;
     $('world-difficulty').innerHTML = Object.entries(DIFFICULTIES).map(([id, d]) =>
       `<button data-diff="${id}" class="${id === s.difficulty ? 'sel' : ''}" title="${d.desc}">${d.name}</button>`).join('') +
@@ -526,6 +529,101 @@ class Game {
       || passivesOfJob(u.job).some(id => !u.learned[id] && PASSIVES[id].jp <= jp);
   }
 
+  // ---- cities ----------------------------------------------------------------------------
+  cityOpen(id) { return !!(this.state.cities && this.state.cities[id]); }
+  cityReachable(city) { return this.state.chapter >= city.from; }
+
+  renderCities() {
+    const el = $('cities'); if (!el) return;
+    const s = this.state;
+    if (this.cityView) { const city = CITIES.find(c => c.id === this.cityView); if (city && this.cityOpen(city.id)) return this.renderCityPanel(city); this.cityView = null; }
+    const rows = CITIES.filter(c => this.cityReachable(c)).map(c => {
+      const open = this.cityOpen(c.id);
+      return `<div class="city ${open ? 'open' : 'held'}" data-city="${c.id}">
+        <div class="city-text"><b>${c.name}</b> <small>${open ? 'open' : c.held + ' · Lv ' + Math.max(c.level, this.avgLevel() - 1)}</small><div class="city-blurb">${open ? c.open : c.blurb}</div></div>
+        <button data-city-go="${c.id}" class="${open ? '' : 'primary'}">${open ? 'Visit' : 'Liberate'}</button>
+      </div>`;
+    }).join('');
+    const ahead = CITIES.filter(c => !this.cityReachable(c)).length;
+    el.innerHTML = rows + (ahead ? `<div class="city muted"><small>${ahead} more ${ahead === 1 ? 'city lies' : 'cities lie'} further along the road.</small></div>` : '');
+    el.querySelectorAll('button[data-city-go]').forEach(b => b.onclick = () => this.goToCity(b.dataset.cityGo));
+  }
+
+  goToCity(id) {
+    const city = CITIES.find(c => c.id === id);
+    if (!city || !this.cityReachable(city)) return;
+    audio.sfx('select');
+    if (this.cityOpen(id)) { this.cityView = id; this.renderCities(); $('cities').scrollIntoView({ block: 'nearest' }); }
+    else this.liberateCity(city);
+  }
+
+  renderCityPanel(city) {
+    const el = $('cities'), s = this.state;
+    const lvl = Math.max(1, this.avgLevel() - 1);
+    const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= 8 ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} gil</button>`).join('');
+    const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
+    el.innerHTML = `
+      <div class="city-head"><b>${city.name}</b><span class="muted">${city.open}</span><button id="btn-city-back" class="mini">Back to the road</button></div>
+      <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max 8)</small></h4>
+      <div class="city-hires">${hires}</div>
+      <h4>Market <small>sold here and nowhere else</small></h4>
+      <div class="city-stock">${stock}</div>`;
+    $('btn-city-back').onclick = () => { this.cityView = null; this.renderCities(); };
+    el.querySelectorAll('button[data-hire-at]').forEach(b => b.onclick = () => this.hireAt(city, b.dataset.hireAt));
+    el.querySelectorAll('button[data-buy-at]').forEach(b => b.onclick = () => this.buyAt(city, b.dataset.buyAt));
+  }
+
+  hireAt(city, job) {
+    const s = this.state;
+    if (!city.hires.includes(job) || s.gil < city.hireCost || s.party.length >= 8) return;
+    s.gil -= city.hireCost;
+    const used = new Set(s.party.map(u => u.name));
+    const pool = HIRE_NAMES.filter(n => !used.has(n));
+    const name = pool[Math.floor(Math.random() * pool.length)] || `Recruit ${s.party.length}`;
+    const u = new Unit({ name, job, level: Math.max(1, this.avgLevel() - 1), team: 'player' });
+    // Trained in their trade: enough JP for the first thing on the list, and the job levels the trade needs.
+    u.jp[job] = 120; u.jpTotal[job] = 120;
+    for (const [rj, lv] of Object.entries(JOBS[job].req || {})) u.jpTotal[rj] = Math.max(u.jpTotal[rj] || 0, JOB_LEVEL_JP[lv] || 0);
+    s.party.push(u);
+    audio.sfx('select');
+    this.toast(`${name} the ${JOBS[job].name} joins the party at ${city.name}.`);
+    this.showWorld();
+  }
+
+  buyAt(city, id) {
+    const it = ITEMS[id];
+    if (!it || !city.stock.includes(id) || this.state.gil < it.price) return;
+    this.state.gil -= it.price;
+    this.invAdd(id);
+    audio.sfx('coin');
+    this.toast(`Bought ${it.name}.`);
+    this.showWorld();
+  }
+
+  // A city's battle: its holders placed as a training fight would place them,
+  // at the city's level or a step under the party's, whichever is higher.
+  async liberateCity(city) {
+    const map = MAPS[city.map];
+    const lvl = Math.max(city.level, this.avgLevel() - 1);
+    const cands = [];
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+      if ('wtx'.includes(map.terrain[y][x])) continue;
+      const d = Math.min(...map.deploy.map(p => Math.abs(p[0] - x) + Math.abs(p[1] - y)));
+      if (d >= 5) cands.push({ x, y, d });
+    }
+    cands.sort(() => Math.random() - 0.5);
+    const enemies = city.enemies.map((e, i) => Object.assign({ level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }, e));
+    await this.story(`${city.name}, ${city.held}`, city.intro);
+    const res = await this.runBattle(map, enemies, city.gil, { objective: { type: 'rout' } });
+    if (res === 'aborted') return;
+    if (res === 'victory') {
+      this.state.cities[city.id] = true;
+      await this.story(city.name, city.outro);
+    }
+    this.saveGame();
+    this.showWorld();
+  }
+
   // ---- errands ---------------------------------------------------------------------------
   errandOf(u) { return (this.state.errands.active || []).find(a => a.unit === u.id) || null; }
 
@@ -577,7 +675,7 @@ class Game {
       u.gainJP(pay.jp);
       let found = null;
       if (Math.random() < spec.item) {
-        const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= this.shopTier() && ITEMS[id].tier >= Math.max(0, this.shopTier() - 2));
+        const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && !ITEMS[id].city && ITEMS[id].tier <= this.shopTier() && ITEMS[id].tier >= Math.max(0, this.shopTier() - 2));
         if (pool.length) { found = pool[Math.floor(Math.random() * pool.length)]; this.invAdd(found); }
       }
       e.reports.push(`${u.name} returns from "${spec.title}": ${pay.gil} gil and ${pay.jp} JP as a ${u.jobData.name}${found ? `, and brings back a ${ITEMS[found].name}` : ''}.`);
@@ -674,7 +772,7 @@ class Game {
 
   shopBuyRows() {
     const tier = this.shopTier();
-    const stock = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier);
+    const stock = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier && !ITEMS[id].city);
     const bySlot = {};
     for (const id of stock) (bySlot[ITEMS[id].slot] = bySlot[ITEMS[id].slot] || []).push(id);
     return Object.entries(SLOT_NAMES).filter(([slot]) => bySlot[slot]).map(([slot, label]) => {
@@ -849,6 +947,20 @@ class Game {
       if (next) { c.fillStyle = '#ffd84a'; c.fillText('Chapter ' + (i + 1), lx, p.y - 14); }
       else { c.fillStyle = done ? '#1a1a26' : 'rgba(230,230,240,0.5)'; c.font = 'bold 10px Georgia, serif'; c.fillText(String(i + 1), p.x, p.y + 4); c.font = '11px Georgia, serif'; }
     });
+    // Cities: a walled square on the road, gold once open, red while held.
+    const cityPts = CITIES.filter(c => this.cityReachable(c)).map(c => ({ c, x: c.pos[0] * W, y: c.pos[1] * H }));
+    for (const { c: city, x, y } of cityPts) {
+      const open = this.cityOpen(city.id);
+      c.save(); c.translate(x, y);
+      c.fillStyle = open ? '#e8c45a' : '#5a2a2a'; c.strokeStyle = open ? '#fff0b0' : '#d8483b'; c.lineWidth = 1.5;
+      c.beginPath(); c.rect(-8, -6, 16, 12); c.fill(); c.stroke();
+      c.fillStyle = open ? '#fff6d0' : '#8a4a4a';
+      c.fillRect(-6, -11, 4, 5); c.fillRect(2, -11, 4, 5); c.fillRect(-1, -14, 2, 8);
+      if (!open) { c.strokeStyle = '#ff9a8a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-5, 5); c.lineTo(5, -5); c.moveTo(-5, -5); c.lineTo(5, 5); c.stroke(); }
+      c.restore();
+      c.fillStyle = open ? '#f4e6b0' : 'rgba(255,200,190,0.8)'; c.font = '10px Georgia, serif'; c.textAlign = 'center';
+      c.fillText(city.name, Math.max(46, Math.min(W - 46, x)), y + 22);
+    }
     // The company, where the story has reached.
     const leader = this.state.party.find(u => u.leader) || this.state.party[0];
     if (leader) {
@@ -863,7 +975,9 @@ class Game {
       const r = cv.getBoundingClientRect();
       const x = (e.clientX - r.left) * (W / r.width), y = (e.clientY - r.top) * (H / r.height);
       const next = pts[this.state.chapter];
-      if (next && Math.hypot(x - next.x, y - next.y) < 22) $('btn-battle').click();
+      if (next && Math.hypot(x - next.x, y - next.y) < 22) return $('btn-battle').click();
+      const hit = cityPts.find(p => Math.hypot(x - p.x, y - p.y) < 16);
+      if (hit) this.goToCity(hit.c.id);
     };
   }
 

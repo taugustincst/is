@@ -71,6 +71,11 @@ a browser, or serve the folder with any static file server.
 - **A job tree you can read.** Every job on one page, in ranks from the
   roots to the summit, marked current, open, or locked with exactly how far
   off each requirement is — and a button to make the change from there.
+- **Cities on the map.** Six towns along the road, each held by someone who
+  should not have it: reavers, holdouts, the Concord's customs men, the
+  Court. Fight one open and it stays open: a tavern that hires recruits
+  already trained in an advanced trade, and a market that sells twelve arms
+  the wagon never carries.
 - **Errands.** Send a unit who is not the leader away from camp for a battle
   or two. They come back with gil, JP in the job they left in, and sometimes
   something found. Ten errands, two on the board at a time.
