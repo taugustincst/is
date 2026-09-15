@@ -24,6 +24,9 @@ const TERRAIN = {
   b: { top: '#b08a52', l: '#8f6d40', r: '#6e5330' },
   w: { top: '#3f6fb0', l: '#365f98', r: '#2c4f80' },
   t: { top: '#5f9e4a', l: '#7a5a3c', r: '#5e4430', lip: '#4a7d3a' },
+  // The north: packed snow over frozen earth, and river ice over dark water.
+  n: { top: '#e4ecf2', l: '#8a8a94', r: '#6c6c78', lip: '#c8d4dc' },
+  i: { top: '#b6dcee', l: '#2c4f80', r: '#243f68', lip: '#9cc8e0' },
 };
 
 /* The ground had been six flat colours. Each terrain now has a few textured
@@ -79,6 +82,15 @@ function tileTexture(kind, variant) {
     }
     for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 1, 1, '#3a2510'); }
     for (let i = 0; i < 10; i++) { const [x, y] = inside(); px(x, y, 2, 1, 'rgba(255,220,160,0.14)'); }
+  } else if (kind === 'n') {
+    // Snow: a faint sparkle, a drift line or two, the odd footprint.
+    for (let i = 0; i < 18; i++) { const [x, y] = inside(); px(x, y, 1, 1, 'rgba(255,255,255,0.7)'); }
+    for (let i = 0; i < 3; i++) { const [x, y] = inside(); px(x - 4, y, 9, 1, 'rgba(160,180,200,0.35)'); }
+    if (rnd() < 0.3) { const [x, y] = inside(); px(x, y, 2, 3, 'rgba(120,140,160,0.35)'); px(x + 4, y + 2, 2, 3, 'rgba(120,140,160,0.35)'); }
+  } else if (kind === 'i') {
+    // Ice: long cracks and a sheen.
+    for (let i = 0; i < 3; i++) { const [x, y] = inside(); const len = 6 + rnd() * 12; for (let k = 0; k < len; k++) px(x + k, y + Math.round(Math.sin(k * 0.8 + i) * 1.5), 1, 1, 'rgba(70,110,150,0.55)'); }
+    for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 3, 1, 'rgba(255,255,255,0.45)'); }
   } else if (kind === 'w') {
     for (let i = 0; i < 8; i++) { const [x, y] = inside(); px(x, y, 4 + rnd() * 6, 1, 'rgba(255,255,255,0.10)'); }
     for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 3, 1, 'rgba(0,0,40,0.14)'); }
@@ -140,6 +152,8 @@ const MOODS = {
   rain:  { sky: ['#232a38', '#0f121a'], stars: false, tint: 'rgba(70,90,130,0.20)',  air: 'rain',     music: 'dread' },
   ember: { sky: ['#3a1a14', '#140a08'], stars: false, tint: 'rgba(255,80,30,0.18)',  air: 'embers',   music: 'battle' },
   night: { sky: ['#0c0f22', '#05060e'], stars: true,  tint: 'rgba(30,40,110,0.24)',  air: 'fireflies', music: 'finale' },
+  snow:  { sky: ['#3a4660', '#8a98ac'], stars: false, tint: 'rgba(200,220,255,0.10)', air: 'snow',     music: 'frost' },
+  aurora:{ sky: ['#05101c', '#12303c'], stars: true,  tint: 'rgba(60,200,180,0.08)',  air: 'snow',     music: 'finale', aurora: true },
 };
 
 /* The sky: a gradient, a scatter of stars that keeps its place when the
@@ -160,6 +174,19 @@ function skyLayer(W, H, mood) {
     for (let i = 0; i < n; i++) {
       const x = rnd() * W, y = rnd() * H * 0.7, a = 0.25 + rnd() * 0.55, s = rnd() < 0.15 ? 2 : 1;
       c.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`; c.fillRect(Math.round(x), Math.round(y), s, s);
+    }
+  }
+  if (m.aurora) {
+    // Curtains of light, drawn once: three soft bands folding across the top of the sky.
+    const rnd = seeded(11);
+    for (let b = 0; b < 3; b++) {
+      const y0 = H * (0.08 + b * 0.09), amp = 18 + rnd() * 14, hue = b === 1 ? '120,255,190' : b === 2 ? '150,120,255' : '80,220,200';
+      const grad = c.createLinearGradient(0, y0 - 40, 0, y0 + 60);
+      grad.addColorStop(0, `rgba(${hue},0)`); grad.addColorStop(0.45, `rgba(${hue},0.22)`); grad.addColorStop(1, `rgba(${hue},0)`);
+      c.fillStyle = grad;
+      c.beginPath(); c.moveTo(0, y0 - 40);
+      for (let x = 0; x <= W; x += 12) c.lineTo(x, y0 - 40 + Math.sin(x / 90 + b * 2) * amp);
+      c.lineTo(W, y0 + 60); c.lineTo(0, y0 + 60); c.closePath(); c.fill();
     }
   }
   const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
@@ -189,7 +216,7 @@ function mistBlob() {
 
 function drawAir(c, W, H, kind, time) {
   const t = reducedMotion() ? 0 : time / 1000;
-  const n = kind === 'mist' ? 5 : kind === 'rain' ? 90 : 34;
+  const n = kind === 'mist' ? 5 : kind === 'rain' ? 90 : kind === 'snow' ? 70 : 34;
   const rnd = seeded(kind.length * 977);
   for (let i = 0; i < n; i++) {
     const ax = rnd(), ay = rnd(), sp = 0.4 + rnd() * 0.8, ph = rnd() * 6.28;
@@ -200,6 +227,10 @@ function drawAir(c, W, H, kind, time) {
       const x = ((ax + t * 0.05 * sp) % 1) * W, y = ((ay + t * 0.9 * sp) % 1) * H;
       c.strokeStyle = 'rgba(190,210,240,0.28)'; c.lineWidth = 1;
       c.beginPath(); c.moveTo(x, y); c.lineTo(x - 3, y + 14); c.stroke();
+    } else if (kind === 'snow') {
+      // Flakes fall slowly and drift, each on its own wander.
+      const x = ((ax + Math.sin(t * 0.5 * sp + ph) * 0.02 + t * 0.008 * sp) % 1) * W, y = ((ay + t * 0.06 * sp) % 1) * H;
+      c.fillStyle = `rgba(240,246,255,${(0.45 + 0.35 * sp).toFixed(2)})`; c.fillRect(x, y, sp > 0.9 ? 2 : 1.5, sp > 0.9 ? 2 : 1.5);
     } else if (kind === 'embers') {
       const x = ((ax + Math.sin(t * sp + ph) * 0.01) % 1) * W, y = ((ay - t * 0.03 * sp) % 1 + 1) % 1 * H;
       const a = 0.35 + 0.35 * Math.sin(t * 3 * sp + ph);

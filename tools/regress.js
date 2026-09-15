@@ -644,10 +644,13 @@ const mk = (n, job, lvl, opts = {}) => {
     const acts = g.run('ACTS'), epi = g.run('EPILOGUE_CAMP');
     const thin = g.CAMPAIGN.filter(ch => !(ch.intro && ch.intro.length >= 3 && ch.intro.length <= 7) || !(ch.outro && ch.outro.length >= 1 && ch.outro.length <= 7) || !(ch.camp && ch.camp.length >= 2 && ch.camp.length <= 4)).map(ch => ch.id);
     ok('every chapter has an intro, an outro and a night around the fire, none too long for the screen', thin.length === 0, thin.join(',') || `${g.CAMPAIGN.length} chapters`);
-    const covered = g.CAMPAIGN.every((ch, i) => acts.some(a => i >= a.from && i <= a.to && !a.teaser));
-    ok('every chapter belongs to a walkable act, and the next act is only groundwork', covered && acts[acts.length - 1].teaser === true && acts[acts.length - 1].from === g.CAMPAIGN.length && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
+    const covered = g.CAMPAIGN.every((ch, i) => acts.some(a => i >= a.from && i <= a.to));
+    ok('every chapter belongs to an act, and the acts end where the road does', covered && acts.length === 3 && acts[acts.length - 1].to === g.CAMPAIGN.length - 1 && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
     const hooks = g.CAMPAIGN[g.CAMPAIGN.length - 1].outro.join(' ');
-    ok('the finale plants the next act', /star-iron/.test(hooks) && /north/.test(hooks) && !/THE END\./.test(hooks), hooks.slice(-80));
+    const finals = g.CAMPAIGN.filter(ch => ch.final).map(ch => ch.id);
+    ok('the road ends once, at the end, with the end', /THE END\./.test(hooks) && finals.length === 1 && finals[0] === g.CAMPAIGN[g.CAMPAIGN.length - 1].id && /END OF ACT II/.test(g.CAMPAIGN[11].outro.join(' ')), finals.join(','));
+    const northMaps = g.CAMPAIGN.slice(12).map(ch => g.MAPS[ch.map]);
+    ok('the north is fought on snow and ice under its own skies', northMaps.every(m => /[ni]/.test(m.terrain.join('')) && ['snow', 'aurora'].includes(m.mood)), northMaps.map(m => m.mood).join(','));
     const errands = g.run('ERRANDS');
     ok('every errand is a day or two with pay, JP and a chance of a find', errands.length >= 8 && errands.every(e => [1, 2].includes(e.days) && e.gil > 0 && e.jp > 0 && e.item >= 0 && e.item <= 1 && e.title && e.text) && new Set(errands.map(e => e.id)).size === errands.length, `${errands.length} errands`);
     const rvm = require('vm'), rctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
@@ -688,7 +691,7 @@ const mk = (n, job, lvl, opts = {}) => {
      Storm Mail cannot either, and charged abilities are resolved as the
      engine would resolve them. */
   {
-    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer'];
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer', 'frostweaver', 'warden', 'runeblade'];
     const realRandom = Math.random;
     const silent = [];
     for (const job of NEW) for (const id of g.JOBS[job].abilities) {
@@ -710,7 +713,7 @@ const mk = (n, job, lvl, opts = {}) => {
       if (ab.deadOnly) { friend.hp = 0; friend.koCount = 3; }
       // The stats themselves, not the modifier table: a buff that changes a
       // number nothing reads is not a buff.
-      const snap = (u) => JSON.stringify([u.hp, u.mp, Object.keys(u.statuses), u.pa, u.ma, u.spd, u.move, u.jump, u.evade]);
+      const snap = (u) => JSON.stringify([u.hp, u.mp, Object.keys(u.statuses), u.pa, u.ma, u.spd, u.move, u.jump, u.evade, u.ct]);
       const before = snap(target);
       Math.random = () => 0.01;
       try {

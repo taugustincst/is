@@ -380,7 +380,8 @@ class Battle {
   applyEffect(user, ab, eff, t) {
     switch (eff.type) {
       case 'damage': {
-        const v = this.computeEffect(user, ab, eff, t);
+        let v = this.computeEffect(user, ab, eff, t);
+        if (v > 0 && ab.element === 'ice' && user.hasPassive('coldBlood')) v = Math.ceil(v * 1.25);
         if (v < 0) {
           // The target's element absorbs the attack.
           const heal = Math.min(-v, t.maxHp - t.hp);
@@ -574,6 +575,11 @@ class Battle {
       target.addStatus('regen');
       this.log(`${target.name}'s wounds begin to close.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'Regen', STATUSES.regen.color);
+    }
+    if (target.hasPassive('lastStand') && target.hp < target.maxHp / 3 && !(target.hasStatus('protect') && target.hasStatus('shell'))) {
+      target.addStatus('protect'); target.addStatus('shell');
+      this.log(`${target.name} makes a last stand: Protect and Shell.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(target, 'Last Stand', '#9ef0ff');
     }
     if (target.hasPassive('overcharge')) {
       target.mods.spd = (target.mods.spd || 0) + 1;

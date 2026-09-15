@@ -210,6 +210,7 @@ class Unit {
 
   // Some gear simply refuses an affliction.
   wardsOff(id) {
+    if ((id === 'slow' || id === 'stop') && this.hasPassive('ironFooting')) return true;
     for (const slot of Object.keys(SLOT_NAMES)) {
       const it = this.equipped(slot);
       if (it && it.wards && it.wards.includes(id)) return true;

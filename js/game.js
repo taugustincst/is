@@ -7,12 +7,13 @@ const PACE_KEY = 'elderon.pace';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
+// Seventeen stops in three bands: Act I east along the lower road, Act II
+// back west along the coast, Act III north over the ice at the top.
 const WORLD_ROUTE = [
-  [0.07, 0.82], [0.19, 0.64], [0.31, 0.80], [0.43, 0.62], [0.55, 0.78], [0.67, 0.58], [0.80, 0.72],
-  [0.91, 0.50], [0.78, 0.32], [0.62, 0.20], [0.45, 0.30], [0.27, 0.16],
+  [0.06, 0.86], [0.18, 0.74], [0.30, 0.88], [0.42, 0.74], [0.54, 0.88], [0.66, 0.74], [0.80, 0.86],
+  [0.92, 0.66], [0.78, 0.56], [0.62, 0.64], [0.46, 0.54], [0.30, 0.62],
+  [0.14, 0.50], [0.10, 0.32], [0.26, 0.22], [0.44, 0.30], [0.62, 0.14],
 ];
-// Where the road would go next: north, over the ice, in an act not yet written.
-const WORLD_NORTH = [0.09, 0.08];
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -255,14 +256,13 @@ class Game {
     } else {
       // The war is won; the trials are what a company does with peace.
       const n = (s.trials || 0) + 1, t = this.trialSpec(n);
-      const act3 = ACTS[ACTS.length - 1];
       $('world-next').innerHTML = `
-        <div class="chapter-num">Act ${ACTS.length} · ${act3.title} · Trial ${n}</div>
+        <div class="chapter-num">After the war · Trial ${n}</div>
         <div class="chapter-title">${t.title}</div>
         <div class="chapter-map">${MAPS[t.map].name} · ${t.enemies.length} enemies · Lv ${t.level}</div>
         <div class="chapter-goal">Objective: Defeat every enemy · ${t.gil} gil</div>
         <div class="chapter-map">The war is won. Each trial is harder than the last, and nothing is lost by failing one. The wagon now carries legendary arms, and a trial won may turn one up.</div>
-        <div class="chapter-goal act-teaser">${act3.blurb}</div>`;
+        <div class="chapter-goal act-after">${AFTER_THE_WAR}</div>`;
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = `Trial ${n}`;
     }
@@ -789,13 +789,13 @@ class Game {
     this.showWorld();
   }
 
-  /* The realm, drawn: the twelve chapters as stops along a road, coloured by
+  /* The realm, drawn: the seventeen chapters as stops along a road, coloured by
      the mood of the field each is fought on, with the company's own leader
      standing where the story has reached. */
   drawWorldMap() {
     const cv = $('world-map');
     if (!cv) return;
-    const cssW = Math.max(280, cv.clientWidth || 800), cssH = cssW / 2, dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cssW = Math.max(280, cv.clientWidth || 800), cssH = Math.round(cssW * 0.62), dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
     const c = cv.getContext('2d');
     c.setTransform(dpr, dpr, 0, 0, 0, 0); c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -859,16 +859,6 @@ class Game {
       // Beside the stop, clear of its label.
       c.drawImage(face, at.x + 18, at.y - face.height + 6);
     }
-    // Beyond the last stop, the road north: dashed, unnamed, not yet open.
-    {
-      const last = pts[pts.length - 1], nx = WORLD_NORTH[0] * W, ny = WORLD_NORTH[1] * H;
-      c.beginPath(); c.setLineDash([3, 7]); c.lineWidth = 2; c.strokeStyle = 'rgba(160,200,255,0.35)';
-      c.moveTo(last.x, last.y); c.quadraticCurveTo((last.x + nx) / 2 - 20, (last.y + ny) / 2 + 10, nx, ny); c.stroke(); c.setLineDash([]);
-      c.beginPath(); c.arc(nx, ny, 7, 0, Math.PI * 2); c.fillStyle = 'rgba(160,200,255,0.12)'; c.fill();
-      c.strokeStyle = 'rgba(160,200,255,0.45)'; c.lineWidth = 1; c.stroke();
-      c.fillStyle = 'rgba(200,220,255,0.55)'; c.font = '10px Georgia, serif'; c.textAlign = 'center';
-      c.fillText(this.state.chapter >= CAMPAIGN.length ? 'North' : '?', nx, ny + 20);
-    }
     cv.onclick = (e) => {
       const r = cv.getBoundingClientRect();
       const x = (e.clientX - r.left) * (W / r.width), y = (e.clientY - r.top) * (H / r.height);
@@ -902,7 +892,7 @@ class Game {
 
   async startTraining() {
     const s = this.state;
-    const mapIds = Object.keys(MAPS).filter(m => m !== 'thornwall' && m !== 'brassgate');
+    const mapIds = Object.keys(MAPS).filter(m => !['thornwall', 'brassgate', 'starfall'].includes(m));
     const map = MAPS[mapIds[Math.floor(Math.random() * mapIds.length)]];
     const poolIdx = Math.min(TRAINING_POOL.length - 1, Math.floor(Math.random() * (s.chapter + 1)));
     const pool = TRAINING_POOL[poolIdx];

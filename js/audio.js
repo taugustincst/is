@@ -40,6 +40,14 @@ const TRACKS = {
     bass: [38, 38, 45, 38, 38, 38, 45, 38, 40, 40, 47, 40, 40, 40, 47, 40,
            38, 38, 45, 38, 41, 41, 48, 41, 43, 43, 50, 43, 45, 45, 45, 45],
   },
+  // Slow, high and thin, for the ice: the same key, with the warmth gone out of it.
+  frost: {
+    bpm: 84, wave: 'triangle', gain: 0.14,
+    lead: [76, null, null, 81, null, null, 79, null, 76, null, null, null, 74, null, null, null,
+           72, null, null, 76, null, null, 74, null, 72, null, 71, null, 69, null, null, null],
+    bass: [45, null, null, null, 52, null, null, null, 41, null, null, null, 48, null, null, null,
+           40, null, null, null, 47, null, null, null, 43, null, null, null, 45, null, null, null],
+  },
   ruin: {
     bpm: 76, wave: 'sine', gain: 0.15,
     lead: [64, null, null, 67, null, null, 69, null, 68, null, null, 64, null, null, null, null,
@@ -446,7 +454,7 @@ class GameAudio {
 }
 
 // What a field sounds like under the music: keyed by the map's mood.
-const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night' };
+const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night', snow: 'wind', aurora: 'night' };
 
 // Continuous weather and wildlife, built from the same noise and tones as the
 // effects, sitting quietly under the theme and muted with it.

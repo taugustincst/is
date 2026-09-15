@@ -281,6 +281,52 @@ const JOBS = {
     abilities: ['teslaCoil', 'aetherShield', 'gearstorm', 'overdrive'],
     req: { engineer: 3, gunner: 3 }, desc: 'Lightning in a bottle, and the bottle is the whole battlefield.',
   },
+  // ---- the north: what the Winter Court made, and what stood against it ----
+  frostweaver: {
+    name: 'Frostweaver', skillset: 'Rime', kind: 'human', sprite: 'mage',
+    palette: { h: '#dfe8f0', c: '#5a7ab0', p: '#2a3a5a', b: '#1a2030' },
+    affinity: { ice: 'absorb', fire: 'weak' },
+    hp: 0.75, mp: 1.7, pa: 0.6, ma: 1.65, spd: 1.0, move: 3, jump: 3, evade: 8,
+    weapon: { name: 'Ice Rod', power: 5, range: 1, vert: 2 },
+    abilities: ['rime', 'glaciate', 'hoarfrost', 'whiteout'],
+    req: { blackMage: 3, timeMage: 2 }, desc: 'The Court\'s own art, learned back from it: cold that stops, blinds and holds.',
+  },
+  warden: {
+    name: 'Warden', skillset: 'Vigil', kind: 'human', sprite: 'warrior',
+    palette: { h: '#8a5a2a', c: '#6a7a5a', p: '#3a3a2a', b: '#2a2a2a' },
+    affinity: { ice: 'resist' },
+    hp: 1.15, mp: 0.9, pa: 1.25, ma: 0.9, spd: 1.05, move: 4, jump: 4, evade: 12,
+    weapon: { name: 'Warden Spear', power: 7, range: 2, vert: 3 },
+    abilities: ['pin', 'wardPost', 'rally', 'volley'],
+    req: { archer: 3, knight: 2 }, desc: 'The old north\'s sentries: a spear, a post to hold, and a voice the line can hear.',
+  },
+  runeblade: {
+    name: 'Runeblade', skillset: 'Star-iron', kind: 'human', sprite: 'heavy',
+    palette: { h: '#3a3a4a', c: '#8ab0d0', p: '#2a3040', b: '#1a1a2a' },
+    affinity: { ice: 'resist', dark: 'resist' },
+    hp: 1.3, mp: 1.3, pa: 1.4, ma: 1.35, spd: 1.05, move: 4, jump: 4, evade: 14,
+    weapon: { name: 'Rune Sword', power: 8, range: 1, vert: 2 },
+    abilities: ['runecut', 'frostbrand', 'starWard', 'nova'],
+    req: { samurai: 2, arcanist: 2 }, desc: 'A blade with the star-iron\'s own runes cut into it. It burns cold, and it does not stay down.',
+  },
+  hollowKnight: {
+    name: 'Hollow Knight', skillset: 'Hollow', kind: 'human', sprite: 'heavy',
+    palette: { h: '#cfe8f4', c: '#2a3a4a', p: '#1a2030', b: '#0a1018' },
+    affinity: { ice: 'absorb', fire: 'weak', holy: 'weak' },
+    hp: 1.5, mp: 1.0, pa: 1.4, ma: 1.0, spd: 1.0, move: 4, jump: 3, evade: 12,
+    weapon: { name: 'Hollow Blade', power: 8, range: 1, vert: 2 },
+    abilities: ['hollowStrike', 'colddrain', 'frostbrand'], req: null,
+    desc: 'Armour with the cold inside it and nothing else. Fire and holy light get in.',
+  },
+  winterRegent: {
+    name: 'Winter Regent', skillset: 'Regency', kind: 'human', sprite: 'mage',
+    palette: { h: '#ffffff', c: '#1a2a48', p: '#0a1020', b: '#000000' },
+    affinity: { ice: 'absorb', fire: 'weak' },
+    hp: 2.4, mp: 2.0, pa: 1.3, ma: 1.9, spd: 1.15, move: 4, jump: 4, evade: 16,
+    weapon: { name: 'Regent\'s Sceptre', power: 9, range: 2, vert: 3 },
+    abilities: ['rime', 'glaciate', 'whiteout', 'nova', 'absoluteZero'], req: null,
+    desc: 'He looks like a man and is dressed like a king. The cold coming off him is neither.',
+  },
   goblin: {
     name: 'Goblin', skillset: 'Goblin', kind: 'monster', sprite: 'goblin',
     palette: { h: '#2a5a2a', c: '#4a8a3a', p: '#6a4a2a', b: '#3a2a1a' },
@@ -368,6 +414,34 @@ const JOBS = {
     weapon: { name: 'Furnace Fist', power: 12, range: 1, vert: 3 },
     abilities: ['pistonStrike', 'furnaceBlast', 'steamSiren', 'overheat'], req: null,
     desc: 'The Director\'s answer to every argument. A furnace on legs, with a man inside.',
+  },
+  // ---- the Court's creatures ----
+  rimeWight: {
+    name: 'Rime Wight', skillset: 'Grave Cold', kind: 'monster', sprite: 'skeleton',
+    palette: { h: '#dff4ff', c: '#8ab0c8', p: '#5a7a90', b: '#2a3a48', e: '#40c0ff' },
+    affinity: { ice: 'absorb', fire: 'weak', holy: 'weak', dark: 'resist' },
+    hp: 1.1, mp: 0.8, pa: 1.1, ma: 1.1, spd: 0.9, move: 3, jump: 3, evade: 8,
+    weapon: { name: 'Grave Cold', power: 6, range: 1, vert: 2 },
+    abilities: ['chill', 'graspOfIce'], req: null,
+    desc: 'What the river keeps. It comes up out of the ice when a knight calls.',
+  },
+  iceDrake: {
+    name: 'Ice Drake', skillset: 'Drake', kind: 'monster', sprite: 'wolf',
+    palette: { h: '#cfe8ff', c: '#9ac0e0', p: '#4a6a90', b: '#2a3a50', e: '#ffffff' },
+    affinity: { ice: 'absorb', fire: 'weak', thunder: 'resist' },
+    hp: 2.2, mp: 1.0, pa: 1.5, ma: 1.2, spd: 1.1, move: 5, jump: 5, evade: 10,
+    weapon: { name: 'Fangs', power: 9, range: 1, vert: 3 },
+    abilities: ['frostBreath', 'wingBuffet', 'tailSweep'], req: null,
+    desc: 'A river with teeth. The Court feeds it, and it has not been hungry for a long time.',
+  },
+  namelessCold: {
+    name: 'The Nameless Cold', skillset: 'Nothing', kind: 'monster', sprite: 'wisp',
+    palette: { h: '#ffffff', c: '#8ab0ff', p: '#2a2a5a', b: '#101030', w: '#ffffff', e: '#000000' },
+    affinity: { ice: 'absorb', dark: 'absorb', fire: 'weak', holy: 'weak', thunder: 'resist' },
+    hp: 3.2, mp: 2.5, pa: 1.6, ma: 2.0, spd: 1.2, move: 5, jump: 9, evade: 14,
+    weapon: { name: 'Nothing', power: 10, range: 1, vert: 9 },
+    abilities: ['absoluteZero', 'hunger', 'stillness', 'unmake'], req: null,
+    desc: 'It fell from the sky and has been eating ever since. It has never needed a name.',
   },
   darkKnight: {
     name: 'Dark Knight', skillset: 'Fell Sword', kind: 'human', sprite: 'heavy',
@@ -653,6 +727,59 @@ const ABILITIES = {
     desc: 'Sign it again. PA +3 and MA +3 for the rest of the battle.' },
 
   // Monsters
+  // Frostweaver
+  rime: { name: 'Rime', job: 'frostweaver', jp: 100, mp: 10, range: 4, aoe: 1, vert: 4, ct: 6, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Frost over an area, quick to cast.' },
+  glaciate: { name: 'Glaciate', job: 'frostweaver', jp: 250, mp: 14, range: 3, aoe: 0, vert: 4, ct: 10, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }, { type: 'status', status: 'stop', hit: 50 }], desc: 'Ice damage, and an even chance the target is Stopped in it.' },
+  hoarfrost: { name: 'Hoarfrost', job: 'frostweaver', jp: 200, mp: 12, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 5 }], desc: 'A skin of frost over allies in the area: Shell, and Evade +5.' },
+  whiteout: { name: 'Whiteout', job: 'frostweaver', jp: 400, mp: 18, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'all',
+    effects: [{ type: 'status', status: 'blind', hit: 70 }, { type: 'status', status: 'slow', hit: 50 }], desc: 'Snow so thick nobody sees or hurries. Blind and Slow over a wide area.' },
+
+  // Warden
+  pin: { name: 'Pin', job: 'warden', jp: 100, mp: 4, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'stop', hit: 40 }], desc: 'Weapon damage, and a fair chance the target is pinned: Stopped.' },
+  wardPost: { name: 'Ward Post', job: 'warden', jp: 150, mp: 6, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 10 }], desc: 'Take a post and hold it. Protect, and Evade +10.' },
+  rally: { name: 'Rally', job: 'warden', jp: 300, mp: 10, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'ctmod', amount: 20 }], desc: 'A voice the line can hear. Every ally within two tiles gains 20 CT.' },
+  volley: { name: 'Volley', job: 'warden', jp: 350, mp: 0, range: 4, aoe: 1, vert: 9, ct: 14, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.9 }], desc: 'Spears in the air, down on an area, after a charge.' },
+
+  // Runeblade
+  runecut: { name: 'Runecut', job: 'runeblade', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'mpdamage', formula: 'ma', power: 4 }], desc: 'A cut that reads the target\'s runes back at it: weapon damage, and MP burned.' },
+  frostbrand: { name: 'Frostbrand', job: 'runeblade', jp: 250, mp: 6, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.3 }], desc: 'The blade burns cold. 1.3x weapon damage, as ice.' },
+  starWard: { name: 'Star Ward', job: 'runeblade', jp: 400, mp: 20, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'reraise', hit: 100 }, { type: 'status', status: 'protect', hit: 100 }], desc: 'The star-iron does not stay down. Reraise and Protect on yourself.' },
+  nova: { name: 'Nova', job: 'runeblade', jp: 500, mp: 22, range: 3, aoe: 2, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: null,
+    effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'What the star did when it fell, in small. Heavy damage over a wide area, of no element.' },
+
+  // The Court
+  hollowStrike: { name: 'Hollow Strike', job: 'hollowKnight', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'pa', power: 8 }], desc: 'A blow with the cold in it.' },
+  colddrain: { name: 'Cold Drain', job: 'hollowKnight', jp: 0, mp: 6, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'mpdrain', formula: 'ma', power: 5 }], desc: 'Draws the warmth, and the magic, out of a target.' },
+  chill: { name: 'Chill', job: 'rimeWight', jp: 0, mp: 6, range: 3, aoe: 0, vert: 4, ct: 4, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 6 }, { type: 'status', status: 'slow', hit: 40 }], desc: 'Ice damage, and often Slow.' },
+  graspOfIce: { name: 'Grasp of Ice', job: 'rimeWight', jp: 0, mp: 8, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'magic', affects: 'enemy', element: 'ice',
+    effects: [{ type: 'drain', formula: 'ma', power: 7 }], desc: 'A hand from the ice that takes and keeps.' },
+  frostBreath: { name: 'Frost Breath', job: 'iceDrake', jp: 0, mp: 10, range: 3, aoe: 1, vert: 4, ct: 8, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Breath that freezes an area.' },
+  wingBuffet: { name: 'Wing Buffet', job: 'iceDrake', jp: 0, mp: 0, range: 0, aoe: 1, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', self: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'ctmod', amount: -20 }], desc: 'Wings on everything close: damage, and 20 CT lost.' },
+  tailSweep: { name: 'Tail Sweep', job: 'iceDrake', jp: 0, mp: 0, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 9 }], desc: 'A tail the length of a bridge.' },
+  absoluteZero: { name: 'Absolute Zero', job: 'winterRegent', jp: 0, mp: 30, range: 4, aoe: 2, vert: 9, ct: 14, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 12 }, { type: 'status', status: 'slow', hit: 60 }], desc: 'The cold at the bottom of everything, over a wide area.' },
+  hunger: { name: 'Hunger', job: 'namelessCold', jp: 0, mp: 10, range: 0, aoe: 1, vert: 9, ct: 0, kind: 'magic', affects: 'enemy', self: true, element: 'ice',
+    effects: [{ type: 'drain', formula: 'ma', power: 9 }], desc: 'It eats what is close.' },
+  stillness: { name: 'Stillness', job: 'namelessCold', jp: 0, mp: 16, range: 3, aoe: 2, vert: 9, ct: 10, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'status', status: 'stop', hit: 60 }], desc: 'Everything in the area is likely Stopped.' },
+  unmake: { name: 'Unmake', job: 'namelessCold', jp: 0, mp: 20, range: 2, aoe: 0, vert: 9, ct: 16, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'slay', hit: 35 }], desc: 'A third of the time, the target simply is not any more.' },
   // Engineer
   repair: { name: 'Repair', job: 'engineer', jp: 100, mp: 6, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
     effects: [{ type: 'heal', formula: 'ma', power: 7 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'Patch what is broken, flesh or brass. Heals, and leaves Regen behind.' },
@@ -1192,6 +1319,67 @@ const MAPS = {
     ],
     deploy: [[5, 11], [6, 11], [7, 11], [5, 10], [7, 10]],
   },
+  // ---- Act III: the north ----
+  rimewater: {
+    name: 'Rimewater', w: 13, h: 11, mood: 'snow',
+    heights: [
+      '2222222222222', '2221111112222', '2211111111122', '1111111111111', '1111111111111', '1111111111111',
+      '1111111111111', '1111111111111', '2211111111122', '2221111112222', '2222222222222',
+    ],
+    terrain: [
+      'nnnnnnnnnnnnn', 'nnntnnnnnnnnn', 'nnniiiiiiinnn', 'niiiiiiiiiiin', 'iiiiwwiiiiiii', 'iiiiiiiiiwwii',
+      'iiiwiiiiiiiii', 'niiiiiiiiiiin', 'nnniiiiiiinnn', 'nnnnnnnnntnnn', 'nnnnnnnnnnnnn',
+    ],
+    deploy: [[1, 9], [2, 9], [1, 8], [2, 8], [3, 9]],
+  },
+  frostholm: {
+    name: 'Frostholm', w: 12, h: 12, mood: 'snow',
+    heights: [
+      '111111111111', '133113311111', '133113311111', '111111111111', '111111111111', '113311331111',
+      '113311331111', '111111111111', '111111111111', '133111133111', '133111133111', '111111111111',
+    ],
+    terrain: [
+      'nnnnnnnnnnnn', 'nxxnnxxnnnnn', 'nxxnnxxnnnnn', 'nbbnnbbnnnnn', 'nnnnnnnnnnnn', 'nnxxnnxxnnnn',
+      'nnxxnnxxnnnn', 'nnbbnnbbnnnn', 'nnnnnnnnnnnn', 'nxxnnnnxxnnn', 'nxxnnnnxxnnn', 'nnnnnnnnnnnn',
+    ],
+    deploy: [[9, 10], [10, 10], [9, 11], [10, 11], [8, 11]],
+  },
+  glacierpass: {
+    name: 'The Glacier Pass', w: 11, h: 13, mood: 'snow',
+    heights: [
+      '55555555555', '54444444445', '54444444445', '53333333335', '53333333335', '52222222225', '52222222225',
+      '51111111115', '51111111115', '51111111115', '51111111115', '51111111115', '55555555555',
+    ],
+    terrain: [
+      'xxxxxxxxxxx', 'xiiinnnnnnx', 'xiiinnnnnnx', 'xiiixxnnnnx', 'xiiiiinnnnx', 'xiiiiinnnnx', 'xiiixxnnnnx',
+      'xiiinnnnnnx', 'xiiinnnnnnx', 'xiiixxnnnnx', 'xiiinnnnnnx', 'xnnnnnnnnnx', 'xxxxxxxxxxx',
+    ],
+    deploy: [[4, 11], [5, 11], [6, 11], [4, 10], [6, 10]],
+  },
+  hollowcourt: {
+    name: 'The Hollow Court', w: 13, h: 13, mood: 'aurora',
+    heights: [
+      '4444444444444', '4333333333334', '4333333333334', '4222222222224', '4222222222224', '4111111111114', '4111111111114',
+      '4111111111114', '4111111111114', '4111111111114', '4111111111114', '4111111111114', '4444444444444',
+    ],
+    terrain: [
+      'xxxxxxxxxxxxx', 'xiiiiibiiiiix', 'xixiiibiiixix', 'xiiiiibiiiiix', 'xsxsssbsssxsx', 'xsssssbsssssx', 'xsxsssbsssxsx',
+      'xsssssbsssssx', 'xsxsssbsssxsx', 'xsssssbsssssx', 'xsxsssbsssxsx', 'xsssssbsssssx', 'xxxxxxxxxxxxx',
+    ],
+    deploy: [[5, 11], [6, 11], [7, 11], [5, 10], [7, 10]],
+  },
+  starfall: {
+    name: 'Starfall', w: 13, h: 13, mood: 'aurora',
+    heights: [
+      '4444444444444', '4333333333334', '4322222222234', '4321111111234', '4321000001234', '4321033301234', '4321033301234',
+      '4321033301234', '4321000001234', '4321111111234', '4322222222234', '4333333333334', '4444444444444',
+    ],
+    terrain: [
+      'sssssssssssss', 'sssssssssssss', 'ssnnnnnnnnnss', 'ssniiiiiiinss', 'ssniiiiiiinss', 'ssniixxxiinss', 'ssniixxxiinss',
+      'ssniixxxiinss', 'ssniiiiiiinss', 'ssniiiiiiinss', 'ssnnnnnnnnnss', 'sssssssssssss', 'sssssssssssss',
+    ],
+    deploy: [[5, 11], [6, 11], [7, 11], [5, 10], [7, 10]],
+  },
 };
 
 // ------------------------------------------------------------------ campaign
@@ -1547,7 +1735,167 @@ const CAMPAIGN = [
       'The Concord\'s ledgers go to both princes at once, with Rowan\'s seal beside the cog. By spring there is nothing left for either to fight about, and everyone knows why.',
       'The last page of the last ledger is a shipping order, paid in a script none of them can read: eleven more cores of star-iron, from somewhere north of the ice.',
       'Rowan Aldric goes home, for a while. The company that walked the road stays together, because that is what it has become, and because the road is not finished.',
-      '--- END OF ACT II. The road north waits for another day. Trials await at camp, and the wagon carries legendary arms. ---',
+      '--- END OF ACT II. The road north is open. ---',
+    ],
+  },
+
+  // ---- Act III: the Winter Court ----
+  {
+    objective: { type: 'rout', protectLeader: true },
+    id: 'ch13', title: 'The Frost Rider', map: 'rimewater',
+    camp: [
+      'Bram: "A frozen river. We are going to fight on a frozen river."  Ingrid: "You are going to fight on the parts that hold."',
+      'Ottilie has the star-iron core from Brassgate wrapped in three blankets. It is still cold through all of them.',
+      'Rowan: "Whatever took Brannoc came from up here. I want to know what it is before it knows we are coming."',
+    ],
+    intro: [
+      'The rider\'s name is Ingrid, and she was a Warden of the north before the north stopped needing wardens.',
+      '"The Court took Frostholm in a night," she says. "No fire, no fight. In the morning the people were still there, and they had stopped being cold, and they had stopped being anything else."',
+      'She leads the company onto Rimewater, where the river froze mid-current a hundred years ago and never thawed.',
+      '"They will come out of the fog. The knights first. The wights after, up out of the ice itself. Do not stand still for long."',
+    ],
+    enemies: [
+      { job: 'hollowKnight', level: 12, x: 10, y: 2 },
+      { job: 'hollowKnight', level: 12, x: 11, y: 4 },
+      { job: 'rimeWight', level: 12, x: 8, y: 5 },
+      { job: 'rimeWight', level: 12, x: 11, y: 6 },
+      { job: 'frostweaver', level: 12, x: 11, y: 2, name: 'Court Frostweaver' },
+    ],
+    gil: 3600,
+    recruit: { name: 'Ingrid', job: 'warden', level: 13 },
+    outro: [
+      'The last wight goes back into the ice it came from. Ingrid pulls her spear out of a hollow knight and looks at what is inside the armour. Nothing is.',
+      '"I have been watching the Court for eleven years," she says. "I am done watching."',
+      'Ingrid the Warden joins the party!',
+    ],
+  },
+  {
+    objective: { type: 'rout', protectLeader: true },
+    id: 'ch14', title: 'Frostholm', map: 'frostholm',
+    camp: [
+      'Kael: "Ingrid says the thralls do not fight unless a knight is near. So we go for the knights."  Garret: "We always go for the knights. It is the one plan that has never let us down."',
+      'Mira: "If any of you get taken, I am not carrying you home. I will leave you in the snow and be sad about it later."',
+      'Tamsin does not sleep. She sits with the star-iron core and, once, very quietly, tells it no.',
+    ],
+    intro: [
+      'Frostholm is intact. Every door is shut, every chimney cold, and every window has someone standing behind it, not moving.',
+      '"They are not dead," Tamsin says. "That is the worst of it. They are waiting for something to tell them what to do."',
+      'Something does. The doors open all at once.',
+      '"Break the knights that hold them," Ingrid says, "and the thralls may wake."',
+    ],
+    enemies: [
+      { job: 'hollowKnight', level: 13, x: 3, y: 4 },
+      { job: 'hollowKnight', level: 13, x: 5, y: 8 },
+      { job: 'rimeWight', level: 13, x: 0, y: 5 },
+      { job: 'rimeWight', level: 13, x: 8, y: 1 },
+      { job: 'frostweaver', level: 13, x: 4, y: 1, name: 'Court Frostweaver' },
+      { job: 'squire', level: 12, x: 7, y: 3, name: 'Frostholm Thrall' },
+    ],
+    gil: 3800,
+    outro: [
+      'When the last hollow knight falls, the people of Frostholm sit down in the snow where they stand and begin, slowly, to shiver.',
+      '"Cold," one of them says, as if he has found the word after a long search. "It is cold."  Lysa wraps him in her own cloak. "Yes. Good. Stay that way."',
+      'On the knight\'s breastplate, under the frost, a crest: a crown of icicles over a circle. The Court does not hide its seal.',
+    ],
+  },
+  {
+    objective: { type: 'rout', protectLeader: true },
+    id: 'ch15', title: 'The Glacier Pass', map: 'glacierpass',
+    camp: [
+      'Ingrid draws the pass in the snow. "Narrow here. The drake keeps to the left, where the ice is thick. Go right, and go high."',
+      'Bram: "Everything up here wants us to go high. I am beginning to feel appreciated."',
+      'Ottilie: "The core is colder tonight. Whatever is up there, we are getting closer to it."',
+    ],
+    intro: [
+      'The only road to the Hollow Court climbs the glacier, and the glacier has something living in it.',
+      '"An ice drake," Ingrid says. "The Court feeds it. It is the reason no one from Frostholm ever came back down."',
+      'Bastian sights along his rifle at a shape moving under the ice. "That is not a drake. That is a river with teeth."',
+      '"Then climb," Rowan says. "High ground, and keep the mages behind the shields."',
+    ],
+    enemies: [
+      { job: 'iceDrake', level: 15, x: 5, y: 2 },
+      { job: 'hollowKnight', level: 14, x: 2, y: 4 },
+      { job: 'hollowKnight', level: 14, x: 8, y: 5 },
+      { job: 'frostweaver', level: 14, x: 7, y: 1, name: 'Pass Frostweaver' },
+      { job: 'rimeWight', level: 14, x: 3, y: 7 },
+    ],
+    gil: 4200,
+    recruit: { name: 'Eirik', job: 'frostweaver', level: 15 },
+    outro: [
+      'The drake dies with the pass in its mouth, and the ice goes quiet under their feet for the first time.',
+      'One of the Court\'s frostweavers throws down his staff and pulls the hood from a face that is still, just, his own. "Eirik. I was a weaver of the Court because there was no one else to be. I would rather be one of yours."',
+      '"The Regent will know. Let him."',
+      'Eirik the Frostweaver joins the party!',
+    ],
+  },
+  {
+    objective: { type: 'boss', protectLeader: true },
+    id: 'ch16', title: 'The Hollow Court', map: 'hollowcourt',
+    camp: [
+      'Eirik: "The Chamberlain was the first the Cold took. Before there was a Court, there was him, and a crater, and a winter that did not end."',
+      'Garret: "So it is old."  Eirik: "It is older than the crown. It is older than the ice."  Garret: "Then it has had long enough."',
+      'Rowan looks at the star-iron core one last time. "Tomorrow we give this back."',
+    ],
+    intro: [
+      'The Hollow Court was a palace once, carved into the glacier by people who thought the cold was a god. They were not wrong. They were only early.',
+      'Its Chamberlain waits in the throne room with the Court\'s knights around him and a crown of icicles on a head that has not been alive for a long time.',
+      '"The Regent is beneath us, at Starfall," Eirik says. "The Chamberlain is the door. There is no other way to him."',
+      'The Chamberlain speaks without breath. "Southerners. The Regent will be glad of you. He has been hungry a long while."',
+    ],
+    enemies: [
+      { job: 'hollowKnight', level: 16, x: 6, y: 1, name: 'The Chamberlain', boss: true, passives: ['counter', 'attackUp', 'movePlus1'] },
+      { job: 'hollowKnight', level: 15, x: 4, y: 3 },
+      { job: 'hollowKnight', level: 15, x: 8, y: 3 },
+      { job: 'rimeWight', level: 15, x: 3, y: 5 },
+      { job: 'rimeWight', level: 15, x: 9, y: 5 },
+      { job: 'frostweaver', level: 15, x: 6, y: 4, name: 'Court Frostweaver' },
+    ],
+    gil: 4800,
+    outro: [
+      'The Chamberlain comes apart like Brannoc did, and for a moment there is a face inside the frost, very old, and grateful.',
+      'Behind the throne, stairs go down into a light that is not any colour Rowan has a name for.',
+      '"Starfall," Ingrid says. "Where it landed. Where it has been eating ever since."',
+    ],
+  },
+  {
+    objective: { type: 'boss', protectLeader: true },
+    id: 'ch17', title: 'Starfall', map: 'starfall',
+    camp: [
+      'Nobody sleeps. Bram sharpens a blade that is already sharp, which Lysa points out, which Bram already knows.',
+      'Ingrid: "If it takes me, do not stop. Do not come back for me."  Rowan: "We came back for everyone. We are not starting a new policy on the last night."',
+      'Ottilie holds the core. "It is warmer. Only a little. I think it knows."  Tamsin: "It knows. Let it."',
+    ],
+    intro: [
+      'The crater at Starfall is a bowl of black glass a mile across. At its centre the star-iron still stands where it fell, and the Winter Regent stands beside it.',
+      'He looks like a man. He is dressed like a king. The cold coming off him puts frost on Rowan\'s sword from twenty paces.',
+      '"You brought it back," the Regent says, looking at the core in Ottilie\'s arms. "They always bring it back. That is what it is for."',
+      '"Wars keep it warm. Brannoc\'s war. The Concord\'s. Yours, if you like. Something has to feed it, and it will not be me."',
+      'Rowan sets the core down on the black glass. "Nothing is going to feed it. That is why we came."',
+    ],
+    enemies: [
+      { job: 'winterRegent', level: 18, x: 6, y: 3, name: 'The Winter Regent', boss: true,
+        passives: ['counter', 'magickUp', 'movePlus1'],
+        phases: [{
+          atPct: 0.4, job: 'namelessCold', name: 'The Nameless Cold', heal: 1,
+          passives: ['counter', 'magickUp', 'movePlus1'],
+          say: 'The Regent folds like a coat with nobody in it, and what wore him stands up without a shape.',
+          cry: '"You brought it back. You always bring it back."',
+        }],
+      },
+      { job: 'hollowKnight', level: 16, x: 4, y: 4 },
+      { job: 'hollowKnight', level: 16, x: 8, y: 4 },
+      { job: 'rimeWight', level: 16, x: 3, y: 6 },
+      { job: 'rimeWight', level: 16, x: 9, y: 6 },
+      { job: 'frostweaver', level: 16, x: 6, y: 2, name: 'Regent\'s Weaver' },
+    ],
+    gil: 10000,
+    outro: [
+      'The Regent falls, and the thing behind him has no shape to fall with. It thins. It goes out of the crater like breath off a window.',
+      'The star-iron core in Ottilie\'s arms is only iron now, and only heavy. She drops it, and laughs, and cannot stop for a while.',
+      'The Court\'s knights kneel in the black glass and become, one at a time, people who are very cold and very tired, and are allowed to be.',
+      'In the spring Frostholm lights its chimneys. Elderon has one king, because the princes could not face the company that ended two wars and a winter, and made peace instead.',
+      'Rowan Aldric goes home, and this time stays. The road behind him is long. The company that walked it is still a company, and always will be.',
+      '--- THE END. Thank you for playing. Trials await at camp, and the wagon carries legendary arms. ---',
     ],
     final: true,
   },
@@ -1558,20 +1906,21 @@ const CAMPAIGN = [
 const ACTS = [
   { title: 'The War of Princes', from: 0, to: 6 },
   { title: 'The Brass Concord', from: 7, to: 11 },
-  { title: 'The Winter Court', from: 12, to: 12, teaser: true,
-    blurb: 'North of the ice, whoever sold the Concord its star-iron is waiting. The road there is not open yet.' },
+  { title: 'The Winter Court', from: 12, to: 16 },
 ];
+// Said of the road once it is walked to the end.
+const AFTER_THE_WAR = 'Two wars and a winter are over. What remains are the trials, and the company.';
 
 // Around the fire once the war is won: what the company says while it trains,
 // one line at a time as the trials go by. All of it points north.
 const EPILOGUE_CAMP = [
-  'The Concord\'s ledgers are with the princes, and the princes have discovered, to their disgust, that they agree about something.',
-  'Ottilie has not stopped reading the last ledger. "Star-iron. Eleven shipments, from the north, paid for in a script I cannot read. The Colossus\'s core was made of it. The Concord did not smelt that. Nobody south of the ice can."',
-  'Tamsin: "Brannoc\'s armour was cold. Not cold like iron in winter. Cold like it had never been warm." She does not say more, and nobody asks her to.',
-  'A rider comes down the north road with frost on his cloak in high summer. He asks for Rowan Aldric by name, and he does not say who sent him.',
-  'Kael, on watch: "The lights over the northern sea are wrong. They do not move like weather."',
-  'Bastian: "The Concord had a buyer for the war. Now we find out who had a buyer for the Concord."',
-  'Rowan: "Then we go north. When the company is ready, and not before. Whatever is up there has waited a long time. It can wait for us to be worth its trouble."',
+  'The fire is the first anyone has lit north of the ice in a hundred years, and Ingrid keeps feeding it long after it needs feeding.',
+  'Ottilie has the star-iron core on the wagon bench, plain iron now. "I am going to make something out of it. Something that carries ore."',
+  'Bastian: "Vexley wrote. The Concord is a shipping company again. He says it is very boring and he is very happy."',
+  'Lysa has run out of things to count and has started counting the company. She gets a different number each time and does not mind.',
+  'Eirik says the aurora is only weather now. He watches it anyway, every night, to be sure.',
+  'Garret: "Two wars and a winter. Your father would have called that a start."  Rowan: "He would have. Let us not tell him what comes next."',
+  'The trials go on because the company likes them. Nobody is paying for them. That, Mira says, is how you can tell they are honest.',
 ];
 
 // Party at the start of a new game.
@@ -1611,6 +1960,8 @@ const TRAINING_POOL = [
   ['gunner', 'engineer', 'sentinel', 'ironhound'],
   ['aeronaut', 'gunner', 'sentinel', 'sentinel', 'engineer'],
   ['artificer', 'gunner', 'aeronaut', 'sentinel', 'ironhound', 'ironhound'],
+  ['hollowKnight', 'rimeWight', 'frostweaver', 'warden'],
+  ['iceDrake', 'hollowKnight', 'hollowKnight', 'rimeWight', 'frostweaver', 'runeblade'],
 ];
 
 // ============================================================================
@@ -1629,6 +1980,11 @@ const JOB_EQUIP = {
   gunner:    { w: ['gun', 'knife'], a: ['light', 'cloth'], head: ['hat'], shield: false },
   aeronaut:  { w: ['gun', 'spear'], a: ['light', 'cloth'], head: ['hat'], shield: false },
   artificer: { w: ['gun', 'rod', 'axe'], a: ['light', 'cloth', 'robe'], head: ['hat', 'helm'], shield: false },
+  frostweaver: { w: ['rod', 'staff', 'knife'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  warden:    { w: ['spear', 'bow', 'sword'], a: ['light', 'heavy', 'cloth'], head: ['helm', 'hat'], shield: true },
+  runeblade: { w: ['sword', 'katana', 'greatsword'], a: ['heavy', 'light', 'cloth'], head: ['helm'], shield: true },
+  hollowKnight: { w: ['sword', 'axe', 'spear'], a: ['heavy', 'light'], head: ['helm'], shield: true },
+  winterRegent: { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   monk:      { w: ['fist'], a: ['light', 'cloth'], head: ['hat'], shield: false },
   thief:     { w: ['knife', 'sword'], a: ['light', 'cloth'], head: ['hat'], shield: false },
   whiteMage: { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
@@ -1779,6 +2135,18 @@ const ITEMS = {
   boilerplate: { name: 'Boilerplate', slot: 'body', atype: 'heavy', hp: 46, resist: { fire: 'resist' }, price: 1600, tier: 4 },
   aetherPack:  { name: 'Aether Pack', slot: 'acc', move: 1, jump: 2, price: 1300, tier: 4 },
   clockworkHeart: { name: 'Clockwork Heart', slot: 'acc', hp: 30, mp: 15, price: 1800, tier: 5 },
+  // ---- the north's arms ----
+  wardenSpear: { name: 'Warden Spear', slot: 'weapon', wtype: 'spear', power: 12, range: 2, vert: 3, price: 1700, tier: 5 },
+  rimeBow:     { name: 'Rime Bow', slot: 'weapon', wtype: 'bow', power: 11, range: 6, vert: 8, price: 2300, tier: 6 },
+  frostRod:    { name: 'Frost Rod', slot: 'weapon', wtype: 'rod', power: 6, range: 1, vert: 2, ma: 6, price: 1500, tier: 5 },
+  starIronBlade: { name: 'Star-iron Blade', late: true, slot: 'weapon', wtype: 'sword', power: 15, range: 1, vert: 2, ma: 3, price: 4000, tier: 7 },
+  snowcloak:   { name: 'Snowcloak', slot: 'body', atype: 'cloth', hp: 30, mp: 10, resist: { ice: 'resist' }, price: 1400, tier: 5 },
+  furMantle:   { name: 'Fur Mantle', slot: 'body', atype: 'light', hp: 38, resist: { ice: 'resist' }, price: 1500, tier: 5 },
+  starIronPlate: { name: 'Star-iron Plate', late: true, slot: 'body', atype: 'heavy', hp: 70, resist: { ice: 'absorb' }, price: 4200, tier: 7 },
+  icicleCrown: { name: 'Crown of Icicles', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 40, ma: 3, price: 3600, tier: 7 },
+  runeSigil:   { name: 'Rune Sigil', slot: 'acc', ma: 3, mp: 20, price: 2200, tier: 6 },
+  frostCharm:  { name: 'Frost Charm', slot: 'acc', resist: { ice: 'absorb' }, price: 1600, tier: 5 },
+  warmthStone: { name: 'Warmth Stone', slot: 'acc', hp: 25, wards: ['slow', 'stop'], price: 1500, tier: 5 },
 };
 
 // Free starting kit per job (price-0 items only, so they cannot be sold for gil).
@@ -1791,6 +2159,9 @@ const STARTER_GEAR = {
   gunner:    { weapon: 'flintlock', body: 'clothes' },
   aeronaut:  { weapon: 'flintlock', body: 'clothes' },
   artificer: { weapon: 'flintlock', body: 'clothes' },
+  frostweaver: { weapon: 'dagger', body: 'clothes' },
+  warden:    { weapon: 'shortSword', body: 'clothes' },
+  runeblade: { weapon: 'shortSword', body: 'clothes' },
   monk:      { weapon: 'cesti', body: 'clothes' },
   thief:     { weapon: 'dagger', body: 'clothes' },
   whiteMage: { weapon: 'staff', body: 'clothes' },
@@ -1952,6 +2323,9 @@ const PASSIVES = {
     desc: 'Catch the blade: half of all physical attacks against you are turned aside.' },
   secondWind: { name: 'Second Wind', kind: 'reaction', job: 'paladin', jp: 350,
     desc: 'Recover a tenth of your HP every time you are damaged and left standing.' },
+  coldBlood: { name: 'Cold Blood', kind: 'support', job: 'frostweaver', jp: 350, desc: 'Ice damage you deal is a quarter greater.' },
+  ironFooting: { name: 'Iron Footing', kind: 'movement', job: 'warden', jp: 300, desc: 'Slow and Stop do not take on you.' },
+  lastStand: { name: 'Last Stand', kind: 'reaction', job: 'runeblade', jp: 400, desc: 'A hit that leaves you under a third of your HP grants Protect and Shell.' },
   deadeye: { name: 'Deadeye', kind: 'support', job: 'gunner', jp: 300, desc: 'Anything used at weapon range reaches one tile further.' },
   jumpPlus3: { name: 'Balloon Pack', kind: 'movement', job: 'aeronaut', jp: 350, desc: 'Jump +3. Walls are a suggestion.' },
   fieldRepair: { name: 'Field Repair', kind: 'support', job: 'engineer', jp: 300, desc: 'Every heal you give restores 30% more.' },
