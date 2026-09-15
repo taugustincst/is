@@ -1968,7 +1968,7 @@ const CITIES = [
     ],
     hires: ['engineer', 'gunner'], stock: ['customsPistol', 'ledgerCoat'],
     open: 'The ferry runs for nothing. The workshops have taken down the Concord\'s sign.' },
-  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.76, 0.40], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700,
+  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.92, 0.42], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700,
     held: 'held by the Concord engine sheds', blurb: 'The town that grew up around the bridge, with sentinels walking its streets.',
     intro: [
       'Cogsworth town grew up around the bridge and the Concord\'s engine sheds. The sheds are still running and the sentinels still walk the streets.',
