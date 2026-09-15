@@ -257,6 +257,29 @@ small { color: var(--muted); }
 .shop-row .fits { color: var(--muted); font-size: 12px; }
 #btn-shop-back { margin-top: 12px; align-self: flex-start; }
 .stock { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+button.stock.link { background: none; border: 1px dashed var(--border); padding: 5px 8px; text-align: left; width: 100%; color: var(--muted); cursor: pointer; }
+button.stock.link:hover { color: var(--gold); border-color: var(--gold); }
+/* ---------- baggage ---------- */
+.shop-head h2 small { color: var(--muted); font-weight: normal; font-size: 13px; margin-left: 8px; }
+#bag-gil { font-size: 20px; color: var(--gold); }
+#bag-tabs { flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.chips .chip { font-size: 12px; padding: 3px 10px; border-radius: 12px; }
+.chips .chip.sel { background: #4a3a10; border-color: var(--gold); color: var(--gold); }
+.list-panel { flex: 1; min-height: 120px; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+.list-panel h3, #shop-list h4 { color: var(--gold); margin: 10px 0 2px; }
+#shop-list h4 { font-size: 13px; color: #c8b878; border-bottom: 1px dotted #2a2d50; margin-top: 8px; }
+.inv-row .inv-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.inv-row select { max-width: 200px; }
+.worn-title { margin: 12px 0 4px; }
+.worn-title small { color: var(--muted); font-weight: normal; font-size: 12px; }
+.worn-panel { overflow-x: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px; max-height: 32vh; overflow-y: auto; }
+table.worn { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.worn th { text-align: left; color: var(--muted); font-weight: normal; padding: 4px 6px; border-bottom: 1px solid #2a2d50; }
+table.worn td { padding: 5px 6px; border-bottom: 1px solid #23264a; vertical-align: top; white-space: nowrap; }
+table.worn td .none { color: #555; }
+table.worn button.mini { padding: 0 5px; font-size: 11px; line-height: 16px; }
+.row-buttons { display: flex; gap: 8px; margin-top: 12px; }
 
 /* ---------- equipment ---------- */
 .equip-grid { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }

@@ -96,6 +96,11 @@ a browser, or serve the folder with any static file server.
   slots, gated by job equip classes. Gear drives weapon power and range,
   evasion and every stat. Ninja can dual wield; Two Hands trades the offhand
   for half again the weapon power.
+- **A baggage screen** with everything spare shelved by category and kind,
+  swords with swords and robes with robes; hand a piece to anyone who can
+  wear it from the shelf, sell it there, or take a piece off someone in the
+  worn-by-the-party table. The shop and the Formation dropdowns shelve the
+  same way.
 - **A shop** whose stock widens as the campaign advances, with selling,
   battlefield loot and an Optimize button.
 

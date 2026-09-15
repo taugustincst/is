@@ -51,7 +51,11 @@ class Game {
     $('btn-train').onclick = () => this.startTraining();
     $('btn-formation').onclick = () => this.openFormation();
     $('btn-shop').onclick = () => this.openShop();
+    $('btn-baggage').onclick = () => this.openBaggage();
+    $('world-stock').onclick = () => this.openBaggage();
     $('btn-shop-back').onclick = () => this.showWorld();
+    $('btn-bag-back').onclick = () => this.showWorld();
+    $('btn-bag-shop').onclick = () => this.openShop('buy');
     $('btn-save').onclick = () => { this.saveGame(); this.toast('Game saved.'); };
     $('btn-title').onclick = () => this.showScreen('title');
     $('btn-formation-back').onclick = () => this.showWorld();
@@ -280,7 +284,7 @@ class Game {
       this.showWorld();
     });
     const spare = Object.values(this.state.inventory).reduce((a, b) => a + b, 0);
-    $('world-stock').textContent = spare ? `${spare} spare item${spare === 1 ? '' : 's'} in the baggage` : 'No spare equipment';
+    $('world-stock').textContent = spare ? `Baggage: ${spare} spare item${spare === 1 ? '' : 's'} · open` : 'Baggage: nothing spare · open';
     const hireLvl = Math.max(1, this.avgLevel() - 1);
     $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max 8).`;
     $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= 8;
@@ -731,10 +735,12 @@ class Game {
       const cur = u.gear[slot] || '';
       const opts = this.slotOptions(u, slot);
       if (!opts.length && !cur) return `<label class="equip-row"><span>${label}</span><em class="none">nothing available</em></label>`;
-      const list = opts.map(id => {
+      const groups = {};
+      for (const id of opts.sort((a, b) => (TYPE_ORDER.indexOf(itemType(a)) - TYPE_ORDER.indexOf(itemType(b))) || (ITEMS[a].tier - ITEMS[b].tier))) (groups[itemType(id)] = groups[itemType(id)] || []).push(id);
+      const list = Object.entries(groups).map(([t, ids]) => `<optgroup label="${TYPE_NAMES[t] || t}">${ids.map(id => {
         const owned = this.invCount(id) + (cur === id ? 1 : 0);
         return `<option value="${id}" ${cur === id ? 'selected' : ''}>${ITEMS[id].name} (x${owned}) — ${this.itemSummary(id)}</option>`;
-      }).join('');
+      }).join('')}</optgroup>`).join('');
       return `<label class="equip-row"><span>${label}</span><select data-slot="${slot}"><option value="">— empty —</option>${list}</select></label>`;
     }).join('');
   }
@@ -775,15 +781,19 @@ class Game {
     const stock = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier && !ITEMS[id].city);
     const bySlot = {};
     for (const id of stock) (bySlot[ITEMS[id].slot] = bySlot[ITEMS[id].slot] || []).push(id);
-    return Object.entries(SLOT_NAMES).filter(([slot]) => bySlot[slot]).map(([slot, label]) => {
-      const items = bySlot[slot].sort((a, b) => ITEMS[a].price - ITEMS[b].price).map(id => {
-        const it = ITEMS[id], fits = this.fitsList(id);
+    return Object.entries(CATEGORY_NAMES).filter(([slot]) => bySlot[slot]).map(([slot, label]) => {
+      // Shelved by kind within the slot, cheapest first on each shelf.
+      const sorted = bySlot[slot].sort((a, b) => (TYPE_ORDER.indexOf(itemType(a)) - TYPE_ORDER.indexOf(itemType(b))) || (ITEMS[a].price - ITEMS[b].price));
+      let items = '', lastType = null;
+      for (const id of sorted) {
+        const it = ITEMS[id], fits = this.fitsList(id), t = itemType(id);
+        if (slot !== 'acc' && t !== lastType) { items += `<h4>${TYPE_NAMES[t] || t}</h4>`; lastType = t; }
         const afford = this.state.gil >= it.price;
-        return `<div class="shop-row ${fits ? '' : 'unfit'}">
+        items += `<div class="shop-row ${fits ? '' : 'unfit'}">
           <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
             <div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div>
           <button data-buy="${id}" ${afford ? '' : 'disabled'}>${it.price} gil</button></div>`;
-      }).join('');
+      }
       return `<h3>${label}</h3>${items}`;
     }).join('');
   }
@@ -791,12 +801,15 @@ class Game {
   shopSellRows() {
     const ids = Object.keys(this.state.inventory).filter(id => this.invCount(id) > 0 && ITEMS[id] && ITEMS[id].price > 0);
     if (!ids.length) return '';
-    return ids.sort((a, b) => ITEMS[b].price - ITEMS[a].price).map(id => {
-      const it = ITEMS[id], value = Math.floor(it.price / 2);
-      return `<div class="shop-row">
+    let html = '', lastType = null;
+    for (const id of ids.sort((a, b) => (TYPE_ORDER.indexOf(itemType(a)) - TYPE_ORDER.indexOf(itemType(b))) || (ITEMS[b].price - ITEMS[a].price))) {
+      const it = ITEMS[id], value = Math.floor(it.price / 2), t = itemType(id);
+      if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
+      html += `<div class="shop-row">
         <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">Spare: ${this.invCount(id)}</div></div>
         <button data-sell="${id}">Sell ${value} gil</button></div>`;
-    }).join('');
+    }
+    return html;
   }
 
   buy(id) {
@@ -808,13 +821,68 @@ class Game {
     this.openShop('buy');
   }
 
-  sell(id) {
+  sell(id, from = 'shop') {
     const it = ITEMS[id];
     if (!it || !this.invCount(id) || !it.price) return;
     this.invRemove(id);
     this.state.gil += Math.floor(it.price / 2);
+    audio.sfx('coin');
     this.toast(`Sold ${it.name}.`);
-    this.openShop('sell');
+    if (from === 'baggage') this.openBaggage(this.bagCat, this.bagType); else this.openShop('sell');
+  }
+
+  // ---- baggage ---------------------------------------------------------------------------
+  /* Everything spare, shelved by category and kind, with what each piece
+     fits, who could wear it now, and a way to hand it over or sell it from
+     the shelf. Below the shelves, what the party is wearing. */
+  openBaggage(cat = 'all', type = 'all') {
+    this.bagCat = cat; this.bagType = type;
+    const s = this.state;
+    const ids = Object.keys(s.inventory).filter(id => this.invCount(id) > 0 && ITEMS[id]);
+    const spare = ids.reduce((n, id) => n + this.invCount(id), 0);
+    $('bag-gil').textContent = `${s.gil} gil`;
+    $('bag-count').textContent = spare ? `${spare} spare piece${spare === 1 ? '' : 's'}` : 'nothing spare';
+    const cats = ['all', ...Object.keys(CATEGORY_NAMES).filter(c => ids.some(id => ITEMS[id].slot === c))];
+    $('bag-tabs').innerHTML = cats.map(c => `<button data-cat="${c}" class="${c === cat ? 'sel' : ''}">${c === 'all' ? 'All' : CATEGORY_NAMES[c]}</button>`).join('');
+    $('bag-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openBaggage(b.dataset.cat, 'all'));
+    const inCat = ids.filter(id => cat === 'all' || ITEMS[id].slot === cat);
+    const types = [...new Set(inCat.map(itemType))].sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
+    $('bag-types').innerHTML = types.length > 1 ? ['all', ...types].map(t => `<button class="chip ${t === type ? 'sel' : ''}" data-type="${t}">${t === 'all' ? 'Every kind' : TYPE_NAMES[t] || t}</button>`).join('') : '';
+    $('bag-types').querySelectorAll('button').forEach(b => b.onclick = () => this.openBaggage(cat, b.dataset.type));
+    const shown = inCat.filter(id => type === 'all' || itemType(id) === type)
+      .sort((a, b) => (TYPE_ORDER.indexOf(itemType(a)) - TYPE_ORDER.indexOf(itemType(b))) || (ITEMS[a].tier - ITEMS[b].tier) || (ITEMS[a].price - ITEMS[b].price));
+    let html = '', lastType = null;
+    for (const id of shown) {
+      const it = ITEMS[id], t = itemType(id);
+      if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
+      const slot = it.slot;
+      const wearers = s.party.filter(u => u.canEquipItem(id, slot));
+      const opts = wearers.map(u => `<option value="${u.id}">${u.name} · ${u.jobData.name}${u.gear[slot] ? ` (wears ${ITEMS[u.gear[slot]].name})` : ' (empty)'}</option>`).join('');
+      html += `<div class="shop-row inv-row ${wearers.length ? '' : 'unfit'}" data-item="${id}">
+        <div class="inv-main"><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
+          <div class="fits">x${this.invCount(id)} · tier ${it.tier}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}</div></div>
+        <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}">${opts}</select><button data-equip="${id}">Equip</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">Sell ${Math.floor(it.price / 2)}</button>` : ''}</div>
+      </div>`;
+    }
+    $('bag-list').innerHTML = html || `<p class="muted">${ids.length ? 'Nothing of that kind.' : 'The baggage is empty. Spare gear from the shop, the field and the cities collects here.'}</p>`;
+    $('bag-list').querySelectorAll('button[data-equip]').forEach(b => b.onclick = () => {
+      const id = b.dataset.equip, uid = b.closest('.inv-row').querySelector('select[data-wearer]').value;
+      const u = s.party.find(x => x.id === uid); if (!u) return;
+      if (this.equip(u, ITEMS[id].slot, id)) { audio.sfx('select'); this.toast(`${u.name} takes the ${ITEMS[id].name}.`); }
+      this.openBaggage(cat, type);
+    });
+    $('bag-list').querySelectorAll('button[data-sell]').forEach(b => b.onclick = () => this.sell(b.dataset.sell, 'baggage'));
+    // Worn: the party's kit, slot by slot, each piece a click from coming off.
+    $('bag-worn').innerHTML = `<table class="worn"><thead><tr><th>Unit</th>${Object.values(SLOT_NAMES).map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
+      s.party.map(u => `<tr><td><b>${u.name}</b><br><small>${u.jobData.name}</small></td>${Object.keys(SLOT_NAMES).map(slot => {
+        const id = u.gear[slot];
+        return `<td>${id ? `<span title="${this.itemSummary(id)}">${ITEMS[id].name}</span> <button class="mini" data-unequip="${u.id}:${slot}" title="Back to the baggage">×</button>` : '<span class="none">—</span>'}</td>`;
+      }).join('')}</tr>`).join('')}</tbody></table>`;
+    $('bag-worn').querySelectorAll('button[data-unequip]').forEach(b => b.onclick = () => {
+      const [uid, slot] = b.dataset.unequip.split(':'); const u = s.party.find(x => x.id === uid); if (!u) return;
+      this.equip(u, slot, null); audio.sfx('cancel'); this.openBaggage(cat, type);
+    });
+    this.showScreen('inventory');
   }
 
   // A victory sometimes turns up a piece of gear from the field.

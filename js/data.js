@@ -2282,6 +2282,19 @@ const STARTER_GEAR = {
 };
 
 const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
+
+// How the baggage is sorted: a category for the tab, a type for the shelf.
+const CATEGORY_NAMES = { weapon: 'Weapons', offhand: 'Shields', head: 'Head', body: 'Body', acc: 'Accessories' };
+const TYPE_NAMES = {
+  sword: 'Swords', knife: 'Knives', axe: 'Axes', spear: 'Spears', bow: 'Bows', gun: 'Guns', staff: 'Staves', rod: 'Rods',
+  katana: 'Katanas', harp: 'Harps', greatsword: 'Greatswords', tome: 'Tomes', ninjablade: 'Ninja Blades', fist: 'Fists',
+  light: 'Light Armour', heavy: 'Heavy Armour', cloth: 'Clothes', robe: 'Robes', hat: 'Hats', helm: 'Helms', shield: 'Shields', acc: 'Accessories',
+};
+// The type an item shelves under: its weapon, armour, hat or shield kind, or accessory.
+function itemType(id) { const it = ITEMS[id]; return it ? (it.wtype || it.atype || it.htype || it.otype || 'acc') : 'acc'; }
+function typeLabel(id) { return TYPE_NAMES[itemType(id)] || itemType(id); }
+// The order shelves come in: weapons by kind, then shields, head, body, accessories.
+const TYPE_ORDER = Object.keys(TYPE_NAMES);
 const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
 
 // Can `job` equip item `id` at all? `extra` adds permissions granted elsewhere,
