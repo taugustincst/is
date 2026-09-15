@@ -45,7 +45,7 @@ small { color: var(--muted); }
 .world-layout { display: flex; gap: 24px; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
 .world-main { flex: 1; }
 /* The realm: where the company has been and where it goes next. */
-#world-map { display: block; width: 100%; aspect-ratio: 2 / 1; border-radius: 6px; border: 1px solid var(--border); background: #14121f; cursor: pointer; margin-bottom: 12px; }
+#world-map { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--border); background: #14121f; cursor: pointer; margin-bottom: 12px; }
 .world-side { width: 300px; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 16px; }
 .chapter-num { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }

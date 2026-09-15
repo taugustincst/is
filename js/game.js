@@ -1074,10 +1074,10 @@ class Game {
   drawWorldMap() {
     const cv = $('world-map');
     if (!cv) return;
-    const cssW = Math.max(280, cv.clientWidth || 800), cssH = Math.round(cssW * 0.62), dpr = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    const cssW = Math.max(280, cv.clientWidth || 800), cssH = Math.round(cssW * (cssW < 520 ? 0.9 : 0.62)), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr); cv.style.height = cssH + 'px';
     const c = cv.getContext('2d');
-    c.setTransform(dpr, dpr, 0, 0, 0, 0); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
     const W = cssW, H = cssH;
     const bg = c.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, '#1c1a2e'); bg.addColorStop(1, '#0f0e1a');
@@ -1107,7 +1107,9 @@ class Game {
     c.lineWidth = 4; c.strokeStyle = 'rgba(0,0,0,0.5)'; road(0, pts.length - 1, false);
     c.lineWidth = 2; c.strokeStyle = '#8a7a58'; road(0, reached, false);
     c.strokeStyle = 'rgba(138,122,88,0.5)'; road(reached, pts.length - 1, true);
-    c.font = '11px Georgia, serif'; c.textAlign = 'center';
+    // Everything that must not be written over: stops, cities, the company.
+    const obstacles = [];
+    const narrow = W < 520;
     CAMPAIGN.forEach((ch, i) => {
       const p = pts[i], mood = MOODS[MAPS[ch.map].mood] || MOODS.day;
       const done = i < this.state.chapter, next = i === this.state.chapter;
@@ -1117,16 +1119,9 @@ class Game {
       c.strokeStyle = next ? '#ffd84a' : done ? '#c9b98a' : 'rgba(255,255,255,0.18)'; c.stroke();
       if (next) { c.beginPath(); c.arc(p.x, p.y, 15, 0, Math.PI * 2); c.strokeStyle = 'rgba(255,216,74,0.35)'; c.lineWidth = 1; c.stroke(); }
       if (done) { c.fillStyle = '#c9b98a'; c.fillRect(p.x - 1, p.y - 14, 2, 10); c.fillStyle = '#d8483b'; c.beginPath(); c.moveTo(p.x + 1, p.y - 14); c.lineTo(p.x + 9, p.y - 11); c.lineTo(p.x + 1, p.y - 8); c.closePath(); c.fill(); }
-      // Labels are kept inside the canvas; a stop near an edge would
-      // otherwise lose half its name.
-      const lx = Math.max(56, Math.min(W - 56, p.x));
-      c.fillStyle = done || next ? '#e6e6f0' : 'rgba(230,230,240,0.35)';
-      const label = done || next ? MAPS[ch.map].name : '?';
-      c.fillText(label, lx, p.y + 24);
-      // The number sits inside its stop; only the next stop is named above,
-      // so numbers and neighbours' names never collide on a narrow screen.
-      if (next) { c.fillStyle = '#ffd84a'; c.fillText('Chapter ' + (i + 1), lx, p.y - 14); }
-      else { c.fillStyle = done ? '#1a1a26' : 'rgba(230,230,240,0.5)'; c.font = 'bold 10px Georgia, serif'; c.fillText(String(i + 1), p.x, p.y + 4); c.font = '11px Georgia, serif'; }
+      // The number sits inside its stop.
+      if (!next) { c.fillStyle = done ? '#1a1a26' : 'rgba(230,230,240,0.5)'; c.font = 'bold 10px Georgia, serif'; c.textAlign = 'center'; c.fillText(String(i + 1), p.x, p.y + 4); }
+      obstacles.push({ x: p.x - 10, y: p.y - (done ? 15 : 10), w: 20, h: done ? 26 : 20 });
     });
     // Cities: a walled square on the road, gold once open, red while held.
     const cityPts = CITIES.filter(c => this.cityReachable(c)).map(c => ({ c, x: c.pos[0] * W, y: c.pos[1] * H }));
@@ -1139,18 +1134,58 @@ class Game {
       c.fillRect(-6, -11, 4, 5); c.fillRect(2, -11, 4, 5); c.fillRect(-1, -14, 2, 8);
       if (!open) { c.strokeStyle = '#ff9a8a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-5, 5); c.lineTo(5, -5); c.moveTo(-5, -5); c.lineTo(5, 5); c.stroke(); }
       c.restore();
-      c.fillStyle = open ? '#f4e6b0' : 'rgba(255,200,190,0.8)'; c.font = '10px Georgia, serif'; c.textAlign = 'center';
-      c.fillText(city.name, Math.max(46, Math.min(W - 46, x)), y + 22);
+      obstacles.push({ x: x - 9, y: y - 15, w: 18, h: 22 });
     }
-    // The company, where the story has reached.
+    // The company, where the story has reached: beside the stop.
     const leader = this.state.party.find(u => u.leader) || this.state.party[0];
     if (leader) {
       const at = pts[Math.min(this.state.chapter, pts.length - 1)];
       const face = document.createElement('canvas');
       paintUnitSprite(face, leader, 1);
       c.imageSmoothingEnabled = false;
-      // Beside the stop, clear of its label.
-      c.drawImage(face, at.x + 18, at.y - face.height + 6);
+      // Beside the stop, on whichever side is clearest of other markers.
+      const clash = (r) => obstacles.reduce((sum, o) => sum + Math.max(0, Math.min(r.x + r.w, o.x + o.w) - Math.max(r.x, o.x)) * Math.max(0, Math.min(r.y + r.h, o.y + o.h) - Math.max(r.y, o.y)), 0);
+      const spots = [[at.x + 18, at.y - face.height + 6], [at.x - 18 - face.width, at.y - face.height + 6], [at.x + 18, at.y - 6], [at.x - 18 - face.width, at.y - 6]]
+        .map(([x, y]) => ({ x: Math.max(0, Math.min(W - face.width, x)), y: Math.max(0, Math.min(H - face.height, y)), w: face.width, h: face.height }));
+      const spot = spots.reduce((b, r) => clash(r) < clash(b) ? r : b, spots[0]);
+      c.drawImage(face, spot.x, spot.y);
+      obstacles.push(spot);
+    }
+    // Names go on last, each in the first of a few spots around its marker
+    // that is clear of the markers and of every name already placed, so on a
+    // narrow screen neighbours' names never write over one another. The
+    // important names are placed first and get the best spots.
+    const labels = [];
+    const overlap = (r) => obstacles.reduce((sum, o) => sum + Math.max(0, Math.min(r.x + r.w, o.x + o.w) - Math.max(r.x, o.x)) * Math.max(0, Math.min(r.y + r.h, o.y + o.h) - Math.max(r.y, o.y)), 0);
+    const place = (text, x, y, font, size, color, r) => {
+      c.font = font;
+      const w = c.measureText(text).width + 4, h = size + 3;
+      const spots = [
+        [x - w / 2, y + r + 3], [x - w / 2, y - r - h - 1], [x + r + 4, y - h / 2], [x - r - 4 - w, y - h / 2],
+        [x - w / 2, y + r + 3 + h], [x - w / 2, y - r - 2 * h - 1], [x + r + 4, y + r], [x - r - 4 - w, y + r],
+      ].map(([sx, sy]) => ({ x: Math.max(2, Math.min(W - w - 2, sx)), y: Math.max(2, Math.min(H - h - 2, sy)), w, h }));
+      let best = null, bestArea = Infinity;
+      for (const sp of spots) { const a = overlap(sp); if (a < bestArea) { best = sp; bestArea = a; } if (a === 0) break; }
+      obstacles.push(best);
+      labels.push({ text, font, color, x: best.x + 2, y: best.y + size });
+    };
+    const nameFont = (narrow ? 10 : 11) + 'px Georgia, serif', nameSize = narrow ? 10 : 11;
+    const nextI = this.state.chapter;
+    if (CAMPAIGN[nextI]) {
+      const p = pts[nextI];
+      place(MAPS[CAMPAIGN[nextI].map].name, p.x, p.y, nameFont, nameSize, '#e6e6f0', 15);
+      place('Chapter ' + (nextI + 1), p.x, p.y, 'bold ' + nameFont, nameSize, '#ffd84a', 15);
+    }
+    for (const { c: city, x, y } of cityPts) place(city.name, x, y, nameFont, nameSize, this.cityOpen(city.id) ? '#f4e6b0' : 'rgba(255,200,190,0.8)', 12);
+    CAMPAIGN.forEach((ch, i) => {
+      if (i === nextI) return;
+      const done = i < nextI, p = pts[i];
+      place(done ? MAPS[ch.map].name : '?', p.x, p.y, nameFont, nameSize, done ? '#e6e6f0' : 'rgba(230,230,240,0.35)', 10);
+    });
+    c.textAlign = 'left'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
+    for (const l of labels) {
+      c.font = l.font; c.lineWidth = 3; c.strokeStyle = 'rgba(15,14,26,0.85)'; c.strokeText(l.text, l.x, l.y);
+      c.fillStyle = l.color; c.fillText(l.text, l.x, l.y);
     }
     cv.onclick = (e) => {
       const r = cv.getBoundingClientRect();
