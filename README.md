@@ -106,6 +106,13 @@ a browser, or serve the folder with any static file server.
 
 **Battles and campaign**
 
+- **Three save slots**, each listed with where the game stands, the company's
+  size and level, playtime and when it was saved. New Game takes an empty
+  slot or asks which to write over; Continue takes the latest.
+- **Skip** on any story page, **Try again** on a lost battle without the story
+  before it, **Undo Move** until a unit acts, and any flagged stop on the map
+  can be fought again for half the pay. Statuses on the unit card say what
+  they do.
 - **Camp and unit pages in tabs**: the camp is Road, Company, Cities and
   Options; the unit page in Formation is Unit, Gear and Skills, with a mark
   on Skills when there is JP to spend. Nothing is more than a scroll away.

@@ -3,6 +3,9 @@
    ========================================================================== */
 
 const SAVE_KEY = 'elderon-tactics-save';
+// Three slots. The first keeps the key every save ever used, so nothing already saved is lost.
+const SLOT_COUNT = 3;
+const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
@@ -29,7 +32,7 @@ class Game {
     window.addEventListener('pointerdown', arm, { once: true });
     window.addEventListener('keydown', arm, { once: true });
     this.showScreen('title');
-    $('btn-continue').disabled = !localStorage.getItem(SAVE_KEY);
+    $('btn-continue').disabled = !this.listSlots().some(x => x.d);
   }
 
   // ---- screens -----------------------------------------------------------------------
@@ -47,6 +50,8 @@ class Game {
   bindScreens() {
     $('btn-new').onclick = () => this.newGame();
     $('btn-continue').onclick = () => this.loadGame();
+    $('btn-load').onclick = () => this.openSlots('load');
+    $('btn-slots-back').onclick = () => this.showScreen('title');
     $('btn-battle').onclick = () => this.startNextChapter();
     $('btn-train').onclick = () => this.startTraining();
     $('btn-formation').onclick = () => this.openFormation();
@@ -96,27 +101,92 @@ class Game {
   }
 
   // ---- state -----------------------------------------------------------------------------
-  newGame() {
+  // A new game takes the first empty slot; when none is empty, the player
+  // picks which to write over, and is asked before it happens.
+  newGame(slot) {
+    if (!slot) {
+      const free = this.listSlots().find(x => !x.d);
+      if (!free) return this.openSlots('new');
+      slot = free.n;
+    }
     this.state = {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
       gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: this.pendingDifficulty || 'knight',
-      errands: { offered: [], active: [], reports: [] }, cities: {},
+      errands: { offered: [], active: [], reports: [] }, cities: {}, slot, playtime: 0,
     };
+    this.sessionStart = Date.now();
     this.showWorld();
   }
 
+  // What each slot holds, read fresh: null where empty or unreadable.
+  listSlots() {
+    const out = [];
+    for (let n = 1; n <= SLOT_COUNT; n++) {
+      let d = null;
+      try { const raw = localStorage.getItem(slotKey(n)); d = raw ? JSON.parse(raw) : null; if (d && (!Array.isArray(d.party) || !d.party.length)) d = null; } catch (e) { d = null; }
+      out.push({ n, d });
+    }
+    return out;
+  }
+
+  slotSummary(d) {
+    const ch = Number.isFinite(d.chapter) ? d.chapter : 0;
+    const where = ch >= CAMPAIGN.length ? `After the war · Trial ${(d.trials || 0) + 1}` : `Act ${ACTS.findIndex(a => ch >= a.from && ch <= a.to) + 1} · Chapter ${ch + 1} · ${CAMPAIGN[ch].title}`;
+    const lv = d.party.length ? Math.round(d.party.reduce((a, u) => a + (u.level || 1), 0) / d.party.length) : 1;
+    const mins = Math.round((d.playtime || 0) / 60000), time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+    const ago = d.savedAt ? (() => { const m = Math.round((Date.now() - d.savedAt) / 60000); return m < 2 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; })() : 'an older save';
+    const lead = d.party.find(u => u.leader) || d.party[0];
+    return { where, line: `${d.party.length} soldier${d.party.length === 1 ? '' : 's'} · Lv ${lv} · ${d.gil || 0} gil · ${time} played · ${ago}`, leader: lead ? `${lead.name} the ${JOBS[lead.job] ? JOBS[lead.job].name : 'Squire'}` : '' };
+  }
+
+  // The slots screen: to load, or to choose where a new game goes.
+  openSlots(mode) {
+    this.slotMode = mode;
+    $('slots-title').textContent = mode === 'new' ? 'Every slot is taken. Which one gives way?' : 'Load a game';
+    $('slots-list').innerHTML = this.listSlots().map(({ n, d }) => {
+      if (!d) return `<div class="slot empty"><div class="slot-text"><b>Slot ${n}</b><small>empty</small></div><div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}" class="primary">Start here</button>` : ''}</div></div>`;
+      const sum = this.slotSummary(d);
+      return `<div class="slot"><div class="slot-text"><b>Slot ${n}</b> <span class="slot-where">${sum.where}</span><small>${sum.leader} · ${sum.line}</small></div>
+        <div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}">Overwrite</button>` : `<button data-slot-load="${n}" class="primary">Load</button><button data-slot-del="${n}" class="mini">Delete</button>`}</div></div>`;
+    }).join('');
+    $('slots-list').querySelectorAll('button[data-slot-load]').forEach(b => b.onclick = () => this.loadGame(+b.dataset.slotLoad));
+    $('slots-list').querySelectorAll('button[data-slot-new]').forEach(b => b.onclick = () => {
+      const n = +b.dataset.slotNew;
+      if (this.listSlots()[n - 1].d && !confirm(`Write over slot ${n}? That game is gone for good.`)) return;
+      this.newGame(n);
+    });
+    $('slots-list').querySelectorAll('button[data-slot-del]').forEach(b => b.onclick = () => {
+      const n = +b.dataset.slotDel;
+      if (!confirm(`Delete slot ${n}? That game is gone for good.`)) return;
+      localStorage.removeItem(slotKey(n));
+      $('btn-continue').disabled = !this.listSlots().some(x => x.d);
+      this.openSlots(mode);
+    });
+    this.showScreen('slots');
+  }
+
   saveGame() {
+    const now = Date.now();
+    this.state.playtime = (this.state.playtime || 0) + Math.max(0, now - (this.sessionStart || now));
+    this.sessionStart = now;
     const data = {
-      v: 3, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
+      v: 4, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
       difficulty: this.state.difficulty, errands: this.state.errands, cities: this.state.cities || {},
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
+      playtime: this.state.playtime, savedAt: now,
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localStorage.setItem(slotKey(this.state.slot || 1), JSON.stringify(data));
     $('btn-continue').disabled = false;
   }
 
-  loadGame() {
-    const raw = localStorage.getItem(SAVE_KEY);
+  // Continue takes the slot saved most recently; Load names one.
+  loadGame(slot) {
+    if (!slot) {
+      const have = this.listSlots().filter(x => x.d);
+      if (!have.length) return;
+      slot = have.sort((a, b) => (b.d.savedAt || 0) - (a.d.savedAt || 0))[0].n;
+    }
+    const raw = localStorage.getItem(slotKey(slot));
     if (!raw) return;
     let d;
     try {
@@ -125,8 +195,8 @@ class Game {
     } catch (e) {
       // A truncated or hand-edited save used to throw inside the click handler,
       // leaving the player on the title screen with a button that did nothing.
-      localStorage.removeItem(SAVE_KEY);
-      $('btn-continue').disabled = true;
+      localStorage.removeItem(slotKey(slot));
+      $('btn-continue').disabled = !this.listSlots().some(x => x.d);
       this.toast('That save could not be read. Start a new game.');
       return;
     }
@@ -140,8 +210,9 @@ class Game {
       difficulty: DIFFICULTIES[d.difficulty] ? d.difficulty : 'knight',
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
       errands: { offered: [], active: [], reports: [] },
-      cities: {},
+      cities: {}, slot, playtime: Number.isFinite(d.playtime) ? d.playtime : 0,
     };
+    this.sessionStart = Date.now();
     for (const id of Object.keys(d.cities || {})) if (CITIES.some(c => c.id === id) && d.cities[id]) this.state.cities[id] = true;
     // Errands are kept only where they still make sense: a known errand, sent
     // with a unit that is still in the party.
@@ -256,7 +327,8 @@ class Game {
         <div class="chapter-title">${ch.title}</div>
         <div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · up to Lv ${topLevel}</div>
         <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>
-        ${ready ? `<div class="chapter-warn">${ready}</div>` : ''}`;
+        ${ready ? `<div class="chapter-warn">${ready}</div>` : ''}
+        ${s.chapter > 0 ? '<div class="chapter-map">Flagged stops on the map can be fought again for half the pay.</div>' : ''}`;
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = 'March to Battle';
     } else {
@@ -656,7 +728,7 @@ class Game {
     cands.sort(() => Math.random() - 0.5);
     const enemies = city.enemies.map((e, i) => Object.assign({ level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }, e));
     await this.story(`${city.name}, ${city.held}`, city.intro);
-    const res = await this.runBattle(map, enemies, city.gil, { objective: { type: 'rout' } });
+    let res; do { res = await this.runBattle(map, enemies, city.gil, { objective: { type: 'rout' } }); } while (res === 'retry');
     if (res === 'aborted') return;
     if (res === 'victory') {
       this.state.cities[city.id] = true;
@@ -941,14 +1013,17 @@ class Game {
       const box = $('story-text');
       box.innerHTML = '';
       let i = 0;
-      const btn = $('btn-story-next');
+      const btn = $('btn-story-next'), skip = $('btn-story-skip');
       const next = () => {
         if (i < lines.length) {
           const p = document.createElement('p'); p.textContent = lines[i++]; box.appendChild(p);
           btn.textContent = i < lines.length ? 'Continue' : 'Onward';
-        } else { btn.onclick = null; resolve(); }
+          skip.hidden = i >= lines.length;
+        } else { btn.onclick = null; skip.onclick = null; resolve(); }
       };
       btn.onclick = next;
+      // Skip lays the rest of the page out at once; Onward still has to be pressed.
+      skip.onclick = () => { while (i < lines.length) next(); };
       next();
       this.showScreen('story');
     });
@@ -986,7 +1061,7 @@ class Game {
     cands.sort(() => Math.random() - 0.5);
     const enemies = t.jobs.map((job, i) => ({ job, level: t.level, x: cands[i % cands.length].x, y: cands[i % cands.length].y }));
     await this.story(`Trial ${n}: ${t.title}`, [`${map.name}. Word has spread of the company that ended the war, and ${enemies.length} have come to test it.`]);
-    const res = await this.runBattle(map, enemies, t.gil, { objective: { type: 'rout' } });
+    let res; do { res = await this.runBattle(map, enemies, t.gil, { objective: { type: 'rout' } }); } while (res === 'retry');
     if (res === 'aborted') return;
     if (res === 'victory') { this.state.trials = n; this.state.victories++; }
     this.saveGame();
@@ -1082,6 +1157,8 @@ class Game {
       const x = (e.clientX - r.left) * (W / r.width), y = (e.clientY - r.top) * (H / r.height);
       const next = pts[this.state.chapter];
       if (next && Math.hypot(x - next.x, y - next.y) < 22) return $('btn-battle').click();
+      const past = pts.findIndex((p, i) => i < this.state.chapter && Math.hypot(x - p.x, y - p.y) < 18);
+      if (past >= 0) return this.revisitChapter(past);
       const hit = cityPts.find(p => Math.hypot(x - p.x, y - p.y) < 16);
       if (hit) this.goToCity(hit.c.id);
     };
@@ -1091,7 +1168,7 @@ class Game {
     const ch = CAMPAIGN[this.state.chapter];
     if (!ch) return this.startTrial();
     await this.story(ch.title, ch.intro);
-    const result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective });
+    let result; do { result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective }); } while (result === 'retry');
     if (result === 'aborted') return;
     // Experience and JP are earned even in a losing battle, so record the run
     // either way rather than letting a defeat quietly discard it.
@@ -1106,6 +1183,21 @@ class Game {
       }
       await this.story(ch.title, ch.outro);
     }
+    this.saveGame();
+    this.showWorld();
+  }
+
+  // A field already won can be fought again from the map: the same foes,
+  // raised to a step under the party where they have fallen behind, for half
+  // the pay, and nothing in the story moves.
+  async revisitChapter(i) {
+    const ch = CAMPAIGN[i];
+    if (!ch || i >= this.state.chapter) return;
+    if (!confirm(`Revisit ${ch.title}? The same foes, half the pay, and nothing in the story changes.`)) return;
+    const floor = this.avgLevel() - 1;
+    const enemies = ch.enemies.map(e => Object.assign({}, e, { level: Math.max(e.level, floor) }));
+    let res; do { res = await this.runBattle(MAPS[ch.map], enemies, Math.floor(ch.gil / 2), { objective: ch.objective }); } while (res === 'retry');
+    if (res === 'aborted') return;
     this.saveGame();
     this.showWorld();
   }
@@ -1128,7 +1220,7 @@ class Game {
     cands.sort(() => Math.random() - 0.5);
     const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i].x, y: cands[i].y }));
     await this.story('Training', [`${map.name}. Word has it that ${pool.length} hostiles are camped here. Good practice.`]);
-    const res = await this.runBattle(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' } });
+    let res; do { res = await this.runBattle(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' } }); } while (res === 'retry');
     if (res === 'aborted') return;
     this.saveGame();
     this.showWorld();
@@ -1187,8 +1279,8 @@ class Game {
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) r.loot = loot;
     }
-    await this.results(result, r, battle.endReason, fought);
-    return result;
+    const again = await this.results(result, r, battle.endReason, fought);
+    return again === 'retry' ? 'retry' : result;
   }
 
   // Battle speed: 1x, 2x, 3x, remembered between sessions.
@@ -1256,7 +1348,10 @@ class Game {
         note.textContent = '✦ has JP enough for something new. Spend it in Formation.';
         roll.after(note);
       }
-      $('btn-results').onclick = () => { $('btn-results').onclick = null; resolve(); };
+      $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };
+      // A lost battle can be fought again at once, without the story before it.
+      $('btn-retry').hidden = result !== 'defeat';
+      $('btn-retry').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve('retry'); };
       this.showScreen('results');
     });
   }

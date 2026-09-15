@@ -150,7 +150,8 @@ class BattleUI {
 
   renderCard(u) {
     if (!u) { this.el.card.innerHTML = ''; return; }
-    const st = Object.keys(u.statuses).map(s => `<span class="status" style="background:${STATUSES[s].color}">${STATUSES[s].name}</span>`).join('');
+    // Each status names what it does on hover or a long press.
+    const st = Object.keys(u.statuses).map(s => `<span class="status" title="${STATUSES[s].desc}" style="background:${STATUSES[s].color}">${STATUSES[s].name}</span>`).join('');
     // Only show elements this unit actually answers, so the card stays short.
     const aff = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
       .map(a => `<span class="aff" style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join('');
@@ -395,9 +396,11 @@ class BattleUI {
     if (mode === 'menu') {
       hint.textContent = `Choose an action. ${CANCEL_HINT}`;
       if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
+      const canUndo = !!t.undo && u.turnFlags.moved && !u.turnFlags.acted;
       this.el.menu.innerHTML = `
         <div class="menu-title">${u.name}</div>
         <button data-a="move" ${u.turnFlags.moved ? 'disabled' : ''}>Move</button>
+        ${canUndo ? '<button data-a="undo">Undo Move</button>' : ''}
         <button data-a="act" ${u.turnFlags.acted ? 'disabled' : ''}>Act</button>
         <button data-a="wait">Wait</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => this.menuAction(b.dataset.a));
@@ -477,6 +480,7 @@ class BattleUI {
     const t = this.turn; if (!t) return;
     audio.sfx('select');
     if (a === 'move') this.setMode('move');
+    else if (a === 'undo') this.undoMove();
     else if (a === 'act') this.setMode('act');
     else if (a === 'wait') this.setMode('wait');
   }
@@ -527,9 +531,27 @@ class BattleUI {
     t.mode = 'busy';
     this.r.clearHighlights();
     this.el.menu.innerHTML = '';
-    await this.battle.moveUnit(t.unit, path);
+    const u = t.unit, b = this.battle;
+    // Where the unit stood, so the move can be taken back before it acts;
+    // not if the walk itself changed anything, such as a crystal taken up.
+    const before = { x: u.x, y: u.y, facing: u.facing, hp: u.hp, mp: u.mp, gil: b.rewards.gil, crystals: b.crystals.length };
+    await b.moveUnit(u, path);
     if (!this.turn) return;
-    if (t.unit.turnFlags.acted) this.setMode('wait'); else this.setMode('menu');
+    const untouched = u.hp === before.hp && u.mp === before.mp && b.rewards.gil === before.gil && b.crystals.length === before.crystals;
+    t.undo = untouched ? before : null;
+    if (u.turnFlags.acted) this.setMode('wait'); else this.setMode('menu');
+  }
+
+  // Back to where the turn began, as if the move had not been offered.
+  undoMove() {
+    const t = this.turn; if (!t || !t.undo || t.mode !== 'menu') return;
+    const u = t.unit, from = t.undo;
+    u.x = from.x; u.y = from.y; u.facing = from.facing;
+    u.turnFlags.moved = false;
+    t.undo = null;
+    audio.sfx('cancel');
+    this.r.focus(u);
+    this.setMode('menu');
   }
 
   // ---- input ---------------------------------------------------------------------------
