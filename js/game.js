@@ -889,7 +889,7 @@ class Game {
   rollLoot(guaranteed) {
     if (!guaranteed && Math.random() > 0.4) return null;
     const tier = this.shopTier();
-    const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier);
+    const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier && !ITEMS[id].city);
     if (!pool.length) return null;
     const id = pool[Math.floor(Math.random() * pool.length)];
     this.invAdd(id);
