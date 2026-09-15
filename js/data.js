@@ -438,7 +438,7 @@ const JOBS = {
     name: 'The Nameless Cold', skillset: 'Nothing', kind: 'monster', sprite: 'wisp',
     palette: { h: '#ffffff', c: '#8ab0ff', p: '#2a2a5a', b: '#101030', w: '#ffffff', e: '#000000' },
     affinity: { ice: 'absorb', dark: 'absorb', fire: 'weak', holy: 'weak', thunder: 'resist' },
-    hp: 2.2, mp: 2.5, pa: 1.4, ma: 1.6, spd: 1.0, move: 5, jump: 9, evade: 10,
+    hp: 2.0, mp: 2.5, pa: 1.4, ma: 1.55, spd: 1.0, move: 5, jump: 9, evade: 10,
     weapon: { name: 'Nothing', power: 9, range: 1, vert: 9 },
     abilities: ['absoluteZero', 'hunger', 'stillness', 'unmake'], req: null,
     desc: 'It fell from the sky and has been eating ever since. It has never needed a name.',
@@ -1876,7 +1876,7 @@ const CAMPAIGN = [
       { job: 'winterRegent', level: 15, x: 6, y: 3, name: 'The Winter Regent', boss: true,
         passives: ['counter', 'magickUp', 'movePlus1'],
         phases: [{
-          atPct: 0.4, job: 'namelessCold', name: 'The Nameless Cold', heal: 0.6,
+          atPct: 0.4, job: 'namelessCold', name: 'The Nameless Cold', heal: 0.5,
           passives: ['counter', 'magickUp', 'movePlus1'],
           say: 'The Regent folds like a coat with nobody in it, and what wore him stands up without a shape.',
           cry: '"You brought it back. You always bring it back."',
