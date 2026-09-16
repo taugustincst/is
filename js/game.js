@@ -21,6 +21,9 @@ const WORLD_ROUTE = [
 ];
 // Where the land ends on the map, as a fraction of its height at each x.
 const SEA_LINE = (fx) => 0.21 + Math.sin(fx * 9) * 0.02 + Math.sin(fx * 23 + 1) * 0.01;
+// The roster's ceiling: nine recruits join through the story, and the tavern
+// fills what is left.
+const PARTY_MAX = 16;
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -390,8 +393,8 @@ class Game {
     const spare = Object.values(this.state.inventory).reduce((a, b) => a + b, 0);
     $('world-stock').textContent = spare ? `Baggage: ${spare} spare item${spare === 1 ? '' : 's'} · open` : 'Baggage: nothing spare · open';
     const hireLvl = Math.max(1, this.avgLevel() - 1);
-    $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max 8).`;
-    $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= 8;
+    $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max ${PARTY_MAX}).`;
+    $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= PARTY_MAX;
     this.showScreen('world');
     // Drawn once the screen is showing, so the canvas has a width to fit.
     this.drawWorldMap();
@@ -462,7 +465,7 @@ class Game {
 
   hire(job) {
     const s = this.state;
-    if (s.gil < 300 || s.party.length >= 8) return;
+    if (s.gil < 300 || s.party.length >= PARTY_MAX) return;
     s.gil -= 300;
     const used = new Set(s.party.map(u => u.name));
     const pool = HIRE_NAMES.filter(n => !used.has(n));
@@ -705,11 +708,11 @@ class Game {
   renderCityPanel(city) {
     const el = $('cities'), s = this.state;
     const lvl = Math.max(1, this.avgLevel() - 1);
-    const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= 8 ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} gil</button>`).join('');
+    const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= PARTY_MAX ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} gil</button>`).join('');
     const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
     el.innerHTML = `
       <div class="city-head"><b>${city.name}</b><span class="muted">${city.open}</span><button id="btn-city-back" class="mini">Back to the road</button></div>
-      <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max 8)</small></h4>
+      <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max ${PARTY_MAX})</small></h4>
       <div class="city-hires">${hires}</div>
       <h4>Market <small>sold here and nowhere else</small></h4>
       <div class="city-stock">${stock}</div>`;
@@ -720,7 +723,7 @@ class Game {
 
   hireAt(city, job) {
     const s = this.state;
-    if (!city.hires.includes(job) || s.gil < city.hireCost || s.party.length >= 8) return;
+    if (!city.hires.includes(job) || s.gil < city.hireCost || s.party.length >= PARTY_MAX) return;
     s.gil -= city.hireCost;
     const used = new Set(s.party.map(u => u.name));
     const pool = HIRE_NAMES.filter(n => !used.has(n));

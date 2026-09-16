@@ -49,6 +49,7 @@ class Unit {
       this.gear = Object.assign({}, STARTER_GEAR[this.job]);
     }
     this.gilStolen = 0;
+    this.gilFound = 0;
     // What the war has written about this unit so far.
     const r = opts.record || {};
     this.record = { battles: r.battles | 0, wins: r.wins | 0, kills: r.kills | 0, falls: r.falls | 0 };

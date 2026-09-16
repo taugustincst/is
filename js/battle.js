@@ -531,7 +531,11 @@ class Battle {
         return true;
       }
       case 'gil': {
-        const v = t.level * (user.hasPassive('freebooter') ? 40 : 20);
+        // A purse has a bottom: five ordinary steals empty it for the battle.
+        const purse = t.level * 100;
+        const v = Math.min(t.level * (user.hasPassive('freebooter') ? 40 : 20), purse - (t.gilStolen || 0));
+        if (v <= 0) { this.log(`${t.name} has nothing left to steal.`, 'miss'); if (this.hooks.showFloat) this.hooks.showFloat(t, 'Empty', '#ddd'); return false; }
+        t.gilStolen = (t.gilStolen || 0) + v;
         this.rewards.gil += user.team === 'player' ? v : 0;
         this.log(`${user.name} steals ${v} gil from ${t.name}!`, 'heal');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `-${v} gil`, '#ffe97c');
@@ -930,7 +934,9 @@ class Battle {
       const v = Math.min(Math.ceil(unit.maxMp / 10), unit.maxMp - unit.mp);
       if (v > 0) { unit.mp += v; this.log(`${unit.name} recovers ${v} MP on the move.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v} MP`, '#7cc8ff'); }
     }
-    if (unit.hasPassive('moveFindItem')) {
+    if (unit.hasPassive('moveFindItem') && (unit.gilFound || 0) < 8) {
+      // A field holds only so much loose coin: eight finds a battle.
+      unit.gilFound = (unit.gilFound || 0) + 1;
       if (unit.team === 'player') this.rewards.gil += 25;
       this.log(`${unit.name} turns up 25 gil.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(unit, '+25 gil', '#ffe97c');
