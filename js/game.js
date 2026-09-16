@@ -40,16 +40,32 @@ class Game {
     this.ui = new BattleUI(this.renderer);
     this.bindScreens();
     // Audio can only start after a gesture, so arm it on the first interaction.
-    const arm = () => { audio.init(); if (this.screen === 'world') audio.playMusic('town'); };
-    window.addEventListener('pointerdown', arm, { once: true });
-    window.addEventListener('keydown', arm, { once: true });
+    // A touch pointerdown is not a user activation, only its release or the
+    // click is, so the audio is armed on every gesture that counts and stays
+    // armed once one of them has been seen.
+    const arm = () => { audio.init(); if (audio.ctx && audio.ctx.state === 'running') { if (this.screen === 'world') audio.playMusic('town'); for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.removeEventListener(ev, arm); } };
+    for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.addEventListener(ev, arm);
     this.showScreen('title');
     $('btn-continue').disabled = !this.listSlots().some(x => x.d);
+  }
+
+  // A new build is waiting in the service worker: ask once, at camp or the
+  // title, never mid-battle. Agreeing reloads into it.
+  tryUpdatePrompt() {
+    const w = window.__updateWaiting;
+    if (!w || this._updateAsked || (this.screen !== 'world' && this.screen !== 'title')) return;
+    this._updateAsked = true;
+    if (confirm('A new version of the game is ready. Reload into it now? Your progress is saved first.')) {
+      if (this.state) this.saveGame();
+      window.__reloadOnControl = true;
+      w.postMessage('skipWaiting');
+    }
   }
 
   // ---- screens -----------------------------------------------------------------------
   showScreen(name) {
     this.screen = name;
+    if (window.__updateWaiting) setTimeout(() => this.tryUpdatePrompt(), 400);
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
     // Each part of the game keeps its own theme.
     if (name === 'battle') { audio.playMusic(this.battleMusic || 'battle'); audio.startAmbient(AMBIENCE[this.renderer.mood] || null); }
@@ -1327,9 +1343,14 @@ class Game {
       return 'aborted';
     }
     this.ui.log(`Battle begins at ${mapDef.name}!`, 'lvl');
-    const result = await battle.run();
-    await sleep(600);
-    this.renderer.stop();
+    let result;
+    try {
+      result = await battle.run();
+      await sleep(600);
+    } finally {
+      // Whatever happened in there, the draw loop does not outlive the battle.
+      this.renderer.stop();
+    }
     // Who stood on the field, for the results screen, before the battle is
     // let go of.
     const fought = battle.units.filter(u => u.team === 'player' && (u.x >= 0 || u.carriedOff));

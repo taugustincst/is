@@ -4,12 +4,13 @@
   "description": "A browser tactics RPG. No build step; these scripts only check and bundle it.",
   "private": true,
   "scripts": {
+    "stamp": "node tools/stamp.js",
     "validate": "node tools/validate.js",
     "regress": "node tools/regress.js",
     "test": "node tools/validate.js && node tools/regress.js",
     "test:browser": "bash tests/browser/run.sh",
     "simulate": "node tools/simulate.js 24 1 3",
-    "bundle": "node tools/bundle.js && node tools/bundle.js --body"
+    "bundle": "node tools/stamp.js && node tools/bundle.js && node tools/bundle.js --body"
   },
   "devDependencies": {
     "playwright-core": "^1.54.0"

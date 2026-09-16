@@ -225,7 +225,24 @@
   // has nothing to add and is not bundled; the origin says which case this is.
   const inApp = location.hostname === 'appassets.androidplatform.net';
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !inApp) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    // The worker script itself is always checked against the server, never
+    // the HTTP cache, so a new build is noticed on the next launch.
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      reg.update().catch(() => {});
+      // A new build installs beside the running one and waits. The page asks
+      // before switching, and never in the middle of a battle.
+      const offer = () => {
+        const w = reg.waiting; if (!w) return;
+        window.__updateWaiting = w;
+        if (window.game && game.tryUpdatePrompt) game.tryUpdatePrompt();
+      };
+      if (reg.waiting) offer();
+      reg.addEventListener('updatefound', () => {
+        const w = reg.installing; if (!w) return;
+        w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offer(); });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (window.__reloadOnControl) location.reload(); });
+    }).catch(() => {}));
   }
 </script>
 <script src="js/audio.js"></script>

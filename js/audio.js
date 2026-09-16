@@ -292,7 +292,7 @@ class GameAudio {
       document.addEventListener('visibilitychange', () => {
         if (!this.ctx) return;
         if (document.hidden) this.ctx.suspend();
-        else if (this.ctx.state === 'suspended') this.ctx.resume();
+        else if (this.ctx.state !== 'running') this.ctx.resume(); // 'suspended', or 'interrupted' after a call on iOS
       });
     }
   }
@@ -510,8 +510,14 @@ GameAudio.prototype.startAmbient = function (kind) {
     amb.nodes.push(o);
   };
   const every = (minMs, maxMs, fn) => {
-    const tick = () => { fn(); amb.timers.push(setTimeout(tick, minMs + Math.random() * (maxMs - minMs))); };
-    amb.timers.push(setTimeout(tick, Math.random() * maxMs));
+    // Nothing is queued while the page is hidden or the sound is off, so a
+    // minute away does not come back as sixty drops landing at once.
+    const tick = () => {
+      if (this.ambient !== amb) return;
+      if (ctx.state === 'running' && !this.muted && !this.musicMuted) fn();
+      amb.timers.push(setTimeout(tick, minMs + Math.random() * (maxMs - minMs)));
+    };
+    amb.timers.push(setTimeout(tick, minMs + Math.random() * (maxMs - minMs)));
   };
   const chirp = (freq, dur, vol, type = 'sine') => {
     const t = ctx.currentTime;

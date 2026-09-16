@@ -965,6 +965,9 @@ function getSprite(job, team, view, flip, gear, look) {
     ctx.fillRect(px(x), y * SPRITE_SCALE + 1, SPRITE_SCALE, SPRITE_SCALE);
   }
   spriteCache.set(key, cv);
+  // Enemies get fresh ids every battle, so the cache is bounded: the oldest
+  // entries go once it grows past a few hundred canvases.
+  while (spriteCache.size > 400) spriteCache.delete(spriteCache.keys().next().value);
   return cv;
 }
 

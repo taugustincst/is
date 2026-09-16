@@ -101,7 +101,7 @@ class BattleUI {
   // is the only thing that survives every breakpoint and orientation.
   measureInsets() {
     const cv = this.cv;
-    const scale = cv.width / Math.max(1, cv.clientWidth);
+    const scale = 1; // the board is laid out in CSS pixels; the backing store scales underneath
     const ins = { top: 0, bottom: 0, left: 0, right: 0 };
     const box = (el) => (el && el.offsetParent !== null && getComputedStyle(el).display !== 'none')
       ? el.getBoundingClientRect() : null;
@@ -559,7 +559,7 @@ class BattleUI {
     const cv = this.cv;
     const pos = (e) => {
       const r = cv.getBoundingClientRect();
-      return { x: (e.clientX - r.left) * (cv.width / r.width), y: (e.clientY - r.top) * (cv.height / r.height) };
+      return { x: (e.clientX - r.left) * ((this.r.W || cv.width) / r.width), y: (e.clientY - r.top) * ((this.r.H || cv.height) / r.height) };
     };
     // Pointer events cover mouse, touch and pen with one code path.
     this.pointers = new Map();

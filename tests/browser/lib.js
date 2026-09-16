@@ -37,8 +37,9 @@ async function clickTile(page, tx, ty) {
   const pt = await page.evaluate(([tx, ty]) => {
     const s = game.renderer.toScreen(tx, ty, game.battle.grid.height(tx, ty));
     const cv = document.getElementById('battle-canvas'), r = cv.getBoundingClientRect(), z = game.renderer.zoom;
-    const px = (s.sx - cv.width / 2) * z + cv.width / 2, py = (s.sy - cv.height / 2) * z + cv.height / 2;
-    return { x: r.left + px * r.width / cv.width, y: r.top + py * r.height / cv.height };
+    const W = game.renderer.W || cv.width, H = game.renderer.H || cv.height;
+    const px = (s.sx - W / 2) * z + W / 2, py = (s.sy - H / 2) * z + H / 2;
+    return { x: r.left + px * r.width / W, y: r.top + py * r.height / H };
   }, [tx, ty]);
   await page.mouse.move(pt.x, pt.y); await page.waitForTimeout(60);
   await page.mouse.click(pt.x, pt.y);

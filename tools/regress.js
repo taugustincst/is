@@ -916,6 +916,8 @@ const mk = (n, job, lvl, opts = {}) => {
     const swOther = [...sw.matchAll(/'((?:css|img)\/[^']+|manifest\.[a-z]+|index\.html)'/g)].map(x => x[1]);
     const missing = swOther.filter(f => !fs.existsSync(path.join(ROOT, f)));
     ok('every file the service worker caches exists', missing.length === 0, missing.join(',') || `${swOther.length} files`);
+    const stamp = require('./stamp');
+    ok('sw.js is stamped with the hash of the build it caches (node tools/stamp.js)', stamp.stampedHash() === stamp.currentHash(), `${stamp.stampedHash()} vs ${stamp.currentHash()}`);
   }
 
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');

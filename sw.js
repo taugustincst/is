@@ -1,13 +1,15 @@
-/* Service worker: the game is a fixed set of files with no backend, so it is
-   cached whole on install and served from the cache thereafter. That makes it
+/* Service worker: the game is a fixed set of files with no backend, so each
+   build is cached whole and served from that cache thereafter. That makes it
    work offline and start instantly once installed.
 
-   Updates do not depend on anyone remembering to bump a version. The cache is
-   served immediately and refreshed behind the request, so a player who is
-   online gets the current files on their next launch. A cache-first worker
-   with a hand-maintained version freezes whoever installed it on whatever
-   shipped that day, which is exactly what happened twice here. */
-const CACHE = 'elderon-v1';
+   Every build has its own cache, named by a hash of its files that
+   tools/stamp.js writes into VERSION below (tools/regress.js fails if the
+   stamp is stale). A new build is fetched in full before it is used and the
+   old cache is deleted only when the new one is complete, so a player never
+   runs half of one build and half of another. The page is told when a new
+   build is waiting and asks before switching to it. */
+const VERSION = 'e117dfa798';
+const CACHE = 'elderon-' + VERSION;
 
 const ASSETS = [
   '.',
@@ -30,35 +32,26 @@ const ASSETS = [
   'icons/icon-maskable-512.png',
 ];
 
+// The whole build, or nothing: one file failing fails the install, and the
+// worker that is already serving keeps serving until the next attempt.
+// `reload` bypasses the HTTP cache, so a stale copy there cannot be baked in.
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE)
-      // addAll fails the whole install if any one file 404s, so add them
-      // individually and let the fetch handler fall back for stragglers.
-      // `reload` bypasses the HTTP cache, so a stale copy there cannot be
-      // baked into a fresh install.
-      .then(c => Promise.all(ASSETS.map(a =>
-        c.add(new Request(a, { cache: 'reload' })).catch(() => c.add(a).catch(() => {})))))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => Promise.all(ASSETS.map(a => c.add(new Request(a, { cache: 'reload' })))))
   );
 });
-
-// An install that lost a file to a bad connection is completed the next time
-// the game is opened online: anything still missing from the cache is fetched
-// then, so a partial install never stays partial.
-function fillGaps() {
-  return caches.open(CACHE).then(c => Promise.all(ASSETS.map(a =>
-    c.match(a, { ignoreSearch: true }).then(hit => hit ? null : c.add(new Request(a, { cache: 'reload' })).catch(() => {}))
-  )));
-}
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => fillGaps())
       .then(() => self.clients.claim())
   );
+});
+
+// The page asks for the switch once the player has agreed to it.
+self.addEventListener('message', (e) => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (e) => {
@@ -66,26 +59,24 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (req.mode === 'navigate') e.waitUntil(fillGaps());
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then(hit => {
-      // Always ask the network as well, and store what comes back. When the
-      // cache has a copy it is served straight away and the refresh happens
-      // behind the request, so the page stays instant and offline-proof while
-      // still picking up a new build on the following load.
-      // Revalidate against the server rather than the browser's own HTTP
-      // cache, which would otherwise hand back the same stale bytes.
-      const probe = hit ? new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : req;
-      const fresh = fetch(probe).then(res => {
+      if (hit) return hit;
+      return fetch(req).then(res => {
+        // Something outside the build (a screenshot, a store page): pass it
+        // through and keep a copy for next time.
         if (res && res.status === 200 && res.type === 'basic') {
           const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy));
+          e.waitUntil(caches.open(CACHE).then(c => c.put(req, copy)));
         }
         return res;
-      }).catch(() => hit || caches.match('index.html'));
-
-      if (hit) { e.waitUntil(fresh.catch(() => {})); return hit; }
-      return fresh;
+      }).catch(() => {
+        // Offline with nothing cached: a page can fall back to the game's own
+        // page, but a script or image must fail honestly rather than arrive
+        // as HTML with a 200.
+        if (req.mode === 'navigate') return caches.match('index.html');
+        return new Response('', { status: 504, statusText: 'Offline and not cached' });
+      });
     })
   );
 });

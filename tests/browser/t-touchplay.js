@@ -12,7 +12,7 @@ async function pickDest(page) {
   return page.evaluate(() => {
     const r = game.renderer, g = game.battle.grid, z = r.zoom || 1;
     const cv = document.getElementById('battle-canvas'), rc = cv.getBoundingClientRect();
-    const W = cv.width, H = cv.height;
+    const W = r.W || cv.width, H = r.H || cv.height;
     let best = null;
     for (const n of game.ui.turn.reach.values()) {
       if (n.cost <= 0) continue;
@@ -37,8 +37,9 @@ async function tapTile(page, tx, ty) {
   const pt = await page.evaluate(([tx, ty]) => {
     const s = game.renderer.toScreen(tx, ty, game.battle.grid.height(tx, ty));
     const cv = document.getElementById('battle-canvas'), r = cv.getBoundingClientRect(), z = game.renderer.zoom;
-    const px = (s.sx - cv.width / 2) * z + cv.width / 2, py = (s.sy - cv.height / 2) * z + cv.height / 2;
-    return { x: r.left + px * r.width / cv.width, y: r.top + py * r.height / cv.height };
+    const W = game.renderer.W || cv.width, H = game.renderer.H || cv.height;
+    const px = (s.sx - W / 2) * z + W / 2, py = (s.sy - H / 2) * z + H / 2;
+    return { x: r.left + px * r.width / W, y: r.top + py * r.height / H };
   }, [tx, ty]);
   await page.touchscreen.tap(pt.x, pt.y);
   await page.waitForTimeout(120);

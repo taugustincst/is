@@ -34,7 +34,7 @@ let body = bodyMatch[1];
 // Drop the external script tags and the service worker registration: everything
 // is in the file, and a worker cannot be registered from one.
 body = body.replace(/<script src="js\/[^"]+"><\/script>\s*/g, '');
-body = body.replace(/<script>[\s\S]*?serviceWorker[\s\S]*?<\/script>\s*/g, '');
+body = body.replace(/<script>([\s\S]*?)<\/script>\s*/g, (m, inner) => (inner.includes('serviceWorker') ? '' : m));
 
 const css = read('css/style.css');
 const code = SCRIPTS.map(name => {

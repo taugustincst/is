@@ -326,7 +326,7 @@ class Renderer {
   // free band between the turn strip and the command panel.
   viewCentre() {
     const i = this.insets || { top: 0, bottom: 0, left: 0, right: 0 };
-    const w = this.cv.width, h = this.cv.height;
+    const w = this.W || this.cv.width, h = this.H || this.cv.height;
     const left = Math.min(i.left, w * 0.4), right = Math.min(i.right, w * 0.4);
     const top = Math.min(i.top, h * 0.4), bottom = Math.min(i.bottom, h * 0.5);
     return {
@@ -356,7 +356,7 @@ class Renderer {
     // the edges and the player pans instead.
     const fitX = (view.w * 0.96) / Math.max(1, maxX - minX);
     const fitY = (view.h * 0.92) / Math.max(1, maxY - minY);
-    const floor = Math.min(this.cv.width, this.cv.height) < 520 ? 0.9 : 0.55;
+    const floor = Math.min(this.W || this.cv.width, this.H || this.cv.height) < 520 ? 0.9 : 0.55;
     this.zoom = Math.max(floor, Math.min(1.35, Math.min(fitX, fitY)));
   }
 
@@ -426,7 +426,7 @@ class Renderer {
     // so the visible span is the canvas divided by the zoom, centred on the
     // canvas middle; a quarter of it is the margin the board may not leave.
     const view = this.viewCentre();
-    const halfW = this.cv.width / (2 * z), halfH = this.cv.height / (2 * z);
+    const halfW = (this.W || this.cv.width) / (2 * z), halfH = (this.H || this.cv.height) / (2 * z);
     const keepX = halfW * 0.5, keepY = halfH * 0.5;
     const left = view.cx - halfW, right = view.cx + halfW;
     const top = view.cy - halfH, bottom = view.cy + halfH;
@@ -456,8 +456,8 @@ class Renderer {
   toScreen(x, y, h) {
     const r = this.gridRot(x, y);
     return {
-      sx: this.cv.width / 2 + this.cam.x + (r.x - r.y) * TILE_W / 2,
-      sy: this.cv.height / 2 + this.cam.y + (r.x + r.y) * TILE_H / 2 - h * HZ,
+      sx: (this.W || this.cv.width) / 2 + this.cam.x + (r.x - r.y) * TILE_W / 2,
+      sy: (this.H || this.cv.height) / 2 + this.cam.y + (r.x + r.y) * TILE_H / 2 - h * HZ,
     };
   }
 
@@ -478,7 +478,7 @@ class Renderer {
 
   // Convert a canvas pixel position to world coordinates (undo the zoom).
   toWorld(mx, my) {
-    const z = this.zoom || 1, W = this.cv.width, H = this.cv.height;
+    const z = this.zoom || 1, W = this.W || this.cv.width, H = this.H || this.cv.height;
     return { x: (mx - W / 2) / z + W / 2, y: (my - H / 2) / z + H / 2 };
   }
 
@@ -518,8 +518,8 @@ class Renderer {
   async focus(u, ms = 300) {
     const g = this.battle.grid;
     const off = this.viewCentre();
-    const tx = -(u.x - u.y) * TILE_W / 2 + (off.cx - this.cv.width / 2);
-    const ty = -(u.x + u.y) * TILE_H / 2 + g.height(u.x, u.y) * HZ + (off.cy - this.cv.height / 2);
+    const tx = -(u.x - u.y) * TILE_W / 2 + (off.cx - (this.W || this.cv.width) / 2);
+    const ty = -(u.x + u.y) * TILE_H / 2 + g.height(u.x, u.y) * HZ + (off.cy - (this.H || this.cv.height) / 2);
     // Only pan when the unit would otherwise sit outside the comfortable centre zone.
     const z = this.zoom || 1;
     const view = this.viewCentre();
@@ -579,10 +579,15 @@ class Renderer {
   // ---- drawing ------------------------------------------------------------------
   // Match the canvas backing store to its on-screen size so pixels stay square.
   fit() {
+    // The board is laid out in CSS pixels (this.W by this.H) and drawn on a
+    // backing store scaled by the device pixel ratio, so text, bars and effect
+    // strokes are as sharp as the page around them on a phone.
     const w = Math.max(320, Math.floor(this.cv.clientWidth)), h = Math.max(240, Math.floor(this.cv.clientHeight));
-    if (this.cv.width === w && this.cv.height === h) return;
-    const wasW = this.cv.width, wasH = this.cv.height;
-    this.cv.width = w; this.cv.height = h;
+    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    if (this.W === w && this.H === h && this.dpr === dpr) return;
+    const wasW = this.W, wasH = this.H;
+    this.W = w; this.H = h; this.dpr = dpr;
+    this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(h * dpr);
     if (!this.battle) return;
     // A browser's address bar sliding away resizes the canvas by a little. That
     // should not throw away where the player had panned to; only a real change
@@ -599,13 +604,18 @@ class Renderer {
   }
 
   start() {
+    if (this.running) return; // one loop, however many times a battle is started
     this.running = true;
     this.fit();
-    if (!this._resize) { this._resize = () => this.fit(); window.addEventListener('resize', this._resize); }
+    if (!this._resize) { this._resize = () => { if (this.running) this.fit(); }; window.addEventListener('resize', this._resize); }
     const loop = (t) => { if (!this.running) return; this.time = t; this.draw(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);
   }
-  stop() { this.running = false; }
+  stop() {
+    this.running = false;
+    // Let the finished battle go, and clear the last frame's leftovers.
+    this.battle = null; this.fx = []; this.floats = []; this.bursts = []; this.shake = null;
+  }
 
   diamond(sx, sy) {
     const c = this.ctx;
@@ -652,8 +662,9 @@ class Renderer {
   }
 
   draw() {
-    const c = this.ctx, W = this.cv.width, H = this.cv.height;
+    const c = this.ctx, W = this.W || this.cv.width, H = this.H || this.cv.height;
     const mood = MOODS[this.mood] || MOODS.day;
+    c.setTransform(this.dpr || 1, 0, 0, this.dpr || 1, 0, 0);
     c.drawImage(skyLayer(W, H, this.mood), 0, 0);
     if (!this.battle) return;
     const z = this.zoom || 1;
@@ -890,10 +901,11 @@ class Renderer {
 
   drawFloats() {
     const c = this.ctx, now = this.time;
-    this.floats = this.floats.filter(f => now - f.t0 < 1100);
+    const life = 1100 / PACE.scale;
+    this.floats = this.floats.filter(f => now - f.t0 < life);
     c.font = 'bold 16px "Segoe UI", sans-serif'; c.textAlign = 'center';
     for (const f of this.floats) {
-      const k = (now - f.t0) / 1100;
+      const k = (now - f.t0) / life;
       const { sx, sy } = this.toScreen(f.x, f.y, f.h);
       const y = sy - 46 - k * 34 - f.slot * 14;
       c.save(); c.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
@@ -905,6 +917,7 @@ class Renderer {
 
   // ---- hooks used by the battle engine --------------------------------------------
   showFloat(u, text, color) {
+    if (!this.battle) return;
     const slot = this.floats.filter(f => f.x === u.x && f.y === u.y && this.time - f.t0 < 400).length;
     this.floats.push({ x: u.x, y: u.y, h: this.battle.grid.height(u.x, u.y), text, color, t0: performance.now(), slot });
   }
@@ -914,6 +927,8 @@ class Renderer {
   // ---- effects ----------------------------------------------------------------------------------
   spawn(kind, opts) {
     const f = Object.assign({ kind, t0: performance.now(), dur: 400 }, opts);
+    // Effects keep pace with the battle speed, as the engine's own waits do.
+    f.dur = f.dur / PACE.scale;
     this.fx.push(f);
     return f;
   }
@@ -960,7 +975,7 @@ class Renderer {
     t.hitAt = performance.now();
     if (!reducedMotion()) {
       const dir = t._fromAngle === undefined ? -0.6 : t._fromAngle;
-      t.recoil = { a: dir, t0: performance.now(), dur: 260, mag: 3 + share * 7 };
+      t.recoil = { a: dir, t0: performance.now(), dur: 260 / PACE.scale, mag: 3 + share * 7 };
       this.shakeScreen(2 + share * 9);
     }
     this.spawn('impact', {
@@ -973,7 +988,7 @@ class Renderer {
   // A blow that was turned aside: the target slips out of the way.
   onEvade(t) {
     if (!this.battle || t.x < 0 || reducedMotion()) return;
-    t.recoil = { a: (t._fromAngle || 0) + Math.PI / 2, t0: performance.now(), dur: 240, mag: 6 };
+    t.recoil = { a: (t._fromAngle || 0) + Math.PI / 2, t0: performance.now(), dur: 240 / PACE.scale, mag: 6 };
   }
 
   /* A charging spell is public information: the caster glows and the ground it
@@ -1104,6 +1119,7 @@ class Renderer {
     // The tile highlight still reads the area at a glance; keep it, quietly.
     this.burst(tiles, ab.kind === 'magic' ? (ab.element ? ELEMENTS[ab.element].color : '#b080ff')
       : ab.kind === 'physical' ? '#ffffff' : '#70ff90', 320);
+    // landFx reports the effect's unscaled length; sleep scales it as spawn did.
     await sleep(Math.max(120, Math.min(landed || 0, 300)));
   }
 
@@ -1114,6 +1130,7 @@ class Renderer {
     const dur = Math.min(420, 120 + dist * 45);
     const f = this.spawn('shot', { x0, y0, h0, x: x1, y: y1, h: h1, shape, arc, dur,
       d: Math.max(this.depthOf(x0, y0), this.depthOf(x1, y1)) });
+    // spawn already scaled the flight to the battle speed, and so does sleep.
     return sleep(dur).then(() => { f.dur = 1; });
   }
 
