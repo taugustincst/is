@@ -136,7 +136,9 @@ small { color: var(--muted); }
 .form-right { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; overflow-y: auto; }
 .detail-head { display: flex; align-items: center; gap: 14px; }
 .detail-head h2 { color: var(--gold); }
-.detail-grid { display: flex; gap: 20px; margin: 8px 0; }
+.detail-grid { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 8px 0; }
+.detail-grid label { min-width: 0; flex: 1 1 160px; }
+.detail-grid select { max-width: 100%; }
 .detail-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .job-desc { font-style: italic; color: #c8c6e0; }
 .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
@@ -161,6 +163,9 @@ small { color: var(--muted); }
 #story-text p { font-size: 17px; line-height: 1.6; color: #ddd; animation: fadein 0.5s; }
 @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #btn-story-next { margin-top: 12px; padding: 10px 24px; }
+
+/* Keyboard focus is drawn, on buttons and on the rows and cards that act like them. */
+button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* ---------- battle ---------- */
 #screen-battle { background: #0d0e18; }
@@ -241,7 +246,7 @@ small { color: var(--muted); }
 .help-box li { margin-bottom: 8px; line-height: 1.4; }
 
 /* ---------- results ---------- */
-.results-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 90%); background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 24px; text-align: center; }
+.results-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 90%); max-height: min(92vh, calc(100% - 16px)); overflow-y: auto; box-sizing: border-box; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 24px; text-align: center; }
 #results-title { font-size: 40px; } #results-title.victory { color: var(--gold); } #results-title.defeat { color: var(--red); }
 .res-line { font-size: 16px; margin: 6px 0; }
 .res-events { text-align: left; color: var(--gold); margin: 12px auto; max-width: 400px; }
@@ -293,7 +298,7 @@ button.stock.link:hover { color: var(--gold); border-color: var(--gold); }
 table.worn { border-collapse: collapse; width: 100%; font-size: 12px; }
 table.worn th { text-align: left; color: var(--muted); font-weight: normal; padding: 4px 6px; border-bottom: 1px solid #2a2d50; }
 table.worn td { padding: 5px 6px; border-bottom: 1px solid #23264a; vertical-align: top; white-space: nowrap; }
-table.worn td .none { color: #555; }
+table.worn td .none { color: #9a9ab0; }
 table.worn button.mini { padding: 0 5px; font-size: 11px; line-height: 16px; }
 .row-buttons { display: flex; gap: 8px; margin-top: 12px; }
 
@@ -302,7 +307,7 @@ table.worn button.mini { padding: 0 5px; font-size: 11px; line-height: 16px; }
 .equip-row { display: flex; align-items: center; gap: 8px; }
 .equip-row > span { width: 78px; color: var(--muted); font-size: 12px; }
 .equip-row select { flex: 1; max-width: 420px; }
-.equip-row .none { color: #666; font-size: 12px; }
+.equip-row .none { color: #9a9ab0; font-size: 12px; }
 button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-left: 8px; }
 
 /* ---------- deployment ---------- */
@@ -314,7 +319,7 @@ button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-
 .roster-row.sel { border-color: var(--gold); background: #2a2a44; }
 .roster-row .name { flex: 1; }
 .roster-row .job { color: var(--muted); font-size: 11px; }
-.roster-row .mark { color: #555; }
+.roster-row .mark { color: #9a9ab0; }
 .roster-row.placed .mark { color: var(--green); }
 .deploy-dirs { margin-bottom: 8px; }
 .deploy-dirs button { font-size: 12px; padding: 4px; }
@@ -367,12 +372,13 @@ html, body, button, select { touch-action: manipulation; }
   #tile-info, #objective { display: none; }
 
   #unit-card { width: 148px; padding: 6px; right: calc(6px + var(--safe-r)); }
-  #log { width: min(70vw, 320px); height: 96px; font-size: 10px; left: calc(6px + var(--safe-l)); bottom: calc(6px + var(--safe-b)); z-index: 6; }
-  #command, #deploy-panel { padding: 7px; right: calc(6px + var(--safe-r)); bottom: calc(6px + var(--safe-b)); }
+  #log { width: min(70vw, 320px); height: 96px; font-size: 10px; left: calc(6px + var(--safe-l)); bottom: calc(6px + var(--safe-b)); z-index: 4; }
+  #command, #deploy-panel { padding: 7px; right: calc(6px + var(--safe-r)); bottom: calc(6px + var(--safe-b)); z-index: 6; }
   #hint { right: calc(6px + var(--safe-r)); font-size: 11px; }
   .roster-list { max-height: 24vh; }
   .portrait { width: 84px; height: 88px; }
-  button { min-height: 34px; }
+  button { min-height: 40px; }
+  .form-row .btns button, button.mini, table.worn button.mini { min-height: 36px; min-width: 36px; }
   .world-layout, .form-layout, .shop-layout { flex-direction: column; height: auto; }
   .world-side, .form-left { width: auto; }
   .screen { overflow-y: auto; }
@@ -395,6 +401,8 @@ html, body, button, select { touch-action: manipulation; }
   #command, #deploy-panel { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
   #hint { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; text-align: center; }
   .roster-list { max-height: 18vh; }
+  /* The log is docked above the command panel, so a line of the log never sits on Wait. */
+  #log { bottom: calc(150px + var(--safe-b)); height: 80px; }
   #action-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
   #action-menu .menu-title { grid-column: 1 / -1; }
   .deploy-actions button { font-size: 12px; }
@@ -424,3 +432,9 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
 .affinities { margin-top: 4px; font-size: 11px; display: flex; flex-wrap: wrap; gap: 6px; }
 .affinities .aff { white-space: nowrap; }
 .chapter-warn { color: var(--red); font-size: 12px; margin-top: 6px; }
+
+/* The narrowest phones: the battle bar wraps to two rows rather than clipping its ends. */
+@media (max-width: 380px) {
+  #battle-top { flex-wrap: wrap; justify-content: center; row-gap: 3px; }
+  #battle-name { max-width: 100%; flex-basis: 100%; text-align: center; }
+}

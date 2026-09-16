@@ -342,7 +342,8 @@ class Game {
         <div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · up to Lv ${topLevel}</div>
         <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>
         ${ready ? `<div class="chapter-warn">${ready}</div>` : ''}
-        ${s.chapter > 0 ? '<div class="chapter-map">Flagged stops on the map can be fought again for half the pay.</div>' : ''}`;
+        ${s.chapter > 0 ? `<div class="chapter-map revisit-row"><label>Fight a won field again for half the pay: <select id="revisit-sel">${CAMPAIGN.slice(0, s.chapter).map((c, i) => `<option value="${i}">${i + 1}. ${c.title}</option>`).join('')}</select></label> <button id="btn-revisit" class="mini">Revisit</button></div>` : ''}`;
+      if ($('btn-revisit')) $('btn-revisit').onclick = () => this.revisitChapter(+$('revisit-sel').value);
       $('btn-battle').disabled = false;
       $('btn-battle').textContent = 'March to Battle';
     } else {
@@ -461,7 +462,7 @@ class Game {
     this.formSel = Math.min(selIdx, s.party.length - 1);
     $('form-gil').textContent = `${s.gil} gil`;
     $('form-list').innerHTML = s.party.map((u, i) => `
-      <div class="form-row ${i === this.formSel ? 'sel' : ''} ${i >= 5 ? 'reserve' : ''}" data-i="${i}">
+      <div class="form-row ${i === this.formSel ? 'sel' : ''} ${i >= 5 ? 'reserve' : ''}" data-i="${i}" tabindex="0" role="button">
         <span class="slot">${i < 5 ? i + 1 : 'R'}</span>
         <canvas class="row-portrait" data-portrait="${i}"></canvas>
         <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
@@ -606,7 +607,7 @@ class Game {
           const lv = u.jobLevel(id), learned = u.learnedIn(id).length;
           const sub = st === 'locked' ? reqText(id)
             : `${u.jpTotal[id] ? `Lv${lv}` : 'unstudied'}${learned ? ` · ${learned}/${j.abilities.length} learned` : ''}`;
-          return `<div class="job-card ${st} ${id === selJob ? 'sel' : ''}" data-job="${id}">
+          return `<div class="job-card ${st} ${id === selJob ? 'sel' : ''}" data-job="${id}" tabindex="0" role="button">
             <canvas data-tree-portrait="${id}"></canvas><b>${j.name}</b><small>${sub}</small></div>`;
         }).join('')}</div>
       </div>`).join('');
@@ -1474,6 +1475,11 @@ window.addEventListener('DOMContentLoaded', () => {
   };
   window.addEventListener('orientationchange', () => setTimeout(reframe, 250));
   window.addEventListener('resize', () => { clearTimeout(window.__rt); window.__rt = setTimeout(() => { reframe(); if (game.screen === 'world') game.drawWorldMap(); }, 200); });
+  // Rows and cards that act like buttons answer Enter and Space like one.
+  document.addEventListener('keydown', (e) => {
+    if ((e.key !== 'Enter' && e.key !== ' ') || !e.target.matches('[role="button"]:not(button)')) return;
+    e.preventDefault(); e.target.click();
+  });
   // A quiet blip on any button keeps the menus feeling responsive.
   document.addEventListener('click', (e) => {
     if (e.target.tagName === 'BUTTON' && !e.target.disabled) audio.sfx('menu');

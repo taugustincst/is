@@ -255,7 +255,7 @@ class BattleUI {
     this.el.roster.innerHTML = `
       <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
       <div class="roster-list">${d.roster.map((u, i) => `
-        <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}">
+        <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}" tabindex="0" role="button">
           <canvas class="row-portrait" data-portrait="${i}"></canvas>
           <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
           <span class="job">Lv${u.level} ${u.jobData.name}</span>
