@@ -1,0 +1,22 @@
+const { BASE, ALT } = require('./lib');
+const { chromePath } = require('./lib');
+const { chromium } = require('playwright-core');
+const S = require('./lib').OUT;
+(async () => {
+  const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  const errs = []; page.on('pageerror', e => errs.push(String(e)));
+  await page.goto(ALT + '/index.html');
+  await page.waitForSelector('#screen-title.active');
+  await page.tap('#btn-new'); await page.waitForSelector('#screen-world.active');
+  await page.evaluate(() => { game.state.chapter = 9; game.state.cities = { redwater: true, dunmarchTown: true }; game.showWorld(); });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/city-phone-map.png`, clip: { x: 0, y: 60, width: 412, height: 320 } });
+  await page.evaluate(() => game.showCampTab('cities'));
+  const card = await page.$('.cities-card'); await card.scrollIntoViewIfNeeded(); await page.waitForTimeout(200);
+  await page.screenshot({ path: `${S}/city-phone-card.png` });
+  const overflow = await page.evaluate(() => document.querySelector('#screen-world').scrollWidth > document.querySelector('#screen-world').clientWidth + 1);
+  console.log('overflow:', overflow, 'errors:', errs.length ? errs : 'none');
+  await browser.close();
+})().catch(e => { console.error('FAILED', e); process.exit(1); });

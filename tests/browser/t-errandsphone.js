@@ -1,0 +1,23 @@
+const { BASE, ALT } = require('./lib');
+const { chromePath } = require('./lib');
+const { chromium } = require('playwright-core');
+const S = require('./lib').OUT;
+(async () => {
+  const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  const errs = []; page.on('pageerror', e => errs.push(String(e)));
+  await page.goto(BASE + '/index.html');
+  await page.waitForSelector('#screen-title.active');
+  await page.tap('#btn-new'); await page.waitForSelector('#screen-world.active');
+  await page.evaluate(() => { const u = game.state.party[3]; const spec = game.offeredErrands()[0]; game.sendOnErrand(spec, u); });
+  await page.waitForTimeout(200);
+  await page.evaluate(() => game.showCampTab('company'));
+  const card = await page.$('.errands-card');
+  await card.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${S}/phone-errands.png` });
+  const overflow = await page.evaluate(() => document.querySelector('#screen-world').scrollWidth > document.querySelector('#screen-world').clientWidth + 1);
+  console.log('horizontal overflow:', overflow, 'errors:', errs.length ? errs : 'none');
+  await browser.close();
+})().catch(e => { console.error('FAILED', e); process.exit(1); });

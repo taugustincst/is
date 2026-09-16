@@ -268,6 +268,8 @@ node tools/test-elements.js     # elemental affinities, absorption, prediction, 
 node tools/test-statuses.js     # Silence, Blind, Berserk and what answers them
 node tools/test-boss.js         # the final battle's second shape
 node tools/simulate.js 20 1 3   # 20 campaigns, 1 training battle per chapter, 3 retries
+npm run test:browser            # the Playwright suite in tests/browser (needs playwright-core and a Chromium)
+bash tests/browser/run.sh t-qol # one test, by name
 ```
 
 [tools/README.md](tools/README.md) describes each of them.

@@ -1,0 +1,24 @@
+const { BASE, ALT } = require('./lib');
+const { chromePath } = require('./lib');
+const { chromium } = require('playwright-core');
+const S = require('./lib').OUT;
+(async () => {
+  const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  const errs = []; page.on('pageerror', e => errs.push(String(e)));
+  await page.goto(BASE + '/index.html');
+  await page.waitForSelector('#screen-title.active');
+  await page.tap('#btn-new'); await page.waitForSelector('#screen-world.active');
+  await page.evaluate(() => { game.state.chapter = 12; game.state.trials = 4; game.showWorld(); });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/story-camp-phone.png`, fullPage: true });
+  await page.evaluate(() => { game.state.chapter = 11; game.showWorld(); });
+  await page.tap('#btn-battle'); await page.waitForSelector('#screen-story.active');
+  for (let i = 0; i < 4; i++) await page.tap('#btn-story-next');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${S}/story-phone.png` });
+  const fits = await page.evaluate(() => { const b = document.querySelector('.story-box'); const r = document.getElementById('btn-story-next').getBoundingClientRect(); return { boxH: b.scrollHeight, clientH: b.clientHeight, btnBottom: r.bottom, vh: window.innerHeight }; });
+  console.log('story box:', JSON.stringify(fits), 'errors:', errs.length ? errs : 'none');
+  await browser.close();
+})().catch(e => { console.error('FAILED', e); process.exit(1); });

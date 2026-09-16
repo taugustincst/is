@@ -765,6 +765,38 @@ const mk = (n, job, lvl, opts = {}) => {
     }
   }
 
+  /* Two object keys declared twice shipped in one day (the aeronaut's Flare
+     over the black mage's, a sea oilskin over the tier-2 one): JavaScript
+     keeps the last one silently. Every data table is scanned as source. */
+  {
+    const fs = require('fs'), path = require('path');
+    const ROOT = path.join(__dirname, '..');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
+    const dups = [];
+    for (const m of src.matchAll(/^const ([A-Z_]+) = \{$/gm)) {
+      const start = m.index, end = src.indexOf('\n};', start);
+      const seen = new Set();
+      for (const k of src.slice(start, end).matchAll(/^  ([a-zA-Z0-9_]+):\s*\{/gm)) {
+        if (seen.has(k[1])) dups.push(`${m[1]}.${k[1]}`);
+        seen.add(k[1]);
+      }
+    }
+    ok('no data table declares a key twice', dups.length === 0, dups.join(',') || 'clean');
+    // The page, the service worker and the bundler each carry a list of the
+    // scripts; they drift silently unless they are compared.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    const bundler = fs.readFileSync(path.join(ROOT, 'tools', 'bundle.js'), 'utf8');
+    const pageScripts = [...html.matchAll(/<script src="js\/([a-z]+)\.js"><\/script>/g)].map(x => x[1]);
+    const swAssets = [...sw.matchAll(/'js\/([a-z]+)\.js'/g)].map(x => x[1]);
+    const bundled = (bundler.match(/const SCRIPTS = \[([^\]]*)\]/) || ['', ''])[1].match(/'([a-z]+)'/g).map(x => x.replace(/'/g, ''));
+    const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+    ok('the page, the service worker and the bundler agree on the scripts and their order', same(pageScripts, bundled) && same([...pageScripts].sort(), [...swAssets].sort()), `page ${pageScripts.join(',')} | sw ${swAssets.join(',')} | bundle ${bundled.join(',')}`);
+    const swOther = [...sw.matchAll(/'((?:css|img)\/[^']+|manifest\.[a-z]+|index\.html)'/g)].map(x => x[1]);
+    const missing = swOther.filter(f => !fs.existsSync(path.join(ROOT, f)));
+    ok('every file the service worker caches exists', missing.length === 0, missing.join(',') || `${swOther.length} files`);
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

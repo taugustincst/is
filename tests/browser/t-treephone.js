@@ -1,0 +1,31 @@
+const { BASE, ALT } = require('./lib');
+const { chromePath } = require('./lib');
+const { chromium } = require('playwright-core');
+const S = require('./lib').OUT;
+(async () => {
+  const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  const errs = []; page.on('pageerror', e => errs.push(String(e)));
+  await page.goto(BASE + '/index.html');
+  await page.waitForSelector('#screen-title.active');
+  await page.tap('#btn-new'); await page.waitForSelector('#screen-world.active');
+  await page.evaluate(() => { const u = game.state.party[0]; u.jpTotal.squire = 300; u.jpTotal.knight = 260; });
+  await page.tap('#btn-formation'); await page.waitForSelector('#screen-formation.active');
+  await page.tap('#btn-tree'); await page.waitForTimeout(200);
+  await page.tap('.job-card[data-job="samurai"]'); await page.waitForTimeout(200);
+  await page.screenshot({ path: `${S}/phone-tree.png`, fullPage: true });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+  console.log('horizontal overflow:', overflow);
+  await page.tap('#btn-formation-back');
+  await page.tap('#btn-train'); await page.waitForSelector('#screen-story.active');
+  for (let i = 0; i < 6; i++) { const t = await page.textContent('#btn-story-next'); await page.tap('#btn-story-next'); if (t === 'Onward') break; }
+  await page.waitForSelector('#deploy-panel.open', { timeout: 20000 });
+  await page.tap('#deploy-panel button[data-a="go"]');
+  await page.waitForFunction(() => game.ui.turn && game.ui.turn.mode === 'menu', null, { timeout: 40000 });
+  await page.evaluate(() => { const b = game.battle; const foe = b.units.find(u => u.team === 'enemy' && u.alive); game.ui.onClick(b.grid.tile(foe.x, foe.y)); game.renderer.centerCamera(); });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${S}/phone-threat.png` });
+  console.log('errors:', errs.length ? errs : 'none');
+  await browser.close();
+})().catch(e => { console.error('FAILED', e); process.exit(1); });
