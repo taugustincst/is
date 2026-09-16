@@ -38,6 +38,7 @@ const ELEMENTS = {
   earth:   { name: 'Earth', color: '#c08a4a' },
   holy:    { name: 'Holy', color: '#fff3b0' },
   dark:    { name: 'Dark', color: '#a05fd6' },
+  water:   { name: 'Water', color: '#4fa8e8' },
 };
 
 // Multipliers. Absorb turns the damage into healing.
@@ -309,6 +310,33 @@ const JOBS = {
     abilities: ['runecut', 'frostbrand', 'starWard', 'nova'],
     req: { samurai: 2, arcanist: 2 }, desc: 'A blade with the star-iron\'s own runes cut into it. It burns cold, and it does not stay down.',
   },
+  // ---- the sea's trades ----
+  corsair: {
+    name: 'Corsair', skillset: 'Freebooting', kind: 'human', sprite: 'rogue',
+    palette: { h: '#2a1a10', c: '#8a3a3a', p: '#3a2a2a', b: '#2a1a1a' },
+    hp: 1.1, mp: 0.8, pa: 1.3, ma: 0.8, spd: 1.15, move: 4, jump: 4, evade: 18,
+    weapon: { name: 'Cutlass', power: 8, range: 1, vert: 2 },
+    abilities: ['boarding', 'plunder', 'broadside', 'seaLegs'],
+    req: { thief: 3, gunner: 2 }, desc: 'A blade, a pistol and no manners. Quick over a deck, and paid by what falls out of the other side.',
+  },
+  tidecaller: {
+    name: 'Tidecaller', skillset: 'Tides', kind: 'human', sprite: 'mage',
+    palette: { h: '#2a5a6a', c: '#3a8a9a', p: '#1a3a4a', b: '#0a2a30' },
+    affinity: { water: 'absorb', thunder: 'weak' },
+    hp: 0.8, mp: 1.7, pa: 0.6, ma: 1.6, spd: 1.0, move: 3, jump: 3, evade: 8,
+    weapon: { name: 'Tide Rod', power: 5, range: 1, vert: 2 },
+    abilities: ['undertow', 'tidalWave', 'brine', 'saltWard'],
+    req: { blackMage: 3, summoner: 2 }, desc: 'The Priory\'s art, taken back to the shore: the sea called in over a field, and the salt that stays after.',
+  },
+  harpooner: {
+    name: 'Harpooner', skillset: 'Harpoons', kind: 'human', sprite: 'warrior',
+    palette: { h: '#c8a060', c: '#4a5a4a', p: '#2a3a3a', b: '#1a2a2a' },
+    affinity: { water: 'resist' },
+    hp: 1.2, mp: 0.8, pa: 1.35, ma: 0.8, spd: 1.05, move: 4, jump: 4, evade: 12,
+    weapon: { name: 'Harpoon', power: 8, range: 2, vert: 3 },
+    abilities: ['harpoon', 'whaleslayer', 'barb', 'reel'],
+    req: { dragoon: 2, archer: 2 }, desc: 'Whalers who learned on the Sunder Sea that anything big enough to see is big enough to hit.',
+  },
   hollowKnight: {
     name: 'Hollow Knight', skillset: 'Hollow', kind: 'human', sprite: 'heavy',
     palette: { h: '#cfe8f4', c: '#2a3a4a', p: '#1a2030', b: '#0a1018' },
@@ -442,6 +470,70 @@ const JOBS = {
     weapon: { name: 'Nothing', power: 9, range: 1, vert: 9 },
     abilities: ['absoluteZero', 'hunger', 'stillness', 'unmake'], req: null,
     desc: 'It fell from the sky and has been eating ever since. It has never needed a name.',
+  },
+  // ---- the sea's dead and its creatures ----
+  drownedKnight: {
+    name: 'Drowned Knight', skillset: 'Drowned', kind: 'human', sprite: 'heavy',
+    palette: { h: '#6a8a8a', c: '#2a4a4a', p: '#1a3030', b: '#0a1818' },
+    affinity: { water: 'absorb', thunder: 'weak', holy: 'weak', ice: 'resist' },
+    hp: 1.5, mp: 1.0, pa: 1.4, ma: 1.0, spd: 0.95, move: 4, jump: 3, evade: 10,
+    weapon: { name: 'Barnacle Blade', power: 8, range: 1, vert: 2 },
+    abilities: ['brineCut', 'anchorFall', 'riptide'], req: null,
+    desc: 'Tessaly\'s guard, still on watch under the water. Thunder finds them, and so does holy light.',
+  },
+  saltPriest: {
+    name: 'Salt Priest', skillset: 'Liturgy', kind: 'human', sprite: 'mage',
+    palette: { h: '#e8e0d0', c: '#6a7a7a', p: '#3a4a4a', b: '#1a2a2a' },
+    affinity: { water: 'absorb', thunder: 'weak' },
+    hp: 0.85, mp: 1.7, pa: 0.7, ma: 1.6, spd: 1.0, move: 3, jump: 3, evade: 8,
+    weapon: { name: 'Salt Staff', power: 5, range: 1, vert: 2 },
+    abilities: ['brine', 'undertow', 'hymnOfTheDeep', 'saltWard'], req: null,
+    desc: 'The Priory keeps the drowned star, and sings to it. It has learned to sing back.',
+  },
+  siren: {
+    name: 'Siren', skillset: 'Song', kind: 'monster', sprite: 'wisp',
+    palette: { h: '#8ae8e0', c: '#3aa0a8', p: '#1a5a60', b: '#0a2a30', w: '#e0ffff', e: '#ffffff' },
+    affinity: { water: 'absorb', thunder: 'weak', fire: 'resist' },
+    hp: 0.9, mp: 1.8, pa: 0.8, ma: 1.5, spd: 1.2, move: 5, jump: 9, evade: 20,
+    weapon: { name: 'Song', power: 5, range: 2, vert: 9 },
+    abilities: ['lure', 'sirenSong', 'drown'], req: null,
+    desc: 'A voice over the water with nothing behind it. Sailors go to it, and their friends go after them.',
+  },
+  reefCrab: {
+    name: 'Reef Crab', skillset: 'Shell', kind: 'monster', sprite: 'crab',
+    palette: { h: '#c05a48', c: '#e08a70', p: '#6a2a20', b: '#4a1a10', e: '#101010' },
+    affinity: { water: 'resist', earth: 'resist', thunder: 'weak' },
+    hp: 1.7, mp: 0.5, pa: 1.4, ma: 0.6, spd: 0.8, move: 3, jump: 2, evade: 4,
+    weapon: { name: 'Pincer', power: 9, range: 1, vert: 2 },
+    abilities: ['pincer', 'shellUp'], req: null,
+    desc: 'The size of a cart and the temper of one. Its shell turns most things aside.',
+  },
+  leviathan: {
+    name: 'Leviathan', skillset: 'Deep', kind: 'monster', sprite: 'serpent',
+    palette: { h: '#2a6a7a', c: '#5aa0a8', p: '#1a3a48', b: '#0a2028', e: '#ffe040' },
+    affinity: { water: 'absorb', thunder: 'weak', ice: 'resist', fire: 'resist' },
+    hp: 2.4, mp: 1.2, pa: 1.6, ma: 1.3, spd: 1.05, move: 5, jump: 6, evade: 8,
+    weapon: { name: 'Jaws', power: 10, range: 1, vert: 4 },
+    abilities: ['maelstrom', 'crush', 'tailSweep'], req: null,
+    desc: 'The sea\'s own weather, with a spine. It has eaten ships. It would like to eat another.',
+  },
+  drownedQueen: {
+    name: 'Drowned Queen', skillset: 'Tessaly', kind: 'human', sprite: 'mage',
+    palette: { h: '#d0e8e8', c: '#1a4a58', p: '#0a2a38', b: '#000000' },
+    affinity: { water: 'absorb', ice: 'resist', thunder: 'weak' },
+    hp: 2.5, mp: 2.0, pa: 1.3, ma: 1.9, spd: 1.15, move: 4, jump: 4, evade: 16,
+    weapon: { name: 'Queen\'s Trident', power: 10, range: 2, vert: 3 },
+    abilities: ['undertow', 'tidalWave', 'hymnOfTheDeep', 'drown', 'nova'], req: null,
+    desc: 'Tessaly\'s last queen went down with her city and never stopped holding court. Something holds it through her now.',
+  },
+  theDeep: {
+    name: 'The Deep', skillset: 'Nothing', kind: 'monster', sprite: 'wisp',
+    palette: { h: '#c0f0ff', c: '#1a6a90', p: '#0a2a50', b: '#000a20', w: '#ffffff', e: '#000000' },
+    affinity: { water: 'absorb', dark: 'absorb', ice: 'resist', thunder: 'weak', holy: 'weak' },
+    hp: 2.1, mp: 2.5, pa: 1.4, ma: 1.6, spd: 1.0, move: 5, jump: 9, evade: 10,
+    weapon: { name: 'Nothing', power: 10, range: 1, vert: 9 },
+    abilities: ['maelstrom', 'hunger', 'stillness', 'unmake'], req: null,
+    desc: 'What went out of the crater like breath off a window. It found the sea, and the sea has no shape to lose.',
   },
   darkKnight: {
     name: 'Dark Knight', skillset: 'Fell Sword', kind: 'human', sprite: 'heavy',
@@ -725,6 +817,60 @@ const ABILITIES = {
   darkPact: { name: 'Dark Pact', job: 'fellKnight', jp: 500, mp: 20, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'statmod', stat: 'pa', amount: 3 }, { type: 'statmod', stat: 'ma', amount: 3 }],
     desc: 'Sign it again. PA +3 and MA +3 for the rest of the battle.' },
+
+  // Corsair
+  boarding: { name: 'Boarding', job: 'corsair', jp: 150, mp: 4, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }], desc: 'Cross the deck in a bound and cut on landing: weapon damage at two tiles.' },
+  plunder: { name: 'Plunder', job: 'corsair', jp: 200, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 4 }, { type: 'gil' }], desc: 'A cut, and a hand in the purse while they look at the cut.' },
+  broadside: { name: 'Broadside', job: 'corsair', jp: 350, mp: 8, range: 4, aoe: 1, vert: 9, ct: 6, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 7 }], desc: 'Every pistol on the belt at once. Physical damage over an area, at range.' },
+  seaLegs: { name: 'Sea Legs', job: 'corsair', jp: 300, mp: 8, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'haste', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 8 }], desc: 'Nothing under you is steady, so nothing surprises you. Haste, and Evade +8.' },
+
+  // Tidecaller
+  undertow: { name: 'Undertow', job: 'tidecaller', jp: 120, mp: 10, range: 4, aoe: 1, vert: 4, ct: 6, kind: 'magic', affects: 'all', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 7 }, { type: 'status', status: 'slow', hit: 50 }], desc: 'The sea pulls at the feet of everyone in the area: water damage, and half are Slowed.' },
+  tidalWave: { name: 'Tidal Wave', job: 'tidecaller', jp: 400, mp: 24, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'all', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 12 }], desc: 'The whole sea, called in over a wide area, friend and foe alike.' },
+  brine: { name: 'Brine', job: 'tidecaller', jp: 200, mp: 12, range: 3, aoe: 0, vert: 4, ct: 4, kind: 'magic', affects: 'enemy', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }, { type: 'status', status: 'poison', hit: 70 }], desc: 'Salt water where it does the most harm. Water damage, and likely Poison.' },
+  saltWard: { name: 'Salt Ward', job: 'tidecaller', jp: 250, mp: 12, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'A line of salt around allies in the area: Shell and Regen.' },
+
+  // Harpooner
+  harpoon: { name: 'Harpoon', job: 'harpooner', jp: 120, mp: 4, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'slow', hit: 60 }], desc: 'Thrown, with a line on it. Weapon damage at three tiles, and the target is likely Slowed.' },
+  whaleslayer: { name: 'Whaleslayer', job: 'harpooner', jp: 350, mp: 8, range: 'weapon', aoe: 0, vert: 'weapon', ct: 8, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 7 }], desc: 'Both hands, all the way in. A charged strike for weapon power and a great deal more.' },
+  barb: { name: 'Barb', job: 'harpooner', jp: 200, mp: 6, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 4 }, { type: 'status', status: 'poison', hit: 80 }], desc: 'A barbed head that stays in. Damage, and the wound keeps bleeding: Poison.' },
+  reel: { name: 'Reel', job: 'harpooner', jp: 260, mp: 6, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'ctmod', amount: -30 }], desc: 'Haul on the line. A little damage, and the target loses 30 CT fighting it.' },
+
+  // The sea's dead
+  brineCut: { name: 'Brine Cut', job: 'drownedKnight', jp: 0, mp: 6, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'water',
+    effects: [{ type: 'drain', formula: 'pa', power: 'weapon', bonus: 1 }], desc: 'A cut that takes the water out of the wound and into the knight.' },
+  anchorFall: { name: 'Anchor Fall', job: 'drownedKnight', jp: 0, mp: 8, range: 2, aoe: 0, vert: 4, ct: 4, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 9 }, { type: 'status', status: 'slow', hit: 60 }], desc: 'The weight of everything drowned, brought down on one target. Damage, and likely Slow.' },
+  riptide: { name: 'Riptide', job: 'drownedKnight', jp: 0, mp: 10, range: 3, aoe: 1, vert: 4, ct: 6, kind: 'magic', affects: 'all', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'The current under the calm. Water damage over an area.' },
+  hymnOfTheDeep: { name: 'Hymn of the Deep', job: 'saltPriest', jp: 0, mp: 16, range: 3, aoe: 1, vert: 9, ct: 8, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'status', status: 'berserk', hit: 60 }, { type: 'status', status: 'blind', hit: 40 }], desc: 'The song the sailors heard. Those in the area are likely Berserk, and some are Blinded.' },
+  lure: { name: 'Lure', job: 'siren', jp: 0, mp: 6, range: 3, aoe: 0, vert: 9, ct: 0, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'mpdrain', formula: 'ma', power: 5 }], desc: 'A promise nobody can quite hear. MP drained from the target.' },
+  sirenSong: { name: 'Siren Song', job: 'siren', jp: 0, mp: 14, range: 3, aoe: 1, vert: 9, ct: 8, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'status', status: 'berserk', hit: 55 }], desc: 'Those in the area are likely to go for the nearest throat, friend or not.' },
+  drown: { name: 'Drown', job: 'siren', jp: 0, mp: 10, range: 3, aoe: 0, vert: 9, ct: 6, kind: 'magic', affects: 'enemy', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }, { type: 'status', status: 'silence', hit: 50 }], desc: 'Water where the breath goes. Water damage, and an even chance of Silence.' },
+  pincer: { name: 'Pincer', job: 'reefCrab', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 8 }, { type: 'status', status: 'stop', hit: 35 }], desc: 'Caught, and held. Damage, and a fair chance of Stop.' },
+  shellUp: { name: 'Shell Up', job: 'reefCrab', jp: 0, mp: 4, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Down under the shell. Protect and Shell.' },
+  maelstrom: { name: 'Maelstrom', job: 'leviathan', jp: 0, mp: 20, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'all', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'The sea turned in a circle over a wide area, and everything in it.' },
+  crush: { name: 'Crush', job: 'leviathan', jp: 0, mp: 0, range: 1, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 12 }], desc: 'Coils. Heavy damage to one target.' },
 
   // Monsters
   // Frostweaver
@@ -1380,9 +1526,77 @@ const MAPS = {
     ],
     deploy: [[5, 11], [6, 11], [7, 11], [5, 10], [7, 10]],
   },
+  // ---- Act IV: the Sunder Sea ----
+  // A harbour town: quays over the water, a warehouse, a pier, and the shallows.
+  saltwick: {
+    name: 'Saltwick Harbour', w: 12, h: 11, mood: 'tide',
+    heights: [
+      '222222221111', '211111121111', '211331121111', '211331121111', '211111111110', '111111111100',
+      '111111111000', '111111111000', '111111110000', '111111100000', '111111000000',
+    ],
+    terrain: [
+      'ssssssssdddd', 'sggggggsdddd', 'sggssggsdrrr', 'sggssggsdrrr', 'sggggggsdrrw', 'dddddddddrww',
+      'ddddddddbwww', 'sssssssbbwww', 'sssssssbwwww', 'ddddddrwwwww', 'dddddrwwwwww',
+    ],
+    deploy: [[0, 9], [1, 9], [0, 10], [1, 10], [2, 9]],
+  },
+  // A Concord hull broken on the reef, its deck a step above the shallows
+  // and its sterncastle a step above that.
+  wreck: {
+    name: 'The Wreck of the Concord Star', w: 13, h: 11, mood: 'storm',
+    heights: [
+      '0000011100000', '0001111111000', '0011122221100', '0111222233110', '1111222233310', '1111222233311',
+      '1111222222110', '1111122221100', '1111111111000', '1111111110000', '1111111100000',
+    ],
+    terrain: [
+      'wwwwwrrrwwwww', 'wwwrrrrrrrwww', 'wwrrrbbbbrrww', 'wrrrbbbbbbrrw', 'drrrbbbbbbbrw', 'ddrrbbbbbbbrr',
+      'ddrrbbbbbbrrw', 'ddrrrbbbbrrww', 'dddrrrrrrrwww', 'ddddrrrrrwwww', 'dddddrrrwwwww',
+    ],
+    deploy: [[0, 4], [0, 5], [1, 5], [0, 6], [1, 6]],
+  },
+  // A monastery on a sea rock, reached over a causeway the tide leaves bare.
+  priory: {
+    name: 'The Salt Priory', w: 11, h: 11, mood: 'tide',
+    heights: [
+      '00022222000', '00223332200', '02334443320', '02334443320', '00233333200', '00022222100',
+      '00002221100', '00001111000', '00011110000', '00111100000', '01111000000',
+    ],
+    terrain: [
+      'wwwssssswww', 'wwsssssssww', 'wsssgsgsssw', 'wsssssssssw', 'wwsssssssww', 'wwwsssssrww',
+      'wwwwsssrrww', 'wwwwrrrrwww', 'wwwrrrrwwww', 'wwrrrrwwwww', 'wrrrrwwwwww',
+    ],
+    deploy: [[1, 10], [2, 10], [2, 9], [3, 9], [3, 10]],
+  },
+  // The drowned city at low tide: streets of shallows between the stumps of
+  // its houses, and the old square in the middle.
+  tessaly: {
+    name: 'Tessaly', w: 13, h: 12, mood: 'abyss',
+    heights: [
+      '0011222221100', '0113322233310', '1133211123311', '1222111112221', '1221111111221', '2211113111122',
+      '2211123211122', '1221111111221', '1222111112221', '1133211123311', '1113322233111', '1111111111111',
+    ],
+    terrain: [
+      'wwrrsssssrrww', 'wrrssssssssrw', 'rrsssrrrsssrr', 'rsssrrrrrsssr', 'rssrrrrrrrssr', 'ssrrrrsrrrrss',
+      'ssrrrsssrrrss', 'rssrrrrrrrssr', 'rsssrrrrrsssr', 'rrsssrrrsssrr', 'drrsssssssrrd', 'ddrrrrrrrrrdd',
+    ],
+    deploy: [[5, 11], [6, 11], [7, 11], [6, 10], [5, 10]],
+  },
+  // The sea floor where the star's twin lies, bared for an hour by a tide that
+  // should not be possible: a ring of black glass, a moat, and the stone.
+  tidestone: {
+    name: 'The Tidestone', w: 13, h: 13, mood: 'abyss',
+    heights: [
+      '0000111110000', '0011111111100', '0111222221110', '0112222222110', '1122200022211', '1122033330211',
+      '1122033430211', '1122033330211', '1122200022211', '0112222222110', '0111222221110', '0011111111100', '0000111110000',
+    ],
+    terrain: [
+      'wwwwrrrrrwwww', 'wwrrrrrrrrrww', 'wrrrsssssrrrw', 'wrrsssssssrrw', 'rrssswwwsssrr', 'rrsswsssswsrr',
+      'rrsswsssswsrr', 'rrsswsssswsrr', 'rrssswwwsssrr', 'wrrsssssssrrw', 'wrrrsssssrrrw', 'wwrrrrrrrrrww', 'wwwwrrrrrwwww',
+    ],
+    deploy: [[5, 12], [6, 12], [7, 12], [6, 11], [5, 11]],
+  },
 };
 
-// ------------------------------------------------------------------ campaign
 const CAMPAIGN = [
   {
     objective: { type: 'rout' },
@@ -1893,6 +2107,178 @@ const CAMPAIGN = [
       'The star-iron core in Ottilie\'s arms is only iron now, and only heavy. She drops it, and laughs, and cannot stop for a while.',
       'The Court\'s knights kneel in the black glass and become, one at a time, people who are very cold and very tired, and are allowed to be.',
       'In the spring Frostholm lights its chimneys. Elderon has one king, because the princes could not face the company that ended two wars and a winter, and made peace instead.',
+      'Rowan Aldric goes home, and this time means to stay. The road behind him is long. The company that walked it is still a company, and always will be.',
+      'A year later a letter comes from Vexley at the Concord. Ships out of Fordwater for the Sunder Isles are not coming back, and the ones that do are worse.',
+      '--- END OF ACT III. The sea has begun to give back what it took. ---',
+    ],
+  },
+
+  // ---- Act IV: the Sunder Sea ----
+  {
+    objective: { type: 'rout', protectLeader: true },
+    id: 'ch18', title: 'The Salt Road', map: 'saltwick',
+    camp: [
+      'Garret reads Vexley\'s letter for the fourth time. "Warm, cheerful, and not themselves. He underlines cheerful."  Rowan: "He would."',
+      'Ottilie has the plain iron core on the wagon bench, and beside it a bell she has cast from a piece of it. She rings it once. It sounds like a bell.',
+      'Bram: "A year at home and my hands have gone soft."  Ingrid: "Your hands were never the hard part."',
+    ],
+    intro: [
+      'Saltwick was the Concord\'s harbour for the Isles trade. Its light has been dark for a month, and the ships in its harbour are all ships that came back.',
+      'Their crews are on the quays, laughing, in the rain, and do not seem to be getting wet.',
+      '"Wreckers," says the woman at the pier with a cutlass across her knees. "They light false fires on the reef and take what runs aground. They used to. Now they do it for the Priory, and they do it smiling."',
+      '"Wren Marrow. I had a ship and a crew. The Priory has both. Get me to it and you can have the town."',
+      'The wreckers turn, all together, and are still smiling. "Company," one of them says, pleasantly. "We were told you would come."',
+    ],
+    enemies: [
+      { job: 'corsair', level: 16, x: 9, y: 1, name: 'Wrecker' },
+      { job: 'corsair', level: 16, x: 6, y: 3, name: 'Wrecker' },
+      { job: 'harpooner', level: 16, x: 10, y: 2, name: 'Wrecker Harpooner' },
+      { job: 'reefCrab', level: 16, x: 9, y: 5 },
+      { job: 'saltPriest', level: 17, x: 7, y: 7, name: 'Priory Cantor' },
+    ],
+    gil: 5200,
+    recruit: { name: 'Wren', job: 'corsair', level: 18 },
+    outro: [
+      'The wreckers stop smiling when the cantor falls, and then they stop standing, and sit on the quay looking at their hands like men waking on a strange floor.',
+      '"They sang to us," one of them says. "Out at the Priory. It was such a warm song."',
+      'Wren wipes her cutlass on a wrecker\'s coat. "The Priory took my crew for choir practice. I would like them back. I would like the Prior\'s head in a bag."',
+      'Wren the Corsair joins the party!',
+    ],
+  },
+  {
+    objective: { type: 'survive', rounds: 5, protectLeader: true },
+    id: 'ch19', title: 'The Wreck of the Concord Star', map: 'wreck',
+    camp: [
+      'Wren draws the reef in spilled beer. "The Star went aground here. Vexley\'s flagship. Whatever the Priory wanted off her, it is still aboard, or they would not still be guarding the wreck."',
+      'Lysa: "Guarding it with what?"  Wren: "With the crew."  Lysa: "Oh."',
+      'Tamsin sits with Ottilie\'s bell in her lap. "It is quiet," she says. "The core used to hum at me. This does not. I think that is the point of it."',
+    ],
+    intro: [
+      'The Concord Star lies broken on the reef with her deck a fathom above the shallows and her sterncastle above that, and her crew still at their posts.',
+      'They have been under the water a month. They come up out of it in their oilskins and their armour, and the water comes up with them.',
+      '"Drowned," Wren says, without expression. "Every ship that went out. I know that man. I owe him money."',
+      '"The tide is coming in," Rowan says. "Hold the deck until it turns. Nothing else comes up out of the sea at high water."',
+      'Something under the hull begins, very slowly, to sing.',
+    ],
+    enemies: [
+      { job: 'drownedKnight', level: 17, x: 6, y: 3, name: 'Drowned Mate' },
+      { job: 'drownedKnight', level: 17, x: 9, y: 4, name: 'Drowned Bosun' },
+      { job: 'siren', level: 17, x: 8, y: 5 },
+      { job: 'siren', level: 17, x: 5, y: 6 },
+      { job: 'saltPriest', level: 18, x: 7, y: 2, name: 'Priory Cantor' },
+      { job: 'reefCrab', level: 17, x: 10, y: 5 },
+    ],
+    gil: 5600,
+    outro: [
+      'The tide turns, and what the sea sent up goes back down into it, slowly, as if reluctant.',
+      'In the captain\'s cabin, in a strongbox nailed to the deck, is the twelfth core of star-iron, and a Priory letter thanking the Concord for its delivery.',
+      '"They were bringing it here," Ottilie says. "All eleven of the others went north to Brassgate. This one went to the sea. On purpose."',
+      'Under the letter, in a different hand: "The star that fell at Starfall was the second. The first is ours, and has been since Tessaly drowned."',
+    ],
+  },
+  {
+    objective: { type: 'boss', protectLeader: true },
+    id: 'ch20', title: 'The Salt Priory', map: 'priory',
+    camp: [
+      'Wren: "The Priory sits on a rock a mile out. There is a causeway at low water. The Prior does not leave, and nobody who goes out to him comes back down it unsung."',
+      'Eirik listens to the sea for a long time. "It is the same," he says at last. "The thing under the Court. It is under the water now, and the water suits it better."',
+      'Rowan: "Then we do what we did at Starfall."  Eirik: "At Starfall it had a shape. Ask the sea for its shape."',
+    ],
+    intro: [
+      'The Salt Priory was built by people who pulled a star out of the sea and thought it had come for them. Their descendants keep it in the chapel, and sing to it, and it has learned the tune.',
+      'The Prior meets the company on the chapel steps with the whole choir behind him. He is very kind about it.',
+      '"You closed the crater," he says. "You put the Cold out into the wind. Where did you think the wind went? It came to us, and we had a star waiting, and the sea to keep it in."',
+      '"It is warm now. It is not hungry anymore, it is only glad. Listen." The choir begins, and one of the novices at the back is not singing.',
+      '"Ysolde," she says, to nobody, to the company, "novice of the Priory, and I would like it noted that I never once liked the song."',
+    ],
+    enemies: [
+      { job: 'saltPriest', level: 20, x: 5, y: 2, name: 'The Prior', boss: true, passives: ['magickUp', 'absorbMp', 'movePlus1'] },
+      { job: 'saltPriest', level: 18, x: 4, y: 3, name: 'Cantor' },
+      { job: 'drownedKnight', level: 19, x: 3, y: 4, name: 'Chapel Warden' },
+      { job: 'drownedKnight', level: 19, x: 7, y: 4, name: 'Chapel Warden' },
+      { job: 'siren', level: 18, x: 2, y: 2 },
+      { job: 'siren', level: 18, x: 8, y: 3 },
+    ],
+    gil: 6200,
+    recruit: { name: 'Ysolde', job: 'tidecaller', level: 20 },
+    outro: [
+      'The Prior dies mid-verse, still kind, and the choir stops as if a door has shut. Wren finds her crew among them, hoarse and ashamed and alive.',
+      'The chapel is empty. Where the star should stand there is a wet stone floor and a hole the shape of the sea.',
+      '"It went down," Ysolde says. "The Prior gave it to Tessaly a month ago. To the queen. The drowned one. She has been asking for it for four hundred years, and this month somebody finally said yes."',
+      'Ysolde the Tidecaller joins the party!',
+    ],
+  },
+  {
+    objective: { type: 'rout', protectLeader: true },
+    id: 'ch21', title: 'The Drowned City', map: 'tessaly',
+    camp: [
+      'Ysolde: "Tessaly drowned in a night, four hundred years ago, with its queen at prayer. The Priory says the sea took it. The Priory does not say the queen asked it to."',
+      'Kael: "Low tide bares the streets twice a day. We go in on the ebb and we are out before the flood, or we are part of the city."  Bram: "I have been part of worse places."',
+      'Ottilie rings the bell, once, on the beach. Far out, something very large turns over in its sleep.',
+    ],
+    intro: [
+      'At the bottom of the ebb Tessaly stands up out of the sea, street by street: the stumps of houses, the old square, the chapel where the queen still kneels.',
+      'Her guard are on their corners as they have been for four hundred years, and they turn their helms towards the company all together, like weathervanes.',
+      '"The tide is out for an hour," Ysolde says. "The city knows it. Everything that lives in it is awake."',
+      'Something with a spine the length of the square lifts its head over the chapel roof and looks at them with a yellow eye.',
+      '"Leviathan," Wren says. "Well. I always wondered what one looked like."',
+    ],
+    enemies: [
+      { job: 'leviathan', level: 20, x: 6, y: 5 },
+      { job: 'drownedKnight', level: 19, x: 3, y: 2, name: 'Tessaly Guard' },
+      { job: 'drownedKnight', level: 19, x: 9, y: 2, name: 'Tessaly Guard' },
+      { job: 'drownedKnight', level: 20, x: 6, y: 1, name: 'Captain of the Watch' },
+      { job: 'siren', level: 19, x: 2, y: 6 },
+      { job: 'saltPriest', level: 19, x: 10, y: 6, name: 'Drowned Cantor' },
+      { job: 'reefCrab', level: 19, x: 4, y: 3 },
+    ],
+    gil: 6800,
+    outro: [
+      'The leviathan dies across the square with the tide already licking at its coils, and the guard of Tessaly fall where they stand and do not get up, for the first time in four hundred years.',
+      'In the chapel the queen is not at prayer. The floor is open, and stairs go down under the water into a light that is the same colour as the one under the Hollow Court.',
+      '"The Tidestone," Ysolde says. "Where the first star lies. The queen has taken the second down to it, and the sea is holding its breath."',
+      'It is. The water is going out and out, past any tide, and not coming back.',
+    ],
+  },
+  {
+    objective: { type: 'boss', protectLeader: true },
+    id: 'ch22', title: 'The Drowned Queen', map: 'tidestone',
+    camp: [
+      'Nobody sleeps. The sea is a mile out and still going, and the sound of it leaving is the loudest thing any of them has heard.',
+      'Wren: "If it takes me, I want it noted that I was owed money."  Rowan: "Noted. We came back for everyone at Starfall. That is still the policy."',
+      'Ottilie has the bell in both arms. "At Starfall it could not hold its shape when we broke the thing wearing it. Down there it is wearing the sea. So we give it something else to ring against." Tamsin: "It will hear. Let it."',
+    ],
+    intro: [
+      'The Tidestone is a bowl of black glass at the bottom of the Sunder Sea, bared by a tide that has no business going out this far, and at its centre the first star stands where it fell with the second laid at its foot.',
+      'The Drowned Queen of Tessaly kneels between them. She has been kneeling for four hundred years. She stands up.',
+      '"You brought it back," she says, and it is not her voice. "They always bring it back."',
+      '"The Cold fed on wars. I feed on the sea, and the sea does not end. You cannot starve me here. You cannot put me out into the wind. There is no wind, down here."',
+      'Ottilie sets the bell down on the black glass. "No," she says. "But there is this."',
+    ],
+    enemies: [
+      { job: 'drownedQueen', level: 21, x: 6, y: 5, name: 'The Drowned Queen', boss: true,
+        passives: ['counter', 'magickUp', 'movePlus1'],
+        phases: [{
+          atPct: 0.4, job: 'theDeep', name: 'The Deep', heal: 0.5,
+          passives: ['counter', 'magickUp', 'movePlus1'],
+          say: 'The queen folds like wet cloth, and what wore her stands up out of the glass with the sea for a shape.',
+          cry: '"There is no wind down here. There is nothing to put me out into."',
+        }],
+      },
+      { job: 'drownedKnight', level: 20, x: 3, y: 3, name: 'Queen\'s Guard' },
+      { job: 'drownedKnight', level: 20, x: 9, y: 3, name: 'Queen\'s Guard' },
+      { job: 'siren', level: 20, x: 2, y: 6 },
+      { job: 'siren', level: 20, x: 10, y: 6 },
+      { job: 'saltPriest', level: 20, x: 6, y: 2, name: 'Queen\'s Cantor' },
+      { job: 'leviathan', level: 20, x: 8, y: 9, name: 'The Old Serpent' },
+    ],
+    gil: 14000,
+    outro: [
+      'The Deep has no shape to fall with, so it does not fall. It rings. Ottilie\'s bell, cast from the plain iron it left behind, rings against it, and it cannot hold the sea and the sound both.',
+      'It goes out of the water the way it went out of the crater, and this time there is no wind to carry it, and no star waiting, and nothing to feed it. It thins, and it is gone.',
+      'Two lumps of iron lie on the black glass, plain and heavy. The queen of Tessaly is a small woman in a wet dress who has been kneeling a long time, and is allowed, at last, to lie down.',
+      'The sea comes back. It comes back slowly, and kindly, and Wren swears it apologises. The company goes up the stairs ahead of it with the bell between them, and does not look back.',
+      'In the spring the Concord\'s ships sail for the Isles and come home, and their crews are exactly as cheerful as they should be. Saltwick lights its lamp. Tessaly stays under the sea, and sleeps.',
       'Rowan Aldric goes home, and this time stays. The road behind him is long. The company that walked it is still a company, and always will be.',
       '--- THE END. Thank you for playing. Trials await at camp, and the wagon carries legendary arms. ---',
     ],
@@ -1906,9 +2292,10 @@ const ACTS = [
   { title: 'The War of Princes', from: 0, to: 6 },
   { title: 'The Brass Concord', from: 7, to: 11 },
   { title: 'The Winter Court', from: 12, to: 16 },
+  { title: 'The Sunder Sea', from: 17, to: 21 },
 ];
 // Said of the road once it is walked to the end.
-const AFTER_THE_WAR = 'Two wars and a winter are over. What remains are the trials, and the company.';
+const AFTER_THE_WAR = 'Two wars, a winter and a sea are over. What remains are the trials, and the company.';
 
 // Around the fire once the war is won: what the company says while it trains,
 // one line at a time as the trials go by. All of it points north.
@@ -1918,7 +2305,9 @@ const EPILOGUE_CAMP = [
   'Bastian: "Vexley wrote. The Concord is a shipping company again. He says it is very boring and he is very happy."',
   'Lysa has run out of things to count and has started counting the company. She gets a different number each time and does not mind.',
   'Eirik says the aurora is only weather now. He watches it anyway, every night, to be sure.',
-  'Garret: "Two wars and a winter. Your father would have called that a start."  Rowan: "He would have. Let us not tell him what comes next."',
+  'Garret: "Two wars, a winter and a sea. Your father would have called that a start."  Rowan: "He would have. Let us not tell him what comes next."',
+  'Wren has been paid what she was owed, by Vexley, in person, and has not stopped talking about it. Ysolde has taken up singing, and is bad at it, and knows, and does not mind.',
+  'The bell hangs from the wagon now. Ottilie rings it at every camp, once, and listens. "Nothing," she says every night, pleased. "Still nothing."',
   'The trials go on because the company likes them. Nobody is paying for them. That, Mira says, is how you can tell they are honest.',
 ];
 
@@ -1928,7 +2317,7 @@ const EPILOGUE_CAMP = [
    market that sells what the wagon never carries. Levels rise to meet a party
    that comes late. */
 const CITIES = [
-  { id: 'redwater', name: 'Redwater', from: 1, pos: [0.94, 0.84], map: 'quarry', level: 2, gil: 900, hireCost: 450,
+  { id: 'redwater', name: 'Redwater', from: 1, pos: [0.93, 0.90], map: 'quarry', level: 2, gil: 900, hireCost: 450,
     held: 'held by the Redwater Reavers', blurb: 'A market town on the quarry road, taken by the guard that was paid to hold it.',
     intro: [
       'Redwater sits on the quarry road with its gates shut and its own guard on the walls, and the guard have decided the town belongs to them now.',
@@ -1942,7 +2331,7 @@ const CITIES = [
     ],
     hires: ['knight', 'archer', 'thief'], stock: ['redwaterSteel', 'reaverCloak'],
     open: 'Smoke from the smithies again, and a tavern that remembers your name.' },
-  { id: 'dunmarchTown', name: 'Dunmarch Town', from: 4, pos: [0.36, 0.44], map: 'dunmarch', level: 6, gil: 1300, hireCost: 500,
+  { id: 'dunmarchTown', name: 'Dunmarch Town', from: 4, pos: [0.34, 0.56], map: 'dunmarch', level: 6, gil: 1300, hireCost: 500,
     held: 'held by the garrison holdouts', blurb: 'The town under the keep, still flying colours nobody pays for.',
     intro: [
       'Dunmarch town still flies Aldous\'s colours from the garrison, though the garrison has not been paid since Brannoc rode for Thornwall.',
@@ -1955,7 +2344,7 @@ const CITIES = [
     ],
     hires: ['whiteMage', 'blackMage', 'timeMage'], stock: ['garrisonPlate', 'priestStaff'],
     open: 'The chapel bell rings the hours again. The armoury door stands open.' },
-  { id: 'fordwaterTown', name: 'Fordwater', from: 7, pos: [0.56, 0.42], map: 'fordwater', level: 9, gil: 1800, hireCost: 600,
+  { id: 'fordwaterTown', name: 'Fordwater', from: 7, pos: [0.62, 0.52], map: 'fordwater', level: 9, gil: 1800, hireCost: 600,
     held: 'held by the Concord customs house', blurb: 'A crossing town taxed to the bone by the Concord\'s customs men and their hounds.',
     intro: [
       'The Concord has a customs house at Fordwater, and the customs house has a garrison, and the garrison has hounds.',
@@ -1968,7 +2357,7 @@ const CITIES = [
     ],
     hires: ['engineer', 'gunner'], stock: ['customsPistol', 'ledgerCoat'],
     open: 'The ferry runs for nothing. The workshops have taken down the Concord\'s sign.' },
-  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.92, 0.42], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700,
+  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.90, 0.50], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700,
     held: 'held by the Concord engine sheds', blurb: 'The town that grew up around the bridge, with sentinels walking its streets.',
     intro: [
       'Cogsworth town grew up around the bridge and the Concord\'s engine sheds. The sheds are still running and the sentinels still walk the streets.',
@@ -1981,7 +2370,7 @@ const CITIES = [
     ],
     hires: ['aeronaut', 'artificer'], stock: ['bridgewright', 'aetherLantern'],
     open: 'The engine sheds are quiet. Somebody has planted flowers in a sentinel\'s boiler.' },
-  { id: 'hearthold', name: 'Hearthold', from: 13, pos: [0.88, 0.28], map: 'rimewater', level: 14, gil: 3000, hireCost: 800,
+  { id: 'hearthold', name: 'Hearthold', from: 13, pos: [0.16, 0.26], map: 'rimewater', level: 14, gil: 3000, hireCost: 800,
     held: 'besieged by the Court', blurb: 'The last village on the ice with a fire in it, and the Court has come to put it out.',
     intro: [
       'Hearthold was the last village on the ice with a fire in it. The Court has come to put the fire out.',
@@ -1994,7 +2383,7 @@ const CITIES = [
     ],
     hires: ['warden', 'frostweaver'], stock: ['hearthBlade', 'wardenCloak'],
     open: 'The hearth is lit. It is always lit. Somebody sits up with it all night to be sure.' },
-  { id: 'hollowMarket', name: 'The Hollow Market', from: 16, pos: [0.80, 0.12], map: 'hollowcourt', level: 16, gil: 4000, hireCost: 900,
+  { id: 'hollowMarket', name: 'The Hollow Market', from: 16, pos: [0.50, 0.26], map: 'hollowcourt', level: 16, gil: 4000, hireCost: 900,
     held: 'held by the Court\'s creatures', blurb: 'The market beneath the Court, where the star-iron was traded for a hundred years.',
     intro: [
       'Beneath the Hollow Court a market once served a people who are mostly gone. The Court\'s creatures have it now, and the star-iron that was traded there.',
@@ -2007,6 +2396,32 @@ const CITIES = [
     ],
     hires: ['runeblade', 'samurai'], stock: ['starIronRing', 'auroraStaff'],
     open: 'Lamps in the stalls. The star-iron is sold by weight now, like anything else.' },
+  { id: 'saltwick', name: 'Saltwick', from: 17, pos: [0.82, 0.40], map: 'saltwick', level: 18, gil: 4500, hireCost: 950,
+    held: 'held by the wreckers', blurb: 'The Concord\'s harbour for the Isles trade, its light dark and its quays full of men who came back wrong.',
+    intro: [
+      'Saltwick town lies behind the harbour, and the wreckers hold it as they hold the quays: smiling, and in the rain, and dry.',
+      '"They have the lighthouse," Wren says. "Nobody has lit it in a month. Every ship that makes for the harbour in the dark goes on the reef, and every crew that swims ashore joins the choir."',
+    ],
+    enemies: [{ job: 'corsair', name: 'Wrecker' }, { job: 'corsair', name: 'Wrecker' }, { job: 'harpooner', name: 'Wrecker Harpooner' }, { job: 'reefCrab' }, { job: 'saltPriest', name: 'Priory Cantor' }],
+    outro: [
+      'The light is lit before dark. Half the town climbs the hill to watch it, and the other half stands on the quay and weeps at nothing in particular.',
+      'Saltwick is open. Its corsairs and harpooners hire out, and its chandlery sells what the sea trade wore.',
+    ],
+    hires: ['corsair', 'harpooner'], stock: ['saltwickSabre', 'wreckersCoat'],
+    open: 'The light turns all night. Ships come in by it, and their crews are ordinary.' },
+  { id: 'tessaly', name: 'Tessaly', from: 20, pos: [0.66, 0.06], map: 'tessaly', level: 21, gil: 5500, hireCost: 1000,
+    held: 'held by the drowned', blurb: 'The drowned city, bared for an hour at low water, with its guard still on their corners.',
+    intro: [
+      'At low water Tessaly\'s market square stands a fathom clear of the sea, and the drowned keep it as they kept it living.',
+      '"The stalls are still stocked," Ysolde says. "Four hundred years. The sea kept everything, and the guard kept the sea."',
+    ],
+    enemies: [{ job: 'drownedKnight', name: 'Tessaly Guard' }, { job: 'drownedKnight', name: 'Tessaly Guard' }, { job: 'siren' }, { job: 'saltPriest', name: 'Drowned Cantor' }, { job: 'leviathan', name: 'Harbour Serpent' }],
+    outro: [
+      'The guard of the square fall together and the tide, coming in behind the company, does not take them back.',
+      'Tessaly is open, for an hour a day. Its tidecallers will follow the company, and its market sells what a queen wore.',
+    ],
+    hires: ['tidecaller', 'harpooner'], stock: ['queensTrident', 'tessalyPearl'],
+    open: 'Open at the ebb. The stallholders are wet, and glad of the custom, and do not talk about the last four hundred years.' },
 ];
 
 // Party at the start of a new game.
@@ -2048,6 +2463,9 @@ const TRAINING_POOL = [
   ['artificer', 'gunner', 'aeronaut', 'sentinel', 'ironhound', 'ironhound'],
   ['hollowKnight', 'rimeWight', 'frostweaver', 'warden'],
   ['iceDrake', 'hollowKnight', 'hollowKnight', 'rimeWight', 'frostweaver', 'runeblade'],
+  ['corsair', 'corsair', 'reefCrab', 'siren', 'harpooner'],
+  ['drownedKnight', 'drownedKnight', 'siren', 'saltPriest', 'reefCrab', 'tidecaller'],
+  ['leviathan', 'drownedKnight', 'drownedKnight', 'siren', 'saltPriest', 'harpooner'],
 ];
 
 // ============================================================================
@@ -2069,6 +2487,12 @@ const JOB_EQUIP = {
   frostweaver: { w: ['rod', 'staff', 'knife'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   warden:    { w: ['spear', 'bow', 'sword'], a: ['light', 'heavy', 'cloth'], head: ['helm', 'hat'], shield: true },
   runeblade: { w: ['sword', 'katana', 'greatsword'], a: ['heavy', 'light', 'cloth'], head: ['helm'], shield: true },
+  corsair:   { w: ['sword', 'gun', 'knife'], a: ['light', 'cloth'], head: ['hat'], shield: false },
+  tidecaller: { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  harpooner: { w: ['spear', 'bow'], a: ['light', 'heavy', 'cloth'], head: ['helm', 'hat'], shield: true },
+  drownedKnight: { w: ['sword', 'axe', 'spear'], a: ['heavy', 'light'], head: ['helm'], shield: true },
+  saltPriest: { w: ['staff', 'rod'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
+  drownedQueen: { w: ['spear', 'rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   hollowKnight: { w: ['sword', 'axe', 'spear'], a: ['heavy', 'light'], head: ['helm'], shield: true },
   winterRegent: { w: ['rod', 'staff'], a: ['robe', 'cloth'], head: ['hat'], shield: false },
   monk:      { w: ['fist'], a: ['light', 'cloth'], head: ['hat'], shield: false },
@@ -2246,6 +2670,26 @@ const ITEMS = {
   wardenCloak:   { name: 'Warden\'s Cloak', city: 'hearthold', slot: 'body', atype: 'light', hp: 44, resist: { ice: 'resist' }, price: 2200, tier: 6 },
   starIronRing:  { name: 'Star-iron Ring', city: 'hollowMarket', late: true, slot: 'acc', pa: 3, ma: 3, price: 3800, tier: 7 },
   auroraStaff:   { name: 'Aurora Staff', city: 'hollowMarket', late: true, slot: 'weapon', wtype: 'staff', power: 8, range: 1, vert: 2, ma: 8, price: 4000, tier: 7 },
+  // The sea: what the coast sells, and what comes up out of it.
+  cutlass:       { name: 'Cutlass', slot: 'weapon', wtype: 'sword', power: 12, range: 1, vert: 2, evade: 4, price: 1900, tier: 5 },
+  boardingPistol:{ name: 'Boarding Pistol', slot: 'weapon', wtype: 'gun', power: 11, range: 4, vert: 9, spd: 1, price: 2300, tier: 6 },
+  harpoonSpear:  { name: 'Whaling Harpoon', slot: 'weapon', wtype: 'spear', power: 14, range: 2, vert: 3, price: 2500, tier: 6 },
+  tideRod:       { name: 'Tide Rod', slot: 'weapon', wtype: 'rod', power: 6, range: 1, vert: 2, ma: 6, resist: { water: 'resist' }, price: 2200, tier: 6 },
+  coralStaff:    { name: 'Coral Staff', slot: 'weapon', wtype: 'staff', power: 7, range: 1, vert: 2, ma: 5, mp: 20, price: 2100, tier: 6 },
+  oilskin:       { name: 'Oilskin', slot: 'body', atype: 'light', hp: 46, resist: { water: 'resist' }, price: 2100, tier: 6 },
+  kelpRobe:      { name: 'Kelp Robe', slot: 'body', atype: 'robe', hp: 40, mp: 50, resist: { water: 'resist' }, price: 2200, tier: 6 },
+  seaPlate:      { name: 'Sea Plate', slot: 'body', atype: 'heavy', hp: 60, resist: { water: 'resist' }, price: 2600, tier: 6 },
+  diversHelm:    { name: 'Diver\'s Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 30, resist: { water: 'resist' }, price: 1800, tier: 6 },
+  tricorne:      { name: 'Tricorne', slot: 'head', htype: 'hat', look: 'feather', hp: 14, evade: 6, spd: 1, price: 1500, tier: 5 },
+  anchorCharm:   { name: 'Anchor Charm', slot: 'acc', hp: 30, pa: 2, price: 1600, tier: 6 },
+  pearlOfTheDeep:{ name: 'Pearl of the Deep', late: true, slot: 'acc', ma: 4, mp: 30, resist: { water: 'absorb' }, price: 3800, tier: 7 },
+  leviathanScale:{ name: 'Leviathan Scale', late: true, slot: 'body', atype: 'heavy', hp: 74, resist: { water: 'absorb' }, price: 4400, tier: 7 },
+  stormCutlass:  { name: 'Storm Cutlass', late: true, slot: 'weapon', wtype: 'sword', power: 20, range: 1, vert: 2, spd: 1, evade: 6, resist: { thunder: 'resist' }, price: 4200, tier: 7 },
+  drownedCrown:  { name: 'Drowned Crown', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 42, ma: 4, resist: { water: 'resist' }, price: 3800, tier: 7 },
+  saltwickSabre: { name: 'Saltwick Sabre', city: 'saltwick', slot: 'weapon', wtype: 'sword', power: 15, range: 1, vert: 2, spd: 1, price: 2700, tier: 6 },
+  wreckersCoat:  { name: 'Wrecker\'s Coat', city: 'saltwick', slot: 'body', atype: 'light', hp: 50, evade: 5, price: 2500, tier: 6 },
+  queensTrident: { name: 'Queen\'s Trident', city: 'tessaly', late: true, slot: 'weapon', wtype: 'spear', power: 22, range: 2, vert: 4, ma: 4, resist: { water: 'absorb' }, price: 4600, tier: 7 },
+  tessalyPearl:  { name: 'Pearl of Tessaly', city: 'tessaly', late: true, slot: 'acc', pa: 2, ma: 2, spd: 1, evade: 6, price: 4200, tier: 7 },
 };
 
 // Free starting kit per job (price-0 items only, so they cannot be sold for gil).
@@ -2261,6 +2705,9 @@ const STARTER_GEAR = {
   frostweaver: { weapon: 'dagger', body: 'clothes' },
   warden:    { weapon: 'shortSword', body: 'clothes' },
   runeblade: { weapon: 'shortSword', body: 'clothes' },
+  corsair:   { weapon: 'shortSword', body: 'clothes' },
+  tidecaller: { weapon: 'rod', body: 'clothes' },
+  harpooner: { weapon: 'spear', body: 'clothes' },
   monk:      { weapon: 'cesti', body: 'clothes' },
   thief:     { weapon: 'dagger', body: 'clothes' },
   whiteMage: { weapon: 'staff', body: 'clothes' },
@@ -2476,6 +2923,9 @@ const PASSIVES = {
     desc: 'Spells cost half their MP and charge twice as fast.' },
   lifesteal: { name: 'Fell Hunger', kind: 'support', job: 'fellKnight', jp: 550,
     desc: 'A fifth of every physical wound you deal comes back to you as HP.' },
+  freebooter: { name: 'Freebooter', kind: 'support', job: 'corsair', jp: 320, desc: 'Every steal takes twice the gil.' },
+  saltBlood: { name: 'Salt Blood', kind: 'support', job: 'tidecaller', jp: 350, desc: 'Water damage you deal is a quarter greater.' },
+  monsterHunter: { name: 'Monster Hunter', kind: 'support', job: 'harpooner', jp: 380, desc: 'Physical damage against creatures rises by half.' },
 
   // ---- movement: how the unit gets around ----
   movePlus1: { name: 'Move +1', kind: 'movement', job: 'thief', jp: 220,
@@ -2519,6 +2969,8 @@ const ERRANDS = [
   { id: 'tourney', title: 'Stand in a tourney', days: 1, gil: 1.4, jp: 1.5, item: 0.3, text: 'A lord wants a name on the lists that will draw a crowd. Win or lose, the purse is real.' },
   { id: 'cellar', title: 'Clear the abbey cellar', days: 1, gil: 0.9, jp: 1.1, item: 0.35, text: 'Something has moved in beneath the abbey. The brothers would rather not say what.' },
   { id: 'census', title: 'Take the census at Dunmarch', days: 2, gil: 1.6, jp: 0.8, item: 0.2, text: 'Every household counted and no one offended. Slower than fighting, better paid.' },
+  { id: 'salvage', title: 'Salvage a wreck on the reef', days: 2, gil: 1.4, jp: 1.1, item: 0.6, text: 'A Concord hull is on the rocks off Saltwick. What the tide has not taken is anyone\'s who can carry it.' },
+  { id: 'lighthouse', title: 'Keep the Saltwick light', days: 1, gil: 1.0, jp: 1.2, item: 0.15, text: 'The keeper has not come down in a week. Somebody has to climb up and light it, and see why.' },
 ];
 
 const TIER_NAMES = ['The roots', 'First rank', 'Second rank', 'Third rank', 'Fourth rank', 'Fifth rank', 'The summit'];

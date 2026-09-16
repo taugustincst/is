@@ -97,6 +97,7 @@ const ELEMENT_FX = {
   earth:   { kind: 'rubble', dur: 460, color: '#c08a4a', second: '#8a6234', sound: 'el-earth' },
   holy:    { kind: 'column', dur: 480, color: '#fff3b0', second: '#ffffff', sound: 'el-holy' },
   dark:    { kind: 'void', dur: 460, color: '#a05fd6', second: '#2a1040', sound: 'el-dark' },
+  water:   { kind: 'wave', dur: 460, color: '#4fa8e8', second: '#d8f0ff', sound: 'el-water' },
 };
 const NEUTRAL_MAGIC = { kind: 'column', dur: 400, color: '#b080ff', second: '#e8d8ff', sound: 'el-arcane' };
 const HEAL_FX = { kind: 'motes', dur: 420, color: '#7cff7c', second: '#e0ffe0', sound: 'heal' };
@@ -304,6 +305,26 @@ const FX_DRAW = {
       c.fillStyle = rgba(f.color, 0.75 * (1 - fall));
       c.beginPath(); c.moveTo(0, 0); c.lineTo(wid, -hgt * 0.35); c.lineTo(0, -hgt); c.closePath(); c.fill();
       c.restore();
+    }
+    c.restore();
+  },
+
+  // Water rises in a crest, breaks over the target and runs off in drops.
+  wave(c, r, f, k) {
+    const { sx, sy } = r.toScreen(f.x, f.y, f.h);
+    const rise = Math.min(1, k / 0.45), fall = Math.max(0, (k - 0.5) / 0.5);
+    c.save();
+    c.translate(sx, sy);
+    const h = 34 * easeOut(rise), w = 22 + 10 * rise;
+    c.fillStyle = rgba(f.color, 0.7 * (1 - fall * 0.8));
+    c.beginPath(); c.moveTo(-w, 4); c.quadraticCurveTo(-w * 0.6, -h * 0.9, 2, -h); c.quadraticCurveTo(w * 0.8, -h * 1.05, w * 0.5, -h * 0.4 + fall * 10); c.lineTo(w, 4); c.closePath(); c.fill();
+    c.fillStyle = rgba(f.second, 0.8 * (1 - fall));
+    c.beginPath(); c.moveTo(-w * 0.5, -h * 0.35); c.quadraticCurveTo(-4, -h * 0.95, 4, -h * 0.9); c.quadraticCurveTo(w * 0.4, -h * 0.8, w * 0.3, -h * 0.5); c.closePath(); c.fill();
+    for (let i = 0; i < 8; i++) {
+      const j = jitter(f.t0, i), j2 = jitter(f.t0, i + 30);
+      const px = (j - 0.5) * 56 * (0.4 + fall), py = -h * (0.3 + j2 * 0.7) + fall * fall * 40;
+      c.fillStyle = rgba(f.second, 0.9 * (1 - fall));
+      c.fillRect(px, py, 2 + j2 * 2, 2 + j2 * 2);
     }
     c.restore();
   },

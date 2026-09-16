@@ -48,6 +48,22 @@ const TRACKS = {
     bass: [45, null, null, null, 52, null, null, null, 41, null, null, null, 48, null, null, null,
            40, null, null, null, 47, null, null, null, 43, null, null, null, 45, null, null, null],
   },
+  // Rolling, for the coast: a swell that never quite settles.
+  tide: {
+    bpm: 104, wave: 'triangle', gain: 0.14,
+    lead: [57, 60, 64, null, 60, 64, 67, null, 55, 59, 62, null, 59, 62, 67, null,
+           57, 60, 64, null, 64, 67, 72, null, 65, 64, 62, null, 60, null, 59, null],
+    bass: [45, null, null, 45, null, null, 45, null, 43, null, null, 43, null, null, 43, null,
+           45, null, null, 45, null, null, 45, null, 41, null, null, 41, null, 43, null, null],
+  },
+  // Slow and far down, for the sea floor: pressure more than melody.
+  deep: {
+    bpm: 72, wave: 'sine', gain: 0.16,
+    lead: [52, null, null, null, 55, null, null, null, 53, null, null, null, 50, null, null, null,
+           52, null, null, null, 57, null, null, null, 55, null, 53, null, 52, null, null, null],
+    bass: [40, null, null, null, null, null, null, null, 37, null, null, null, null, null, null, null,
+           40, null, null, null, null, null, null, null, 38, null, null, null, 36, null, null, null],
+  },
   ruin: {
     bpm: 76, wave: 'sine', gain: 0.15,
     lead: [64, null, null, 67, null, null, 69, null, 68, null, null, 64, null, null, null, null,
@@ -214,6 +230,13 @@ const COMBAT_SFX = {
     { t: 1, freq: 220, to: 60, dur: 0.45, vol: 0.16, type: 'sawtooth' },
     { t: 1, freq: 233, to: 63, dur: 0.45, vol: 0.12, type: 'sawtooth' },
     { n: 1, freq: 1200, sweep: 200, dur: 0.35, vol: 0.10, q: 1.2 },
+  ],
+  // Water gathers, breaks, and runs off.
+  'el-water': [
+    { n: 1, freq: 200, sweep: 1400, dur: 0.22, vol: 0.20, q: 0.8, filter: 'lowpass' },
+    { n: 1, freq: 2400, sweep: 600, dur: 0.30, vol: 0.16, q: 1.0, d: 0.16 },
+    { t: 1, freq: 180, to: 90, dur: 0.28, vol: 0.10, type: 'sine', d: 0.10 },
+    { n: 1, freq: 900, sweep: 300, dur: 0.18, vol: 0.08, q: 1.5, d: 0.36 },
   ],
   // A spell with no element of its own.
   'el-arcane': [
@@ -454,7 +477,7 @@ class GameAudio {
 }
 
 // What a field sounds like under the music: keyed by the map's mood.
-const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night', snow: 'wind', aurora: 'night' };
+const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night', snow: 'wind', aurora: 'night', tide: 'sea', storm: 'rain', abyss: 'sea' };
 
 // Continuous weather and wildlife, built from the same noise and tones as the
 // effects, sitting quietly under the theme and muted with it.
@@ -514,6 +537,11 @@ GameAudio.prototype.startAmbient = function (kind) {
     // Wind over the ridge: a band of noise whose pitch wanders.
     const g = loop(0.11, [{ type: 'bandpass', freq: 380, q: 0.9, lfo: (b) => swell(b.frequency, 380, 160, 0.07) }, { type: 'lowpass', freq: 1200 }]);
     swell(g.gain, 0.11, 0.05, 0.05);
+  } else if (kind === 'sea') {
+    // Surf: a slow swell of low noise, each wave a little different from the last.
+    const g = loop(0.13, [{ type: 'lowpass', freq: 420, lfo: (b) => swell(b.frequency, 420, 220, 0.09) }]);
+    swell(g.gain, 0.13, 0.07, 0.09);
+    every(4000, 9000, () => patter(1400 + Math.random() * 600, 0.6, 0.02));
   } else if (kind === 'marsh') {
     // Low water, frogs, and now and then something moving in the reeds.
     loop(0.14, [{ type: 'lowpass', freq: 240 }]);

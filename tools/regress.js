@@ -645,12 +645,16 @@ const mk = (n, job, lvl, opts = {}) => {
     const thin = g.CAMPAIGN.filter(ch => !(ch.intro && ch.intro.length >= 3 && ch.intro.length <= 7) || !(ch.outro && ch.outro.length >= 1 && ch.outro.length <= 7) || !(ch.camp && ch.camp.length >= 2 && ch.camp.length <= 4)).map(ch => ch.id);
     ok('every chapter has an intro, an outro and a night around the fire, none too long for the screen', thin.length === 0, thin.join(',') || `${g.CAMPAIGN.length} chapters`);
     const covered = g.CAMPAIGN.every((ch, i) => acts.some(a => i >= a.from && i <= a.to));
-    ok('every chapter belongs to an act, and the acts end where the road does', covered && acts.length === 3 && acts[acts.length - 1].to === g.CAMPAIGN.length - 1 && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
+    ok('every chapter belongs to an act, and the acts end where the road does', covered && acts.length === 4 && acts[acts.length - 1].to === g.CAMPAIGN.length - 1 && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
     const hooks = g.CAMPAIGN[g.CAMPAIGN.length - 1].outro.join(' ');
     const finals = g.CAMPAIGN.filter(ch => ch.final).map(ch => ch.id);
-    ok('the road ends once, at the end, with the end', /THE END\./.test(hooks) && finals.length === 1 && finals[0] === g.CAMPAIGN[g.CAMPAIGN.length - 1].id && /END OF ACT II/.test(g.CAMPAIGN[11].outro.join(' ')), finals.join(','));
-    const northMaps = g.CAMPAIGN.slice(12).map(ch => g.MAPS[ch.map]);
+    ok('the road ends once, at the end, with the end', /THE END\./.test(hooks) && finals.length === 1 && finals[0] === g.CAMPAIGN[g.CAMPAIGN.length - 1].id && /END OF ACT II\./.test(g.CAMPAIGN[11].outro.join(' ')) && /END OF ACT III\./.test(g.CAMPAIGN[16].outro.join(' ')) && !/THE END/.test(g.CAMPAIGN[16].outro.join(' ')), finals.join(','));
+    const northMaps = g.CAMPAIGN.slice(12, 17).map(ch => g.MAPS[ch.map]);
     ok('the north is fought on snow and ice under its own skies', northMaps.every(m => /[ni]/.test(m.terrain.join('')) && ['snow', 'aurora'].includes(m.mood)), northMaps.map(m => m.mood).join(','));
+    const seaMaps = g.CAMPAIGN.slice(17).map(ch => g.MAPS[ch.map]);
+    ok('the sea is fought over reef and water under its own skies, and its dead answer to thunder', seaMaps.length === 5 && seaMaps.every(m => /r/.test(m.terrain.join('')) && /w/.test(m.terrain.join('')) && ['tide', 'storm', 'abyss'].includes(m.mood)) && g.run("affinityOf({ jobData: JOBS.drownedKnight }, 'thunder')") > 1 && g.run("affinityOf({ jobData: JOBS.drownedKnight }, 'water')") < 0, seaMaps.map(m => m.mood).join(','));
+    const seaEnemyJobs = new Set(g.CAMPAIGN.slice(17).flatMap(ch => ch.enemies.map(e => e.job)));
+    ok('every creature of the sea appears on its fields, and the queen has a second shape', ['drownedKnight', 'saltPriest', 'siren', 'reefCrab', 'leviathan', 'drownedQueen'].every(j => seaEnemyJobs.has(j)) && g.CAMPAIGN[21].enemies.some(e => e.boss && e.phases && e.phases[0].job === 'theDeep'), [...seaEnemyJobs].join(','));
     const typeNames = g.run('TYPE_NAMES'), catNames = g.run('CATEGORY_NAMES');
     const untyped = Object.keys(g.ITEMS).filter(id => !typeNames[g.run(`itemType('${id}')`)] || !catNames[g.ITEMS[id].slot]);
     ok('every item shelves under a kind and a category the baggage knows', untyped.length === 0, untyped.join(',') || `${Object.keys(typeNames).length} kinds, ${Object.keys(catNames).length} categories`);
@@ -702,7 +706,7 @@ const mk = (n, job, lvl, opts = {}) => {
      Storm Mail cannot either, and charged abilities are resolved as the
      engine would resolve them. */
   {
-    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer', 'frostweaver', 'warden', 'runeblade'];
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer', 'frostweaver', 'warden', 'runeblade', 'corsair', 'tidecaller', 'harpooner'];
     const realRandom = Math.random;
     const silent = [];
     for (const job of NEW) for (const id of g.JOBS[job].abilities) {

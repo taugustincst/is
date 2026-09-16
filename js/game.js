@@ -10,13 +10,17 @@ const PACE_KEY = 'elderon.pace';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
-// Seventeen stops in three bands: Act I east along the lower road, Act II
-// back west along the coast, Act III north over the ice at the top.
+// Twenty-two stops in four bands: Act I east along the lower road, Act II
+// back west along the coast, Act III north over the ice, and Act IV out onto
+// the Sunder Sea along the top, where the parchment gives way to water.
 const WORLD_ROUTE = [
-  [0.06, 0.86], [0.18, 0.74], [0.30, 0.88], [0.42, 0.74], [0.54, 0.88], [0.66, 0.74], [0.80, 0.86],
-  [0.92, 0.66], [0.78, 0.56], [0.62, 0.64], [0.46, 0.54], [0.30, 0.62],
-  [0.14, 0.50], [0.10, 0.32], [0.26, 0.22], [0.44, 0.30], [0.62, 0.14],
+  [0.06, 0.93], [0.18, 0.83], [0.30, 0.93], [0.42, 0.83], [0.54, 0.93], [0.66, 0.83], [0.80, 0.92],
+  [0.92, 0.74], [0.78, 0.66], [0.62, 0.72], [0.46, 0.64], [0.30, 0.70],
+  [0.14, 0.58], [0.08, 0.44], [0.24, 0.38], [0.42, 0.44], [0.58, 0.36],
+  [0.72, 0.28], [0.86, 0.26], [0.92, 0.12], [0.76, 0.08], [0.56, 0.14],
 ];
+// Where the land ends on the map, as a fraction of its height at each x.
+const SEA_LINE = (fx) => 0.21 + Math.sin(fx * 9) * 0.02 + Math.sin(fx * 23 + 1) * 0.01;
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -1044,7 +1048,7 @@ class Game {
     const jobs = []; for (let i = 0; i < count; i++) jobs.push(pool[Math.floor(rnd(10 + i) * pool.length)]);
     const level = this.avgLevel() + 1 + Math.floor(n / 2);
     const titles = ['Echoes of the War', 'The Road Not Taken', 'Old Debts', 'A Rumour of Banners', 'Ghosts of Thornwall',
-                    'The Long Watch', 'Hired Steel', 'What the Marsh Kept', 'The Last Company', 'No Crown but Ours'];
+                    'The Long Watch', 'Hired Steel', 'What the Marsh Kept', 'The Last Company', 'No Crown but Ours', 'Salt on the Wind', 'What the Sea Kept'];
     return { map, jobs, level, enemies: jobs, gil: 400 + 120 * n, title: titles[(n - 1) % titles.length] };
   }
 
@@ -1068,7 +1072,7 @@ class Game {
     this.showWorld();
   }
 
-  /* The realm, drawn: the seventeen chapters as stops along a road, coloured by
+  /* The realm, drawn: the twenty-two chapters as stops along a road, coloured by
      the mood of the field each is fought on, with the company's own leader
      standing where the story has reached. */
   drawWorldMap() {
@@ -1092,6 +1096,22 @@ class Game {
       }
       c.stroke();
     }
+    // The sea along the top: a wash of blue-green over the parchment, a
+    // pale line of surf where it meets the land, and a few wave strokes.
+    c.save();
+    c.beginPath(); c.moveTo(0, 0);
+    for (let x = 0; x <= W; x += 8) c.lineTo(x, SEA_LINE(x / W) * H);
+    c.lineTo(W, 0); c.closePath();
+    const sea = c.createLinearGradient(0, 0, 0, H * 0.22);
+    sea.addColorStop(0, 'rgba(30,80,120,0.55)'); sea.addColorStop(1, 'rgba(40,110,140,0.35)');
+    c.fillStyle = sea; c.fill();
+    c.strokeStyle = 'rgba(200,230,240,0.35)'; c.lineWidth = 1.5; c.stroke();
+    c.strokeStyle = 'rgba(200,230,240,0.18)'; c.lineWidth = 1;
+    for (let i = 0; i < 14; i++) {
+      const wx = ((i * 137) % 100) / 100 * W, wy = ((i * 61) % 100) / 100 * SEA_LINE(wx / W) * H * 0.8 + 4;
+      c.beginPath(); c.moveTo(wx - 7, wy); c.quadraticCurveTo(wx - 3, wy - 4, wx, wy); c.quadraticCurveTo(wx + 3, wy + 4, wx + 7, wy); c.stroke();
+    }
+    c.restore();
     const pts = WORLD_ROUTE.map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
     // The road, dashed where it has not yet been walked.
     const reached = Math.min(this.state.chapter, pts.length - 1);

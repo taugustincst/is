@@ -244,6 +244,7 @@ class Battle {
         if (dh >= 2) base *= 1.1; else if (dh <= -2) base *= 0.9;
         if (user.hasPassive('attackUp')) base *= 1.25;
         if (user.hasPassive('firstStrike') && target.hp === target.maxHp) base *= 1.5;
+        if (user.hasPassive('monsterHunter') && target.jobData && target.jobData.kind === 'monster') base *= 1.5;
         if (user.hasStatus('berserk')) base *= 1.5;
         if (target.hasPassive('defend')) base *= 0.8;
         if (target.hasStatus('protect')) base *= 2 / 3;
@@ -287,7 +288,7 @@ class Battle {
         else if (eff.type === 'status') p.notes.push(`${STATUSES[eff.status].name} ${eff.hit}%`);
         else if (eff.type === 'statmod') p.notes.push(`${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`);
         else if (eff.type === 'cure') p.notes.push('cure');
-        else if (eff.type === 'gil') p.notes.push(`steal ${t.level * 20} gil`);
+        else if (eff.type === 'gil') p.notes.push(`steal ${t.level * (user.hasPassive('freebooter') ? 40 : 20)} gil`);
         else if (eff.type === 'ctmod') p.notes.push(`CT ${eff.amount}`);
         else if (eff.type === 'ctset') p.notes.push(`CT = ${eff.amount}`);
       }
@@ -382,6 +383,7 @@ class Battle {
       case 'damage': {
         let v = this.computeEffect(user, ab, eff, t);
         if (v > 0 && ab.element === 'ice' && user.hasPassive('coldBlood')) v = Math.ceil(v * 1.25);
+        if (v > 0 && ab.element === 'water' && user.hasPassive('saltBlood')) v = Math.ceil(v * 1.25);
         if (v < 0) {
           // The target's element absorbs the attack.
           const heal = Math.min(-v, t.maxHp - t.hp);
@@ -522,7 +524,7 @@ class Battle {
         return true;
       }
       case 'gil': {
-        const v = t.level * 20;
+        const v = t.level * (user.hasPassive('freebooter') ? 40 : 20);
         this.rewards.gil += user.team === 'player' ? v : 0;
         this.log(`${user.name} steals ${v} gil from ${t.name}!`, 'heal');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `-${v} gil`, '#ffe97c');

@@ -16,7 +16,7 @@ for (const [id, m] of Object.entries(g.MAPS)) {
   m.heights.forEach((r, y) => { if (r.length !== m.w) bad(`${id}: height row ${y} is ${r.length} wide, expected ${m.w}`); });
   m.terrain.forEach((r, y) => {
     if (r.length !== m.w) bad(`${id}: terrain row ${y} is ${r.length} wide, expected ${m.w}`);
-    for (const ch of r) if (!'gdsbwtxni'.includes(ch)) bad(`${id}: unknown terrain '${ch}' in row ${y}`);
+    for (const ch of r) if (!'gdsbwtxnir'.includes(ch)) bad(`${id}: unknown terrain '${ch}' in row ${y}`);
   });
   if (!m.deploy || !m.deploy.length) bad(`${id}: no deployment anchors`);
   for (const [x, y] of m.deploy || []) {

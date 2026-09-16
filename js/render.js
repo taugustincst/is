@@ -27,6 +27,8 @@ const TERRAIN = {
   // The north: packed snow over frozen earth, and river ice over dark water.
   n: { top: '#e4ecf2', l: '#8a8a94', r: '#6c6c78', lip: '#c8d4dc' },
   i: { top: '#b6dcee', l: '#2c4f80', r: '#243f68', lip: '#9cc8e0' },
+  // The sea's edge: shallows over a reef, walkable at low tide.
+  r: { top: '#5a9ab8', l: '#3a6a88', r: '#2c5470', lip: '#8ac0d4' },
 };
 
 /* The ground had been six flat colours. Each terrain now has a few textured
@@ -91,6 +93,11 @@ function tileTexture(kind, variant) {
     // Ice: long cracks and a sheen.
     for (let i = 0; i < 3; i++) { const [x, y] = inside(); const len = 6 + rnd() * 12; for (let k = 0; k < len; k++) px(x + k, y + Math.round(Math.sin(k * 0.8 + i) * 1.5), 1, 1, 'rgba(70,110,150,0.55)'); }
     for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 3, 1, 'rgba(255,255,255,0.45)'); }
+  } else if (kind === 'r') {
+    // Shallows: ripples of light over the reef, and coral showing through.
+    for (let i = 0; i < 7; i++) { const [x, y] = inside(); px(x, y, 5 + rnd() * 6, 1, 'rgba(255,255,255,0.22)'); }
+    for (let i = 0; i < 5; i++) { const [x, y] = inside(); px(x, y, 2, 2, rnd() < 0.5 ? '#c86a70' : '#d8a060'); px(x + 1, y - 1, 1, 1, '#e8c0a0'); }
+    for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 1, 1, 'rgba(0,30,60,0.25)'); }
   } else if (kind === 'w') {
     for (let i = 0; i < 8; i++) { const [x, y] = inside(); px(x, y, 4 + rnd() * 6, 1, 'rgba(255,255,255,0.10)'); }
     for (let i = 0; i < 6; i++) { const [x, y] = inside(); px(x, y, 3, 1, 'rgba(0,0,40,0.14)'); }
@@ -154,6 +161,11 @@ const MOODS = {
   night: { sky: ['#0c0f22', '#05060e'], stars: true,  tint: 'rgba(30,40,110,0.24)',  air: 'fireflies', music: 'finale' },
   snow:  { sky: ['#3a4660', '#8a98ac'], stars: false, tint: 'rgba(200,220,255,0.10)', air: 'snow',     music: 'frost' },
   aurora:{ sky: ['#05101c', '#12303c'], stars: true,  tint: 'rgba(60,200,180,0.08)',  air: 'snow',     music: 'finale', aurora: true },
+  // The sea: salt haze over a green-grey sky, a storm on the reef, and the
+  // drowned light of the sea floor at low tide.
+  tide:  { sky: ['#1d3d4a', '#0b1a22'], stars: false, tint: 'rgba(80,160,170,0.14)', air: 'mist',     music: 'tide' },
+  storm: { sky: ['#1a2230', '#080a10'], stars: false, tint: 'rgba(60,80,120,0.22)',  air: 'rain',     music: 'tide' },
+  abyss: { sky: ['#03101a', '#0a2a30'], stars: true,  tint: 'rgba(20,120,140,0.16)', air: 'motes',    music: 'deep' },
 };
 
 /* The sky: a gradient, a scatter of stars that keeps its place when the

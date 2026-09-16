@@ -56,22 +56,24 @@ a browser, or serve the folder with any static file server.
 
 **Building a party**
 
-- **Twenty-nine jobs** on an unlock tree — Squire, Chemist, Knight, Archer,
+- **Thirty-two jobs** on an unlock tree — Squire, Chemist, Knight, Archer,
   Monk, Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon; a second
   tier of Samurai, Summoner, Geomancer and Bard; a third of Paladin, Arcanist,
   Assassin and Sage; the Brass Concord's trades, Engineer, Gunner, Aeronaut
   and Artificer, with guns that ignore height, oil, steam, flares and lightning;
   the north's Frostweaver, Warden and Runeblade, learned back from the Winter
-  Court; and at the top, the legendary Dragonlord, Hierophant and Fell Knight,
-  whose arms the wagon sells only late in the war — plus twelve creatures
-  with their own skillsets and elemental identities (goblin, dire wolf, bomb,
-  skeleton, marsh wisp, treant, clockwork sentinel, iron hound, steam
-  colossus, rime wight, ice drake, and the Nameless Cold) and six bosses
-  across three acts.
+  Court; the sea's Corsair, Tidecaller and Harpooner, with a water element
+  the drowned absorb and thunder they fear; and at the top, the legendary
+  Dragonlord, Hierophant and Fell Knight, whose arms the wagon sells only
+  late in the war — plus seventeen creatures with their own skillsets and
+  elemental identities (goblin, dire wolf, bomb, skeleton, marsh wisp,
+  treant, clockwork sentinel, iron hound, steam colossus, rime wight, ice
+  drake, the Nameless Cold, siren, reef crab, leviathan, the drowned and the
+  Deep) and eight bosses across four acts.
 - **A job tree you can read.** Every job on one page, in ranks from the
   roots to the summit, marked current, open, or locked with exactly how far
   off each requirement is — and a button to make the change from there.
-- **Cities on the map.** Six towns along the road, each held by someone who
+- **Cities on the map.** Eight towns along the road, each held by someone who
   should not have it: reavers, holdouts, the Concord's customs men, the
   Court. Fight one open and it stays open: a tavern that hires recruits
   already trained in an advanced trade, and a market that sells twelve arms
@@ -125,12 +127,15 @@ a browser, or serve the folder with any static file server.
   when badly hurt, and so should you.
 - **Fallen units** keep their place in the turn order and count down three
   turns before they are carried off. Revive them in time and they stay.
-- **Seventeen chapters in three acts** with story beats and recruits: the war
+- **Twenty-two chapters in four acts** with story beats and recruits: the war
   of the princes; the Brass Concord that sold it to both sides, from the coast
-  road to Brassgate; and the Winter Court north of the ice, over a frozen
+  road to Brassgate; the Winter Court north of the ice, over a frozen
   river, through a thralled village and up a glacier to the crater at
-  Starfall where the thing behind both wars fell from the sky. A night around
-  the fire before every chapter, and an epilogue once it is done. Repeatable
+  Starfall where the thing behind both wars fell from the sky; and the
+  Sunder Sea, where what went out of the crater found a drowned city, a
+  priory that sings to a star, and a queen who has knelt for four hundred
+  years. A night around the fire before every chapter, and an epilogue once
+  it is done. Repeatable
   training
   battles across ten fields, and a tavern for hiring.
 - **Know your enemy.** An enemy's card lists the skills it has, so a Coven
@@ -145,7 +150,7 @@ a browser, or serve the folder with any static file server.
   north, mist over the ruins,
   embers on the ridge, rain at the gate, fireflies in the marsh, and one of
   three battle themes chosen to match.
-- **A map of the realm** at camp: the seventeen chapters as stops along a road,
+- **A map of the realm** at camp: the twenty-two chapters as stops along a road,
   coloured by the mood of each field, with your leader standing where the
   story has reached. Tap the next stop to march.
 - **Trials after the war**: once the campaign is won the road keeps going,
