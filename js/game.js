@@ -253,7 +253,7 @@ class Game {
     const ids = new Set(this.state.party.map(u => u.id));
     this.state.errands.offered = (e.offered || []).filter(id => ERRANDS.some(x => x.id === id));
     this.state.errands.active = (e.active || []).filter(a => a && ERRANDS.some(x => x.id === a.id) && ids.has(a.unit) && a.left > 0);
-    this.state.errands.reports = (e.reports || []).filter(r => typeof r === 'string').slice(-3);
+    this.state.errands.reports = (e.reports || []).filter(r => typeof r === 'string').map(r => r.replace(/[<>]/g, '')).slice(-3);
     for (const [id, n] of Object.entries(d.inventory || {})) {
       if (ITEMS[id] && n > 0) this.state.inventory[id] = n;
     }
@@ -750,27 +750,42 @@ class Game {
 
   // A city's battle: its holders placed as a training fight would place them,
   // at the city's level or a step under the party's, whichever is higher.
-  async liberateCity(city) {
-    const map = MAPS[city.map];
-    const lvl = Math.max(city.level, this.avgLevel() - 1);
+  // Passable tiles at least `minDist` steps from the deployment anchors, in a
+  // random order: where a field's enemies stand when the story does not say.
+  spawnSpots(map, minDist = 6) {
     const cands = [];
     for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
       if ('wtx'.includes(map.terrain[y][x])) continue;
       const d = Math.min(...map.deploy.map(p => Math.abs(p[0] - x) + Math.abs(p[1] - y)));
-      if (d >= 5) cands.push({ x, y, d });
+      if (d >= minDist) cands.push({ x, y, d });
     }
-    cands.sort(() => Math.random() - 0.5);
-    const enemies = city.enemies.map((e, i) => Object.assign({ level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }, e));
-    await this.story(`${city.name}, ${city.held}`, city.intro);
-    let res; do { res = await this.runBattle(map, enemies, city.gil, { objective: { type: 'rout' } }); } while (res === 'retry');
-    if (res === 'aborted') return;
-    if (res === 'victory') {
-      this.state.cities[city.id] = true;
-      this.saveGame();
-      await this.story(city.name, city.outro);
-    }
+    return cands.sort(() => Math.random() - 0.5);
+  }
+
+  // Every fight from camp goes the same way: fight, offer another try after
+  // a defeat, let the caller act on the result, save, and come home. A field
+  // left before a blow was struck returns null and changes nothing.
+  async battleFlow(map, enemies, gil, opts, after) {
+    let res; do { res = await this.runBattle(map, enemies, gil, opts); } while (res === 'retry');
+    if (res === 'aborted') return null;
+    if (after) await after(res);
     this.saveGame();
     this.showWorld();
+    return res;
+  }
+
+  async liberateCity(city) {
+    const map = MAPS[city.map];
+    const lvl = Math.max(city.level, this.avgLevel() - 1);
+    const cands = this.spawnSpots(map, 5);
+    const enemies = city.enemies.map((e, i) => Object.assign({ level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }, e));
+    await this.story(`${city.name}, ${city.held}`, city.intro);
+    await this.battleFlow(map, enemies, city.gil, { objective: { type: 'rout' } }, async (res) => {
+      if (res !== 'victory') return;
+      this.state.cities[city.id] = true;
+      this.saveGame(); // before the outro, so leaving during it cannot lose the city
+      await this.story(city.name, city.outro);
+    });
   }
 
   // ---- errands ---------------------------------------------------------------------------
@@ -1088,21 +1103,12 @@ class Game {
   async startTrial() {
     const n = (this.state.trials || 0) + 1, t = this.trialSpec(n);
     const map = MAPS[t.map];
-    // Spawn on passable ground far from the deploy zone, as training does.
-    const cands = [];
-    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
-      if ('wtx'.includes(map.terrain[y][x])) continue;
-      const d = Math.min(...map.deploy.map(p => Math.abs(p[0] - x) + Math.abs(p[1] - y)));
-      if (d >= 6) cands.push({ x, y, d });
-    }
-    cands.sort(() => Math.random() - 0.5);
+    const cands = this.spawnSpots(map);
     const enemies = t.jobs.map((job, i) => ({ job, level: t.level, x: cands[i % cands.length].x, y: cands[i % cands.length].y }));
     await this.story(`Trial ${n}: ${t.title}`, [`${map.name}. Word has spread of the company that ended the war, and ${enemies.length} have come to test it.`]);
-    let res; do { res = await this.runBattle(map, enemies, t.gil, { objective: { type: 'rout' } }); } while (res === 'retry');
-    if (res === 'aborted') return;
-    if (res === 'victory') { this.state.trials = n; this.state.victories++; }
-    this.saveGame();
-    this.showWorld();
+    await this.battleFlow(map, enemies, t.gil, { objective: { type: 'rout' } }, (res) => {
+      if (res === 'victory') { this.state.trials = n; this.state.victories++; }
+    });
   }
 
   /* The realm, drawn: the twenty-two chapters as stops along a road, coloured by
@@ -1256,11 +1262,10 @@ class Game {
     const ch = CAMPAIGN[this.state.chapter];
     if (!ch) return this.startTrial();
     await this.story(ch.title, ch.intro);
-    let result; do { result = await this.runBattle(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective }); } while (result === 'retry');
-    if (result === 'aborted') return;
-    // Experience and JP are earned even in a losing battle, so record the run
-    // either way rather than letting a defeat quietly discard it.
-    if (result === 'victory') {
+    // Experience and JP are earned even in a losing battle, so the run is
+    // saved either way rather than letting a defeat quietly discard it.
+    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective }, async (result) => {
+      if (result !== 'victory') return;
       this.state.chapter++;
       this.state.victories++;
       if (ch.recruit) {
@@ -1272,9 +1277,7 @@ class Game {
       // Saved before the outro, so leaving during it cannot lose the victory.
       this.saveGame();
       await this.story(ch.title, ch.outro);
-    }
-    this.saveGame();
-    this.showWorld();
+    });
   }
 
   // A field already won can be fought again from the map: the same foes,
@@ -1286,10 +1289,7 @@ class Game {
     if (!confirm(`Revisit ${ch.title}? The same foes, half the pay, and nothing in the story changes.`)) return;
     const floor = this.avgLevel() - 1;
     const enemies = ch.enemies.map(e => Object.assign({}, e, { level: Math.max(e.level, floor) }));
-    let res; do { res = await this.runBattle(MAPS[ch.map], enemies, Math.floor(ch.gil / 2), { objective: ch.objective }); } while (res === 'retry');
-    if (res === 'aborted') return;
-    this.saveGame();
-    this.showWorld();
+    await this.battleFlow(MAPS[ch.map], enemies, Math.floor(ch.gil / 2), { objective: ch.objective });
   }
 
   async startTraining() {
@@ -1299,21 +1299,10 @@ class Game {
     const poolIdx = Math.min(TRAINING_POOL.length - 1, Math.floor(Math.random() * (s.chapter + 1)));
     const pool = TRAINING_POOL[poolIdx];
     const lvl = Math.max(1, this.avgLevel() + Math.floor(Math.random() * 2) - 1);
-    // Spawn enemies on passable tiles far from the deploy zone.
-    const deploy = map.deploy;
-    const cands = [];
-    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
-      if ('wtx'.includes(map.terrain[y][x])) continue;
-      const d = Math.min(...deploy.map(p => Math.abs(p[0] - x) + Math.abs(p[1] - y)));
-      if (d >= 6) cands.push({ x, y, d });
-    }
-    cands.sort(() => Math.random() - 0.5);
-    const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i].x, y: cands[i].y }));
+    const cands = this.spawnSpots(map);
+    const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }));
     await this.story('Training', [`${map.name}. Word has it that ${pool.length} hostiles are camped here. Good practice.`]);
-    let res; do { res = await this.runBattle(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' } }); } while (res === 'retry');
-    if (res === 'aborted') return;
-    this.saveGame();
-    this.showWorld();
+    await this.battleFlow(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' } });
   }
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {

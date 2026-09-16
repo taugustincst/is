@@ -613,8 +613,10 @@ class Renderer {
   }
   stop() {
     this.running = false;
-    // Let the finished battle go, and clear the last frame's leftovers.
-    this.battle = null; this.fx = []; this.floats = []; this.bursts = []; this.shake = null;
+    // Clear the last frame's leftovers. The finished battle itself stays until
+    // the next one replaces it: an animation still in flight when a battle is
+    // abandoned may yet ask it for a tile.
+    this.fx = []; this.floats = []; this.bursts = []; this.shake = null;
   }
 
   diamond(sx, sy) {

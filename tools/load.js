@@ -9,7 +9,7 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const ENGINE = ['data', 'unit', 'map', 'battle'];
+const ENGINE = ['data', 'maps', 'story', 'unit', 'map', 'battle'];
 
 // Everything the tools need to reach.
 const NAMES = [

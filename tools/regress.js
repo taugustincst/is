@@ -892,7 +892,7 @@ const mk = (n, job, lvl, opts = {}) => {
   {
     const fs = require('fs'), path = require('path');
     const ROOT = path.join(__dirname, '..');
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
+    const src = ['data', 'maps', 'story'].map(f => fs.readFileSync(path.join(ROOT, 'js', f + '.js'), 'utf8')).join('\n');
     const dups = [];
     for (const m of src.matchAll(/^const ([A-Z_]+) = \{$/gm)) {
       const start = m.index, end = src.indexOf('\n};', start);

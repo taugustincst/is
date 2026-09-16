@@ -229,7 +229,9 @@ The `?` button in battle opens a rules summary.
 index.html        screens and markup
 css/style.css     styling, including the small-screen layout
 js/audio.js       WebAudio synthesis: the combat sound table and the music sequencer
-js/data.js        jobs, abilities, passives, items, statuses, maps, campaign
+js/data.js        jobs, abilities, passives, items, statuses, training pools, errands
+js/maps.js        every battlefield: heights, terrain, deployment, mood
+js/story.js       the campaign's chapters and acts, the epilogue, the cities
 js/sprites.js     sprite compositing: body templates, equipment glyphs, lighting
 js/fx.js          battle effects: weapon swings, projectiles, elemental impacts, and what each sounds like
 js/unit.js        unit model, stats, equipment, leveling, JP
