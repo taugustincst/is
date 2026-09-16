@@ -15,7 +15,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
   const none = await page.evaluate(() => document.querySelectorAll('.city[data-city]').length);
   ok('no city is reachable before the road reaches one', none === 0, `${none} listed`);
-  await page.evaluate(() => { game.state.chapter = 1; game.state.gil = 6000; for (const u of game.state.party) { u.level = 6; const kit = bestGearFor(u.job, null, 2); for (const [slot, id] of Object.entries(kit)) if (id) u.gear[slot] = id; u.resetBattleState(); } game.showWorld(); });
+  await page.evaluate(() => { game.state.chapter = 1; game.state.gil = 6000; for (const u of game.state.party) { u.level = 6; const kit = bestGearFor(u.job, null, 3); for (const [slot, id] of Object.entries(kit)) if (id) u.gear[slot] = id; u.resetBattleState(); } game.showWorld(); });
   const listed = await page.evaluate(() => [...document.querySelectorAll('.city[data-city]')].map(e => e.dataset.city + ':' + e.className.replace('city', '').trim()));
   ok('Redwater is listed as held once the road reaches it', listed.length === 1 && listed[0] === 'redwater:held', listed.join(','));
   const wagon = await page.evaluate(() => { game.openShop('buy'); const ids = [...document.querySelectorAll('#shop-list button[data-buy]')].map(b => b.dataset.buy); game.showWorld(); return ids; });
