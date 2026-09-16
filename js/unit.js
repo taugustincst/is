@@ -12,6 +12,9 @@ const FALLBACK_JOB = 'squire';
 
 class Unit {
   constructor(opts) {
+    // An id that arrives from a save advances the counter past itself, so a
+    // unit made later in the same session can never share it.
+    if (opts.id) { const n = /^u(\d+)$/.exec(opts.id); if (n) unitSeq = Math.max(unitSeq, +n[1] + 1); }
     this.id = opts.id || `u${unitSeq++}`;
     this.job = JOBS[opts.job] ? opts.job : FALLBACK_JOB;
     this.name = opts.name || JOBS[this.job].name;

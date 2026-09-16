@@ -615,7 +615,9 @@ class BattleUI {
     };
     cv.addEventListener('pointerup', release);
     cv.addEventListener('pointercancel', (e) => { this.pointers.delete(e.pointerId); this.drag = null; this.pinch = null; });
-    cv.addEventListener('pointerleave', () => { if (!this.drag) { this.hover = null; this.r.hl.cursor = null; this.refresh(); } });
+    // A touch pointer leaves the moment it lifts, which would clear the card of
+    // whatever was just tapped; only a mouse leaving clears the hover.
+    cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !this.drag) { this.hover = null; this.r.hl.cursor = null; this.refresh(); } });
 
     cv.addEventListener('contextmenu', (e) => { e.preventDefault(); this.cancel(); });
     cv.addEventListener('wheel', (e) => { e.preventDefault(); this.r.setZoom((this.r.zoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)); }, { passive: false });
@@ -623,7 +625,7 @@ class BattleUI {
     cv.style.touchAction = 'none';
 
     window.addEventListener('keydown', (e) => {
-      if (!this.battle || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (!this.battle || game.screen !== 'battle' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
       if (e.key === 'Escape') return this.cancel();
       const pan = 40, z = this.r.zoom || 1;
       if (e.key === 'ArrowLeft') { this.r.cam.x += pan / z; this.r.clampCamera(); }
@@ -657,6 +659,10 @@ class BattleUI {
 
   hoverAt(p) {
     const t = this.r.pickTile(p.x, p.y);
+    // The same tile as last time is nothing to redraw: the panels are rebuilt
+    // and the forecast re-simulated on every change, not every mouse event.
+    if (t && this.hover && t.x === this.hover.x && t.y === this.hover.y) return;
+    if (!t && !this.hover) return;
     this.hover = t;
     this.r.hl.cursor = t;
     this.renderTileInfo(t);

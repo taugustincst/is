@@ -34,7 +34,8 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   ok('Load opens the chosen slot', await page.evaluate(() => game.state.slot === 1 && game.state.chapter === 3 && game.state.gil === 1234));
   await page.click('#btn-title'); await page.waitForSelector('#screen-title.active');
   await page.click('#btn-continue'); await page.waitForSelector('#screen-world.active');
-  ok('Continue opens the slot saved most recently', await page.evaluate(() => game.state.slot === 2));
+  // Leaving for the title saves the game played, so Continue returns to it.
+  ok('Continue opens the slot played last, which Title saved on the way out', await page.evaluate(() => game.state.slot === 1));
   await page.click('#btn-title'); await page.click('#btn-load'); await page.waitForSelector('#screen-slots.active');
   dialogs = [];
   await page.click('button[data-slot-del="2"]'); await page.waitForTimeout(100);
