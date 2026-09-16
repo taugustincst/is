@@ -270,7 +270,7 @@ const JOBS = {
     palette: { h: '#c9a24a', c: '#7a4a2a', p: '#3a3a4a', b: '#2a2a2a' },
     hp: 1.0, mp: 1.0, pa: 1.15, ma: 1.05, spd: 1.15, move: 4, jump: 7, evade: 18,
     weapon: { name: 'Flintlock', power: 5, range: 4, vert: 9 },
-    abilities: ['bombingRun', 'flare', 'updraft', 'grapnel'],
+    abilities: ['bombingRun', 'signalFlare', 'updraft', 'grapnel'],
     req: { gunner: 2, thief: 1 }, desc: 'A canvas balloon and a head for heights. Comes down where it is least wanted.',
   },
   artificer: {
@@ -949,7 +949,7 @@ const ABILITIES = {
   // Aeronaut
   bombingRun: { name: 'Bombing Run', job: 'aeronaut', jp: 200, mp: 10, range: 5, aoe: 1, vert: 9, ct: 20, kind: 'magic', affects: 'all', airborne: true, element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Up on the balloon, and down comes fire on an area. Untargetable while aloft.' },
-  flare: { name: 'Flare', job: 'aeronaut', jp: 150, mp: 8, range: 4, aoe: 1, vert: 9, ct: 4, kind: 'magic', affects: 'all',
+  signalFlare: { name: 'Signal Flare', job: 'aeronaut', jp: 150, mp: 8, range: 4, aoe: 1, vert: 9, ct: 4, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'blind', hit: 80 }], desc: 'A magnesium flare bursts over the area. Most in it are Blinded.' },
   updraft: { name: 'Updraft', job: 'aeronaut', jp: 250, mp: 6, range: 2, aoe: 0, vert: 9, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
     effects: [{ type: 'statmod', stat: 'move', amount: 1 }, { type: 'statmod', stat: 'jump', amount: 2 }], desc: 'A gust under an ally: Move +1 and Jump +2 for the battle.' },
@@ -2676,7 +2676,7 @@ const ITEMS = {
   harpoonSpear:  { name: 'Whaling Harpoon', slot: 'weapon', wtype: 'spear', power: 14, range: 2, vert: 3, price: 2500, tier: 6 },
   tideRod:       { name: 'Tide Rod', slot: 'weapon', wtype: 'rod', power: 6, range: 1, vert: 2, ma: 6, resist: { water: 'resist' }, price: 2200, tier: 6 },
   coralStaff:    { name: 'Coral Staff', slot: 'weapon', wtype: 'staff', power: 7, range: 1, vert: 2, ma: 5, mp: 20, price: 2100, tier: 6 },
-  oilskin:       { name: 'Oilskin', slot: 'body', atype: 'light', hp: 46, resist: { water: 'resist' }, price: 2100, tier: 6 },
+  seaOilskin:    { name: 'Sea Oilskin', slot: 'body', atype: 'light', hp: 46, resist: { water: 'resist' }, price: 2100, tier: 6 },
   kelpRobe:      { name: 'Kelp Robe', slot: 'body', atype: 'robe', hp: 40, mp: 50, resist: { water: 'resist' }, price: 2200, tier: 6 },
   seaPlate:      { name: 'Sea Plate', slot: 'body', atype: 'heavy', hp: 60, resist: { water: 'resist' }, price: 2600, tier: 6 },
   diversHelm:    { name: 'Diver\'s Helm', slot: 'head', htype: 'helm', look: 'helm', hp: 30, resist: { water: 'resist' }, price: 1800, tier: 6 },
