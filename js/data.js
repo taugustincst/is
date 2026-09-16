@@ -931,7 +931,7 @@ const ABILITIES = {
     effects: [{ type: 'heal', formula: 'ma', power: 7 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'Patch what is broken, flesh or brass. Heals, and leaves Regen behind.' },
   oilSlick: { name: 'Oil Slick', job: 'engineer', jp: 150, mp: 8, range: 3, aoe: 1, vert: 2, ct: 6, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'slow', hit: 70 }], desc: 'Oil underfoot. Everyone in the area is likely Slowed.' },
-  steamVent: { name: 'Steam Vent', job: 'engineer', jp: 250, mp: 10, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'magic', affects: 'all', self: true, element: 'fire',
+  steamVent: { name: 'Steam Vent', job: 'engineer', jp: 250, mp: 10, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'magic', affects: 'enemy', self: true, element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Open the valve. Scalding fire damage all around you, at once.' },
   overclock: { name: 'Overclock', job: 'engineer', jp: 400, mp: 12, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally',
     effects: [{ type: 'status', status: 'haste', hit: 100 }, { type: 'statmod', stat: 'spd', amount: 1 }], desc: 'Wind them tighter. Haste and Speed +1 on an ally.' },
@@ -970,7 +970,7 @@ const ABILITIES = {
   // The Concord's machines
   pistonStrike: { name: 'Piston Strike', job: 'sentinel', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 7 }], desc: 'A hammer on a rod. It does not pull the blow.' },
-  steamBurst: { name: 'Steam Burst', job: 'sentinel', jp: 0, mp: 6, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'magic', affects: 'all', self: true, element: 'fire',
+  steamBurst: { name: 'Steam Burst', job: 'sentinel', jp: 0, mp: 6, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'magic', affects: 'enemy', self: true, element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 6 }], desc: 'The boiler vents on everyone close.' },
   gearBite: { name: 'Gear Bite', job: 'ironhound', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'status', status: 'slow', hit: 50 }], desc: 'Jaws that lock. Often leaves the bitten Slowed.' },
@@ -2854,7 +2854,11 @@ function bestGearFor(job, pool, maxTier, extra) {
 // fight.
 function enemyGearFor(job, level, tierShift) {
   const tier = Math.max(0, Math.min(6, Math.floor((level - 1) / 1.8) + (tierShift || 0)));
-  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late && !ITEMS[i].city);
+  // A scripted weakness is part of the fight, so an enemy is never issued the
+  // piece of gear that would quietly cancel it.
+  const innate = (JOBS[job] && JOBS[job].affinity) || {};
+  const weak = Object.keys(innate).filter(e => innate[e] === 'weak');
+  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late && !ITEMS[i].city && !(ITEMS[i].resist && weak.some(e => ITEMS[i].resist[e])));
   return bestGearFor(job, pool, tier);
 }
 

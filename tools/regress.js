@@ -765,6 +765,127 @@ const mk = (n, job, lvl, opts = {}) => {
     }
   }
 
+  /* The engine findings of the critical review, each replayed. */
+  {
+    const hooks = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const realRandom = Math.random;
+    // Self-Destruct: every side of the bomb takes the same blast.
+    {
+      Math.random = () => 0;
+      const party = [mk('N', 'knight', 8), mk('E', 'knight', 8), mk('S', 'knight', 8), mk('W', 'knight', 8)];
+      const b = g.Battle.setup(g.MAPS.verdant, party, [{ job: 'bomb', level: 8, x: 4, y: 3 }], hooks, { type: 'rout' });
+      const bomb = b.units.find(u => u.job === 'bomb');
+      const spots = [[4, 2], [5, 3], [4, 4], [3, 3]];
+      party.forEach((u, i) => { u.x = spots[i][0]; u.y = spots[i][1]; u.hp = u.maxHp; u.passives = { reaction: null, support: null, movement: null }; u.gear = {}; });
+      await b.applyAbility(bomb, g.ABILITIES.selfDestruct, bomb.x, bomb.y);
+      const taken = party.map(u => u.maxHp - u.hp);
+      ok('Self-Destruct hurts the east and south as much as the north and west', taken.every(v => v > 0 && v === taken[0]) && !bomb.alive, taken.join(','));
+      Math.random = realRandom;
+    }
+    // Steam Vent scalds the foes around the engineer, not the engineer.
+    {
+      const eng = mk('Eng', 'engineer', 10); eng.learned.steamVent = true;
+      const b = g.Battle.setup(g.MAPS.verdant, [eng], [{ job: 'knight', level: 8, x: 3, y: 2 }], hooks, { type: 'rout' });
+      eng.x = 2; eng.y = 2; eng.mp = eng.maxMp; const hp0 = eng.hp;
+      const foe = b.units.find(u => u.team === 'enemy'); const f0 = foe.hp;
+      Math.random = () => 0; await b.applyAbility(eng, g.ABILITIES.steamVent, eng.x, eng.y); Math.random = realRandom;
+      ok('Steam Vent leaves its user unscalded and scalds the foe beside them', eng.hp === hp0 && foe.hp < f0, `user ${hp0}->${eng.hp}, foe ${f0}->${foe.hp}`);
+    }
+    // Reactions answer a foe, not a friend; and stat changes are bounded.
+    {
+      const geo = mk('Geo', 'geomancer', 10); geo.learned.tremor = true;
+      const ven = mk('Ven', 'dragoon', 10); ven.learned.vengeance = true; ven.setPassive('reaction', 'vengeance');
+      const b = g.Battle.setup(g.MAPS.verdant, [geo, ven], [{ job: 'knight', level: 8, x: 6, y: 6 }], hooks, { type: 'rout' });
+      geo.x = 2; geo.y = 2; ven.x = 3; ven.y = 2; const pa0 = ven.pa;
+      Math.random = () => 0.99;
+      await b.applyAbility(geo, g.ABILITIES.tremor, ven.x, ven.y);
+      Math.random = realRandom;
+      ok('a friend\'s Tremor does not wake Vengeance', ven.pa === pa0, `pa ${pa0} -> ${ven.pa}`);
+      for (let i = 0; i < 20; i++) b.addMod(ven, 'pa', 1);
+      ok('a stat cannot be pushed past its cap', ven.mods.pa === 8, `pa mod ${ven.mods.pa}`);
+    }
+    // A scripted weakness survives the gear an enemy is issued, on every difficulty.
+    {
+      const bad = [];
+      for (const job of Object.keys(g.JOBS)) {
+        const innate = g.JOBS[job].affinity || {};
+        const weak = Object.keys(innate).filter(e => innate[e] === 'weak');
+        if (!weak.length) continue;
+        for (const lvl of [5, 10, 14, 20, 25]) for (const shift of [-1, 0, 1]) {
+          const u = new g.Unit({ name: 'x', job, level: lvl, team: 'enemy', gear: g.run(`enemyGearFor('${job}', ${lvl}, ${shift})`) });
+          for (const e of weak) if (g.run(`affinityOf`)(u, e) <= 1) bad.push(`${job}@${lvl}/${shift}:${e}`);
+        }
+      }
+      ok('no enemy is issued gear that cancels a weakness the story told the player about', bad.length === 0, bad.slice(0, 4).join(',') || 'clean');
+    }
+    // Survive ends early on a rout.
+    {
+      const party = [mk('A', 'knight', 30)];
+      const b = g.Battle.setup(g.MAPS.dunmarch, party, [{ job: 'squire', level: 1, x: 6, y: 6 }], hooks, { type: 'survive', rounds: 5 });
+      const foe = b.units.find(u => u.team === 'enemy'); foe.hp = 0; b.onUnitKO(foe); foe.koCount = 0; foe.x = -1; foe.y = -1;
+      const ended = b.checkEnd();
+      ok('a survive objective is won the moment nothing is left to survive', ended && b.result === 'victory' && b.round <= 1, `${b.result} at round ${b.round}`);
+    }
+    // The AI scores a buff on the other side as a gift, not a wash.
+    {
+      const tm = mk('T', 'timeMage', 10); tm.learned.haste = true;
+      const b = g.Battle.setup(g.MAPS.verdant, [tm], [{ job: 'knight', level: 8, x: 5, y: 2 }], hooks, { type: 'rout' });
+      tm.x = 2; tm.y = 2; tm.mp = tm.maxMp;
+      const foe = b.units.find(u => u.team === 'enemy');
+      // The foe stands clear of the area, so the caster is not hasting herself too.
+      const score = b.scoreTarget(tm, g.ABILITIES.haste, tm.x, tm.y, foe.x, foe.y);
+      ok('Haste on a foe scores below zero for the caster', score < 0, `score ${score}`);
+    }
+    // Counters: no EXP, none while Stopped, none across a cliff.
+    {
+      const monk = mk('M', 'monk', 10); monk.learned.counter = true; monk.setPassive('reaction', 'counter');
+      const b = g.Battle.setup(g.MAPS.verdant, [monk], [{ job: 'knight', level: 8, x: 3, y: 2 }], hooks, { type: 'rout' });
+      const foe = b.units.find(u => u.team === 'enemy'); monk.x = 2; monk.y = 2;
+      foe.passives = { reaction: null, support: null, movement: null }; // no Parry to swallow the counter
+      Math.random = () => 0; const exp0 = b.rewards.exp; const f0 = foe.hp;
+      await b.applyAbility(foe, g.ABILITIES.attack, monk.x, monk.y);
+      const countered = foe.hp < f0;
+      ok('a counter lands but earns no experience', countered && b.rewards.exp === exp0, `countered=${countered} exp ${exp0}->${b.rewards.exp}`);
+      monk.addStatus('stop'); monk.hp = monk.maxHp; const f1 = foe.hp;
+      await b.applyAbility(foe, g.ABILITIES.attack, monk.x, monk.y);
+      ok('a Stopped unit does not counter', foe.hp === f1, `foe ${f1}->${foe.hp}`);
+      Math.random = realRandom;
+    }
+    // A caster mid-charge does not get another turn; a Stopped caster's charge is announced lost.
+    {
+      const bm = mk('B', 'blackMage', 10); bm.learned.fire = true;
+      const b = g.Battle.setup(g.MAPS.verdant, [bm], [{ job: 'squire', level: 1, x: 6, y: 6 }], hooks, { type: 'rout' });
+      bm.x = 2; bm.y = 2; bm.mp = bm.maxMp; bm.ct = 150;
+      await b.useAbility(bm, g.ABILITIES.fire, 6, 6);
+      const charging = b.pending.some(p => p.unit === bm);
+      const acting = b.units.filter(u => b.onField(u) && u.ct >= 100 && !u.airborne && !b.pending.some(p => p.unit === u));
+      ok('a unit with a charge waiting is not among those due to act', charging && !acting.includes(bm), `pending=${charging}`);
+      const lines = []; b.hooks.log = (m) => lines.push(String(m));
+      bm.addStatus('stop'); b.pending[0].ct = 100;
+      const ready = b.pending.filter(p => p.ct >= 100); b.pending = [];
+      for (const p of ready) if (p.unit.hasStatus('stop')) b.log(`${p.unit.name} is Stopped; ${p.ability.name} is lost.`, 'miss');
+      ok('a charge lost to Stop is said in the log', lines.some(l => /is Stopped; Fire is lost/.test(l)), lines.join('|'));
+    }
+    // The forecast resets CT to zero after a turn, as the engine does.
+    {
+      const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'battle.js'), 'utf8');
+      ok('the forecast and the engine agree that a turn resets CT to zero', /r\.ct = 0;/.test(src) && !/r\.ct -= 100/.test(src));
+    }
+    // A warded status is refused out loud and does not strip its opposite.
+    {
+      const w = mk('W', 'warden', 12); w.learned.ironFooting = true; w.setPassive('movement', 'ironFooting');
+      const tmg = mk('T', 'timeMage', 10); tmg.learned.slowSpell = true;
+      const b = g.Battle.setup(g.MAPS.verdant, [w, tmg], [{ job: 'squire', level: 1, x: 6, y: 6 }], hooks, { type: 'rout' });
+      w.addStatus('haste'); // after setup, which starts every unit clean
+      const lines = []; b.hooks.log = (m) => lines.push(String(m));
+      Math.random = () => 0; const r = b.applyEffect(tmg, g.ABILITIES.slowSpell, g.ABILITIES.slowSpell.effects.find(e => e.type === 'status'), w); Math.random = realRandom;
+      ok('Iron Footing refuses Slow out loud and keeps Haste', r === false && w.hasStatus('haste') && !w.hasStatus('slow') && lines.some(l => /proof against Slow/.test(l)), lines.join('|'));
+      const p = b.predict(tmg, g.ABILITIES.slowSpell, w.x, w.y);
+      ok('the prediction says a warded status is warded', p.length && p[0].notes.some(n => /warded Slow/.test(n)), p.length ? p[0].notes.join(',') : 'none');
+    }
+    Math.random = realRandom;
+  }
+
   /* Two object keys declared twice shipped in one day (the aeronaut's Flare
      over the black mage's, a sea oilskin over the tier-2 one): JavaScript
      keeps the last one silently. Every data table is scanned as source. */

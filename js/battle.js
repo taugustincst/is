@@ -72,6 +72,8 @@ const KO_COUNTDOWN = 3;
 // unit still standing has taken a turn, which is what a player counts.
 const ROUND_LIMIT = 50;
 const TURN_LIMIT = 500;
+// How far a stat can be pushed either way within one battle.
+const MOD_CAP = { pa: 8, ma: 8, spd: 6, evade: 30, move: 3, jump: 3 };
 
 class Battle {
   constructor(mapDef, playerUnits, enemyUnits, hooks) {
@@ -233,7 +235,7 @@ class Battle {
     let base = 0;
     if (eff.formula === 'pa') base = user.pa * power;
     else if (eff.formula === 'ma') base = user.ma * power;
-    else if (eff.formula === 'curhp') base = user.hp;
+    else if (eff.formula === 'curhp') base = user._blastHp !== undefined ? user._blastHp : user.hp;
     else if (eff.formula === 'targetpct') base = target.hp * power;   // a share of what the target has left
     else base = eff.flat || 0;
     if (eff.mult) base *= eff.mult;
@@ -285,7 +287,7 @@ class Battle {
         else if (eff.type === 'mpdrain') p.notes.push(`MP -${Math.min(this.computeEffect(user, ab, eff, t), t.mp)}`);
         else if (eff.type === 'slay') p.notes.push(t.boss ? 'immune' : `slay ${eff.hit}%`);
         else if (eff.type === 'revive') p.notes.push(`revive ${Math.round(eff.pct * 100)}%`);
-        else if (eff.type === 'status') p.notes.push(`${STATUSES[eff.status].name} ${eff.hit}%`);
+        else if (eff.type === 'status') p.notes.push(t.wardsOff(eff.status) ? `warded ${STATUSES[eff.status].name}` : `${STATUSES[eff.status].name} ${eff.hit}%`);
         else if (eff.type === 'statmod') p.notes.push(`${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`);
         else if (eff.type === 'cure') p.notes.push('cure');
         else if (eff.type === 'gil') p.notes.push(`steal ${t.level * (user.hasPassive('freebooter') ? 40 : 20)} gil`);
@@ -318,6 +320,9 @@ class Battle {
     const hits = user.dualWielding && ab === ABILITIES.attack ? 2 : 1;
     // Start clean: only a blow landed by this ability may provoke a counter.
     for (const t of targets) t._tookHit = false;
+    // A blast is worth what the bomb had when it went off, not what is left
+    // after it has hit itself part-way through the targets.
+    if (ab.suicide) user._blastHp = user.hp;
     for (const t of targets) {
       for (let h = 0; h < hits; h++) {
         // FIX 5: the offhand does not swing at a unit the main hand felled.
@@ -354,6 +359,7 @@ class Battle {
         if (hits > 1) await sleep(250);
       }
     }
+    delete user._blastHp;
     if (!this.counterDepth) await this.resolveCounters(user, ab, targets);
     if (!targets.length) this.log(`${user.name}'s ${ab.name} hits nothing.`);
     if (ab.suicide) {
@@ -501,6 +507,7 @@ class Battle {
       case 'status': {
         if (!t.alive) return false;
         if (Math.random() * 100 >= eff.hit) { this.log(`${t.name} resists ${STATUSES[eff.status].name}.`, 'miss'); return false; }
+        if (t.wardsOff(eff.status)) { this.log(`${t.name} is proof against ${STATUSES[eff.status].name}.`, 'miss'); if (this.hooks.showFloat) this.hooks.showFloat(t, 'Warded', '#9fd6ff'); return false; }
         t.addStatus(eff.status);
         if (eff.status === 'haste') t.removeStatus('slow');
         if (eff.status === 'slow') t.removeStatus('haste');
@@ -517,7 +524,7 @@ class Battle {
       }
       case 'statmod': {
         if (!t.alive) return false;
-        t.mods[eff.stat] = (t.mods[eff.stat] || 0) + eff.amount;
+        if (!this.addMod(t, eff.stat, eff.amount)) { this.log(`${t.name}'s ${eff.stat.toUpperCase()} can go no further.`, 'miss'); return false; }
         this.log(`${t.name}'s ${eff.stat.toUpperCase()} ${eff.amount > 0 ? 'rises' : 'falls'} by ${Math.abs(eff.amount)}.`, eff.amount > 0 ? 'heal' : 'dmg');
         this.sound(eff.amount > 0 ? 'buff' : 'debuff');
         if (this.hooks.showFloat) this.hooks.showFloat(t, `${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`, eff.amount > 0 ? '#ffe97c' : '#c56aff');
@@ -548,6 +555,8 @@ class Battle {
   // Reactions that fire the moment a unit takes damage.
   onDamaged(user, ab, target, amount) {
     if (!target.alive || amount <= 0) return;
+    // A friend's area spell is not something to grow stronger from.
+    if (user && user.team === target.team) return;
     if (target.hasPassive('secondWind')) {
       const heal = Math.min(Math.ceil(target.maxHp / 10), target.maxHp - target.hp);
       if (heal > 0) {
@@ -583,28 +592,39 @@ class Battle {
       this.log(`${target.name} makes a last stand: Protect and Shell.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'Last Stand', '#9ef0ff');
     }
-    if (target.hasPassive('overcharge')) {
-      target.mods.spd = (target.mods.spd || 0) + 1;
+    if (target.hasPassive('overcharge') && this.addMod(target, 'spd', 1)) {
       this.log(`${target.name} winds tighter: SPD +1.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'SPD +1', '#ffe97c');
     }
-    if (target.hasPassive('dragonHeart')) {
-      target.mods.pa = (target.mods.pa || 0) + 1; target.mods.ma = (target.mods.ma || 0) + 1;
+    if (target.hasPassive('dragonHeart') && (this.addMod(target, 'pa', 1) | this.addMod(target, 'ma', 1))) {
       this.log(`${target.name}'s blood is up: PA and MA +1.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'PA/MA +1', '#ffe97c');
     }
-    if (target.hasPassive('vengeance')) {
-      target.mods.pa = (target.mods.pa || 0) + 1;
+    if (target.hasPassive('vengeance') && this.addMod(target, 'pa', 1)) {
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'PA +1', '#ffe97c');
     }
   }
 
-  // Survivors with Counter hit back once. Counters never trigger counters.
+  // A battle-time stat change, within bounds: Accumulate, Yell, Vengeance and
+  // their like add up, but not without limit. Returns false if nothing changed.
+  addMod(t, stat, amount) {
+    const cap = MOD_CAP[stat] === undefined ? 8 : MOD_CAP[stat];
+    const have = t.mods[stat] || 0;
+    const next = Math.max(-cap, Math.min(cap, have + amount));
+    if (next === have) return false;
+    t.mods[stat] = next;
+    return true;
+  }
+
+  // Survivors with Counter hit back once. Counters never trigger counters, and
+  // a unit that cannot act (Stopped) or cannot reach (too far up or down)
+  // does not counter.
   async resolveCounters(user, ab, targets) {
     if (ab.kind !== 'physical' || !user.alive) return;
     const counters = targets.filter(t =>
-      t.alive && t.team !== user.team && t.hasPassive('counter') && t._tookHit &&
-      Grid.dist(t.x, t.y, user.x, user.y) <= t.weapon.range);
+      t.alive && t.team !== user.team && t.hasPassive('counter') && t._tookHit && !t.hasStatus('stop') &&
+      Grid.dist(t.x, t.y, user.x, user.y) <= t.weapon.range &&
+      Math.abs(this.grid.height(t.x, t.y) - this.grid.height(user.x, user.y)) <= (t.weapon.vert || 2));
     for (const c of counters) {
       if (!user.alive || !c.alive) break;
       this.counterDepth = (this.counterDepth || 0) + 1;
@@ -700,7 +720,7 @@ class Battle {
   }
 
   awardAction(user, targets) {
-    if (user.team !== 'player') return;
+    if (user.team !== 'player' || this.counterDepth) return;
     const tgt = targets[0];
     const exp = tgt ? Math.max(8, Math.min(50, 20 + (tgt.level - user.level) * 4)) : 8;
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
@@ -755,6 +775,7 @@ class Battle {
       return this.finish('defeat', 'The battle drags on until the light fails.');
     }
     if (o.type === 'survive') {
+      if (!standing('enemy')) return this.finish('victory', 'Nothing is left to hold out against.');
       if (this.round > o.rounds) return this.finish('victory', 'You have held long enough. Fall back!');
       return false;
     }
@@ -770,7 +791,7 @@ class Battle {
   // Simulates upcoming turns for the turn-order display.
   forecast(n = 8) {
     // The acting unit's CT resets after its turn, so forecast it from zero.
-    const sim = this.units.filter(u => this.onField(u))
+    const sim = this.units.filter(u => this.onField(u) && !u.airborne)
       .map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.alive ? u.ctSpeed() : Math.max(1, u.baseStats().spd) }));
     const pend = this.pending.map(p => ({ p, ct: p.ct }));
     const out = [];
@@ -779,7 +800,7 @@ class Battle {
       for (const p of pend) { p.ct += p.p.speed; if (p.ct >= 100) { out.push({ kind: 'pending', p: p.p }); p.ct = -1e9; } }
       for (const s of sim) s.ct += s.spd;
       const ready = sim.filter(s => s.ct >= 100).sort((a, b) => b.ct - a.ct || b.spd - a.spd);
-      for (const r of ready) { out.push({ kind: 'unit', unit: r.u }); r.ct -= 100; }
+      for (const r of ready) { out.push({ kind: 'unit', unit: r.u }); r.ct = 0; }
       if (out.length >= n) break;
     }
     return out.slice(0, n);
@@ -800,7 +821,8 @@ class Battle {
       const ready = this.pending.filter(p => p.ct >= 100);
       this.pending = this.pending.filter(p => p.ct < 100);
       for (const p of ready) {
-        if (!p.unit.alive || p.unit.hasStatus('stop')) { p.unit.airborne = false; continue; }
+        if (!p.unit.alive) { p.unit.airborne = false; continue; }
+        if (p.unit.hasStatus('stop')) { p.unit.airborne = false; this.log(`${p.unit.name} is Stopped; ${p.ability.name} is lost.`, 'miss'); continue; }
         // The world moves while a spell charges: the MP may be gone, or the
         // caster may have been silenced since. Either way it does not land.
         const abId = Object.keys(ABILITIES).find(k => ABILITIES[k] === p.ability);
@@ -828,11 +850,13 @@ class Battle {
         if (!u.alive) continue;
         for (const s of Object.keys(u.statuses)) { u.statuses[s]--; if (u.statuses[s] <= 0) delete u.statuses[s]; }
       }
-      const acting = this.units.filter(u => this.onField(u) && u.ct >= 100 && !u.airborne)
+      const acting = this.units.filter(u => this.onField(u) && u.ct >= 100 && !u.airborne && !this.pending.some(p => p.unit === u))
         .sort((a, b) => b.ct - a.ct || b.spd - a.spd);
       for (const u of acting) {
         if (this.over || !this.onField(u)) continue;
-        if (!u.alive) { await this.tickDown(u); continue; }
+        // A unit felled earlier this same tick had its CT zeroed by the fall;
+        // its countdown starts on its next due turn, not this one.
+        if (!u.alive) { if (u.ct >= 100) await this.tickDown(u); continue; }
         // Re-check now rather than trusting the snapshot: a unit revived or
         // knocked back earlier in this same tick has lost its charge.
         if (u.ct < 100 || u.hasStatus('stop')) continue;
@@ -996,15 +1020,18 @@ class Battle {
     unit.x = fromX; unit.y = fromY;
     let score = 0;
     const preds = this.predict(unit, ab, tx, ty);
+    // A blast costs the bomb once, not once per target, and the bomb is not
+    // one of its own victims to be counted against it.
+    if (ab.suicide) score -= unit.hp * 0.9;
     for (const p of preds) {
       const t = p.unit;
+      if (ab.suicide && t === unit) continue;
       const enemy = t.team !== unit.team;
       const hitF = p.hit / 100;
       if (p.dmg) {
         const dmg = Math.min(p.dmg, t.hp);
         const lethal = p.dmg >= t.hp;
         score += (enemy ? 1 : -1.2) * hitF * (dmg + (lethal ? 40 : 0) + (t.leader ? 10 : 0));
-        if (ab.suicide) score -= unit.hp * 0.9;
       }
       if (p.heal) {
         const heal = Math.min(p.heal, t.maxHp - t.hp);
@@ -1020,7 +1047,7 @@ class Battle {
           const bonus = id === 'silence' ? (casterly ? 20 : -10) : id === 'blind' ? (casterly ? -5 : 15) : 0;
           score += (enemy ? 25 + bonus : -25);
         }
-        else if (/Haste|Protect|Shell|Regen|Reraise/.test(n)) score += !enemy && !t.hasStatus(n.split(' ')[0].toLowerCase()) ? (n.startsWith('Reraise') ? 14 : 20) : 0;
+        else if (/Haste|Protect|Shell|Regen|Reraise/.test(n)) { if (!t.hasStatus(n.split(' ')[0].toLowerCase())) score += (enemy ? -1 : 1) * (n.startsWith('Reraise') ? 14 : 20); }
         else if (/^(PA|MA|SPD) \+/.test(n)) {
           // Worth more the bigger the rise, and less the more of it the unit already carries.
           const [stat, amt] = n.split(' '); const v = +amt.slice(1);
