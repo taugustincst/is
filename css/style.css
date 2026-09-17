@@ -167,6 +167,21 @@ small { color: var(--muted); }
 /* Keyboard focus is drawn, on buttons and on the rows and cards that act like them. */
 button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
+/* ---------- the five roads ---------- */
+.choice-box { max-width: 720px; margin: 0 auto; padding: 24px 16px 40px; }
+.choice-box h2 { color: var(--gold); font-family: Georgia, serif; font-size: 30px; margin: 0 0 8px; }
+#choice-text p { color: #ddd; line-height: 1.6; }
+.choice-list { display: grid; gap: 10px; margin: 16px 0; }
+.road { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; cursor: pointer; }
+.road:hover, .road:focus-visible { border-color: var(--gold); }
+.road.seen { opacity: 0.75; }
+.road-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.road-head b { font-family: Georgia, serif; font-size: 18px; color: var(--gold); }
+.road-tag { color: var(--muted); font-style: italic; }
+.road-seen { margin-left: auto; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--green); }
+.road p { margin: 6px 0; color: #ddd; }
+.road small { color: var(--muted); }
+
 /* ---------- battle ---------- */
 #screen-battle { background: #0d0e18; }
 #battle-canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }

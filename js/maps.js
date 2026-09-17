@@ -577,4 +577,135 @@ const MAPS = {
     ],
     deploy: [[5, 12], [6, 12], [7, 12], [6, 11], [5, 11]],
   },
+  // ---- Act V: the Crown of Elderon ----
+  // The King's Road: a highway between hedges, with a milestone knoll.
+  kingsroad: {
+    name: "The King's Road", w: 13, h: 10, mood: 'day',
+    heights: [
+      '2222222222222', '2111111111112', '2111122111112', '1111122211111', '1111111111111', '1111111111111',
+      '1111111111111', '1111122111111', '2111111111112', '2222222222222',
+    ],
+    terrain: [
+      'ttgggggggggtt', 'tgggggggggggt', 'tgggdddgggggt', 'gggdddddgggtg', 'ddddddddddddd', 'ddddddddddddd',
+      'ggggggggggggg', 'tgggggddgggtg', 'tgggggggggggt', 'ttgggggggggtt',
+    ],
+    deploy: [[1, 4], [1, 5], [0, 4], [0, 5], [2, 5]],
+  },
+  // The Low Quarter: narrow stone streets around a square, with a well.
+  capital: {
+    name: 'The Low Quarter', w: 13, h: 12, mood: 'dawn',
+    heights: [
+      '3333222223333', '3222222222233', '3222222222223', '2222111112222', '2221111111222', '2221111111222',
+      '2221111111222', '2222111112222', '3222222222223', '3322222222233', '3333222223333', '3333222223333',
+    ],
+    terrain: [
+      'xxssssssssxxx', 'xsssssssssssx', 'xssssssssssss', 'sssssssssssss', 'sssssssssssss', 'ssssssxssssss',
+      'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'xssssssssssxx', 'xxxsssssssxxx', 'xxxsssssssxxx',
+    ],
+    deploy: [[5, 11], [6, 11], [7, 11], [6, 10], [5, 10]],
+  },
+  // The palace gardens: lawns, fountains, and statues on plinths.
+  gardens: {
+    name: 'The Palace Gardens', w: 12, h: 12, mood: 'day',
+    heights: [
+      '222222222222', '211111111112', '211211112112', '211111111112', '211100001112', '211100001112',
+      '211100001112', '211111111112', '211211112112', '211111111112', '211111111112', '222222222222',
+    ],
+    terrain: [
+      'ssssssssssss', 'sggggggggggs', 'sgsggggggsgs', 'sggggggggggs', 'sggswwwwsggs', 'sggswwwwsggs',
+      'sggswwwwsggs', 'sggggggggggs', 'sgsggggggsgs', 'sggggggggggs', 'sggggggggggs', 'ssssssssssss',
+    ],
+    deploy: [[4, 10], [5, 10], [6, 10], [7, 10], [5, 9]],
+  },
+  // The throne room: a long marble hall rising to a dais.
+  throne: {
+    name: 'The Throne Room', w: 13, h: 11, mood: 'court',
+    heights: [
+      '4444444444444', '4433333333344', '4322222222234', '4322222222234', '3311111111133', '3311111111133',
+      '3311111111133', '3311111111133', '3311111111133', '3311111111133', '3333333333333',
+    ],
+    terrain: [
+      'xxxxxxxxxxxxx', 'xxsssssssssxx', 'xsssssssssssx', 'xsssssssssssx', 'sssssssssssss', 'sssssssssssss',
+      'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss',
+    ],
+    deploy: [[5, 10], [6, 10], [7, 10], [6, 9], [5, 9]],
+  },
+  // The guildhall: a floor of tables and a gallery running round it.
+  guildhall: {
+    name: 'The Guildhall', w: 12, h: 11, mood: 'dawn',
+    heights: [
+      '333333333333', '322222222223', '321111111123', '321111111123', '321111111123', '321111111123',
+      '321111111123', '321111111123', '322222222223', '333333333333', '333333333333',
+    ],
+    terrain: [
+      'bbbbbbbbbbbb', 'bssssssssssb', 'bsbbssssbbsb', 'bsbbssssbbsb', 'bssssssssssb', 'bssssssssssb',
+      'bsbbssssbbsb', 'bsbbssssbbsb', 'bssssssssssb', 'bbbbbbbbbbbb', 'bbbbbbbbbbbb',
+    ],
+    deploy: [[4, 9], [5, 9], [6, 9], [7, 9], [5, 10]],
+  },
+  // The charter steps: the palace stair, wide and rising, with the square below.
+  senate: {
+    name: 'The Charter Steps', w: 13, h: 11, mood: 'dawn',
+    heights: [
+      '5555555555555', '4444444444444', '3333333333333', '2222222222222', '1111111111111', '1111111111111',
+      '1111111111111', '1111111111111', '1111111111111', '1111111111111', '1111111111111',
+    ],
+    terrain: [
+      'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss',
+      'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss',
+    ],
+    deploy: [[5, 10], [6, 10], [7, 10], [6, 9], [5, 9]],
+  },
+  // The harbour gate: a quay under a wall, the sea on one side.
+  harbourgate: {
+    name: 'The Harbour Gate', w: 13, h: 11, mood: 'storm',
+    heights: [
+      '3333333333333', '3222222222223', '2222222222222', '2222222222222', '2221111111222', '1111111111111',
+      '1111111111110', '1111111111100', '1111111110000', '1111111100000', '1111110000000',
+    ],
+    terrain: [
+      'xxxxxxxxxxxxx', 'xsssssssssssx', 'sssssssssssss', 'sssssssssssss', 'sssssssssssss', 'bbbbbbbbbbbbb',
+      'bbbbbbbbbbbbw', 'ddddddddbbbww', 'dddddddddwwww', 'ddddddddwwwww', 'ddddddwwwwwww',
+    ],
+    deploy: [[1, 8], [2, 8], [1, 9], [2, 9], [3, 8]],
+  },
+  // The blockade: the fleet grounded on the reef at the harbour mouth.
+  blockade: {
+    name: 'The Blockade', w: 13, h: 11, mood: 'tide',
+    heights: [
+      '0011222221100', '0112222222110', '1122233322211', '1122233322211', '1122222222211', '1111111111111',
+      '1111111111111', '1111122211111', '0111122211110', '0011111111100', '0001111111000',
+    ],
+    terrain: [
+      'wwrrbbbbbrrww', 'wrrbbbbbbbrrw', 'rrbbbbbbbbbrr', 'rrbbbbbbbbbrr', 'rrbbbbbbbbbrr', 'rrrrrrrrrrrrr',
+      'rrrrrrrrrrrrr', 'rrrrrbbbrrrrr', 'wrrrrbbbrrrrw', 'wwrrrrrrrrrww', 'wwwrrrrrrrwww',
+    ],
+    deploy: [[5, 10], [6, 10], [7, 10], [6, 9], [5, 9]],
+  },
+  // Hearthstead: the Aldric farm, a yard between a house and a barn.
+  homestead: {
+    name: 'Hearthstead', w: 12, h: 10, mood: 'dusk',
+    heights: [
+      '222222222222', '211111111112', '211331111112', '211331111332', '211111111332', '111111111111',
+      '111111111111', '111111111111', '211111111112', '222222222222',
+    ],
+    terrain: [
+      'ttggggggggtt', 'tggggggggggt', 'tgbbgggggggt', 'tgbbggggbbgt', 'tggggdddbbgt', 'dddddddddddd',
+      'ggggddddgggg', 'gggggddggggg', 'tggggggggggt', 'ttggggggggtt',
+    ],
+    deploy: [[4, 8], [5, 8], [6, 8], [7, 8], [5, 7]],
+  },
+  // The forge beneath the palace: stone floors around a pit that glows.
+  forge: {
+    name: 'The Forge Beneath', w: 13, h: 12, mood: 'ember',
+    heights: [
+      '3333333333333', '3222222222223', '3222222222223', '3221111111223', '3221100011223', '3221100011223',
+      '3221100011223', '3221111111223', '3222222222223', '3222222222223', '3222222222223', '3333333333333',
+    ],
+    terrain: [
+      'xxxxxxxxxxxxx', 'xsssssssssssx', 'xsssssssssssx', 'xsssssssssssx', 'xssssxxxssssx', 'xssssxxxssssx',
+      'xssssxxxssssx', 'xsssssssssssx', 'xsssssssssssx', 'xsssssssssssx', 'xsssssssssssx', 'xxxxxxxxxxxxx',
+    ],
+    deploy: [[5, 10], [6, 10], [7, 10], [6, 9], [5, 9]],
+  },
 };

@@ -89,8 +89,15 @@ const S = require('./lib').OUT;
   };
 
   let chapter = 0, guard = 0, log = [], attempts = 0;
-  const CH = await page.evaluate(() => CAMPAIGN.length);
+  // The common road, then one of the five roads out of the capital, chosen by
+  // the day so every road gets walked over a week of runs.
+  const ROAD = process.env.ELDERON_ROAD || ['crown', 'council', 'exile', 'quiet', 'iron'][new Date().getDay() % 5];
+  const CH = await page.evaluate(() => CAMPAIGN.length + 2);
   while (chapter < CH && guard++ < 80) {
+    if (await page.evaluate(() => game.atFork())) {
+      await page.evaluate((id) => game.chooseRoad(id), ROAD);
+      console.log('road chosen:', ROAD, 'party', await page.evaluate(() => game.state.party.length));
+    }
     await develop();
     // A training battle before each chapter, as the balance pass assumes.
     await page.click('#btn-train');
@@ -103,7 +110,7 @@ const S = require('./lib').OUT;
     attempts++;
     if (now.ch > chapter) chapter = now.ch;
   }
-  console.log('--- campaign finished at chapter index', chapter, 'after', attempts, 'attempts ---');
+  console.log('--- campaign finished at chapter index', chapter, 'after', attempts, 'attempts; ending:', await page.evaluate(() => Object.keys(game.state.endings).join(',')), '---');
   await page.screenshot({ path: `${S}/shot-endgame.png` });
   // Save and reload keeps everything.
   await page.click('#btn-save');

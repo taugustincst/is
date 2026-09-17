@@ -64,6 +64,14 @@ const TRACKS = {
     bass: [40, null, null, null, null, null, null, null, 37, null, null, null, null, null, null, null,
            40, null, null, null, null, null, null, null, 38, null, null, null, 36, null, null, null],
   },
+  // A march for the capital: square and certain, with the bass on the beat.
+  crown: {
+    bpm: 112, wave: 'square', gain: 0.11,
+    lead: [67, null, 67, 69, 71, null, 74, null, 71, null, 69, 67, 69, null, null, null,
+           67, null, 67, 69, 71, null, 74, null, 76, null, 74, 71, 74, null, null, null],
+    bass: [43, null, 43, null, 43, null, 43, null, 38, null, 38, null, 43, null, 43, null,
+           43, null, 43, null, 43, null, 43, null, 40, null, 40, null, 43, null, 43, null],
+  },
   ruin: {
     bpm: 76, wave: 'sine', gain: 0.15,
     lead: [64, null, null, 67, null, null, 69, null, 68, null, null, 64, null, null, null, null,
@@ -477,7 +485,7 @@ class GameAudio {
 }
 
 // What a field sounds like under the music: keyed by the map's mood.
-const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night', snow: 'wind', aurora: 'night', tide: 'sea', storm: 'rain', abyss: 'sea' };
+const AMBIENCE = { day: null, dusk: 'wind', mist: 'wind', marsh: 'marsh', rain: 'rain', ember: 'embers', night: 'night', snow: 'wind', aurora: 'night', tide: 'sea', storm: 'rain', abyss: 'sea', dawn: 'wind', court: null };
 
 // Continuous weather and wildlife, built from the same noise and tones as the
 // effects, sitting quietly under the theme and muted with it.

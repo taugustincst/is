@@ -14,7 +14,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.waitForSelector('#screen-title.active');
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
   const shape = await page.evaluate(() => ({ chapters: CAMPAIGN.length, acts: ACTS.map(a => [a.from, a.to]), last: CAMPAIGN[CAMPAIGN.length - 1].id, end: CAMPAIGN[CAMPAIGN.length - 1].outro.join(' ').includes('THE END.'), north: CAMPAIGN.slice(12, 17).map(c => MAPS[c.map].mood), act3End: CAMPAIGN[16].outro.join(' ').includes('END OF ACT III.') }));
-  ok('the road runs twenty-two chapters in four acts, the third ending at Starfall', shape.chapters === 22 && shape.acts.length === 4 && shape.acts[2][1] === 16 && shape.last === 'ch22' && shape.end && shape.act3End && shape.north.every(m => m === 'snow' || m === 'aurora'), JSON.stringify(shape));
+  ok('the north is the third act, ending at Starfall', shape.chapters >= 22 && shape.acts.length >= 4 && shape.acts[2][1] === 16 && shape.act3End && shape.north.every(m => m === 'snow' || m === 'aurora'), JSON.stringify(shape));
   // The trades unlock from the tree.
   await page.evaluate(() => { const u = game.state.party[0]; u.jpTotal.blackMage = 260; u.jpTotal.timeMage = 120; u.jpTotal.archer = 260; u.jpTotal.knight = 120; u.jpTotal.samurai = 120; u.jpTotal.arcanist = 120; game.state.gil = 30000; game.state.chapter = 13; game.showWorld(); });
   await page.click('#btn-formation'); await page.waitForSelector('#screen-formation.active');

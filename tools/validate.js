@@ -64,7 +64,9 @@ for (const [job, kit] of Object.entries(g.STARTER_GEAR)) {
 }
 
 // ---- campaign ----
-for (const ch of g.CAMPAIGN) {
+const ROADS = g.run('typeof ROADS === "undefined" ? {} : ROADS');
+const ALL_CHAPTERS = [...g.CAMPAIGN, ...Object.values(ROADS).flatMap(r => r.chapters)];
+for (const ch of ALL_CHAPTERS) {
   const m = g.MAPS[ch.map];
   if (!m) { bad(`${ch.id}: unknown map '${ch.map}'`); continue; }
   if (!ch.enemies.length) bad(`${ch.id}: no enemies`);
@@ -126,5 +128,5 @@ console.log([
   `${Object.keys(g.ABILITIES).length} abilities,`,
   `${Object.keys(g.PASSIVES).length} passives,`,
   `${Object.keys(g.ITEMS).length} items,`,
-  `${g.CAMPAIGN.length} chapters`,
+  `${g.CAMPAIGN.length} chapters, ${Object.keys(ROADS).length} roads`,
 ].join(' '));

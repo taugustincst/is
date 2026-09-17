@@ -18,7 +18,7 @@ class Unit {
     this.id = opts.id || `u${unitSeq++}`;
     this.job = JOBS[opts.job] ? opts.job : FALLBACK_JOB;
     // A name is text: whatever a save carries, no markup gets into the panels.
-    this.name = String(opts.name || JOBS[this.job].name).replace(/[<>&"']/g, '').slice(0, 24) || JOBS[this.job].name;
+    this.name = String(opts.name || JOBS[this.job].name).replace(/[<>&"]/g, '').slice(0, 24) || JOBS[this.job].name;
     this.level = opts.level || 1;
     this.exp = opts.exp || 0;
     this.team = opts.team || 'player';
@@ -216,6 +216,7 @@ class Unit {
   // Some gear simply refuses an affliction.
   wardsOff(id) {
     if ((id === 'slow' || id === 'stop') && this.hasPassive('ironFooting')) return true;
+    if ((id === 'silence' || id === 'stop') && this.hasPassive('ironWill')) return true;
     for (const slot of Object.keys(SLOT_NAMES)) {
       const it = this.equipped(slot);
       if (it && it.wards && it.wards.includes(id)) return true;

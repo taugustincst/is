@@ -120,5 +120,5 @@ health features. **News**: not a news app.
 
 ## Release notes for the first version
 
-    First release. Twenty-two chapters in four acts, thirty-two jobs, three difficulties,
+    First release. Twenty-four chapters in five acts with five endings, thirty-five jobs, three difficulties,
     and nothing to buy.

@@ -642,18 +642,27 @@ const mk = (n, job, lvl, opts = {}) => {
     const rec = g.run('(() => { const u = new Unit({ job: "knight", name: "R" }); u.record.battles = 4; u.record.kills = 9; u.record.falls = 1; const back = Unit.fromSave(JSON.parse(JSON.stringify(u.toSave()))); return [back.record, recordLine(back), new Unit({ job: "squire" }).record]; })()');
     ok('a battle record survives the save and reads as words', rec[0].battles === 4 && rec[0].kills === 9 && rec[0].falls === 1 && rec[1] === '4 battles, 0 won · 9 felled · fallen once' && rec[2].battles === 0, rec[1]);
     const acts = g.run('ACTS'), epi = g.run('EPILOGUE_CAMP');
-    const thin = g.CAMPAIGN.filter(ch => !(ch.intro && ch.intro.length >= 3 && ch.intro.length <= 7) || !(ch.outro && ch.outro.length >= 1 && ch.outro.length <= 7) || !(ch.camp && ch.camp.length >= 2 && ch.camp.length <= 4)).map(ch => ch.id);
+    const ROADS = g.run('ROADS'), ROAD_ORDER = g.run('ROAD_ORDER');
+    const roadChapters = ROAD_ORDER.flatMap(id => ROADS[id].chapters);
+    const thin = [...g.CAMPAIGN, ...roadChapters].filter(ch => !(ch.intro && ch.intro.length >= 3 && ch.intro.length <= 7) || !(ch.outro && ch.outro.length >= 1 && ch.outro.length <= 7) || !(ch.camp && ch.camp.length >= 2 && ch.camp.length <= 4)).map(ch => ch.id);
     ok('every chapter has an intro, an outro and a night around the fire, none too long for the screen', thin.length === 0, thin.join(',') || `${g.CAMPAIGN.length} chapters`);
     const covered = g.CAMPAIGN.every((ch, i) => acts.some(a => i >= a.from && i <= a.to));
-    ok('every chapter belongs to an act, and the acts end where the road does', covered && acts.length === 4 && acts[acts.length - 1].to === g.CAMPAIGN.length - 1 && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
-    const hooks = g.CAMPAIGN[g.CAMPAIGN.length - 1].outro.join(' ');
-    const finals = g.CAMPAIGN.filter(ch => ch.final).map(ch => ch.id);
-    ok('the road ends once, at the end, with the end', /THE END\./.test(hooks) && finals.length === 1 && finals[0] === g.CAMPAIGN[g.CAMPAIGN.length - 1].id && /END OF ACT II\./.test(g.CAMPAIGN[11].outro.join(' ')) && /END OF ACT III\./.test(g.CAMPAIGN[16].outro.join(' ')) && !/THE END/.test(g.CAMPAIGN[16].outro.join(' ')), finals.join(','));
+    ok('every chapter belongs to an act, and the last act covers the roads out of the capital', covered && acts.length === 5 && acts[acts.length - 1].to === g.CAMPAIGN.length + 1 && epi.length >= 5, `${acts.length} acts, ${epi.length} epilogue lines`);
+    ok('the common road ends at the capital, not with the end', !g.CAMPAIGN.some(ch => ch.final) && !/THE END/.test(g.CAMPAIGN[g.CAMPAIGN.length - 1].outro.join(' ')) && /END OF ACT II\./.test(g.CAMPAIGN[11].outro.join(' ')) && /END OF ACT III\./.test(g.CAMPAIGN[16].outro.join(' ')) && /END OF ACT IV\./.test(g.CAMPAIGN[21].outro.join(' ')), `${g.CAMPAIGN.length} common chapters`);
+    const roadsOk = ROAD_ORDER.length === 5 && ROAD_ORDER.every(id => ROADS[id] && ROADS[id].id === id && ROADS[id].chapters.length === 2 && ROADS[id].title && ROADS[id].blurb && ROADS[id].asks);
+    const finals = ROAD_ORDER.map(id => ROADS[id].chapters[1]);
+    const endingsOk = finals.every(ch => ch.final && ch.ending && ch.ending.title && ch.ending.after && ch.ending.camp.length >= 3 && /THE END: /.test(ch.outro.join(' '))) && ROAD_ORDER.every(id => !ROADS[id].chapters[0].final);
+    const distinct = new Set(finals.map(ch => ch.ending.title)).size === 5 && new Set(ROAD_ORDER.flatMap(id => ROADS[id].chapters.map(c => c.id))).size === 10;
+    ok('five roads leave the capital, each two chapters long and ending with an ending of its own', roadsOk && endingsOk && distinct, ROAD_ORDER.map(id => ROADS[id].title).join(' | '));
+    const refusers = g.run('IRON_REFUSERS'), recruited = new Set([...g.STARTING_PARTY.map(p => p.name), ...g.CAMPAIGN.filter(c => c.recruit).map(c => c.recruit.name)]);
+    ok('those who refuse the Iron Crown are people the company has, and are fought on its last field', refusers.every(n => recruited.has(n)) && refusers.every(n => ROADS.iron.chapters[1].enemies.some(e => e.name === n)), refusers.join(','));
+    const crownJobs = new Set([...g.CAMPAIGN.slice(22), ...roadChapters].flatMap(ch => ch.enemies.map(e => e.job)));
+    ok('the crown\'s servants and beasts all take the field', ['royalGuard', 'courtMage', 'mercenary', 'griffon', 'golem', 'chancellor'].every(j => crownJobs.has(j)), [...crownJobs].join(','));
     const northMaps = g.CAMPAIGN.slice(12, 17).map(ch => g.MAPS[ch.map]);
     ok('the north is fought on snow and ice under its own skies', northMaps.every(m => /[ni]/.test(m.terrain.join('')) && ['snow', 'aurora'].includes(m.mood)), northMaps.map(m => m.mood).join(','));
-    const seaMaps = g.CAMPAIGN.slice(17).map(ch => g.MAPS[ch.map]);
+    const seaMaps = g.CAMPAIGN.slice(17, 22).map(ch => g.MAPS[ch.map]);
     ok('the sea is fought over reef and water under its own skies, and its dead answer to thunder', seaMaps.length === 5 && seaMaps.every(m => /r/.test(m.terrain.join('')) && /w/.test(m.terrain.join('')) && ['tide', 'storm', 'abyss'].includes(m.mood)) && g.run("affinityOf({ jobData: JOBS.drownedKnight }, 'thunder')") > 1 && g.run("affinityOf({ jobData: JOBS.drownedKnight }, 'water')") < 0, seaMaps.map(m => m.mood).join(','));
-    const seaEnemyJobs = new Set(g.CAMPAIGN.slice(17).flatMap(ch => ch.enemies.map(e => e.job)));
+    const seaEnemyJobs = new Set(g.CAMPAIGN.slice(17, 22).flatMap(ch => ch.enemies.map(e => e.job)));
     ok('every creature of the sea appears on its fields, and the queen has a second shape', ['drownedKnight', 'saltPriest', 'siren', 'reefCrab', 'leviathan', 'drownedQueen'].every(j => seaEnemyJobs.has(j)) && g.CAMPAIGN[21].enemies.some(e => e.boss && e.phases && e.phases[0].job === 'theDeep'), [...seaEnemyJobs].join(','));
     const typeNames = g.run('TYPE_NAMES'), catNames = g.run('CATEGORY_NAMES');
     const untyped = Object.keys(g.ITEMS).filter(id => !typeNames[g.run(`itemType('${id}')`)] || !catNames[g.ITEMS[id].slot]);
@@ -706,7 +715,7 @@ const mk = (n, job, lvl, opts = {}) => {
      Storm Mail cannot either, and charged abilities are resolved as the
      engine would resolve them. */
   {
-    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer', 'frostweaver', 'warden', 'runeblade', 'corsair', 'tidecaller', 'harpooner'];
+    const NEW = ['samurai', 'summoner', 'geomancer', 'bard', 'paladin', 'arcanist', 'assassin', 'sage', 'dragonlord', 'hierophant', 'fellKnight', 'engineer', 'gunner', 'aeronaut', 'artificer', 'frostweaver', 'warden', 'runeblade', 'corsair', 'tidecaller', 'harpooner', 'marshal', 'inquisitor', 'duelist'];
     const realRandom = Math.random;
     const silent = [];
     for (const job of NEW) for (const id of g.JOBS[job].abilities) {

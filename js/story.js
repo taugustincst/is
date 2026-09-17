@@ -680,14 +680,451 @@ const CAMPAIGN = [
       'The Deep has no shape to fall with, so it does not fall. It rings. Ottilie\'s bell, cast from the plain iron it left behind, rings against it, and it cannot hold the sea and the sound both.',
       'It goes out of the water the way it went out of the crater, and this time there is no wind to carry it, and no star waiting, and nothing to feed it. It thins, and it is gone.',
       'Two lumps of iron lie on the black glass, plain and heavy. The queen of Tessaly is a small woman in a wet dress who has been kneeling a long time, and is allowed, at last, to lie down.',
-      'The sea comes back. It comes back slowly, and kindly, and Wren swears it apologises. The company goes up the stairs ahead of it with the bell between them, and does not look back.',
-      'In the spring the Concord\'s ships sail for the Isles and come home, and their crews are exactly as cheerful as they should be. Saltwick lights its lamp. Tessaly stays under the sea, and sleeps.',
+      'The sea comes back, slowly and kindly, and Wren swears it apologises. The company goes up the stairs ahead of it with the bell between them. In the spring the Concord\'s ships sail for the Isles and come home with crews exactly as cheerful as they should be; Saltwick lights its lamp; Tessaly stays under the sea, and sleeps.',
       'Rowan Aldric goes home, and does not say "this time", because there is no need: the ice is quiet, the sea is quiet, and nothing is coming that the company has not already met and outlasted. On the last night before the roads part, Ottilie rings the bell once, and listens, and hears nothing at all, and everyone around the fire understands that this is the best sound there is.',
-      '--- THE END. Thank you for playing. Trials await at camp, and the wagon carries legendary arms. ---',
+      'The roads do not part. A rider in the king\'s colours finds the camp before dawn with a letter sealed in black wax. King Aldous is dying, and he asks for Rowan Aldric by name.',
+      '--- END OF ACT IV. The King\'s Road runs to the capital. ---',
     ],
-    final: true,
+  },
+
+  // ---- Act V: the Crown of Elderon ----
+  {
+    objective: { type: 'rout', protectLeader: true },
+    id: 'ch23', title: 'The Summons', map: 'kingsroad',
+    camp: [
+      'Garret reads the letter twice. "He asks for you by name. Not for the company. For you."  Rowan: "He is dying. Dying men ask for the one they wronged."',
+      'Wren: "A king who wants you at his bedside either means to knight you or to make sure of where you are when he goes."  Bastian: "In my experience it is both."',
+      'Tamsin sits a long time with the black seal. "Verain," she says. "The Chancellor. He sealed this. Not the king."',
+    ],
+    intro: [
+      'King Aldous took the crown because the company left him nobody to fight, and he has worn it four years without once forgetting who put it on him.',
+      'Now he is dying, and the King\'s Road to the capital is held by the Chancellor\'s guard, who have orders that the king\'s guests are to be turned back for their own safety.',
+      '"The Chancellor is very concerned for your safety," the captain says, in front of forty spears. "You will understand."',
+      '"I understand," Rowan says. "Garret, the left. Ingrid, the high hedge. Wren, if there is a way round, find it."',
+      'Something with wings the width of a wagon lifts off the milestone behind the captain, and screams.',
+    ],
+    enemies: [
+      { job: 'royalGuard', level: 22, x: 8, y: 2, name: 'Captain of the Road' },
+      { job: 'royalGuard', level: 21, x: 6, y: 1 },
+      { job: 'royalGuard', level: 21, x: 10, y: 3 },
+      { job: 'courtMage', level: 21, x: 8, y: 0, name: 'Court Mage' },
+      { job: 'griffon', level: 21, x: 3, y: 2 },
+      { job: 'mercenary', level: 21, x: 11, y: 5, name: 'Hired Blade' },
+    ],
+    gil: 7200,
+    outro: [
+      'The captain yields with the road behind him and his griffon dead in the hedge. "He will not thank you," he says. "The Chancellor. He has been king in everything but the word for a year."',
+      'The capital shows on the next rise, white and gold, with black flags already on the towers.',
+      '"He is not dead yet," Tamsin says. "Those are for the Chancellor\'s convenience."',
+    ],
+  },
+  {
+    objective: { type: 'boss', protectLeader: true },
+    id: 'ch24', title: 'The Low Quarter', map: 'capital',
+    camp: [
+      'Ysolde: "Every mercenary company from here to the Isles is inside those walls, and every one of them was paid this week."  Wren: "Black Hollis is in there. I know his colours. He owes me money too."',
+      'Ottilie: "There is a forge under the palace. The oldest in Elderon. The star-iron that went to Brassgate went through it first."  Nobody asks how she knows. Eirik looks at the bell.',
+      'Kael: "If the king is asking for you, the Chancellor will make sure you never reach him."  Rowan: "Then we reach him."',
+    ],
+    intro: [
+      'The Low Quarter is where the capital keeps what it would rather not look at, and this week that is the Chancellor\'s hired swords.',
+      'Black Hollis, who has sold his company to every side of every war the company ended, stands in the square with a writ in one hand. "Rowan Aldric. Wanted for the safety of the realm."',
+      '"You have never once been on the right side of anything," Wren says.  "No," Hollis agrees. "But I have always been paid."',
+      'Above the square the palace bells begin to toll, one after another, and do not stop. The king is dead.',
+      '"Then there is no one left to ask for us," Garret says, "and no one left to stop us. Hollis first."',
+    ],
+    enemies: [
+      { job: 'mercenary', level: 23, x: 6, y: 2, name: 'Black Hollis', boss: true, passives: ['counter', 'attackUp', 'movePlus1'] },
+      { job: 'mercenary', level: 22, x: 3, y: 3, name: 'Hollis\'s Man' },
+      { job: 'mercenary', level: 22, x: 9, y: 3, name: 'Hollis\'s Man' },
+      { job: 'courtMage', level: 22, x: 6, y: 0, name: 'Hired Mage' },
+      { job: 'griffon', level: 22, x: 1, y: 6 },
+      { job: 'royalGuard', level: 22, x: 11, y: 6, name: 'Chancellor\'s Guard' },
+      { job: 'golem', level: 22, x: 6, y: 7, name: 'Square Warden' },
+    ],
+    gil: 8000,
+    outro: [
+      'Hollis dies in the square with his writ under him, unpaid for the first time in his life.',
+      'The bells stop. In the silence the whole capital is looking at the company, and the company understands that it is the only power left standing in Elderon.',
+      'Five roads lead out of the square. The Chancellor waits at the palace with the crown in a box. The cities\' delegates wait at the guildhall with a charter. Wren\'s ship waits at the harbour gate. The old road home runs south. And beneath the palace, Ottilie says, the forge is lit.',
+      '"Whatever we do next," Garret says, "we do it as the people who ended four wars. So let us think before we do it."',
+    ],
   },
 ];
+
+// Five roads lead out of the capital. The player takes one; each is two
+// chapters and an ending of its own, and a save remembers which endings it
+// has seen. The last chapter of every road is final.
+const CHOICE = {
+  title: 'Five Roads',
+  lines: [
+    'The company stands in the square of the capital with the king dead and every claimant waiting to see what it will do.',
+    'It could take the crown, or break it. It could sail, or go home. Or it could take up the thing it has spent four wars putting down.',
+    'Whichever road you take, the others close behind you. A road once walked to its end can be walked again from here.',
+  ],
+};
+
+const ROADS = {
+  crown: {
+    id: 'crown', title: 'The Crown', tagline: 'Take the throne.',
+    blurb: 'The Chancellor holds the palace and the crown in a box. Take both, and rule a realm that has known nothing but war.',
+    asks: 'Two fights through the palace. Ends with Rowan crowned.',
+    chapters: [
+      {
+        objective: { type: 'rout', protectLeader: true },
+        id: 'crown1', title: 'The Palace Gardens', map: 'gardens',
+        camp: [
+          'Garret: "Your father wanted this for you, and then he wanted you to have nothing to do with it. He never decided which."  Rowan: "Then I will."',
+          'Tamsin: "A crown is a job. It has hours. It does not end when the fighting does."  Rowan: "Neither did the company."',
+          'Wren cleans her cutlass and does not say anything about ships.',
+        ],
+        intro: [
+          'The palace gardens were laid out for a king who liked to be alone, which is why the Chancellor has filled them with statues that walk.',
+          '"Golems," Ottilie says, with something like respect. "Old work. Older than the Concord. Somebody woke them."',
+          'The Chancellor\'s court mages stand among the fountains with their hands already raised. Nobody has offered terms.',
+          '"Break the statues at the joints," Ottilie says. "Mira, do not let anyone stand still near one."',
+        ],
+        enemies: [
+          { job: 'golem', level: 22, x: 4, y: 3 }, { job: 'golem', level: 22, x: 8, y: 3 },
+          { job: 'courtMage', level: 22, x: 6, y: 1, name: 'Court Mage' }, { job: 'courtMage', level: 22, x: 2, y: 5, name: 'Court Mage' },
+          { job: 'royalGuard', level: 22, x: 10, y: 5, name: 'Palace Guard' }, { job: 'griffon', level: 22, x: 6, y: 7 },
+        ],
+        gil: 8400,
+        outro: [
+          'The last golem sits down in a fountain and stops, and the water runs clear over it.',
+          'Above the gardens the throne room windows are lit. The Chancellor has not run. He has nowhere he would rather be.',
+        ],
+      },
+      {
+        objective: { type: 'boss', protectLeader: true },
+        id: 'crown2', title: 'The Throne Room', map: 'throne',
+        camp: [
+          'Nobody sleeps in the gardens. Ingrid keeps the fire. "Tomorrow you sit down in a chair," she says, "and every one of us stands behind it. That is what a company is for."',
+          'Ottilie: "If you are king, the forge under the palace is yours. I would like it sealed."  Rowan: "It is the first thing I will do."',
+        ],
+        intro: [
+          'Chancellor Verain sits on the steps of the throne, not on it, with the crown in an iron box on his knees.',
+          '"I kept this realm running while you were ending wars," he says. "Somebody had to count the grain. Nobody thanks the man who counts the grain."',
+          '"You could have been thanked," Rowan says. "You chose to be feared instead."  Verain smiles, and the box opens, and the crown inside is not gold.',
+          '"Star-iron," Ottilie says quietly. "He had it forged. He was going to wear it."',
+        ],
+        enemies: [
+          { job: 'chancellor', level: 24, x: 6, y: 2, name: 'Chancellor Verain', boss: true, passives: ['magickUp', 'absorbMp', 'movePlus1'] },
+          { job: 'royalGuard', level: 23, x: 4, y: 3, name: 'Throne Guard' }, { job: 'royalGuard', level: 23, x: 8, y: 3, name: 'Throne Guard' },
+          { job: 'courtMage', level: 23, x: 2, y: 4, name: 'Court Mage' }, { job: 'golem', level: 23, x: 10, y: 4 }, { job: 'griffon', level: 22, x: 6, y: 6 },
+        ],
+        gil: 16000,
+        outro: [
+          'Verain dies on the steps with the iron crown rolling away from him across the marble, and Rowan does not pick it up.',
+          'The gold one is in the treasury, where a clerk has kept it dusted for four years. It fits badly. The clerk says that is normal.',
+          'Rowan Aldric is crowned in the square where Hollis died, with the company standing behind the chair, and the first act of the reign is to pour the forge beneath the palace full of stone.',
+          'The second is harder. It is the grain. It is always the grain. Verain was right about that much, and the king says so in public, which Verain never did.',
+          'Garret stands at the king\'s shoulder for nine years, and retires to a farm he never visits. Wren gets a ship and a letter of marque and is very careful not to read the second part.',
+          'The bell hangs in the throne room. Once a year, on the day the sea came back, the king rings it, and listens, and hears nothing, and the court has learned to be quiet for that.',
+          '--- THE END: THE CROWN. Thank you for playing. Another road waits at the capital, and the trials at camp. ---',
+        ],
+        final: true,
+        ending: {
+          title: 'The Crown', after: 'Elderon has a king who counts the grain. What remains are the trials, and a company that stands behind a chair.',
+          camp: [
+            'The court has learned that the king trains with his old company every morning, and that the old company does not go easy on him.',
+            'Ottilie has a workshop in the palace and has still not made anything out of the plain iron. "It is fine as an anchor," she says. "Some things should stay heavy."',
+            'Lysa is the royal treasurer, which she says is the same as counting the company, only the numbers agree with each other now.',
+            'Eirik walks the walls at night and watches the sky. He says it is only weather. He says it every night.',
+            'Garret, to nobody: "Four wars and a crown. His father would have called that a start, and then he would have asked about the grain."',
+          ],
+        },
+      },
+    ],
+  },
+  council: {
+    id: 'council', title: 'The Free Cities', tagline: 'Break the crown.',
+    blurb: 'The cities the company opened have sent delegates with a charter. Sign it, and there is no crown to take, only a council to keep.',
+    asks: 'Two fights for the guildhall. Ends with a realm of cities and no king.',
+    chapters: [
+      {
+        objective: { type: 'rout', protectLeader: true },
+        id: 'council1', title: 'The Guildhall', map: 'guildhall',
+        camp: [
+          'Bastian: "Redwater sent a smith. Dunmarch sent a priest. Saltwick sent Wren\'s old bosun. Tessaly sent a woman who has been dead for four hundred years."  Ysolde: "She is very well read."',
+          'Rowan: "A charter is a promise that nobody is above the cities."  Garret: "A promise is only as good as who stands behind it."  Rowan: "Then we stand behind it."',
+        ],
+        intro: [
+          'The delegates of eight cities are in the guildhall with a charter that says the crown of Elderon is dissolved, and the Chancellor has sent his assassins to make sure it is never signed.',
+          '"They came through the roof," the Redwater smith says, holding a door shut with his back. "They are in the gallery. They are very quiet."',
+          '"Kael, the gallery. Bram, with him. Nobody touches the delegates."',
+        ],
+        enemies: [
+          { job: 'duelist', level: 22, x: 3, y: 1, name: 'Chancellor\'s Knife' }, { job: 'mercenary', level: 22, x: 9, y: 1, name: 'Hollis\'s Man' },
+          { job: 'mercenary', level: 22, x: 6, y: 3, name: 'Hired Blade' }, { job: 'courtMage', level: 22, x: 6, y: 0, name: 'Court Mage' },
+          { job: 'royalGuard', level: 22, x: 1, y: 5, name: 'Chancellor\'s Guard' }, { job: 'griffon', level: 22, x: 10, y: 6 },
+        ],
+        gil: 8400,
+        outro: [
+          'The last knife goes over the gallery rail and the delegates come out from under the table one at a time, and the dead woman from Tessaly is the first to pick up the pen.',
+          '"Eight names," she says. "It wants a ninth. Somebody has to keep it."',
+        ],
+      },
+      {
+        objective: { type: 'boss', protectLeader: true },
+        id: 'council2', title: 'The Charter Steps', map: 'senate',
+        camp: [
+          'The charter is signed and sits in Lysa\'s satchel, and she has not let go of the satchel since. "It weighs nothing," she says. "That is the strangest thing I have ever carried."',
+          'Ingrid: "The Chancellor has the Lord Marshal and the palace guard and nothing else. That is still a great deal."  Rowan: "It is less than us."',
+        ],
+        intro: [
+          'The charter has to be read from the palace steps to be law, and the Lord Marshal Corvane stands on them with the palace guard, under orders to read nothing.',
+          '"There is no king," Corvane says. "There is an order of things. I keep it. That is all a marshal is."',
+          '"Then keep it," Rowan says. "From the bottom step."',
+        ],
+        enemies: [
+          { job: 'royalGuard', level: 24, x: 6, y: 1, name: 'Lord Marshal Corvane', boss: true, passives: ['counter', 'attackUp', 'parry'] },
+          { job: 'royalGuard', level: 23, x: 3, y: 2, name: 'Palace Guard' }, { job: 'royalGuard', level: 23, x: 9, y: 2, name: 'Palace Guard' },
+          { job: 'courtMage', level: 23, x: 6, y: 0, name: 'Court Mage' }, { job: 'golem', level: 23, x: 1, y: 5 }, { job: 'golem', level: 23, x: 11, y: 5 },
+        ],
+        gil: 16000,
+        outro: [
+          'Corvane yields on the bottom step with his sword across his knees. "Read it, then," he says. "Somebody read it."',
+          'Lysa reads it. It is eleven lines long. The last says that no one in Elderon holds power who cannot be sent home by the people they hold it over, and it is signed by eight cities and a company.',
+          'The Chancellor is found in the treasury with the crown in his hands, and is sent home, which is the worst thing the charter can do to anyone, and he knows it.',
+          'Rowan Aldric is the first Speaker of the Council of Cities for a year and a day, and on the day after he is sent home, by his own vote, to show that it can be done.',
+          'The company becomes the council\'s guard, and then its schools, and then, slowly, its habit: every city keeps a company now, and none of them is paid by a prince.',
+          'The bell hangs in the guildhall. When the council cannot agree, somebody rings it, and everyone listens to the nothing, and then they agree.',
+          '--- THE END: THE FREE CITIES. Thank you for playing. Another road waits at the capital, and the trials at camp. ---',
+        ],
+        final: true,
+        ending: {
+          title: 'The Free Cities', after: 'There is no crown. Eight cities keep a charter and a company keeps them. What remains are the trials.',
+          camp: [
+            'The council sat for six hours today over a bridge toll. Rowan says it was the best six hours of his life and Garret says he is lying and Rowan says only a little.',
+            'Wren was sent home by Saltwick, formally, and then invited back, formally, and has framed both letters.',
+            'The dead woman from Tessaly has been elected to something. Nobody is sure what. She is very good at it.',
+            'Ottilie is building a school for engineers in Cogsworth, and has sealed the forge under the palace with her own hands, and checks it once a month.',
+            'Garret, at the fire: "Four wars and a charter. His father would have hated it. His father would have signed it anyway."',
+          ],
+        },
+      },
+    ],
+  },
+  exile: {
+    id: 'exile', title: 'The Long Road', tagline: 'Sail away.',
+    blurb: 'Wren\'s ship waits at the harbour gate. Leave Elderon to sort itself out, and see what lies beyond the Isles.',
+    asks: 'Two fights to the open sea. Ends with the company gone from the map.',
+    chapters: [
+      {
+        objective: { type: 'survive', rounds: 4, protectLeader: true },
+        id: 'exile1', title: 'The Harbour Gate', map: 'harbourgate',
+        camp: [
+          'Wren: "She is called the Debt. I named her after what I was owed. She will take all of us and the wagon if we do not argue about the wagon."  Ottilie: "We are not leaving the wagon."',
+          'Garret: "We have never once run from anything."  Rowan: "We are not running. We are declining. There is a difference, and it is the whole of the difference."',
+        ],
+        intro: [
+          'The harbour gate is shut and the Chancellor\'s guard hold it, because a company that leaves is a company nobody controls.',
+          '"Hold the quay until the tide lifts her," Wren says. "Four rounds. Then we are gone and they can have the whole realm and be welcome."',
+          'The griffons come over the wall first.',
+        ],
+        enemies: [
+          { job: 'royalGuard', level: 22, x: 6, y: 1, name: 'Gate Captain' }, { job: 'royalGuard', level: 22, x: 3, y: 2, name: 'Gate Guard' },
+          { job: 'royalGuard', level: 22, x: 9, y: 2, name: 'Gate Guard' }, { job: 'griffon', level: 22, x: 11, y: 4 },
+          { job: 'courtMage', level: 22, x: 6, y: 3, name: 'Court Mage' }, { job: 'mercenary', level: 22, x: 10, y: 6, name: 'Hired Blade' },
+        ],
+        gil: 8400,
+        outro: [
+          'The tide lifts the Debt off the mud and Wren has the lines cut before the last guard is down.',
+          'Behind them the capital gets smaller. Ahead of them, past the harbour mouth, the Chancellor\'s fleet is waiting, because of course it is.',
+        ],
+      },
+      {
+        objective: { type: 'boss', protectLeader: true },
+        id: 'exile2', title: 'The Blockade', map: 'blockade',
+        camp: [
+          'The Debt rides at anchor with the fleet\'s lanterns across the whole horizon. Wren: "Admiral Sable. He taught me to sail. He will not enjoy this."',
+          'Ysolde stands at the rail with her hands in the water. "The sea remembers us," she says. "Whether that is good depends on what we ask it for."',
+        ],
+        intro: [
+          'The Chancellor\'s fleet is strung across the harbour mouth on the reef, and Admiral Sable stands on the flagship\'s deck with a speaking trumpet.',
+          '"Wren Marrow," he says. "Bring them back and the writ names only Aldric. The rest of you go free."',
+          '"He always did make good offers," Wren says. "Ysolde. The reef, if you please."',
+          'The sea goes out. It goes out the way it did at the Tidestone, and the fleet settles onto the coral with a sound like a city sitting down.',
+        ],
+        enemies: [
+          { job: 'royalGuard', level: 24, x: 6, y: 2, name: 'Admiral Sable', boss: true, passives: ['counter', 'parry', 'movePlus1'] },
+          { job: 'royalGuard', level: 23, x: 3, y: 3, name: 'Marine' }, { job: 'royalGuard', level: 23, x: 9, y: 3, name: 'Marine' },
+          { job: 'courtMage', level: 23, x: 6, y: 0, name: 'Fleet Mage' }, { job: 'leviathan', level: 23, x: 6, y: 6, name: 'The Reef Serpent' }, { job: 'griffon', level: 23, x: 11, y: 6 },
+        ],
+        gil: 16000,
+        outro: [
+          'Sable yields on a deck that is no longer floating, and is gracious about it, and asks Wren to tell him what is past the Isles when she finds out.',
+          'The sea comes back under the Debt alone. The fleet stays on the reef until the spring, and the Chancellor rules a realm that has quietly stopped listening to him.',
+          'The company sails west with the bell in the bows. There is a coast past the Isles that no chart in Elderon has ever shown, and the company is the first thing from Elderon to reach it.',
+          'What they find there is another story. Wren writes to Sable once a year, and never says.',
+          'Rowan Aldric is not king of anything, and is the happiest anyone has ever seen him, and Garret says so, out loud, on a deck, in front of everybody.',
+          '--- THE END: THE LONG ROAD. Thank you for playing. Another road waits at the capital, and the trials at camp. ---',
+        ],
+        final: true,
+        ending: {
+          title: 'The Long Road', after: 'The company has left the map. Elderon keeps its own house now. What remains are the trials, fought on a far coast.',
+          camp: [
+            'The far coast has a name in its own language that Ysolde is learning. It has no kings. It has never heard of the Cold. Eirik finds this very restful.',
+            'Wren has been offered a harbour of her own by people who do not use money, and is trying to work out what she is owed.',
+            'Ottilie has drawn a map. It is the first map of the far coast. She has left a great deal of it blank on purpose.',
+            'Bram: "We could go back."  Garret: "We could."  Neither of them moves, and the fire burns down, and that is the answer.',
+            'The bell rings once a year, on a beach nobody in Elderon will ever see, and hears nothing, and the company is glad.',
+          ],
+        },
+      },
+    ],
+  },
+  quiet: {
+    id: 'quiet', title: 'The Quiet', tagline: 'Go home.',
+    blurb: 'The old road runs south to the Aldric farm. Lay the swords down and let the realm find its own way, and defend only what is yours.',
+    asks: 'Two fights on the road home. Ends with the company disbanded and Rowan at peace.',
+    chapters: [
+      {
+        objective: { type: 'rout', protectLeader: true },
+        id: 'quiet1', title: 'The Old Road', map: 'verdant',
+        camp: [
+          'Rowan: "Four of us walked this road north. Thirteen walk it south. I do not intend to lose anyone on it."',
+          'Mira: "Bandits. Again. On the Verdant Road. Again."  Bram, from the top of the wagon: "Three of them. Do we get paid for this, or is it another of the honourable kind?"  Everyone laughs for a long time.',
+          'Garret does not say anything about the farm. He has said it every night for four years, and now that they are going, he has run out.',
+        ],
+        intro: [
+          'The Verdant Road is the same road, with the same bandits on it, who have not heard the news and do not care whose colours the company wears.',
+          '"Mira, stay behind Garret," Rowan says, and then stops, because Mira is a Sage now and Garret is laughing at him.',
+          '"Say it anyway," Garret says. "For old times."  "Bram, take the high ground. If they want a fight, we give them one."',
+        ],
+        enemies: [
+          { job: 'mercenary', level: 22, x: 8, y: 2, name: 'Road Bandit' }, { job: 'mercenary', level: 22, x: 10, y: 3, name: 'Road Bandit' },
+          { job: 'duelist', level: 22, x: 9, y: 1, name: 'Bandit Chief' }, { job: 'courtMage', level: 22, x: 10, y: 0, name: 'Hedge Wizard' },
+          { job: 'griffon', level: 22, x: 6, y: 3 }, { job: 'wolf', level: 23, x: 8, y: 5 }, { job: 'wolf', level: 23, x: 10, y: 5 },
+        ],
+        gil: 8400,
+        outro: [
+          'The bandits run, which is more than the first ones managed, and the company does not chase them.',
+          '"The Chancellor will send someone," Tamsin says. "He cannot let us simply go. It would prove that people can."',
+        ],
+      },
+      {
+        objective: { type: 'boss', protectLeader: true },
+        id: 'quiet2', title: 'Hearthstead', map: 'homestead',
+        camp: [
+          'The Aldric farm has a roof again. Ottilie put it on in a day. The bell hangs from the eave, and it is the first time it has hung from anything that was not moving.',
+          'Ingrid: "They are coming tonight. A captain and two dozen. I can see their fires from the ridge."  Rowan: "Then we hold the yard. After that, nobody holds anything."',
+        ],
+        intro: [
+          'Captain Marrick of the palace guard comes up the lane at dusk with a writ and two dozen men, and finds the company standing in a farmyard with its sleeves rolled up.',
+          '"Rowan Aldric," he reads. "By order of the Chancellor, for the safety of the realm."  "The realm is safe," Rowan says. "That was the whole point. Go home, captain."',
+          '"I have orders."  "So did everyone we ever fought. Last chance."',
+        ],
+        enemies: [
+          { job: 'royalGuard', level: 24, x: 6, y: 1, name: 'Captain Marrick', boss: true, passives: ['counter', 'attackUp', 'parry'] },
+          { job: 'royalGuard', level: 23, x: 3, y: 2, name: 'Palace Guard' }, { job: 'royalGuard', level: 23, x: 9, y: 2, name: 'Palace Guard' },
+          { job: 'courtMage', level: 23, x: 6, y: 0, name: 'Court Mage' }, { job: 'mercenary', level: 23, x: 1, y: 4, name: 'Hired Blade' }, { job: 'golem', level: 23, x: 8, y: 5, name: 'Siege Golem' },
+        ],
+        gil: 16000,
+        outro: [
+          'Marrick yields in the lane and is given supper, because that is what the farm does with people, and goes back to the capital the next day with a letter that says the company has disbanded.',
+          'It has. Lysa goes to Dunmarch to count things. Kael goes north to the wardens. Wren goes to sea. Ottilie goes to Cogsworth and builds a school and never makes anything of the plain iron, on purpose.',
+          'The Chancellor rules for two years and is sent home by the cities, without a battle, because they watched a company decline to fight him and understood that they could too.',
+          'Garret stays. He says it is for the farm. Rowan says it is for the farm. Neither of them can plough, and they learn.',
+          'Rowan Aldric goes home, and this time it is a place, with a roof Ottilie made and a bell on the eave, and when the wind moves it he listens, and hears nothing, and goes back to the field.',
+          '--- THE END: THE QUIET. Thank you for playing. Another road waits at the capital, and the trials at camp. ---',
+        ],
+        final: true,
+        ending: {
+          title: 'The Quiet', after: 'The company is disbanded and the swords are on the wall. What remains are the trials, when the old company comes to visit.',
+          camp: [
+            'They come every midsummer. Lysa brings the count. Wren brings something that fell off a ship. Ingrid brings the north with her, somehow, in the way she sits.',
+            'The trials are what happens after supper, in the lower field, because nobody has entirely lost the habit and the farm has a great many fences that needed mending anyway.',
+            'Ottilie checks the bell on the eave, and rings it, and listens. "Nothing," she says, every year, and every year it is the best word anyone says.',
+            'Garret has learned to plough. He is bad at it. He is prouder of it than of anything he did in four wars.',
+            'Rowan: "Four wars and a farm."  Garret: "Your father would have called that a start."  Rowan: "He would have. I call it the end."',
+          ],
+        },
+      },
+    ],
+  },
+  iron: {
+    id: 'iron', title: 'The Iron Crown', tagline: 'Take the forge.',
+    blurb: 'Two cores of star-iron and a forge that is lit. Wear what the Regent and the Queen wore, and rule a realm that will never dare to fight again.',
+    asks: 'Two fights beneath the palace. Garret, Tamsin and Ingrid will not follow. Ends with an iron king.',
+    chapters: [
+      {
+        objective: { type: 'rout', protectLeader: true },
+        id: 'iron1', title: 'The Forge Beneath', map: 'forge',
+        camp: [
+          'Garret stands up from the fire. "No," he says. "I followed you into the crater and under the sea. I will not follow you into this." He does not raise his voice. He never has.',
+          'Tamsin goes with him without a word. Ingrid stops at the edge of the light. "I watched the Court for eleven years," she says. "I know what it looks like from the inside. Do not do this." Then she is gone too.',
+          'Ottilie does not leave. She sits with the two cores in her lap and the bell beside her, and looks at Rowan for a long time, and says, "I will make the crown. Somebody has to make it well."',
+        ],
+        intro: [
+          'The forge beneath the palace was old when the Priory pulled its star from the sea, and it is lit now because the Chancellor lit it, and he is here, with his guard, to keep it.',
+          '"You cannot mean to," Verain says, and for the first time he sounds like a man rather than a ledger. "I only wanted the box. You want the thing in it."',
+          '"You made a crown out of it," Rowan says. "You wanted a realm that would never fight you. So do I. The difference is that I can hold it."',
+          'The Chancellor\'s guard close the doors behind the company, and the forge breathes.',
+        ],
+        enemies: [
+          { job: 'chancellor', level: 23, x: 6, y: 2, name: 'Chancellor Verain' },
+          { job: 'royalGuard', level: 22, x: 3, y: 3, name: 'Forge Guard' }, { job: 'royalGuard', level: 22, x: 9, y: 3, name: 'Forge Guard' },
+          { job: 'golem', level: 22, x: 8, y: 6, name: 'Forge Golem' }, { job: 'golem', level: 22, x: 1, y: 6, name: 'Forge Golem' }, { job: 'courtMage', level: 22, x: 11, y: 6, name: 'Court Mage' },
+        ],
+        gil: 9000,
+        outro: [
+          'Verain dies at the forge mouth, and Ottilie takes the two cores from the wagon and begins to work, and does not speak until it is done.',
+          'The crown is grey and plain and gives off cold. Rowan puts it on. The room gets very quiet, and stays that way.',
+          'From the stairs, a voice: "Rowan." It is Garret, in armour, with Tamsin and Ingrid behind him and the whole of the palace guard behind them. "Take it off. Please."',
+        ],
+      },
+      {
+        objective: { type: 'boss', protectLeader: true },
+        id: 'iron2', title: 'The Iron Court', map: 'throne',
+        camp: [
+          'Nobody sits by the fire. The fire has gone out and nobody relights it. The cold coming off the crown puts frost on the wagon.',
+          'Wren, quietly, to Bram: "We could go."  Bram: "We could."  Neither of them does, and neither of them will ever be sure why.',
+          'Ottilie has the bell in her arms and does not ring it. "It would not help now," she says. "There is nothing in him to ring against. Only him."',
+        ],
+        intro: [
+          'The throne room, and on the steps not the Chancellor but Garret, with Tamsin at his shoulder and Ingrid at the door, and every man of the palace guard who would follow them.',
+          '"I taught you to hold a sword," Garret says. "I taught you which end goes in the other man. I never taught you this, because I thought you knew."',
+          '"You could stand behind the chair," Rowan says, and his voice is not quite his own. "You always have."',
+          '"Not this chair." Garret draws. "Tamsin. Ingrid. I am sorry. He was a good boy."',
+        ],
+        enemies: [
+          { job: 'knight', level: 25, x: 6, y: 2, name: 'Garret', boss: true, passives: ['counter', 'attackUp', 'parry'] },
+          { job: 'whiteMage', level: 24, x: 6, y: 1, name: 'Tamsin', passives: ['regenerator', 'magickUp'] },
+          { job: 'warden', level: 24, x: 2, y: 3, name: 'Ingrid', passives: ['ironFooting', 'attackUp'] },
+          { job: 'royalGuard', level: 23, x: 9, y: 3, name: 'Palace Guard' }, { job: 'royalGuard', level: 23, x: 10, y: 5, name: 'Palace Guard' }, { job: 'courtMage', level: 23, x: 3, y: 6, name: 'Court Mage' },
+        ],
+        gil: 18000,
+        outro: [
+          'Garret falls on the steps of the throne with his sword still in his hand, and the palace guard lay theirs down, and the room is very cold.',
+          'Rowan Aldric is the Iron King of Elderon for forty years, and in forty years nobody raises a hand against him, and nobody raises a voice, and the grain is counted, and the roads are safe, and the chimneys are cold.',
+          'Ottilie stays. She is the only one who does. She keeps the bell, and once a year she rings it in the empty throne room, and the king listens, and hears something, and does not say what.',
+          'Wren sails. Bram walks north and is not seen again. Lysa counts things in Dunmarch and never says the king\'s name. Ingrid is buried at Frostholm with the wardens. Tamsin is buried beside Garret, in the gardens, under a statue that does not walk.',
+          'The Cold is gone from the world. That was the whole point. Something else is on the throne now, and it looks like a man, and it is dressed like a king, and the frost on the steps never quite thaws.',
+          '--- THE END: THE IRON CROWN. Thank you for playing. Another road waits at the capital, and the trials at camp. ---',
+        ],
+        final: true,
+        ending: {
+          title: 'The Iron Crown', after: 'Elderon has an iron king and forty quiet years. What remains are the trials, and whoever is still willing to fight beside him.',
+          camp: [
+            'The fire is lit because the king orders it lit. Nobody sits close to it. Nobody sits close to him.',
+            'Ottilie polishes the bell. "It still rings," she says. "That is something. I am not sure what."',
+            'A letter from Wren, unsigned, from somewhere warm. It says only: "The far coast has no kings. Come and see." The king does not answer it. He keeps it.',
+            'The trials are fought by men who are paid, in a field where the frost does not thaw, and the king watches from a chair, and wins, and does not say whether it is the same.',
+            'Nobody says "your father would have called that a start." Nobody says anything about his father at all.',
+          ],
+        },
+      },
+    ],
+  },
+};
+const ROAD_ORDER = ['crown', 'council', 'exile', 'quiet', 'iron'];
+// A road's ending is written on its last chapter; the road carries it too.
+for (const id of ROAD_ORDER) ROADS[id].ending = ROADS[id].chapters[ROADS[id].chapters.length - 1].ending;
+// Who will not follow the Iron Crown: they leave the party when that road is
+// taken, and come back if another road is walked from the capital.
+const IRON_REFUSERS = ['Garret', 'Tamsin', 'Ingrid'];
 
 // The campaign in acts. The third is groundwork: named, foreshadowed, and not
 // yet walkable.
@@ -696,9 +1133,10 @@ const ACTS = [
   { title: 'The Brass Concord', from: 7, to: 11 },
   { title: 'The Winter Court', from: 12, to: 16 },
   { title: 'The Sunder Sea', from: 17, to: 21 },
+  { title: 'The Crown of Elderon', from: 22, to: 25 },
 ];
 // Said of the road once it is walked to the end.
-const AFTER_THE_WAR = 'Two wars, a winter and a sea are over. What remains are the trials, and the company.';
+const AFTER_THE_WAR = 'Four wars are over and a road has been walked to its end. What remains are the trials, and the company.';
 
 // Around the fire once the war is won: what the company says while it trains,
 // one line at a time as the trials go by. All of it points north.
@@ -708,7 +1146,7 @@ const EPILOGUE_CAMP = [
   'Bastian: "Vexley wrote. The Concord is a shipping company again. He says it is very boring and he is very happy."',
   'Lysa has run out of things to count and has started counting the company. She gets a different number each time and does not mind.',
   'Eirik says the aurora is only weather now. He watches it anyway, every night, to be sure.',
-  'Garret: "Two wars, a winter and a sea. Your father would have called that a start."  Rowan: "He would have. Let us not tell him what comes next."',
+  'Garret: "Four wars. Your father would have called that a start."  Rowan: "He would have. Let us not tell him what comes next."',
   'Wren has been paid what she was owed, by Vexley, in person, and has not stopped talking about it. Ysolde has taken up singing, and is bad at it, and knows, and does not mind.',
   'The bell hangs from the wagon now. Ottilie rings it at every camp, once, and listens. "Nothing," she says every night, pleased. "Still nothing."',
   'The trials go on because the company likes them. Nobody is paying for them. That, Mira says, is how you can tell they are honest.',
@@ -825,5 +1263,31 @@ const CITIES = [
     ],
     hires: ['tidecaller', 'harpooner'], stock: ['queensTrident', 'tessalyPearl'],
     open: 'Open at the ebb. The stallholders are wet, and glad of the custom, and do not talk about the last four hundred years.' },
+  { id: 'aldermere', name: 'Aldermere', from: 22, pos: [0.36, 0.40], map: 'guildhall', level: 23, gil: 6000, hireCost: 1100,
+    held: 'held by Black Hollis\'s company', blurb: 'The cities\' league town, where the charter was written, with a mercenary company sitting on it.',
+    intro: [
+      'Aldermere wrote the charter of the free cities in its guildhall, and Black Hollis\'s company has been paid to sit in the guildhall until it is forgotten.',
+      '"They have not burned it," Lysa says. "They were paid to hold it, not to read it. Nobody thought to pay them for that."',
+    ],
+    enemies: [{ job: 'mercenary', name: 'Hollis\'s Man' }, { job: 'mercenary', name: 'Hollis\'s Man' }, { job: 'duelist', name: 'Hollis\'s Knife' }, { job: 'courtMage', name: 'Hired Mage' }, { job: 'griffon' }],
+    outro: [
+      'The company throws down its arms when the last griffon goes over the gallery rail, and asks, reasonably, who is paying now.',
+      'Aldermere is open. Its guildhall trains marshals and duelists, and its market sells the league\'s own coat.',
+    ],
+    hires: ['marshal', 'duelist'], stock: ['leagueCoat', 'charterRing'],
+    open: 'The charter is back on the guildhall wall. People come to read it, and stay to argue.' },
+  { id: 'elderonCity', name: 'Elderon City', from: 23, pos: [0.52, 0.54], map: 'capital', level: 25, gil: 7000, hireCost: 1200,
+    held: 'held by the Chancellor\'s guard', blurb: 'The capital\'s high quarter, under the palace, with the guard on every corner.',
+    intro: [
+      'The high quarter of the capital is where the guard live, and they have shut it, because the company is in the low one.',
+      '"Open the quarter and the city is ours whatever happens at the palace," Bastian says. "Hearts and minds. Also the armouries."',
+    ],
+    enemies: [{ job: 'royalGuard', name: 'Quarter Guard' }, { job: 'royalGuard', name: 'Quarter Guard' }, { job: 'courtMage', name: 'Court Mage' }, { job: 'golem', name: 'Gate Warden' }, { job: 'griffon' }],
+    outro: [
+      'The quarter opens its shutters when the gate warden sits down in the street and stops, and the guard find they have nothing left to guard.',
+      'Elderon City is open. Its armouries sell the guard\'s own steel, and its chapel trains inquisitors.',
+    ],
+    hires: ['inquisitor', 'marshal'], stock: ['courtBlade', 'kingsGuardHelm'],
+    open: 'The armouries are open. The guard drink in the same taverns as the company now, and are careful about it.' },
 ];
 

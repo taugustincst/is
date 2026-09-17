@@ -247,6 +247,7 @@ class Battle {
         if (user.hasPassive('attackUp')) base *= 1.25;
         if (user.hasPassive('firstStrike') && target.hp === target.maxHp) base *= 1.5;
         if (user.hasPassive('monsterHunter') && target.jobData && target.jobData.kind === 'monster') base *= 1.5;
+        if (user.hasPassive('singleCombat') && this.units.filter(u => u.alive && this.onField(u) && u.team !== user.team && Grid.dist(u.x, u.y, user.x, user.y) === 1).length === 1) base *= 4 / 3;
         if (user.hasStatus('berserk')) base *= 1.5;
         if (target.hasPassive('defend')) base *= 0.8;
         if (target.hasStatus('protect')) base *= 2 / 3;
@@ -390,6 +391,7 @@ class Battle {
         let v = this.computeEffect(user, ab, eff, t);
         if (v > 0 && ab.element === 'ice' && user.hasPassive('coldBlood')) v = Math.ceil(v * 1.25);
         if (v > 0 && ab.element === 'water' && user.hasPassive('saltBlood')) v = Math.ceil(v * 1.25);
+        if (v > 0 && ab.element === 'holy' && user.hasPassive('holyBlood')) v = Math.ceil(v * 1.25);
         if (v < 0) {
           // The target's element absorbs the attack.
           const heal = Math.min(-v, t.maxHp - t.hp);

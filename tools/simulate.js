@@ -96,12 +96,22 @@ function trainingSpec(party, chapterIndex) {
   };
 }
 
-async function runCampaign() {
+// Each run walks the common road and then one of the five roads out of the
+// capital, taken in turn, so every ending is played over a batch of runs.
+const ROADS = g.run('ROADS'), ROAD_ORDER = g.run('ROAD_ORDER');
+function roadFor(run) {
+  const id = ROAD_ORDER[run % ROAD_ORDER.length];
+  return [...g.CAMPAIGN, ...ROADS[id].chapters.map(ch => Object.assign({}, ch, { id: `${id}:${ch.id}`, road: id }))];
+}
+async function runCampaign(run) {
   const state = { gil: 500 };
   const party = g.STARTING_PARTY.map(p => new g.Unit(Object.assign({ team: 'player' }, p)));
   const results = [];
-  for (let ci = 0; ci < g.CAMPAIGN.length; ci++) {
-    const ch = g.CAMPAIGN[ci];
+  const road = roadFor(run);
+  for (let ci = 0; ci < road.length; ci++) {
+    const ch = road[ci];
+    // Those who refuse the Iron Crown leave before its first fight.
+    if (ch.road === 'iron' && ci === g.CAMPAIGN.length) for (const n of g.run('IRON_REFUSERS')) { const k = party.findIndex(u => u.name === n); if (k >= 0) party.splice(k, 1); }
     for (let t = 0; t < TRAININGS; t++) await fight(party, trainingSpec(party, ci), state);
     for (const u of party) spendJp(u);
     shop(party, state, ci);
@@ -132,8 +142,8 @@ async function runCampaign() {
   const tally = {};
   let finished = 0;
   for (let r = 0; r < RUNS; r++) {
-    const res = await runCampaign();
-    if (res.length === g.CAMPAIGN.length && res[res.length - 1].res === 'victory') finished++;
+    const res = await runCampaign(r);
+    if (res.length === roadFor(r).length && res[res.length - 1].res === 'victory') finished++;
     for (const e of res) {
       const t = tally[e.ch] = tally[e.ch] || { win: 0, cleared: 0, played: 0, turns: 0, lvl: 0, gil: 0, tries: 0 };
       t.played++; t.turns += e.turns; t.lvl += e.lvl; t.gil += e.gil; t.tries += e.attempts;
@@ -142,12 +152,13 @@ async function runCampaign() {
     }
   }
   console.log(`${RUNS} runs, ${TRAININGS} training battle(s) per chapter, up to ${RETRIES} retries\n`);
-  console.log('chapter  reached   1st try   cleared   tries   turns   party Lv   gil left');
-  for (const ch of g.CAMPAIGN) {
+  console.log('chapter        reached   1st try   cleared   tries   turns   party Lv   gil left');
+  const rows = [...g.CAMPAIGN, ...ROAD_ORDER.flatMap(id => ROADS[id].chapters.map(ch => ({ id: `${id}:${ch.id}` })))];
+  for (const ch of rows) {
     const t = tally[ch.id];
-    if (!t) { console.log(`${ch.id.padEnd(9)}never reached`); continue; }
+    if (!t) { console.log(`${ch.id.padEnd(15)}never reached`); continue; }
     console.log(
-      ch.id.padEnd(9) +
+      ch.id.padEnd(15) +
       `${t.played}/${RUNS}`.padEnd(10) +
       `${Math.round(100 * t.win / t.played)}%`.padEnd(10) +
       `${Math.round(100 * t.cleared / t.played)}%`.padEnd(10) +

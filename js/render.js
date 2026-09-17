@@ -166,6 +166,10 @@ const MOODS = {
   tide:  { sky: ['#1d3d4a', '#0b1a22'], stars: false, tint: 'rgba(80,160,170,0.14)', air: 'mist',     music: 'tide' },
   storm: { sky: ['#1a2230', '#080a10'], stars: false, tint: 'rgba(60,80,120,0.22)',  air: 'rain',     music: 'tide' },
   abyss: { sky: ['#03101a', '#0a2a30'], stars: true,  tint: 'rgba(20,120,140,0.16)', air: 'motes',    music: 'deep' },
+  // The capital: a gold morning over white stone, and the lamplit hush of the
+  // throne room.
+  dawn:  { sky: ['#5a3a3a', '#d8a060'], stars: false, tint: 'rgba(255,200,120,0.14)', air: 'motes',    music: 'crown' },
+  court: { sky: ['#1a1030', '#3a2a50'], stars: false, tint: 'rgba(220,180,80,0.12)',  air: null,       music: 'crown' },
 };
 
 /* The sky: a gradient, a scatter of stars that keeps its place when the
