@@ -13,17 +13,17 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.goto(BASE + '/index.html');
   await page.waitForSelector('#screen-title.active');
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
-  const road = await page.evaluate(() => ({ chapters: CAMPAIGN.length, stops: WORLD_ROUTE.length, maps: CAMPAIGN.map(c => c.map).every(m => !!MAPS[m]), finale: CAMPAIGN[CAMPAIGN.length - 1].final === true, only: CAMPAIGN.filter(c => c.final).length }));
-  ok('the road has a stop for every chapter and every chapter has a field', road.chapters >= 12 && road.stops === road.chapters && road.maps && road.finale && road.only === 1, JSON.stringify(road));
+  const road = await page.evaluate(() => ({ chapters: CAMPAIGN.length, stops: WORLD_ROUTE.length, maps: CAMPAIGN.map(c => c.map).every(m => !!MAPS[m]), finale: ROAD_ORDER.every(id => ROADS[id].chapters[ROADS[id].chapters.length - 1].final === true), only: CAMPAIGN.filter(c => c.final).length }));
+  ok('the road has a stop for every chapter and every chapter has a field', road.chapters >= 12 && road.stops === road.chapters && road.maps && road.finale && road.only === 0, JSON.stringify(road));
   // Story threads: the cog appears in Act I, and Thornwall names the Concord.
   const thread = await page.evaluate(() => ({ coin: CAMPAIGN[0].outro.join(' ').includes('cog'), marsh: CAMPAIGN[3].outro.join(' ').includes('cog'), thorn: CAMPAIGN[6].outro.join(' ').includes('Brass Concord'), end: CAMPAIGN[6].outro.join(' ').includes('THE END'), brass: CAMPAIGN[11].outro.join(' ').includes('END OF ACT II') }));
   ok('the story plants the cog early and names the Concord at Thornwall', thread.coin && thread.marsh && thread.thorn && !thread.end && thread.brass, JSON.stringify(thread));
   // The night before at camp: the chapter's talk, then the act on the card.
   const fire = await page.evaluate(() => ({ lines: document.querySelectorAll('#campfire p').length, act: document.querySelector('.chapter-num').textContent }));
   ok('the campfire carries the chapter\'s talk and the card names the act', fire.lines >= 2 && /Act 1 · The War of Princes · Chapter 1/.test(fire.act), JSON.stringify(fire));
-  const after = await page.evaluate(() => { game.state.chapter = CAMPAIGN.length; game.state.trials = 3; game.showWorld(); return { lines: document.querySelectorAll('#campfire p').length, after: !!document.querySelector('.act-after'), act: document.querySelector('.chapter-num').textContent }; });
-  ok('after the war the fire tells the epilogue a line at a time and the card says so', after.lines === 5 && after.after && /After the war · Trial 4/.test(after.act), JSON.stringify(after));
-  await page.evaluate(() => { game.state.chapter = 0; game.state.trials = 0; game.showWorld(); });
+  const after = await page.evaluate(() => { game.state.branch = 'crown'; game.state.chapter = game.roadLength(); game.state.trials = 3; game.showWorld(); return { lines: document.querySelectorAll('#campfire p').length, after: !!document.querySelector('.act-after'), act: document.querySelector('.chapter-num').textContent }; });
+  ok('after the war the fire tells the epilogue a line at a time and the card says so', after.lines === 5 && after.after && /The Crown · Trial 4/.test(after.act), JSON.stringify(after));
+  await page.evaluate(() => { game.state.chapter = 0; game.state.branch = null; game.state.trials = 0; game.showWorld(); });
   // The trades unlock from the tree with the right job levels.
   await page.evaluate(() => { const u = game.state.party[0]; u.jpTotal.chemist = 260; u.jpTotal.archer = 260; u.jpTotal.thief = 120; game.state.gil = 20000; game.state.chapter = 8; game.showWorld(); });
   await page.click('#btn-formation'); await page.waitForSelector('#screen-formation.active');

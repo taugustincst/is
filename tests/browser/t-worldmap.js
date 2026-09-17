@@ -29,7 +29,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
       await page.waitForSelector('#screen-story.active', { timeout: 5000 });
       ok('clicking the next stop marches to battle', before === 'world' && await page.evaluate(() => game.screen === 'story'));
       // Back out through the story to the camp is not possible; reload instead.
-      await page.evaluate(() => { game.state.chapter = CAMPAIGN.length; game.saveGame(); });
+      await page.evaluate(() => { game.state.branch = 'crown'; game.state.chapter = game.roadLength(); game.saveGame(); });
       await page.reload(); await page.waitForSelector('#screen-title.active');
       await page.click('#btn-continue'); await page.waitForSelector('#screen-world.active');
       const label = await page.textContent('#btn-battle');

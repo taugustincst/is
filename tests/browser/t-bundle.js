@@ -13,7 +13,7 @@ async function pickDest(page) {
   return page.evaluate(() => {
     const r = game.renderer, g = game.battle.grid, z = r.zoom || 1;
     const cv = document.getElementById('battle-canvas'), rc = cv.getBoundingClientRect();
-    const W = cv.width, H = cv.height;
+    const W = r.W, H = r.H;
     let best = null;
     for (const n of game.ui.turn.reach.values()) {
       if (n.cost <= 0) continue;
