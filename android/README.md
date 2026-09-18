@@ -7,12 +7,10 @@ never drift from the web build.
 
 ## Building
 
-The Android SDK was not reachable from the environment this project was
-developed in, so **this project has never been run through Gradle here**.
-Everything has been checked as far as it can be without the SDK: the Java
-compiles cleanly against the real Android 16 framework classes, the XML is
-well formed, the Gradle scripts are balanced, and the asset copy gathers the
-right files. Expect to fix a small thing or two on the first real build.
+The Android SDK is not reachable from every environment this project is
+developed in, but CI builds the debug APK on every push, on a runner that
+does have the SDK (see the `android` job in `.github/workflows/ci.yml`),
+so this has been run through Gradle for real, and does build clean.
 
 With Android Studio installed, or a command-line SDK with platform 36 and
 build-tools, and a JDK 17 or newer:

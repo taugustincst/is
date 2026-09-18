@@ -20,9 +20,11 @@ below is maintained by hand. Character limits are Play's.
     Two princes. One crown. A squire who knows too much.
 
     Chronicles of Elderon is a tactical role-playing game in the tradition of
-    the isometric classics. Lead a small company across a seven-chapter
-    campaign of battles on height-mapped fields, where you stand and
-    which way you face matter as much as what you swing.
+    the isometric classics. Lead a small company across five acts and
+    twenty-four chapters of battles on height-mapped fields, from a border
+    war to a haunted winter court to a sea of wrecks to a crown worth five
+    different endings, where you stand and which way you face matter as
+    much as what you swing.
 
     CHARGE-TIME TURNS
     Every unit gains charge each tick and acts at a hundred. Fast units act
@@ -34,21 +36,34 @@ below is maintained by hand. Character limits are Play's.
     behind to land every time. Climb, jump, and turn the field to see what a
     wall is hiding.
 
-    JOBS AND ABILITIES
-    Squires become knights, archers, monks, thieves, mages, ninja, dragoons,
-    and beyond them samurai, summoners, geomancers and bards; beyond those,
-    paladins, arcanists, assassins and sages; the Brass Concord's engineers,
-    gunners, aeronauts and artificers; the north's frostweavers, wardens and
-    runeblades; and at the very top, the legendary Dragonlord, Hierophant
-    and Fell Knight.
+    THIRTY-FIVE JOBS
+    Squires become knights, archers, monks, thieves, mages, ninja and
+    dragoons; then samurai, summoners, geomancers and bards; then paladins,
+    arcanists, assassins and sages; the Brass Concord's engineers, gunners,
+    aeronauts and artificers; the Winter Court's frostweavers, wardens and
+    runeblades; the Sunder Sea's corsairs, tidecallers and harpooners; and
+    the crown's marshals, inquisitors and duelists — with the legendary
+    Dragonlord, Hierophant and Fell Knight above them all.
     Earn job points in battle, learn abilities, equip a second skillset from
     any job you have studied, and pick your reaction, support and movement
     passives.
 
+    FIVE ROADS, FIVE ENDINGS
+    At the capital the company's road forks five ways: take the crown, break
+    it for a council of the cities, run the blockade and sail away, lay down
+    the sword and go home, or seize the throne by force and pay the price
+    for it. Every ending is recorded, and the same company can walk every
+    road from the same save.
+
     ELEMENTS THAT MATTER
-    Fire, ice, thunder, earth, holy and dark. A bomb drinks fire and bursts in
-    ice; a fell knight feeds on dark and dreads holy. The targeting preview
-    tells you the result before you commit.
+    Fire, ice, thunder, earth, water, holy and dark. A bomb drinks fire and
+    bursts in ice; a fell knight feeds on dark and dreads holy. The
+    targeting preview tells you the result before you commit.
+
+    A KINGDOM TO CROSS
+    Ten cities across five acts, each fought open and each stocking its own
+    wares, from Redwater's market stalls to the Chancellor's court in
+    Elderon City.
 
     EQUIPMENT YOU CAN SEE
     Buy gear between battles and watch it appear on your characters: the
@@ -120,5 +135,5 @@ health features. **News**: not a news app.
 
 ## Release notes for the first version
 
-    First release. Twenty-four chapters in five acts with five endings, thirty-five jobs, three difficulties,
-    and nothing to buy.
+    First release. Twenty-four chapters in five acts with five endings, thirty-five jobs, ten cities,
+    three difficulties, and nothing to buy.

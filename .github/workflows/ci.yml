@@ -35,3 +35,40 @@ jobs:
         with:
           name: browser-logs
           path: tests/out/*.log
+
+  android:
+    # The Android SDK is not reachable from every environment this project is
+    # developed in (see android/PLAY_STORE.md), so this is the one place the
+    # app is actually put through Gradle: a runner with the SDK preinstalled.
+    # A green run here is the real check that the WebView shell still builds;
+    # a debug build needs no signing key, unlike the release bundle Play takes.
+    name: Android build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      # ubuntu-latest ships an SDK already, under $ANDROID_HOME; a setup
+      # action is not needed and android-actions/setup-android@v3 fails
+      # outright trying to install the "tools" package, which no longer
+      # exists in Google's repository at this compileSdk. Use the
+      # preinstalled sdkmanager directly instead.
+      - name: Accept licenses and install the SDK platform and build-tools this project targets
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME" -name sdkmanager -type f | sort -V | tail -1)"
+          echo "SDKMANAGER=$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+      - name: Build the debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: ignore

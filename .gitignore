@@ -12,7 +12,7 @@ android/*.iml
 dist/
 
 # Node
-node_modules/
+node_modules
 
 # Editors and OS
 .DS_Store

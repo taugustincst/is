@@ -3,8 +3,12 @@ const { BASE, ALT } = require('./lib');
 // by touch, on a phone-sized screen.
 const { chromePath } = require('./lib');
 const { chromium } = require('playwright-core');
+const path = require('path');
 const S = require('./lib').OUT;
-const FILE = process.env.TARGET || 'file:///home/user/is/dist/elderon.html';
+// The repository root, wherever it is checked out, not a path baked in for
+// one machine: run.sh builds dist/elderon.html there before this test runs.
+const ROOT = path.join(__dirname, '..', '..');
+const FILE = process.env.TARGET || 'file://' + path.join(ROOT, 'dist', 'elderon.html');
 
 // Pick the destination a player would actually tap: the furthest one whose
 // point on screen belongs to the board rather than to a panel sitting over it.

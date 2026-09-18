@@ -18,6 +18,10 @@ FILTER="${1:-}"
 cd "$HERE"
 mkdir -p ../out
 
+# dist/ is gitignored and regenerated, not committed, so t-bundle needs it
+# built here rather than assuming a prior local run left one lying around.
+(cd "$ROOT" && node tools/bundle.js) || exit 1
+
 pids=()
 for port in 8123 8124; do
   if ! (exec 3<>/dev/tcp/127.0.0.1/$port) 2>/dev/null; then
