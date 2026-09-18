@@ -1,6 +1,6 @@
 {
   "name": "chronicles-of-elderon",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A browser tactics RPG. No build step; these scripts only check and bundle it.",
   "private": true,
   "scripts": {
