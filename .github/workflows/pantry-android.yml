@@ -1,0 +1,89 @@
+# Builds the Pantry Scan Android app and publishes it for download.
+#
+# Every push that touches pantry/ builds the APK and attaches it to the run as
+# an artifact (Actions tab -> the run -> Artifacts). Pushes to main, and manual
+# runs with "release" ticked, also publish a GitHub Release so the APK has a
+# stable download link: https://github.com/<owner>/<repo>/releases/latest
+name: Pantry Scan Android
+
+on:
+  push:
+    paths:
+      - 'pantry/**'
+      - '.github/workflows/pantry-android.yml'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Also publish a GitHub Release with the APK'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pantry-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the web app's tests
+        run: node pantry/tools/test.js
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0 platform-tools'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug and release APKs
+        working-directory: pantry/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug assembleRelease
+
+      - name: Name the APKs
+        id: apk
+        run: |
+          VERSION=$(grep -o "versionName '[^']*'" pantry/android/app/build.gradle | cut -d"'" -f2)
+          SHORT=${GITHUB_SHA::7}
+          mkdir -p out
+          cp pantry/android/app/build/outputs/apk/debug/app-debug.apk "out/pantry-scan-${VERSION}-${SHORT}-debug.apk"
+          cp pantry/android/app/build/outputs/apk/release/app-release.apk "out/pantry-scan-${VERSION}-${SHORT}.apk"
+          # The web app, ready to drop on any static host.
+          (cd pantry && zip -qr "../out/pantry-scan-web-${VERSION}-${SHORT}.zip" index.html manifest.webmanifest sw.js css js icons vendor README.md)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pantry-scan-${{ steps.apk.outputs.version }}-${{ steps.apk.outputs.short }}
+          path: out/*
+          if-no-files-found: error
+
+      - name: Publish a release
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pantry-v${{ steps.apk.outputs.version }}-${{ github.run_number }}
+          name: Pantry Scan ${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          files: out/*
+          body: |
+            Pantry Scan for Android, built from `${{ github.sha }}` on `${{ github.ref_name }}`.
+
+            - `pantry-scan-*.apk` — install this on an Android phone (Android 7.0 or later). It is signed with a debug key, so Android will ask you to allow installs from your browser or file manager.
+            - `pantry-scan-*-debug.apk` — the same app with WebView debugging enabled.
+            - `pantry-scan-web-*.zip` — the web app, for any static HTTPS host; installable as a progressive web app on Android and iPhone.
+
+            Reading text works offline. To identify loose food by sight, paste your own Anthropic API key into Settings.

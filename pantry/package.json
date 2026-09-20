@@ -1,0 +1,10 @@
+{
+  "name": "pantry-scan",
+  "private": true,
+  "type": "module",
+  "description": "Photograph your groceries, OCR them into a pantry, and cook from what you have.",
+  "scripts": {
+    "test": "node tools/test.js",
+    "start": "node tools/serve.js"
+  }
+}

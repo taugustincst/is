@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="#2f6b3a"/>
+  <!-- camera body -->
+  <rect x="26" y="42" width="76" height="52" rx="10" fill="#fbf7f0"/>
+  <rect x="48" y="32" width="32" height="14" rx="5" fill="#fbf7f0"/>
+  <!-- lens as a tomato -->
+  <circle cx="64" cy="68" r="18" fill="#d9472b"/>
+  <circle cx="58" cy="62" r="5" fill="#f4a08b" opacity=".8"/>
+  <path d="M64 50 c-2 -8 4 -12 6 -14 c1 6 -1 10 -6 14z" fill="#3f9a4a"/>
+  <path d="M64 50 c-5 -4 -11 -4 -15 -1 c5 2 10 3 15 1z" fill="#3f9a4a"/>
+  <!-- scan corners -->
+  <path d="M16 30 v-10 h10 M112 30 v-10 h-10 M16 98 v10 h10 M112 98 v10 h-10" fill="none" stroke="#fbf7f0" stroke-width="4" stroke-linecap="round"/>
+</svg>
