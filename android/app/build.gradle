@@ -34,6 +34,15 @@ if (keystoreFile.exists()) {
     keystoreFile.withInputStream { keystoreProps.load(it) }
 }
 
+// Play needs every upload to carry a higher versionCode than the last.
+// Override from the command line for a release without editing this file:
+// ./gradlew bundleRelease -PversionCode=7 -PversionName=1.2
+// Resolved outside the android {} block: chaining .toString().toInteger()
+// straight off a DSL property setter call reads fine but AGP evaluates
+// defaultConfig eagerly, and it rejected that form outright.
+def relVersionCode = (project.hasProperty('versionCode') ? project.property('versionCode') : '1').toString().toInteger()
+def relVersionName = (project.hasProperty('versionName') ? project.property('versionName') : '1.0').toString()
+
 android {
     namespace 'com.elderon.tactics'
     compileSdk 36
@@ -44,11 +53,8 @@ android {
         // Google Play requires new apps and updates to target the previous
         // year's Android release or newer; 36 is Android 16.
         targetSdk 36
-        // Play needs every upload to carry a higher versionCode than the last.
-        // Override from the command line for a release without editing this
-        // file: ./gradlew bundleRelease -PversionCode=7 -PversionName=1.2
-        versionCode (project.findProperty('versionCode') ?: '1').toString().toInteger()
-        versionName (project.findProperty('versionName') ?: '1.0').toString()
+        versionCode relVersionCode
+        versionName relVersionName
     }
 
     sourceSets {

@@ -45,7 +45,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     // Playwright's offline switch does not reach a worker's own fetches, so
     // the honest-failure path is checked in the worker's source instead.
     const src = fs.readFileSync(SW, 'utf8');
-    ok('offline, the game boots from the cache; a miss that is not a page is a 504, not index.html', /req\.mode === 'navigate'\) return caches\.match\('index\.html'\)/.test(src) && /status: 504/.test(src));
+    ok('offline, the game boots from the cache; a miss that is not a page is a 504, not index.html', /req\.mode === 'navigate'\) return caches\.open\(CACHE\)\.then\(c => c\.match\('index\.html'\)\)/.test(src) && /status: 504/.test(src));
     await page.context().setOffline(false);
     ok('no page errors', errors.filter(e => !/Failed to fetch|net::/i.test(e)).length === 0, errors.join('; '));
   } finally {

@@ -69,13 +69,14 @@ To try the release build on a phone before uploading it, build an APK the
 same way: `./gradlew assembleRelease` and install
 `app/build/outputs/apk/release/app-release.apk` with `adb install`.
 
-**This project was written without access to the Android SDK.** The Java
-compiles against the real Android 16 framework classes and every XML and
-Gradle file has been checked for shape, but the first `bundleRelease` on a
-real machine is still the first real build. If Gradle complains about a
-version, the two pinned ones are the AGP version in `build.gradle` and the
-Gradle version in `gradle/wrapper/gradle-wrapper.properties`; raise them
-together.
+**This build is verified, not just written.** CI's `android` job runs
+`assembleDebug` on every push (see `.github/workflows/ci.yml`), on a
+runner with the real SDK, so the project is known to build clean; only
+`bundleRelease` and its signing key are still to be tried on a real
+machine, since that needs the upload key from step 2. If Gradle
+complains about a version, the two pinned ones are the AGP version in
+`build.gradle` and the Gradle version in
+`gradle/wrapper/gradle-wrapper.properties`; raise them together.
 
 ## 4. Create the app in the console
 

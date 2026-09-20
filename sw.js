@@ -61,8 +61,14 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // Looked up in this worker's own cache, never the global CacheStorage:
+  // caches.match() searches every cache that exists, and while a new build
+  // is staged its cache sits right alongside this one under a different
+  // name. The global lookup can hand an old, still-active worker a file
+  // from the new build before the player has agreed to it, breaking the
+  // one guarantee this file exists for.
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then(hit => {
+    caches.open(CACHE).then(c => c.match(req, { ignoreSearch: true })).then(hit => {
       if (hit) return hit;
       return fetch(req).then(res => {
         // Something outside the build (a screenshot, a store page): pass it
@@ -76,7 +82,7 @@ self.addEventListener('fetch', (e) => {
         // Offline with nothing cached: a page can fall back to the game's own
         // page, but a script or image must fail honestly rather than arrive
         // as HTML with a 200.
-        if (req.mode === 'navigate') return caches.match('index.html');
+        if (req.mode === 'navigate') return caches.open(CACHE).then(c => c.match('index.html'));
         return new Response('', { status: 504, statusText: 'Offline and not cached' });
       });
     })
