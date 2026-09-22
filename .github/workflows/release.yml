@@ -45,7 +45,7 @@ jobs:
           echo "version $V, tag v$V, versionCode ${{ github.run_number }}"
 
       # The web build: one file, nothing else to fetch.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Build the single-file web game
