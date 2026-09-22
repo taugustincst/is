@@ -95,7 +95,7 @@ dependencies {
     // WebViewAssetLoader serves the bundled files over an https origin, which
     // gives the game durable localStorage instead of a file:// opaque origin.
     implementation 'androidx.webkit:webkit:1.14.0'
-    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.appcompat:appcompat:1.8.0'
     implementation 'androidx.activity:activity:1.10.1'
     implementation 'androidx.core:core:1.16.0'
 }
