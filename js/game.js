@@ -912,7 +912,7 @@ class Game {
       const opts = eligible.map(u => `<option value="${u.id}">${u.name} (Lv${u.level} ${u.jobData.name})</option>`).join('');
       return `<div class="errand offer" data-errand="${spec.id}">
         <div class="errand-text"><b>${spec.title}</b> <small>${spec.days} battle${spec.days === 1 ? '' : 's'} · ${pay.gil} gil · ${pay.jp} JP${spec.item >= 0.4 ? ' · likely something found' : spec.item >= 0.2 ? ' · maybe something found' : ''}</small><div class="errand-flavour">${spec.text}</div></div>
-        <div class="errand-send">${eligible.length ? `<select data-unit>${opts}</select><button data-send="${spec.id}">Send</button>` : '<small class="muted">No one free to send.</small>'}</div>
+        <div class="errand-send">${eligible.length ? `<select data-unit aria-label="Who to send on ${spec.title}">${opts}</select><button data-send="${spec.id}">Send</button>` : '<small class="muted">No one free to send.</small>'}</div>
       </div>`;
     }).join('');
     el.innerHTML = `${reports}${active}${offers}`;
@@ -1073,7 +1073,7 @@ class Game {
       html += `<div class="shop-row inv-row ${wearers.length ? '' : 'unfit'}" data-item="${id}">
         <div class="inv-main"><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
           <div class="fits">x${this.invCount(id)} · tier ${it.tier}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}</div></div>
-        <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}">${opts}</select><button data-equip="${id}">Equip</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">Sell ${Math.floor(it.price / 2)}</button>` : ''}</div>
+        <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}" aria-label="Who to equip ${it.name}">${opts}</select><button data-equip="${id}">Equip</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">Sell ${Math.floor(it.price / 2)}</button>` : ''}</div>
       </div>`;
     }
     $('bag-list').innerHTML = html || `<p class="muted">${ids.length ? 'Nothing of that kind.' : 'The baggage is empty. Spare gear from the shop, the field and the cities collects here.'}</p>`;

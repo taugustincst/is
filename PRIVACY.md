@@ -1,6 +1,6 @@
 # Privacy Policy — Chronicles of Elderon
 
-*Last updated: 14 September 2026*
+*Last updated: 20 September 2026*
 
 Chronicles of Elderon is a single-player game. This policy exists because
 Google Play asks every app to have one, and it is short because there is
@@ -17,8 +17,9 @@ anywhere even if it wanted to.
 
 Your saved game and two audio preferences (sound on or off, music on or off).
 They are kept in the app's private storage on your own device, and only there.
-If your device backs up app data to your Google account, that backup is made
-by Android under your own account's settings, and the game takes no part in it.
+The Android app opts out of Android's automatic backup entirely, so a saved
+game never leaves the device this way either, including when the device
+itself is backed up or replaced.
 
 Uninstalling the app deletes the saved game. Inside the game, starting a new
 game overwrites it.

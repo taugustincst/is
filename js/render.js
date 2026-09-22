@@ -263,12 +263,6 @@ function drawAir(c, W, H, kind, time) {
   }
 }
 
-function shade(hex, amt) {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = (v) => Math.max(0, Math.min(255, v + amt)).toString(16).padStart(2, '0');
-  return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
-}
-
 function tween(ms, fn) {
   return new Promise(res => {
     const t0 = performance.now();
@@ -737,7 +731,7 @@ class Renderer {
         const lip = Math.min(5, wh);
         c.fillStyle = col.lip;
         c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + lip); c.lineTo(sx - 32, sy + lip); c.closePath(); c.fill();
-        c.fillStyle = shade(col.lip, -16);
+        c.fillStyle = shiftHex(col.lip, -16);
         c.beginPath(); c.moveTo(sx + 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + lip); c.lineTo(sx + 32, sy + lip); c.closePath(); c.fill();
       }
       // Strata lines

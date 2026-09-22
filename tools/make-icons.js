@@ -14,6 +14,7 @@ const g = load(['data']);
 const vm = require('vm');
 const spriteCtx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {} }), width: 0, height: 0 }) } };
 vm.createContext(spriteCtx);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), spriteCtx);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/sprites.js'), 'utf8'), spriteCtx);
 const TEMPLATES = vm.runInContext('SPRITE_TEMPLATES', spriteCtx);
 // The same palette resolution the game uses, so the icon carries the shading.

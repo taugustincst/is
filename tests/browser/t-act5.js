@@ -41,10 +41,12 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     for (let i = 0; i < 2; i++) {
       const ch = game.chapterAt(24 + i);
       const b = Battle.setup(MAPS[ch.map], s.party, ch.enemies, { log: () => {}, awaitPlayerTurn: async (u) => b.aiTurn(u) }, ch.objective, 'knight');
-      // The road logic is under test, not the AI's fencing: the foes fall to a blow.
-      for (const u of b.units) if (u.team === 'enemy') { u.hp = 1; if (u.phases) u.phases = []; }
+      // The road logic is under test, not the AI's fencing: the foes fall to
+      // a blow and land none worth counting (the leader, protected by the
+      // objective, is AI-driven here and would otherwise sometimes be lost).
+      for (const u of b.units) if (u.team === 'enemy') { u.hp = 1; u.level = 1; if (u.phases) u.phases = []; }
       const res = await b.run();
-      out.fights.push(`${ch.id}:${res}:${b.turnNo}`);
+      out.fights.push(`${ch.id}:${res}:${b.turnNo}${res === 'victory' ? '' : ':' + b.endReason}`);
       if (res !== 'victory') break;
       s.chapter++;
       if (ch.final) { s.endings[s.branch] = true; }

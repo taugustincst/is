@@ -27,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
       - run: npm install
       - run: npx playwright-core install --with-deps chromium
       - run: bash tests/browser/run.sh
@@ -50,6 +51,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: 'gradle'
       # ubuntu-latest ships an SDK already, under $ANDROID_HOME; a setup
       # action is not needed and android-actions/setup-android@v3 fails
       # outright trying to install the "tools" package, which no longer
