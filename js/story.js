@@ -856,7 +856,7 @@ const ROADS = {
         ],
         enemies: [
           { job: 'duelist', level: 22, x: 3, y: 1, name: 'Chancellor\'s Knife' }, { job: 'mercenary', level: 22, x: 9, y: 1, name: 'Hollis\'s Man' },
-          { job: 'mercenary', level: 22, x: 6, y: 3, name: 'Hired Blade' }, { job: 'courtMage', level: 22, x: 6, y: 0, name: 'Court Mage' },
+          { job: 'courtMage', level: 22, x: 6, y: 0, name: 'Court Mage' },
           { job: 'royalGuard', level: 22, x: 1, y: 5, name: 'Chancellor\'s Guard' }, { job: 'griffon', level: 22, x: 10, y: 6 },
         ],
         gil: 8400,

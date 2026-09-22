@@ -703,35 +703,7 @@ const SPRITE_DX = -(1 + BODY_OX * SPRITE_SCALE) - 12;
 const SPRITE_DY = -(1 + BODY_OY * SPRITE_SCALE) - 29;
 
 const TEAM_COLORS = { player: '#3b7bd8', enemy: '#d8483b', neutral: '#4caf50' };
-
-// ------------------------------------------------------------------ colours
-function toRgb(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-function shift(hex, amt) {
-  const [r, g, b] = toRgb(hex);
-  const c = (v) => Math.max(0, Math.min(255, Math.round(v + amt)));
-  return `rgb(${c(r)},${c(g)},${c(b)})`;
-}
-
-// The same nudge, kept as hex so the shading pass can still work on it.
-function shiftHex(hex, amt) {
-  const [r, g, b] = toRgb(hex);
-  const c = (v) => Math.max(0, Math.min(255, Math.round(v + amt))).toString(16).padStart(2, '0');
-  return `#${c(r)}${c(g)}${c(b)}`;
-}
-
-function darken(hex, amt) { return shift(hex, -amt); }
-
-// Mix towards a tint, for elemental gear.
-function tint(hex, toHex, k) {
-  const a = toRgb(hex), b = toRgb(toHex);
-  const m = (i) => Math.round(a[i] + (b[i] - a[i]) * k);
-  const h = (v) => v.toString(16).padStart(2, '0');
-  return `#${h(m(0))}${h(m(1))}${h(m(2))}`;
-}
+// toRgb, shift, shiftHex, darken and tint are defined in js/color.js, loaded first.
 
 /* Fill in the shaded uppercase tone for every colour in a palette. Shared with
    tools/make-icons.js, which draws the app icon from this same art. */

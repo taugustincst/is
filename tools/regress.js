@@ -260,6 +260,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const { ROOT } = require('./load');
     const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) } };
     vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/sprites.js'), 'utf8'), ctx);
     const get = (n) => vm.runInContext(n, ctx);
     const T = get('SPRITE_TEMPLATES'), W = get('SPRITE_W'), H = get('SPRITE_H');
@@ -356,6 +357,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const { ROOT } = require('./load');
     const ctx = { window: {}, Math, JSON };
     vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/fx.js'), 'utf8'), ctx);
     const get = (n) => vm.runInContext(n, ctx);
     const DRAW = get('FX_DRAW'), WFX = get('WEAPON_FX'), EFX = get('ELEMENT_FX');
@@ -483,6 +485,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const { ROOT } = require('./load');
     const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) } };
     vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/sprites.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), ctx);
     const get = (n) => vm.runInContext(n, ctx);
@@ -559,6 +562,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const { ROOT } = require('./load');
     const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
     vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), ctx);
     const TERRAIN = vm.runInContext('TERRAIN', ctx), variant = vm.runInContext('tileVariant', ctx), N = vm.runInContext('TILE_VARIANTS', ctx);
     const kinds = new Set();
@@ -583,6 +587,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const { ROOT } = require('./load');
     const ctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
     vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), ctx);
     const MOODS = vm.runInContext('MOODS', ctx);
     const actx = { window: {}, localStorage: { getItem: () => null, setItem() {} }, Math, JSON };
@@ -678,7 +683,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const errands = g.run('ERRANDS');
     ok('every errand is a day or two with pay, JP and a chance of a find', errands.length >= 8 && errands.every(e => [1, 2].includes(e.days) && e.gil > 0 && e.jp > 0 && e.item >= 0 && e.item <= 1 && e.title && e.text) && new Set(errands.map(e => e.id)).size === errands.length, `${errands.length} errands`);
     const rvm = require('vm'), rctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
-    rvm.createContext(rctx); rvm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), rctx);
+    rvm.createContext(rctx); rvm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), rctx); rvm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), rctx);
     const audioSrc = fs.readFileSync(path.join(ROOT, 'js', 'audio.js'), 'utf8');
     const moods = Object.keys(rvm.runInContext('MOODS', rctx)), amb = new Function(`return ${(audioSrc.match(/const AMBIENCE = (\{[^}]*\});/) || [])[1] || '{}'}`)();
     const unknownAmb = moods.filter(m => !(m in amb));

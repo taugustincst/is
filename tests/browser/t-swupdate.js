@@ -19,15 +19,27 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     await page.goto(BASE + '/index.html');
     const v1 = stamp.stampedHash();
     await page.waitForFunction(async (v) => { const c = await caches.open('elderon-' + v); return (await c.keys()).length >= 15; }, v1, { timeout: 20000 });
+    // The first worker must be in control before a second is staged, or the page is still served by the network and the 'old keeps serving' check has nothing to compare.
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 20000 });
     const before = await page.evaluate(async (v) => { const c = await caches.open('elderon-' + v); const r = await c.match(new Request(location.origin + '/css/style.css'), { ignoreSearch: true }); return r ? (await r.text()).includes('MARKER-OF-A-NEW-BUILD') : null; }, v1);
     ok('the first build is cached whole under its own name', before === false, `v${v1}`);
-    // Ship a change, as a release does: the file and the stamp.
+    // Ship a change, as a release does: the file and the stamp. The test
+    // server revalidates sw.js by Last-Modified, to the second, so a new
+    // build written in the same second as the old one would look unchanged
+    // to the browser's update check (a 304): let that second pass first.
+    await new Promise(r => setTimeout(r, 1050 - (fs.statSync(SW).mtimeMs % 1000)));
     fs.writeFileSync(CSS, cssOriginal + '\n/* MARKER-OF-A-NEW-BUILD */\n');
     const v2 = stamp.currentHash();
     fs.writeFileSync(SW, swOriginal.replace(/const VERSION = '[0-9a-f]+';/, `const VERSION = '${v2}';`));
     ok('a changed file changes the stamp', v2 !== v1, `${v1} -> ${v2}`);
     await page.reload();
-    await page.waitForFunction(() => !!window.__updateWaiting, null, { timeout: 20000 });
+    try {
+      await page.waitForFunction(() => !!window.__updateWaiting, null, { timeout: 20000 });
+    } catch (err) {
+      // Say what the registration looked like, not just that it timed out.
+      const st = await page.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const d = w => w ? { state: w.state, url: w.scriptURL } : null; const sw = await (await fetch('sw.js', { cache: 'no-store' })).text(); return { installing: d(r && r.installing), waiting: d(r && r.waiting), active: d(r && r.active), controller: !!navigator.serviceWorker.controller, swVersion: (sw.match(/VERSION = '([0-9a-f]+)'/) || [])[1], caches: await caches.keys() }; });
+      throw new Error(`no update was offered after the reload: ${JSON.stringify(st)}`);
+    }
     const staged = await page.evaluate(async (v) => { const names = await caches.keys(); const c = await caches.open('elderon-' + v); const r = await c.match(new Request(location.origin + '/css/style.css'), { ignoreSearch: true }); const served = await (await fetch('/css/style.css')).text(); return { names, newHas: r ? (await r.text()).includes('MARKER-OF-A-NEW-BUILD') : null, servedOld: !served.includes('MARKER-OF-A-NEW-BUILD') }; }, v2);
     ok('the new build waits in its own cache while the old one keeps serving', staged.names.includes('elderon-' + v1) && staged.names.includes('elderon-' + v2) && staged.newHas === true && staged.servedOld, JSON.stringify(staged));
     // The player agrees: the new worker takes over and the old cache goes.

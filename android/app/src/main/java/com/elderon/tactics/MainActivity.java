@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -103,6 +104,20 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 pageReady = true;
                 pushCutout();
+            }
+
+            // A WebView's renderer process can die on its own: Android killing
+            // it to reclaim memory while the app sits in the background, or an
+            // actual crash. Left unhandled, the system tears the whole app down
+            // with it; instead the dead WebView is dropped and the activity is
+            // rebuilt, so the player gets a fresh, working game rather than a
+            // frozen or blank one. This is the one path low-memory devices in
+            // Play's pre-launch report are likely to exercise.
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                if (web != null) { web.destroy(); web = null; }
+                recreate();
+                return true;
             }
         });
 

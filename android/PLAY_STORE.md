@@ -115,3 +115,12 @@ Change the game, run `node tools/make-store.js` if a screenshot went stale,
 then `./gradlew bundleRelease -PversionCode=<next> -PversionName=<next>`
 and upload to the production track with release notes. Nothing else changes
 between releases.
+
+## 7. Releases outside Play
+
+`.github/workflows/release.yml` builds an APK on GitHub's runners and
+attaches it, with the single-file web build, to a GitHub Release: run it
+from the Actions tab with a version number, or push a tag like `v1.6.0`.
+That APK is signed with the debug key, so it sideloads onto any phone but
+is not what Play accepts; the Play bundle still comes from step 3, on a
+machine that holds the upload key.

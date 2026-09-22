@@ -86,7 +86,7 @@ async function toBattle(page) {
     const reach = await page.evaluate(() => {
       const b = game.battle, r = game.ui.r;
       const W = r.cv.width, H = r.cv.height, z = r.zoom || 1;
-      let total = 0, answered = 0, behindSomeone = 0;
+      let total = 0, answered = 0, behindSomeone = 0, hiddenByGround = 0; const misses = [];
       for (const n of game.ui.turn.reach.values()) {
         if (n.cost <= 0) continue;
         const t = b.grid.tile(n.x, n.y);
@@ -100,6 +100,11 @@ async function toBattle(page) {
         // the requirement is that a destination resolves to *a* destination.
         const got = r.pickTile(px, py);
         if (got && (got === t || r.hl.move.has(`${got.x},${got.y}`))) answered++;
+        // A tile whose centre sits under a cliff face nearer the viewer is
+        // not visible at that point; the view rotates for those. Only a
+        // figure in the way is this check's business.
+        else if (got && got.h > t.h && r.depthOf(got.x, got.y) > r.depthOf(t.x, t.y)) { hiddenByGround++; total--; }
+        else misses.push({ want: [t.x, t.y, t.h], got: got ? [got.x, got.y, got.h, r.depthOf(got.x, got.y) - r.depthOf(t.x, t.y)] : null, units: b.units.filter(o => o.alive && o.x >= 0 && Math.abs(o.x - t.x) <= 1 && Math.abs(o.y - t.y) <= 1).map(o => [o.x, o.y, o.team, !!o.anim]) });
         const w = r.toWorld(px, py);
         for (const o of b.units) {
           if (!o.alive || o.x < 0 || (o.x === t.x && o.y === t.y)) continue;
@@ -107,7 +112,7 @@ async function toBattle(page) {
           if (w.x >= q.sx - 13 && w.x <= q.sx + 13 && w.y >= q.sy - 32 && w.y <= q.sy + 8) { behindSomeone++; break; }
         }
       }
-      return { total, answered, behindSomeone };
+      return { total, answered, behindSomeone, hiddenByGround, misses };
     });
     // A pinch fires many times a second. A camera animation per event left
     // eight of them fighting over the same value.
@@ -146,7 +151,7 @@ async function toBattle(page) {
 
     ok('a tap on a visible destination is never swallowed by a figure',
        reach.total > 0 && reach.answered === reach.total,
-       `${reach.answered}/${reach.total} reachable, ${reach.behindSomeone} of them behind a figure`);
+       `${reach.answered}/${reach.total} reachable, ${reach.behindSomeone} of them behind a figure, ${reach.hiddenByGround} under a cliff${reach.misses.length ? '; missed ' + JSON.stringify(reach.misses) : ''}`);
   }
 
   // --- reduced motion ------------------------------------------------------

@@ -245,11 +245,16 @@
         window.__updateWaiting = w;
         if (window.game && game.tryUpdatePrompt) game.tryUpdatePrompt();
       };
-      if (reg.waiting) offer();
-      reg.addEventListener('updatefound', () => {
-        const w = reg.installing; if (!w) return;
+      // The update check that register() starts can find a new build before
+      // this handler runs, so a worker already installing is watched too;
+      // waiting on updatefound alone would miss it until the next launch.
+      const watch = (w) => {
+        if (!w) return;
         w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offer(); });
-      });
+      };
+      if (reg.waiting) offer();
+      watch(reg.installing);
+      reg.addEventListener('updatefound', () => watch(reg.installing));
       navigator.serviceWorker.addEventListener('controllerchange', () => { if (window.__reloadOnControl) location.reload(); });
     }).catch(() => {}));
   }
@@ -258,6 +263,7 @@
 <script src="js/data.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/story.js"></script>
+<script src="js/color.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/unit.js"></script>
 <script src="js/map.js"></script>

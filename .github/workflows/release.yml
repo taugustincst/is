@@ -1,0 +1,93 @@
+name: Release
+
+# Builds the Android APK and the single-file web build, and attaches both
+# to a GitHub Release. Run it from the Actions tab with a version number,
+# or push a tag such as v1.6.0.
+#
+# The APK is signed with the debug key (android/app/build.gradle falls back
+# to it when no keystore.properties exists on the builder), so it installs
+# by sideloading on any Android device. It is not the signed bundle Google
+# Play accepts: that needs the upload key, which never leaves its owner's
+# machine (see android/PLAY_STORE.md).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name for the release, e.g. 1.5.0 (the tag becomes v<version>)'
+        required: true
+        type: string
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            V="${GITHUB_REF_NAME#v}"
+          else
+            V="${{ inputs.version }}"
+          fi
+          echo "name=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+          # Every upload to a device store must carry a higher code than the
+          # last; the run number climbs with every run of this workflow.
+          echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "version $V, tag v$V, versionCode ${{ github.run_number }}"
+
+      # The web build: one file, nothing else to fetch.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the single-file web game
+        run: |
+          node tools/validate.js
+          node tools/regress.js
+          node tools/bundle.js
+          cp dist/elderon.html "chronicles-of-elderon-${{ steps.ver.outputs.name }}.html"
+
+      # The Android build, on a runner that has the SDK (see ci.yml for why
+      # sdkmanager is found by hand).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+      - name: Install the SDK platform and build-tools
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME" -name sdkmanager -type f | sort -V | tail -1)"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+      - name: Build the APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon \
+            -PversionCode=${{ steps.ver.outputs.code }} \
+            -PversionName=${{ steps.ver.outputs.name }}
+          cp app/build/outputs/apk/release/app-release.apk \
+             "../chronicles-of-elderon-${{ steps.ver.outputs.name }}.apk"
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Chronicles of Elderon ${{ steps.ver.outputs.name }}
+          files: |
+            chronicles-of-elderon-${{ steps.ver.outputs.name }}.apk
+            chronicles-of-elderon-${{ steps.ver.outputs.name }}.html
+          body: |
+            **Android:** download the `.apk` and open it on the phone to install (Android will ask once to allow installs from this source). It is signed with a debug key for sideloading, not a Google Play upload.
+
+            **Play in a browser:** the `.html` file is the whole game in one file. Open it in Chrome, Firefox or Safari; nothing else is fetched, and it works offline once opened.
+
+            **Or just play online:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/

@@ -598,7 +598,7 @@ class BattleUI {
         if (e.pointerType !== 'mouse') return; // no hover on touch
       }
       if (!this.battle) return;
-      this.hoverAt(p);
+      this.queueHover(p);
     });
 
     const release = (e) => {
@@ -655,6 +655,18 @@ class BattleUI {
     const pts = [...this.pointers.values()];
     if (pts.length < 2) return null;
     return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || null;
+  }
+
+  // pickTile sorts every unit and every ground tile by depth to find what is
+  // under the pointer, real work that a raw pointermove can ask for dozens of
+  // times a second. Coalesce to the freshest position once per frame instead.
+  queueHover(p) {
+    this._hoverAt = p;
+    if (this._hoverFrame) return;
+    this._hoverFrame = requestAnimationFrame(() => {
+      this._hoverFrame = null;
+      if (this._hoverAt) this.hoverAt(this._hoverAt);
+    });
   }
 
   hoverAt(p) {

@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # The one devDependency, playwright-core, and its now-committed lockfile.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+
+  # The Android Gradle Plugin, AndroidX libraries and the Gradle wrapper.
+  - package-ecosystem: 'gradle'
+    directory: '/android'
+    schedule:
+      interval: 'monthly'
+
+  # The pinned actions/*, setup-* and upload-artifact versions in the workflow.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'

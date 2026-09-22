@@ -4,14 +4,16 @@
     <!-- The game is entirely local: no permissions are requested, and without
          INTERNET the app cannot reach the network even if it tried. That is
          also the whole of the Play data-safety story: nothing leaves the
-         device because nothing can. -->
+         device because nothing can. allowBackup is off below for the same
+         reason: a saved game is meant to stay on this device, not ride along
+         in Android's own Auto Backup to the player's Google account. -->
 
     <!-- Playable with a keyboard and mouse too, so devices without a touch
          screen are not filtered out of the listing. -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"

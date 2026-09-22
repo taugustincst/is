@@ -22,10 +22,7 @@ function reducedMotion() {
   catch (e) { return false; }
 }
 
-function rgba(hex, a) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-}
+// rgba() is defined in js/color.js, loaded first.
 
 // Ease-out: effects should hit hard and settle, not drift in.
 const easeOut = (k) => 1 - (1 - k) * (1 - k);
