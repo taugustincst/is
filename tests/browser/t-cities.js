@@ -47,7 +47,10 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     for (let i = 0; i < 6 && await page.isVisible('#screen-story.active'); i++) { await page.click('#btn-story-next'); await page.waitForTimeout(100); }
     await page.waitForSelector('#screen-world.active');
     opened = await page.evaluate(() => game.cityOpen('redwater'));
-    if (!won) await page.evaluate(() => { for (const u of game.state.party) { u.level += 4; u.resetBattleState(); } });
+    // The reavers are levelled a step under the party, so more levels
+    // would only raise them too: a retry eases the fight instead, with the
+    // easiest setting and a tier better gear.
+    if (!won) await page.evaluate(() => { game.state.difficulty = 'squire'; for (const u of game.state.party) { const kit = bestGearFor(u.job, null, 4); for (const [slot, id] of Object.entries(kit)) if (id) u.gear[slot] = id; u.resetBattleState(); } });
   }
   ok('a won battle opens the city and it stays open', opened);
   await page.screenshot({ path: `${S}/city-camp.png`, clip: { x: 150, y: 20, width: 660, height: 470 } });
