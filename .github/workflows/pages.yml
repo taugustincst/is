@@ -4,7 +4,7 @@ name: Pages
 # relative paths and a service worker scoped to its own directory, so it
 # runs unchanged under the repository's subpath. Only the files the game
 # itself needs are published: the tests, tools, store kit and Android
-# project stay out of the site.
+# project stay out of the site. The site lives on the gh-pages branch.
 on:
   push:
     branches: [main]
@@ -20,9 +20,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # One deployment at a time; a newer push supersedes one still queued.
 concurrency:
@@ -31,11 +29,8 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy to GitHub Pages
+    name: Publish to the gh-pages branch
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Stage the site
@@ -46,12 +41,14 @@ jobs:
           # Pages runs Jekyll by default; this tells it to serve the files as they are.
           touch site/.nojekyll
           ls -R site | head -50
-      - uses: actions/configure-pages@v5
+      # The site is served from the gh-pages branch, which GitHub Pages picks
+      # up on its own for a public repository: no site has to be created by
+      # hand first, which the deploy-pages route needs an admin token for
+      # ("Resource not accessible by integration" from the workflow's own).
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          # Creates the Pages site on first run, with GitHub Actions as its source.
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'Publish ${{ github.sha }}'
