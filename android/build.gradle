@@ -3,5 +3,5 @@
 // needs Gradle 8.13 or newer and a JDK 17 or newer, and it is the first line
 // to support compileSdk 36 without a warning.
 plugins {
-    id 'com.android.application' version '8.13.0' apply false
+    id 'com.android.application' version '9.4.1' apply false
 }
