@@ -78,7 +78,7 @@ jobs:
              "../chronicles-of-elderon-${{ steps.ver.outputs.name }}.apk"
 
       - name: Publish the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: Chronicles of Elderon ${{ steps.ver.outputs.name }}
