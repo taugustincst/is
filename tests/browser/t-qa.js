@@ -47,6 +47,9 @@ async function toBattle(page) {
   // QA-007: with nothing saved, Continue and Load Game agree.
   const fresh = await page.evaluate(() => ({ cont: $('btn-continue').disabled, load: $('btn-load').disabled }));
   ok('QA-007: with no save, Load Game is disabled as Continue is', fresh.cont && fresh.load, JSON.stringify(fresh));
+  // Retest: which build is running is on the title screen, for anyone reporting.
+  const shown = await page.evaluate(() => ({ text: $('title-version').textContent, visible: $('title-version').offsetParent !== null, v: GAME_VERSION }));
+  ok('retest: the title screen shows the running version', shown.visible && shown.text === 'v' + shown.v, JSON.stringify(shown));
 
   // QA-011: credits, with the version, and Back returns to the title.
   await page.click('#btn-credits'); await page.waitForSelector('#screen-credits.active');
@@ -166,6 +169,21 @@ async function toBattle(page) {
   await page.waitForSelector('#screen-world.active, #screen-story.active', { timeout: 20000 });
   const camp = await page.evaluate(() => ({ text: document.body.innerText.includes('Battle speed'), toast: $('toast').textContent }));
   ok('QA-005: nor on the camp screen after it', !camp.text && camp.toast === '', JSON.stringify(camp));
+
+  // N2 and N3: a results screen with a level-up and JP to spend names who,
+  // and gives the level as from and to rather than a lone mark.
+  const named = await page.evaluate(() => {
+    const [a, b] = game.state.party;
+    for (const u of [a, b]) { u.jp[u.job] = 999; u.learned = {}; }
+    const from = a.level; a.level = from + 1;
+    game.results('victory', { exp: 10, gil: 0, events: [`${a.name} reached level ${a.level}!`], jpBy: new Map(), levelFrom: new Map([[a, from], [b, b.level]]) }, '', [a, b]);
+    const caps = [...document.querySelectorAll('.res-unit span')].map(s => s.textContent);
+    const note = [...document.querySelectorAll('.res-note')].map(n => n.textContent).join(' ');
+    return { caps, note, a: a.name, b: b.name, from, to: a.level };
+  });
+  ok('N3: a level-up reads as from and to, with no stray mark', named.caps[0] === `${named.a} · Lv${named.from}→${named.to}` && named.caps[1] === `${named.b} · Lv${(await page.evaluate(() => game.state.party[1].level))}` && !named.caps.some(c => / !|↑/.test(c)), JSON.stringify(named.caps));
+  ok('N2: the JP note names who has JP to spend', named.note.includes(`✦ ${named.a} and ${named.b} have JP enough`), named.note);
+  await page.click('#btn-results');
 
   ok('no native dialog was raised anywhere', native === 0, `${native} raised`);
   ok('no page errors', errors.length === 0, errors.join(' | '));

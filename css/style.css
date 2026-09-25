@@ -278,6 +278,7 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .audio-levels output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
 .title-credits { margin-top: 14px; background: none; border: none; color: var(--muted); text-decoration: underline; }
 .title-credits:hover:not(:disabled) { background: none; color: var(--gold); }
+.title-version { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; opacity: 0.7; }
 #screen-credits .credits-box { max-width: 560px; margin: 48px auto; padding: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
 .credits-version { color: var(--muted); margin: 0 0 16px; }
 .credits-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 18px; }
