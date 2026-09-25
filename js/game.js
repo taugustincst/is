@@ -8,7 +8,7 @@ const SLOT_COUNT = 3;
 const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.5.1';
+const GAME_VERSION = '1.5.2';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -142,6 +142,8 @@ class Game {
     $('btn-help-close').onclick = () => $('help').classList.remove('open');
     $('btn-credits').onclick = () => { $('credits-version').textContent = `Version ${GAME_VERSION}`; this.showScreen('credits'); };
     $('btn-credits-back').onclick = () => this.showScreen('title');
+    // Which build is running, where anyone reporting a problem will see it.
+    $('title-version').textContent = `v${GAME_VERSION}`;
   }
 
   // Effects and music levels, in the battle's help panel and at camp. Each
@@ -1524,6 +1526,7 @@ class Game {
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
     const roster = this.state.party.filter(u => !this.errandOf(u));
+    const levelBefore = new Map(roster.map(u => [u, u.level]));
     const jpBefore = new Map(roster.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
     const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty);
     this.battle = battle;
@@ -1569,6 +1572,7 @@ class Game {
     for (const u of fought) { u.record.battles++; if (result === 'victory') u.record.wins++; }
     this.battle = null;
     const r0 = battle.rewards;
+    r0.levelFrom = levelBefore;
     r0.jpBy = new Map(fought.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0) - (jpBefore.get(u) || 0)]));
     // A battle is a day gone by for anyone away on an errand. A retreat is
     // not, or errands could be farmed by deploying and leaving.
@@ -1643,7 +1647,8 @@ class Game {
         paintUnitSprite(cv, u, 2);
         item.appendChild(cv);
         const cap = document.createElement('span');
-        cap.textContent = `${u.name} · Lv${u.level}${up ? ' ↑' : ''}${down ? ' · fell' : ''}`;
+        const from = r.levelFrom ? r.levelFrom.get(u) : null;
+        cap.textContent = `${u.name} · Lv${up && from && from < u.level ? `${from}→${u.level}` : u.level}${down ? ' · fell' : ''}`;
         item.appendChild(cap);
         const jp = r.jpBy ? (r.jpBy.get(u) || 0) : 0;
         const learn = this.canLearnSomething(u);
@@ -1654,10 +1659,13 @@ class Game {
         if (learn) item.classList.add('learn');
         roll.appendChild(item);
       }
-      if (fought.some(u => this.canLearnSomething(u))) {
+      const learners = fought.filter(u => this.canLearnSomething(u)).map(u => u.name);
+      if (learners.length) {
         const note = document.createElement('p');
         note.className = 'res-note';
-        note.textContent = '✦ has JP enough for something new. Spend it in Formation.';
+        const who = learners.length === 1 ? learners[0]
+          : `${learners.slice(0, -1).join(', ')} and ${learners[learners.length - 1]}`;
+        note.textContent = `✦ ${who} ${learners.length === 1 ? 'has' : 'have'} JP enough for something new. Spend it in Formation.`;
         roll.after(note);
       }
       $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };
