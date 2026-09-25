@@ -1,0 +1,318 @@
+/* ==========================================================================
+   Unit model: persistent character data + battle-time state.
+   ========================================================================== */
+
+const DIRS = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
+
+let unitSeq = 1;
+
+// A job to fall back on when a save names one this build does not have. Renaming
+// or retiring a job must never make an existing save unloadable.
+const FALLBACK_JOB = 'squire';
+
+class Unit {
+  constructor(opts) {
+    // An id that arrives from a save advances the counter past itself, so a
+    // unit made later in the same session can never share it.
+    if (opts.id) { const n = /^u(\d+)$/.exec(opts.id); if (n) unitSeq = Math.max(unitSeq, +n[1] + 1); }
+    this.id = opts.id || `u${unitSeq++}`;
+    this.job = JOBS[opts.job] ? opts.job : FALLBACK_JOB;
+    // A name is text: whatever a save carries, no markup gets into the panels.
+    this.name = String(opts.name || JOBS[this.job].name).replace(/[<>&"]/g, '').slice(0, 24) || JOBS[this.job].name;
+    this.level = opts.level || 1;
+    this.exp = opts.exp || 0;
+    this.team = opts.team || 'player';
+    this.leader = !!opts.leader;
+    this.boss = !!opts.boss;
+    this.jp = opts.jp || {};            // spendable JP per job
+    this.jpTotal = opts.jpTotal || {};  // lifetime JP per job (job level)
+    // Learned things this build no longer has are dropped, so nothing downstream
+    // has to guard against an ability or passive that cannot be looked up.
+    this.learned = {};
+    for (const id of Object.keys(opts.learned || {})) {
+      if (ABILITIES[id] || PASSIVES[id]) this.learned[id] = true;
+    }
+    // A secondary naming a job this build does not have is simply dropped.
+    this.secondary = JOBS[opts.secondary] ? opts.secondary : null;
+    // One equipped passive of each kind; they may come from any job ever studied.
+    // Anything this build no longer recognises is dropped rather than kept.
+    this.passives = { reaction: null, support: null, movement: null };
+    for (const [kind, id] of Object.entries(opts.passives || {})) {
+      if (PASSIVES[id] && PASSIVES[id].kind === kind && kind in this.passives) this.passives[kind] = id;
+    }
+    // Equipped items keyed by slot. Player recruits arrive in their job's free kit.
+    this.gear = {};
+    if (opts.gear) {
+      for (const [slot, id] of Object.entries(opts.gear)) {
+        if (SLOT_NAMES[slot] && ITEMS[id]) this.gear[slot] = id;
+      }
+    } else if (STARTER_GEAR[this.job]) {
+      this.gear = Object.assign({}, STARTER_GEAR[this.job]);
+    }
+    this.gilStolen = 0;
+    this.gilFound = 0;
+    // What the war has written about this unit so far.
+    const r = opts.record || {};
+    this.record = { battles: r.battles | 0, wins: r.wins | 0, kills: r.kills | 0, falls: r.falls | 0 };
+    if (opts.autoLearn) this.autoLearn(opts.autoLearn);
+    this.resetBattleState();
+  }
+
+  static fromSave(data) {
+    const u = new Unit(data);
+    return u;
+  }
+
+  toSave() {
+    return {
+      id: this.id, name: this.name, job: this.job, level: this.level, exp: this.exp, team: this.team,
+      leader: this.leader, jp: this.jp, jpTotal: this.jpTotal, learned: this.learned, secondary: this.secondary, record: this.record,
+      gear: this.gear, passives: this.passives,
+    };
+  }
+
+  get jobData() { return JOBS[this.job]; }
+
+  // Enemies/monsters know a random subset of their job abilities scaled by level.
+  autoLearn(frac) {
+    const abs = this.jobData.abilities;
+    const n = Math.max(1, Math.round(abs.length * frac));
+    for (let i = 0; i < n; i++) this.learned[abs[i]] = true;
+  }
+
+  jobLevel(job) { return jobLevelFromJP(this.jpTotal[job] || 0); }
+
+  canUseJob(job) {
+    const j = JOBS[job];
+    if (!j || j.req === null) return false;
+    return Object.entries(j.req).every(([rj, lvl]) => this.jobLevel(rj) >= lvl);
+  }
+
+  learnedIn(job) { return JOBS[job] ? JOBS[job].abilities.filter(a => this.learned[a]) : []; }
+
+  // ---- passives ------------------------------------------------------------
+  hasPassive(id) {
+    return this.passives.reaction === id || this.passives.support === id || this.passives.movement === id;
+  }
+
+  learnedPassives(kind) {
+    return Object.keys(PASSIVES).filter(id => this.learned[id] && (!kind || PASSIVES[id].kind === kind));
+  }
+
+  // Equip a passive, clearing whatever held that slot before.
+  setPassive(kind, id) {
+    if (id && (!PASSIVES[id] || PASSIVES[id].kind !== kind || !this.learned[id])) return false;
+    this.passives[kind] = id || null;
+    return true;
+  }
+
+  equipExtra() { return passiveEquipBonus(this); }
+  canEquipItem(id, slot) { return canEquipInSlot(this.job, id, slot, this.equipExtra()); }
+
+  // ---- equipment ----------------------------------------------------------
+  equipped(slot) { const id = this.gear[slot]; return id ? ITEMS[id] : null; }
+
+  // Summed stat bonuses from every equipped item.
+  gearBonus() {
+    const b = { hp: 0, mp: 0, pa: 0, ma: 0, spd: 0, move: 0, jump: 0, evade: 0 };
+    for (const slot of Object.keys(SLOT_NAMES)) {
+      const it = this.equipped(slot);
+      if (!it) continue;
+      for (const k of GEAR_STATS) if (it[k]) b[k] += it[k];
+    }
+    return b;
+  }
+
+  // Drop anything this unit's current job cannot wear. Returns the removed ids
+  // so the caller can put them back into the shared stock.
+  dropInvalidGear() {
+    const removed = [];
+    for (const slot of Object.keys(SLOT_NAMES)) {
+      const id = this.gear[slot];
+      if (id && !this.canEquipItem(id, slot)) { removed.push(id); delete this.gear[slot]; }
+    }
+    // Two Hands needs the offhand free.
+    if (this.hasPassive('twoHands') && this.gear.offhand) { removed.push(this.gear.offhand); delete this.gear.offhand; }
+    return removed;
+  }
+
+  // ---- derived stats -----------------------------------------------------
+  // Job and level baseline plus equipment. Battle-time `mods` are added on top
+  // by the individual stat getters.
+  baseStats() {
+    const L = this.level, j = this.jobData, g = this.gearBonus();
+    return {
+      maxHp: Math.max(1, Math.floor((45 + 12 * L) * j.hp) + g.hp),
+      maxMp: Math.max(0, Math.floor((10 + 4 * L) * j.mp) + g.mp),
+      pa: Math.max(1, Math.floor((5 + 0.8 * L) * j.pa) + g.pa),
+      ma: Math.max(1, Math.floor((5 + 0.8 * L) * j.ma) + g.ma),
+      spd: Math.max(1, Math.floor((6 + 0.12 * L) * j.spd) + g.spd),
+      move: Math.max(1, j.move + g.move + (this.hasPassive('movePlus1') ? 1 : 0) + (this.hasPassive('movePlus2') ? 2 : 0)),
+      jump: this.hasPassive('sureFooting') ? 99 : Math.max(1, j.jump + g.jump + (this.hasPassive('jumpPlus2') ? 2 : 0)),
+      evade: Math.max(0, j.evade + g.evade),
+    };
+  }
+
+  get maxHp() { return this.baseStats().maxHp; }
+  get maxMp() { return this.baseStats().maxMp; }
+  get pa() { return Math.max(1, this.baseStats().pa + (this.mods.pa || 0)); }
+  get ma() { return Math.max(1, this.baseStats().ma + (this.mods.ma || 0)); }
+  get spd() { return Math.max(1, this.baseStats().spd + (this.mods.spd || 0)); }
+  // Battle modifiers reach every stat an ability can raise, not only the
+  // three the first abilities touched: an evasion buff that changed a number
+  // nobody read was a buff in name only.
+  get move() { return Math.max(1, this.baseStats().move + (this.mods.move || 0)); }
+  get jump() { return Math.max(1, this.baseStats().jump + (this.mods.jump || 0) + (this.hasPassive('jumpPlus3') ? 3 : 0)); }
+  get evade() { return Math.max(0, this.baseStats().evade + (this.mods.evade || 0)); }
+  // The equipped weapon, or the job's innate one (bare hands, claws, fangs),
+  // with support abilities folded into its power.
+  get weapon() {
+    const base = this.equipped('weapon') || this.jobData.weapon;
+    let mult = 1;
+    if (this.hasPassive('twoHands') && !this.gear.offhand) mult *= 1.5;
+    if (this.hasPassive('martialArts') && (base.wtype === 'fist' || base === this.jobData.weapon)) mult *= 1.5;
+    if (mult === 1) return base;
+    return Object.assign({}, base, { power: Math.floor(base.power * mult) });
+  }
+
+  // A second weapon in the offhand, for jobs that dual wield.
+  get offhandWeapon() {
+    const it = this.equipped('offhand');
+    return it && it.slot === 'weapon' ? it : null;
+  }
+  get dualWielding() { return !!this.offhandWeapon && !this.hasPassive('twoHands'); }
+
+  // Effective CT gain per tick.
+  ctSpeed() {
+    if (this.hasStatus('stop')) return 0;
+    let s = this.spd;
+    if (this.hasStatus('haste')) s = Math.floor(s * 1.5);
+    if (this.hasStatus('slow')) s = Math.max(1, Math.floor(s * 0.5));
+    return s;
+  }
+
+  get alive() { return this.hp > 0; }
+
+  resetBattleState() {
+    this.hp = this.maxHp;
+    this.mp = this.maxMp;
+    this.ct = 0;
+    this.x = -1; this.y = -1;
+    this.carriedOff = false;
+    this.facing = 'S';
+    this.mods = {};
+    this.statuses = {}; // id -> remaining ticks
+    this.airborne = false;
+    this.turnFlags = { moved: false, acted: false };
+    this.anim = null;
+    this.koCount = undefined; // turns left before a fallen unit leaves the field
+    this._regenFired = false;
+    this._deathLogged = false;
+    this._tookHit = false;
+  }
+
+  hasStatus(id) { return this.statuses[id] > 0; }
+
+  // Some gear simply refuses an affliction.
+  wardsOff(id) {
+    if ((id === 'slow' || id === 'stop') && this.hasPassive('ironFooting')) return true;
+    if ((id === 'silence' || id === 'stop') && this.hasPassive('ironWill')) return true;
+    for (const slot of Object.keys(SLOT_NAMES)) {
+      const it = this.equipped(slot);
+      if (it && it.wards && it.wards.includes(id)) return true;
+    }
+    return false;
+  }
+
+  addStatus(id) { if (!this.wardsOff(id)) this.statuses[id] = STATUSES[id].dur; }
+  removeStatus(id) { delete this.statuses[id]; }
+
+  // ---- progression --------------------------------------------------------
+  gainExp(amount) {
+    if (this.team !== 'player') return [];
+    const events = [];
+    this.exp += amount;
+    while (this.exp >= 100 && this.level < 50) {
+      this.exp -= 100;
+      this.level++;
+      events.push(`${this.name} reached level ${this.level}!`);
+      // Level-ups raise max HP; keep current HP proportional so it feels like growth.
+      this.hp = Math.min(this.maxHp, this.hp + 12);
+    }
+    return events;
+  }
+
+  gainJP(amount) {
+    if (this.team !== 'player' || this.jobData.kind === 'monster') return null;
+    const before = this.jobLevel(this.job);
+    this.jp[this.job] = (this.jp[this.job] || 0) + amount;
+    this.jpTotal[this.job] = (this.jpTotal[this.job] || 0) + amount;
+    const after = this.jobLevel(this.job);
+    return after > before ? `${this.name}'s ${this.jobData.name} job reached level ${after}!` : null;
+  }
+
+  // Silence seals anything that costs MP; a berserk unit only swings.
+  canUse(abId) {
+    const ab = ABILITIES[abId];
+    if (!ab) return false;
+    if (this.hasStatus('berserk')) return abId === 'attack';
+    if (this.hasStatus('silence') && ab.mp > 0) return false;
+    return true;
+  }
+
+  // Abilities available in battle: Attack + primary skillset + secondary skillset.
+  actionMenu() {
+    const menu = [{ label: 'Attack', abilities: ['attack'] }];
+    const prim = this.learnedIn(this.job);
+    if (prim.length) menu.push({ label: this.jobData.skillset, abilities: prim });
+    if (this.secondary && this.secondary !== this.job) {
+      const sec = this.learnedIn(this.secondary);
+      if (sec.length) menu.push({ label: JOBS[this.secondary].skillset, abilities: sec });
+    }
+    return menu;
+  }
+
+  allAbilities() {
+    return this.actionMenu().flatMap(m => m.abilities);
+  }
+}
+
+// Build an enemy unit for a battle. Human foes are kitted out for their level so
+// they keep pace with an equipped party; monsters fight with what nature gave them.
+function makeEnemy(spec, difficulty) {
+  const job = JOBS[spec.job];
+  const d = DIFFICULTIES[difficulty] || DIFFICULTIES.knight;
+  // Difficulty shifts the opposition; bosses never drop below their own level.
+  const level = Math.max(1, spec.level + (spec.boss ? Math.max(0, d.levelShift) : d.levelShift));
+  const u = new Unit({
+    name: spec.name || job.name, job: spec.job, level, team: 'enemy', boss: spec.boss,
+    gear: spec.gear || enemyGearFor(spec.job, level + (spec.boss ? 3 : 0), d.gearShift),
+  });
+  // A boss may have further shapes waiting behind the first.
+  if (spec.phases) u.phases = spec.phases.map(p => Object.assign({}, p));
+  // Enemies know more abilities at higher levels; bosses know everything. Early
+  // foes stay simple so the opening chapters teach rather than punish.
+  const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);
+  u.autoLearn(frac);
+  // From the middle of the campaign on, foes bring passives of their own. A spec
+  // may name them outright; otherwise they come from the job's own teachings.
+  const slots = spec.boss ? 3 : Math.min(3, Math.floor(level / 3));
+  const wanted = spec.passives || passivesOfJob(spec.job).slice(0, 3);
+  for (const id of wanted) {
+    if (!PASSIVES[id]) continue;
+    const kind = PASSIVES[id].kind;
+    if (u.passives[kind] || Object.values(u.passives).filter(Boolean).length >= slots) continue;
+    u.learned[id] = true;
+    u.passives[kind] = id;
+  }
+  u.x = spec.x; u.y = spec.y;
+  return u;
+}
+
+// "12 battles, 9 won · 31 felled · fallen twice", or "no battles yet".
+function recordLine(u) {
+  const r = u.record;
+  if (!r.battles) return 'no battles yet';
+  const times = (n) => n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
+  return `${r.battles} battle${r.battles === 1 ? '' : 's'}, ${r.wins} won · ${r.kills} felled · ${r.falls ? `fallen ${times(r.falls)}` : 'never fallen'}`;
+}

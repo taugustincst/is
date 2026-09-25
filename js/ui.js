@@ -1,0 +1,765 @@
+/* ==========================================================================
+   Battle UI: player turn state machine, menus, turn order, log, prediction.
+   ========================================================================== */
+
+// Phrase the prompts for whatever the player is actually using.
+const TOUCH_ONLY = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+const CANCEL_HINT = TOUCH_ONLY ? 'Cancel goes back.' : 'Right-click or Esc cancels.';
+
+class BattleUI {
+  constructor(renderer) {
+    this.r = renderer;
+    this.cv = renderer.cv;
+    this.battle = null;
+    this.turn = null;      // {unit, mode, ability, reach, targets, resolve}
+    this.hover = null;
+    this.drag = null;
+    this.el = {
+      order: document.getElementById('turn-order'),
+      card: document.getElementById('unit-card'),
+      menu: document.getElementById('action-menu'),
+      pred: document.getElementById('prediction'),
+      log: document.getElementById('log'),
+      roster: document.getElementById('deploy-panel'),
+      banner: document.getElementById('banner'),
+      tileInfo: document.getElementById('tile-info'),
+      objective: document.getElementById('objective'),
+      hint: document.getElementById('hint'),
+    };
+    this.bindInput();
+  }
+
+  bind(battle) {
+    this.setAuto(false);
+    this.threatOf = null;
+    this.battle = battle;
+    this.turn = null;
+    this.deploy = null;
+    this.el.log.innerHTML = '';
+    this.el.menu.innerHTML = '';
+    this.el.pred.innerHTML = '';
+    this.refresh();
+  }
+
+  /* Turn the board a quarter turn. Whatever panel is open is redrawn after,
+     because the compass arrows in it point at the board and the board has
+     moved. */
+  turnField(dir) {
+    if (!this.r.battle) return;
+    audio.sfx('menu');
+    return this.r.rotate(dir).then(() => {
+      if (this.deploy) this.renderDeploy();
+      else this.refresh();
+    });
+  }
+
+  hooks() {
+    return {
+      log: (m, cls) => this.log(m, cls),
+      refresh: () => this.refresh(),
+      showFloat: (u, t, c) => this.r.showFloat(u, t, c),
+      animateMove: (u, p) => { audio.sfx('move'); return this.r.animateMove(u, p); },
+      animateAction: (u, ab, x, y) => this.r.animateAction(u, ab, x, y),
+      onImpact: (t, ab, v, user) => this.r.onImpact(t, ab, v, user),
+      onSound: (n) => audio.sfx(n),
+      onEvade: (t) => this.r.onEvade(t),
+      onJump: (u) => this.r.onJump(u),
+      onLand: (u, x, y) => this.r.onLand(u, x, y),
+      onDeath: (u) => this.r.onDeath(u),
+      focus: (u) => this.r.focus(u),
+      onTurnStart: async (u) => { await this.r.focus(u); this.banner(`${u.name}'s turn`, u.team); this.refresh(); },
+      onTurnEnd: () => { this.r.clearHighlights(); this.refresh(); },
+      awaitPlayerTurn: (u) => this.awaitPlayerTurn(u),
+    };
+  }
+
+  // ---- logging / info panels ---------------------------------------------------------
+  // Every engine event is logged, so the log is also where battle sound lives.
+  static LOG_SFX = { heal: 'heal', miss: 'miss', ko: 'ko', lvl: 'levelup' };
+
+  log(msg, cls = '') {
+    const sfx = BattleUI.LOG_SFX[cls];
+    if (sfx) audio.sfx(sfx);
+    const d = document.createElement('div');
+    d.className = `log-line ${cls}`;
+    d.textContent = msg;
+    this.el.log.appendChild(d);
+    while (this.el.log.children.length > 60) this.el.log.removeChild(this.el.log.firstChild);
+    this.el.log.scrollTop = this.el.log.scrollHeight;
+  }
+
+  banner(text, team) {
+    const b = this.el.banner;
+    b.textContent = text;
+    b.className = `banner show ${team}`;
+    clearTimeout(this._bt);
+    this._bt = setTimeout(() => { b.className = 'banner'; }, 1100);
+  }
+
+  // Tell the renderer how much of the canvas the panels are covering, so the
+  // board can be framed in what is left. Measured from the real elements, which
+  // is the only thing that survives every breakpoint and orientation.
+  measureInsets() {
+    const cv = this.cv;
+    const scale = 1; // the board is laid out in CSS pixels; the backing store scales underneath
+    const ins = { top: 0, bottom: 0, left: 0, right: 0 };
+    const box = (el) => (el && el.offsetParent !== null && getComputedStyle(el).display !== 'none')
+      ? el.getBoundingClientRect() : null;
+    const H = cv.clientHeight, W = cv.clientWidth;
+    for (const id of ['battle-top', 'turn-order', 'unit-card', 'log', 'command', 'deploy-panel', 'hint']) {
+      const r = box(document.getElementById(id));
+      if (!r || !r.width || !r.height) continue;
+      // Only a panel that runs most of the way along an edge takes a band out
+      // of the view. A panel sitting in a corner blocks a corner, and the board
+      // is mostly empty there, so it is left to overlap rather than squeezing
+      // the whole board into what is left between four corners.
+      if (r.width > W * 0.6) {
+        if (r.top + r.height / 2 < H / 2) ins.top = Math.max(ins.top, r.bottom);
+        else ins.bottom = Math.max(ins.bottom, H - r.top);
+      } else if (r.height > H * 0.6) {
+        if (r.left + r.width / 2 < W / 2) ins.left = Math.max(ins.left, r.right);
+        else ins.right = Math.max(ins.right, W - r.left);
+      }
+    }
+    this.r.insets = { top: ins.top * scale, bottom: ins.bottom * scale, left: ins.left * scale, right: ins.right * scale };
+  }
+
+  showObjective() {
+    if (!this.battle || !this.el.objective) return;
+    this.el.objective.textContent = this.battle.objectiveText();
+  }
+
+  refresh() {
+    if (!this.battle) return;
+    this.measureInsets();
+    this.showObjective();
+    if (this.deploy) this.renderEnemyRoster(); else this.renderOrder();
+    const u = (this.hover && this.battle.unitAt(this.hover.x, this.hover.y)) || (this.turn && this.turn.unit) || this.battle.active;
+    this.renderCard(u);
+  }
+
+  renderOrder() {
+    const list = this.battle.forecast(9);
+    let html = '<div class="panel-title">Turn Order</div>';
+    for (const e of list) {
+      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? e.unit.jobData.name : 'fallen'}</span></div>`;
+      else html += `<div class="order-row pending"><span class="dot"></span>${e.p.ability.name}<span class="sub">${e.p.unit.name}</span></div>`;
+    }
+    this.el.order.innerHTML = html;
+  }
+
+  renderCard(u) {
+    if (!u) { this.el.card.innerHTML = ''; return; }
+    // Each status names what it does on hover or a long press.
+    const st = Object.keys(u.statuses).map(s => `<span class="status" title="${STATUSES[s].desc}" style="background:${STATUSES[s].color}">${STATUSES[s].name}</span>`).join('');
+    // Only show elements this unit actually answers, so the card stays short.
+    const aff = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
+      .map(a => `<span class="aff" style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join('');
+    const mods = Object.entries(u.mods).filter(([, v]) => v).map(([k, v]) => `${k.toUpperCase()} ${v > 0 ? '+' : ''}${v}`).join(', ');
+    // What the enemy can do, so a Coven Mage's Fire is not a surprise. Your
+    // own units' skills are a menu away; theirs are only knowable here.
+    const skills = u.team !== 'player' && u.alive
+      ? u.allAbilities().filter(id => id !== 'attack').map(id => ABILITIES[id].name).slice(0, 8).join(' · ')
+      : '';
+    this.el.card.innerHTML = `
+      <div class="card-head ${u.team}"><canvas class="card-face"></canvas><b>${u.name}</b><span>Lv ${u.level} ${u.jobData.name}${u.boss ? ' ★' : ''}</span></div>
+      <div class="bar hp"><i style="width:${(u.hp / u.maxHp) * 100}%"></i><span>HP ${u.hp}/${u.maxHp}</span></div>
+      <div class="bar mp"><i style="width:${u.maxMp ? (u.mp / u.maxMp) * 100 : 0}%"></i><span>MP ${u.mp}/${u.maxMp}</span></div>
+      <div class="bar ct"><i style="width:${Math.min(100, u.ct)}%"></i><span>CT ${u.ct}</span></div>
+      <div class="stats">
+        <span>PA ${u.pa}</span><span>MA ${u.ma}</span><span>SPD ${u.spd}</span>
+        <span>Move ${u.move}</span><span>Jump ${u.jump}</span><span>Evade ${u.evade}%</span>
+      </div>
+      ${mods ? `<div class="mods">${mods}</div>` : ''}
+      <div class="statuses">${st}</div>
+      ${aff ? `<div class="affinities">${aff}</div>` : ''}
+      ${skills ? `<div class="card-skills">${skills}</div>` : ''}
+      ${u.alive ? '' : `<div class="ko">KO${u.koCount ? ` — carried off in ${u.koCount}` : ''}</div>`}`;
+    // A face on the card, so the figure you tapped and the numbers you read
+    // are plainly the same person.
+    paintUnitSprite(this.el.card.querySelector('.card-face'), u, 1);
+  }
+
+  renderTileInfo(t) {
+    if (!t) { this.el.tileInfo.textContent = ''; return; }
+    const names = { g: 'Grass', d: 'Dirt', s: 'Stone', b: 'Wood', w: 'Water', t: 'Tree' };
+    const k = this.battle && this.battle.crystalAt && this.battle.crystalAt(t.x, t.y);
+    this.el.tileInfo.textContent = `${names[t.t] || '?'}  (${t.x},${t.y})  height ${t.h}${k ? `  · ${k.from}'s crystal: restores whoever stands here` : ''}`;
+  }
+
+  // ---- deployment -------------------------------------------------------------------
+  // Runs before the first tick: pick who fights and where they stand.
+  deployPhase(battle, roster) {
+    return new Promise(resolve => {
+      this.battle = battle;
+      this.deploy = { roster, sel: roster.find(u => u.x >= 0) || roster[0], resolve };
+      battle.showDeploy = true;
+      document.getElementById('command').style.display = 'none';
+      this.renderDeploy();
+      this.renderEnemyRoster();
+    });
+  }
+
+  endDeploy() {
+    const d = this.deploy;
+    if (!d) return;
+    if (!this.battle.deployed().length) { this.toastHint('Place at least one unit.'); return; }
+    // A battle that is lost when the leader falls cannot be fought without them.
+    const need = this.battle.requiredUnit;
+    if (need && !this.battle.onField(need)) {
+      this.toastHint(`${need.name} must take the field: this battle is lost without them.`);
+      return;
+    }
+    this.deploy = null;
+    this.battle.showDeploy = false;
+    this.el.roster.innerHTML = '';
+    this.el.roster.classList.remove('open');
+    document.getElementById('command').style.display = '';
+    this.el.hint.textContent = '';
+    this.el.hint.classList.remove('warn');
+    d.resolve();
+  }
+
+  // Park the hint just above whichever bottom-right panel is showing.
+  placeHint() {
+    const panel = this.deploy ? this.el.roster : this.el.menu.parentElement;
+    const h = panel && panel.offsetParent ? panel.offsetHeight : 0;
+    this.el.hint.style.bottom = `${h + 18}px`;
+  }
+
+  toastHint(msg) {
+    this.el.hint.textContent = msg;
+    this.placeHint();
+    this.el.hint.classList.add('warn');
+    clearTimeout(this._hintTimer);
+    this._hintTimer = setTimeout(() => this.el.hint.classList.remove('warn'), 1200);
+  }
+
+  renderEnemyRoster() {
+    const foes = this.battle.units.filter(u => u.team === 'enemy');
+    this.el.order.innerHTML = '<div class="panel-title">Opposition</div>' + foes.map(u =>
+      `<div class="order-row enemy"><span class="dot"></span>${u.name}<span class="sub">Lv${u.level} ${u.jobData.name}</span></div>`).join('');
+  }
+
+  renderDeploy() {
+    const d = this.deploy;
+    if (!d) return;
+    const b = this.battle;
+    const placed = b.deployed().length;
+    const need = b.requiredUnit && !this.battle.onField(b.requiredUnit)
+      ? `${b.requiredUnit.name} must take the field. ` : '';
+    const verb = TOUCH_ONLY ? 'Tap' : 'Click';
+    this.el.hint.textContent = `${need}${verb} a green tile to place ${d.sel ? d.sel.name : 'a unit'}. ${verb} a deployed unit to pick it up.`;
+    this.el.hint.classList.toggle('warn', !!need);
+    this.el.roster.classList.add('open');
+    this.el.roster.innerHTML = `
+      <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
+      <div class="roster-list">${d.roster.map((u, i) => `
+        <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}" tabindex="0" role="button">
+          <canvas class="row-portrait" data-portrait="${i}"></canvas>
+          <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
+          <span class="job">Lv${u.level} ${u.jobData.name}</span>
+          <span class="mark">${u.x >= 0 ? '●' : '○'}</span>
+        </div>`).join('')}</div>
+      <div class="dirs deploy-dirs">
+        <button data-d="N">${dirArrow('N', this.r.rot)} N</button><button data-d="E">${dirArrow('E', this.r.rot)} E</button>
+        <button data-d="W">${dirArrow('W', this.r.rot)} W</button><button data-d="S">${dirArrow('S', this.r.rot)} S</button>
+      </div>
+      <div class="deploy-actions">
+        <button data-a="auto">Auto-place</button>
+        <button data-a="clear">Clear</button>
+        <button data-a="go" class="primary">Begin Battle</button>
+      </div>`;
+    this.placeHint();
+    // Whoever you are about to send in, wearing what you gave them.
+    this.el.roster.querySelectorAll('canvas[data-portrait]').forEach(cv => paintUnitSprite(cv, d.roster[+cv.dataset.portrait], 1));
+    this.el.roster.querySelectorAll('.roster-row').forEach(r => r.onclick = () => {
+      d.sel = d.roster[+r.dataset.i];
+      if (d.sel.x >= 0) this.r.focus(d.sel);
+      this.renderDeploy();
+    });
+    this.el.roster.querySelectorAll('button[data-d]').forEach(btn => btn.onclick = () => {
+      if (d.sel && d.sel.x >= 0) { d.sel.facing = btn.dataset.d; this.refresh(); }
+    });
+    this.el.roster.querySelectorAll('button[data-a]').forEach(btn => btn.onclick = () => {
+      const a = btn.dataset.a;
+      if (a === 'auto') {
+        // Place the company afresh, whatever was standing where: the button
+        // used to fill only empty slots, which on a field that opens already
+        // filled did nothing at all.
+        for (const u of d.roster) b.withdraw(u);
+        b.autoDeploy(d.roster);
+        d.sel = d.roster.find(u => u.x < 0 && b.deployed().length < b.maxDeploy) || d.roster.find(u => u.x >= 0) || d.roster[0];
+        if (d.sel && d.sel.x >= 0) this.r.focus(d.sel);
+        this.renderDeploy();
+        // After the redraw, so the panel's own hint does not wipe it.
+        this.toastHint(`Placed ${b.deployed().length} of ${Math.min(b.maxDeploy, d.roster.length)}, facing the enemy.`);
+        return;
+      }
+      else if (a === 'clear') for (const u of d.roster) b.withdraw(u);
+      else return this.endDeploy();
+      this.renderDeploy();
+    });
+    this.refresh();
+  }
+
+  onDeployClick(tile) {
+    const d = this.deploy, b = this.battle;
+    if (!d || !tile) return;
+    audio.sfx('menu');
+    const occupant = b.unitAt(tile.x, tile.y);
+    if (occupant && occupant.team === 'player') {
+      // Clicking the selected unit picks it back up; clicking another selects it.
+      if (occupant === d.sel) b.withdraw(occupant); else d.sel = occupant;
+      return this.renderDeploy();
+    }
+    if (occupant) return this.toggleThreat(occupant); // an enemy stands there: show its reach
+    if (!d.sel) return;
+    if (this.threatOf) { this.threatOf = null; this.r.hl.threat.clear(); }
+    if (!b.placeUnit(d.sel, tile.x, tile.y)) {
+      this.toastHint(b.deployKeys.has(`${tile.x},${tile.y}`) ? `Only ${b.maxDeploy} units may deploy.` : 'Outside the deployment zone.');
+      return;
+    }
+    // Move the selection along to the next unit still waiting in reserve.
+    const next = d.roster.find(u => u.x < 0);
+    if (next && b.deployed().length < b.maxDeploy) d.sel = next;
+    this.renderDeploy();
+  }
+
+  // ---- player turn ------------------------------------------------------------------
+  // Auto hands your turns to the same AI the enemy uses, until you take them
+  // back. It is a convenience for training fights, not a way to play well.
+  setAuto(on) {
+    this.auto = !!on;
+    const b = document.getElementById('btn-auto');
+    if (b) { b.classList.toggle('on', this.auto); b.setAttribute('aria-pressed', this.auto ? 'true' : 'false'); }
+    if (this.battle && !this.battle.over) {
+      this.el.hint.textContent = this.auto ? 'Auto: your units act on their own. Press Auto again to take back command.' : 'Auto off: command returns to you at the next turn.';
+      this.placeHint();
+    }
+    // Switching Auto on in the middle of a unit's menu hands that turn over now.
+    if (this.auto && this.turn && this.turn.mode !== 'busy' && this.turn.mode !== 'auto') {
+      const t = this.turn;
+      t.mode = 'auto';
+      this.r.clearHighlights(); this.threatOf = null;
+      this.el.menu.innerHTML = `<div class="menu-title">${t.unit.name}</div><div class="muted">acting on Auto</div>`;
+      this.el.pred.innerHTML = '';
+      this.battle.aiTurn(t.unit).then(() => { if (this.turn === t) this.endTurn(); });
+    }
+  }
+
+  awaitPlayerTurn(unit) {
+    if (this.auto) {
+      this.turn = { unit, mode: 'auto', ability: null, reach: null, targets: null, resolve: null };
+      this.el.menu.innerHTML = `<div class="menu-title">${unit.name}</div><div class="muted">acting on Auto</div>`;
+      return this.battle.aiTurn(unit).then(() => { if (this.turn && this.turn.unit === unit) this.endTurn(); });
+    }
+    return new Promise(resolve => {
+      this.turn = { unit, mode: 'menu', ability: null, reach: null, targets: null, resolve };
+      this.setMode('menu');
+    });
+  }
+
+  endTurn() {
+    const t = this.turn;
+    this.turn = null;
+    this.r.clearHighlights();
+    this.el.menu.innerHTML = '';
+    this.el.pred.innerHTML = '';
+    this.el.hint.textContent = '';
+    if (t && t.resolve) t.resolve();
+  }
+
+  // Called from the game screen when the player retreats.
+  abort() {
+    if (this.deploy) {
+      const d = this.deploy;
+      this.deploy = null;
+      this.battle.showDeploy = false;
+      this.el.roster.innerHTML = '';
+      this.el.roster.classList.remove('open');
+      document.getElementById('command').style.display = '';
+      d.resolve();
+      return;
+    }
+    if (this.turn) this.endTurn();
+  }
+
+  setMode(mode) {
+    const t = this.turn; if (!t) return;
+    t.mode = mode;
+    this.r.clearHighlights();
+    this.threatOf = null;
+    this.el.pred.innerHTML = '';
+    const u = t.unit;
+    const hint = this.el.hint;
+    if (mode === 'menu') {
+      hint.textContent = `Choose an action. ${CANCEL_HINT}`;
+      if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
+      const canUndo = !!t.undo && u.turnFlags.moved && !u.turnFlags.acted;
+      this.el.menu.innerHTML = `
+        <div class="menu-title">${u.name}</div>
+        <button data-a="move" ${u.turnFlags.moved ? 'disabled' : ''}>Move</button>
+        ${canUndo ? '<button data-a="undo">Undo Move</button>' : ''}
+        <button data-a="act" ${u.turnFlags.acted ? 'disabled' : ''}>Act</button>
+        <button data-a="wait">Wait</button>`;
+      this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => this.menuAction(b.dataset.a));
+    } else if (mode === 'move') {
+      t.reach = this.battle.grid.reachable(u, this.battle.units);
+      for (const k of t.reach.keys()) if (k !== `${u.x},${u.y}`) this.r.hl.move.add(k);
+      // Bring the whole range into view: an option off the edge of a phone
+      // screen may as well not be offered.
+      this.r.frameTiles([...t.reach.values()]);
+      hint.textContent = TOUCH_ONLY ? 'Tap a tile to move to.' : 'Select a tile to move to.';
+      this.el.menu.innerHTML = `<div class="menu-title">Move</div><button data-a="cancel">Cancel</button>`;
+      this.el.menu.querySelector('button').onclick = () => this.setMode('menu');
+    } else if (mode === 'act') {
+      hint.textContent = 'Choose a skillset.';
+      const sets = u.actionMenu();
+      this.el.menu.innerHTML = `<div class="menu-title">Act</div>` +
+        sets.map((s, i) => `<button data-i="${i}">${s.label}</button>`).join('') + `<button data-a="cancel">Cancel</button>`;
+      this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => {
+        if (b.dataset.a === 'cancel') return this.setMode('menu');
+        t.set = sets[+b.dataset.i];
+        if (t.set.abilities.length === 1 && t.set.abilities[0] === 'attack') this.chooseAbility('attack');
+        else this.setMode('abilities');
+      });
+    } else if (mode === 'abilities') {
+      hint.textContent = TOUCH_ONLY ? 'Choose an ability.' : 'Choose an ability. Hover for details.';
+      this.el.menu.innerHTML = `<div class="menu-title">${t.set.label}</div>` +
+        t.set.abilities.map(id => {
+          const ab = ABILITIES[id];
+          const usable = u.canUse(id);
+          const ok = usable && this.battle.canAfford(u, ab);
+          const why = !usable ? (u.hasStatus('berserk') ? 'raging' : 'silenced') : ok ? '' : 'no MP';
+          const cost = ab.mp ? `${this.battle.mpCost(u, ab)} MP` : '';
+          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.name}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
+        }).join('') + `<button data-a="cancel">Back</button>`;
+      this.el.menu.querySelectorAll('button').forEach(b => {
+        b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);
+        b.onmouseenter = () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); };
+        // With no hover, show the details of whatever the finger is resting on.
+        b.addEventListener('pointerdown', () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); });
+      });
+    } else if (mode === 'target') {
+      const ab = t.ability;
+      t.targets = this.battle.targetTilesFor(u, ab);
+      for (const tile of t.targets) this.r.hl.target.add(`${tile.x},${tile.y}`);
+      this.r.frameTiles(t.targets);
+      hint.textContent = `${ab.name}: ${TOUCH_ONLY ? 'tap' : 'select'} a target tile.`;
+      this.el.menu.innerHTML = `<div class="menu-title">${ab.name}</div><button data-a="cancel">Cancel</button>`;
+      this.el.menu.querySelector('button').onclick = () => this.setMode(ab === ABILITIES.attack ? 'act' : 'abilities');
+      if (ab.self) { this.previewTarget(this.battle.grid.tile(u.x, u.y)); }
+    } else if (mode === 'wait') {
+      hint.textContent = TOUCH_ONLY ? 'Tap a direction to face, or tap a tile.' : 'Choose a direction to face (or click a tile).';
+      this.el.menu.innerHTML = `<div class="menu-title">Face</div>
+        <div class="dirs">
+          <button data-d="N">${dirArrow('N', this.r.rot)} North</button><button data-d="E">${dirArrow('E', this.r.rot)} East</button>
+          <button data-d="W">${dirArrow('W', this.r.rot)} West</button><button data-d="S">${dirArrow('S', this.r.rot)} South</button>
+        </div><button data-a="keep">Keep facing</button>`;
+      this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => {
+        if (b.dataset.d) u.facing = b.dataset.d;
+        this.endTurn();
+      });
+    }
+    this.placeHint();
+    this.refresh();
+  }
+
+  showAbilityInfo(ab) {
+    const u = this.turn.unit;
+    const range = this.battle.abilityRange(u, ab), vert = this.battle.abilityVert(u, ab);
+    const el = ab.element && ELEMENTS[ab.element]
+      ? ` · <span style="color:${ELEMENTS[ab.element].color}">${ELEMENTS[ab.element].name}</span>` : '';
+    const mp = ab.mp ? ` · ${this.battle.mpCost(u, ab)} MP` : '';
+    this.el.pred.innerHTML = `<div class="ab-info"><b>${ab.name}</b><div>${ab.desc}</div>
+      <div class="ab-meta">Range ${range} · Area ${ab.aoe ? (ab.aoe === 1 ? 'cross' : 'wide') : 'single'} · Vert ${vert}${mp}${ab.ct ? ` · Charge ${ab.ct}` : ' · Instant'}${el}</div></div>`;
+  }
+
+  menuAction(a) {
+    const t = this.turn; if (!t) return;
+    audio.sfx('select');
+    if (a === 'move') this.setMode('move');
+    else if (a === 'undo') this.undoMove();
+    else if (a === 'act') this.setMode('act');
+    else if (a === 'wait') this.setMode('wait');
+  }
+
+  chooseAbility(id) {
+    const t = this.turn; if (!t) return;
+    audio.sfx('select');
+    t.ability = ABILITIES[id];
+    this.setMode('target');
+  }
+
+  previewTarget(tile) {
+    const t = this.turn; if (!t || t.mode !== 'target') return;
+    this.r.hl.area.clear();
+    if (!tile || !t.targets.some(x => x.x === tile.x && x.y === tile.y)) { this.el.pred.innerHTML = ''; return; }
+    const ab = t.ability, u = t.unit;
+    for (const a of this.battle.grid.areaTiles(tile.x, tile.y, ab.aoe)) this.r.hl.area.add(`${a.x},${a.y}`);
+    const preds = this.battle.predict(u, ab, tile.x, tile.y);
+    if (!preds.length) { this.el.pred.innerHTML = '<div class="pred-none">No target in area.</div>'; return; }
+    this.el.pred.innerHTML = preds.map(p => {
+      const parts = [];
+      if (p.dmg) parts.push(`<span class="p-dmg">${p.dmg} dmg</span>`);
+      if (p.heal) parts.push(`<span class="p-heal">+${p.heal} HP</span>`);
+      for (const n of p.notes) parts.push(`<span class="p-note">${n}</span>`);
+      const rel = relativeFacing(p.unit, u.x, u.y);
+      return `<div class="pred-row ${p.unit.team}"><b>${p.unit.name}</b> <span class="p-hit">${p.hit}% hit</span> ${parts.join(' ')}<span class="p-rel">${ab.kind === 'physical' && p.unit.team !== u.team ? rel : ''}</span></div>`;
+    }).join('');
+  }
+
+  async confirmTarget(tile) {
+    const t = this.turn; if (!t || t.mode !== 'target') return;
+    if (!tile || !t.targets.some(x => x.x === tile.x && x.y === tile.y)) return;
+    const u = t.unit, ab = t.ability;
+    t.mode = 'busy';
+    this.r.clearHighlights();
+    this.el.menu.innerHTML = '';
+    this.el.pred.innerHTML = '';
+    await this.battle.useAbility(u, ab, tile.x, tile.y);
+    if (!this.turn) return; // battle ended / aborted
+    if (this.battle.over || u.airborne || !u.alive) return this.endTurn();
+    if (u.turnFlags.moved) this.setMode('wait'); else this.setMode('menu');
+  }
+
+  async confirmMove(tile) {
+    const t = this.turn; if (!t || t.mode !== 'move') return;
+    const path = this.battle.grid.pathTo(t.reach, tile.x, tile.y);
+    if (!path || path.length < 2) {
+      if (tile.x === t.unit.x && tile.y === t.unit.y) this.setMode('menu'); // staying put
+      else this.missedMove(t.unit);
+      return;
+    }
+    t.mode = 'busy';
+    this.r.clearHighlights();
+    this.el.menu.innerHTML = '';
+    const u = t.unit, b = this.battle;
+    // Where the unit stood, so the move can be taken back before it acts;
+    // not if the walk itself changed anything, such as a crystal taken up.
+    const before = { x: u.x, y: u.y, facing: u.facing, hp: u.hp, mp: u.mp, gil: b.rewards.gil, crystals: b.crystals.length };
+    await b.moveUnit(u, path);
+    if (!this.turn) return;
+    const untouched = u.hp === before.hp && u.mp === before.mp && b.rewards.gil === before.gil && b.crystals.length === before.crystals;
+    t.undo = untouched ? before : null;
+    if (u.turnFlags.acted) this.setMode('wait'); else this.setMode('menu');
+  }
+
+  // A click that lands out of reach is said out loud, so it never looks like
+  // a click the board failed to notice.
+  missedMove(u) {
+    audio.sfx('cancel');
+    this.el.hint.textContent = `${u.name} cannot reach that tile. ${TOUCH_ONLY ? 'Tap' : 'Select'} a blue tile, or ${TOUCH_ONLY ? 'tap' : 'press'} Cancel.`;
+    this.placeHint();
+  }
+
+  // While a move is being chosen, the tile under the pointer shows the walk
+  // that would be taken to it: the board has seen the pointer, and a click
+  // here will be a move.
+  previewMove(tile) {
+    const t = this.turn, path = this.r.hl.path;
+    path.clear();
+    if (!t || t.mode !== 'move' || !tile || !t.reach) return;
+    const route = this.battle.grid.pathTo(t.reach, tile.x, tile.y);
+    if (route && route.length > 1) for (const p of route.slice(1)) path.add(`${p.x},${p.y}`);
+  }
+
+  // Back to where the turn began, as if the move had not been offered.
+  undoMove() {
+    const t = this.turn; if (!t || !t.undo || t.mode !== 'menu') return;
+    const u = t.unit, from = t.undo;
+    u.x = from.x; u.y = from.y; u.facing = from.facing;
+    u.turnFlags.moved = false;
+    t.undo = null;
+    audio.sfx('cancel');
+    this.r.focus(u);
+    this.setMode('menu');
+  }
+
+  // ---- input ---------------------------------------------------------------------------
+  bindInput() {
+    const cv = this.cv;
+    const pos = (e) => {
+      const r = cv.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * ((this.r.W || cv.width) / r.width), y: (e.clientY - r.top) * ((this.r.H || cv.height) / r.height) };
+    };
+    // Pointer events cover mouse, touch and pen with one code path.
+    this.pointers = new Map();
+
+    cv.addEventListener('pointerdown', (e) => {
+      audio.init();
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      cv.setPointerCapture(e.pointerId);
+      const p = pos(e);
+      this.pointers.set(e.pointerId, p);
+      if (this.pointers.size === 1) this.drag = { x: p.x, y: p.y, moved: false, id: e.pointerId };
+      else { this.drag = null; this.pinch = this.pinchSpan(); } // a second finger means pinch, not drag
+    });
+
+    cv.addEventListener('pointermove', (e) => {
+      const p = pos(e);
+      if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, p);
+
+      if (this.pointers.size >= 2 && this.pinch) {
+        const span = this.pinchSpan();
+        if (span && this.pinch) this.r.setZoom((this.r.zoom || 1) * (span / this.pinch));
+        this.pinch = span;
+        return;
+      }
+      if (this.drag && this.drag.id === e.pointerId) {
+        const dx = p.x - this.drag.x, dy = p.y - this.drag.y;
+        // Touch needs a larger slop than a mouse before a tap becomes a drag.
+        const slop = e.pointerType === 'mouse' ? 8 : 10;
+        if (Math.abs(dx) + Math.abs(dy) > slop) this.drag.moved = true;
+        if (this.drag.moved) {
+          const z = this.r.zoom || 1;
+          this.r.cam.x += dx / z; this.r.cam.y += dy / z;
+          this.r.clampCamera();
+          this.drag.x = p.x; this.drag.y = p.y;
+        }
+        if (e.pointerType !== 'mouse') return; // no hover on touch
+      }
+      if (!this.battle) return;
+      this.queueHover(p);
+    });
+
+    const release = (e) => {
+      const wasDrag = this.drag && this.drag.id === e.pointerId ? this.drag : null;
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size < 2) this.pinch = null;
+      if (!wasDrag) return;
+      this.drag = null;
+      if (wasDrag.moved) return;
+      // A tap that never turned into a drag is a click on that tile.
+      const p = pos(e);
+      if (e.pointerType !== 'mouse') this.hoverAt(p); // show what was tapped
+      this.onClick(this.r.pickTile(p.x, p.y), this.r.pickGround(p.x, p.y));
+    };
+    cv.addEventListener('pointerup', release);
+    cv.addEventListener('pointercancel', (e) => { this.pointers.delete(e.pointerId); this.drag = null; this.pinch = null; });
+    // A touch pointer leaves the moment it lifts, which would clear the card of
+    // whatever was just tapped; only a mouse leaving clears the hover.
+    cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !this.drag) { this.hover = null; this.r.hl.cursor = null; this.refresh(); } });
+
+    cv.addEventListener('contextmenu', (e) => { e.preventDefault(); this.cancel(); });
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); this.r.setZoom((this.r.zoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)); }, { passive: false });
+    // Stop the page itself from panning or pinching under the board.
+    cv.style.touchAction = 'none';
+
+    window.addEventListener('keydown', (e) => {
+      if (!this.battle || game.screen !== 'battle' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (game._ask) return; // an open question takes the keys
+      if (e.key === 'Escape') return this.cancel();
+      const pan = 40, z = this.r.zoom || 1;
+      if (e.key === 'ArrowLeft') { this.r.cam.x += pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowRight') { this.r.cam.x -= pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowUp') { this.r.cam.y += pan / z; this.r.clampCamera(); }
+      else if (e.key === 'ArrowDown') { this.r.cam.y -= pan / z; this.r.clampCamera(); }
+      else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
+      else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
+      else if (e.key === '0') this.r.centerCamera();
+      else if (e.key === 'f' || e.key === 'F') game.cyclePace();
+      else if (e.key === 'a' || e.key === 'A') this.setAuto(!this.auto);
+      else if (e.key === 'q' || e.key === 'Q') this.turnField(-1);
+      else if (e.key === 'e' || e.key === 'E') this.turnField(1);
+      else if (/^[1-9]$/.test(e.key)) {
+        // Digits pick the matching command in whichever panel is open.
+        const panel = this.deploy ? this.el.roster : this.el.menu;
+        const btns = [...panel.querySelectorAll('button')].filter(b => !b.disabled);
+        const b = btns[+e.key - 1];
+        if (b) b.click();
+      } else return;
+      e.preventDefault();
+    });
+  }
+
+  // Distance between the first two active pointers, for pinch zoom.
+  pinchSpan() {
+    const pts = [...this.pointers.values()];
+    if (pts.length < 2) return null;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || null;
+  }
+
+  // pickTile sorts every unit and every ground tile by depth to find what is
+  // under the pointer, real work that a raw pointermove can ask for dozens of
+  // times a second. Coalesce to the freshest position once per frame instead.
+  queueHover(p) {
+    this._hoverAt = p;
+    if (this._hoverFrame) return;
+    this._hoverFrame = requestAnimationFrame(() => {
+      this._hoverFrame = null;
+      if (this._hoverAt) this.hoverAt(this._hoverAt);
+    });
+  }
+
+  hoverAt(p) {
+    const t = this.r.pickTile(p.x, p.y);
+    // The same tile as last time is nothing to redraw: the panels are rebuilt
+    // and the forecast re-simulated on every change, not every mouse event.
+    if (t && this.hover && t.x === this.hover.x && t.y === this.hover.y) return;
+    if (!t && !this.hover) return;
+    this.hover = t;
+    this.r.hl.cursor = t;
+    this.renderTileInfo(t);
+    this.refresh();
+    if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
+    if (this.turn && this.turn.mode === 'move') this.previewMove(t);
+  }
+
+  // Tap an enemy while choosing what to do and the field shows every tile it
+  // could strike on its next turn. Tap it again, or do anything else, to clear.
+  toggleThreat(unit) {
+    const b = this.battle;
+    if (this.threatOf === unit) { this.threatOf = null; this.r.hl.threat.clear(); this.el.hint.textContent = this.deploy ? '' : `Choose an action. ${CANCEL_HINT}`; this.placeHint(); return; }
+    this.threatOf = unit;
+    this.r.hl.threat.clear();
+    for (const k of this.threatTiles(unit)) this.r.hl.threat.add(k);
+    audio.sfx('menu');
+    this.el.hint.textContent = `Violet: where ${unit.name} can strike next turn. Tap ${unit.name} again to clear.`;
+    this.placeHint();
+  }
+
+  threatTiles(unit) {
+    const b = this.battle, keys = new Set();
+    const reach = b.grid.reachable(unit, b.units);
+    for (const c of reach.values()) for (const t of b.targetTilesFor(unit, ABILITIES.attack, c.x, c.y)) keys.add(`${t.x},${t.y}`);
+    return keys;
+  }
+
+  onClick(tile, ground) {
+    if (this.deploy) return this.onDeployClick(tile);
+    const t = this.turn;
+    if (!t || !tile) return;
+    if (t.mode === 'menu') {
+      const who = this.battle.unitAt(tile.x, tile.y);
+      if (who && who.alive && who.team !== t.unit.team) { this.toggleThreat(who); return; }
+      // Most players pick the unit and then where it should go, without
+      // pressing Move first. A tile it can reach from here moves it there; a
+      // tile it cannot reach says so, rather than doing nothing at all.
+      const u = t.unit;
+      if (!this.el.menu.querySelector('button[data-a="move"]:not([disabled])')) return;
+      const reach = this.battle.grid.reachable(u, this.battle.units);
+      // A friend is drawn taller than the square it stands on; a click on
+      // them may have been meant for the ground behind.
+      const dest = [tile, ground].find(d => d && !(d.x === u.x && d.y === u.y) && reach.has(`${d.x},${d.y}`));
+      if (dest) { this.setMode('move'); this.confirmMove(dest); return; }
+      if (!who && !(tile.x === u.x && tile.y === u.y)) this.missedMove(u);
+      return;
+    }
+    if (t.mode === 'move') this.confirmMove(tile);
+    else if (t.mode === 'target') this.confirmTarget(tile);
+    else if (t.mode === 'wait') {
+      if (tile.x !== t.unit.x || tile.y !== t.unit.y) t.unit.facing = facingFromDelta(tile.x - t.unit.x, tile.y - t.unit.y);
+      this.endTurn();
+    }
+  }
+
+  cancel() {
+    const t = this.turn; if (!t) return;
+    audio.sfx('cancel');
+    if (t.mode === 'move' || t.mode === 'act' || t.mode === 'wait') this.setMode('menu');
+    else if (t.mode === 'abilities') this.setMode('act');
+    else if (t.mode === 'target') this.setMode(t.ability === ABILITIES.attack ? 'act' : 'abilities');
+  }
+}
