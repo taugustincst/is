@@ -95,7 +95,7 @@ const S = require('./lib').OUT;
   const CH = await page.evaluate(() => CAMPAIGN.length + 2);
   while (chapter < CH && guard++ < 80) {
     if (await page.evaluate(() => game.atFork())) {
-      await page.evaluate((id) => game.chooseRoad(id), ROAD);
+      await page.evaluate(async (id) => { const chose = game.chooseRoad(id); game.answerAsk(true); await chose; }, ROAD);
       console.log('road chosen:', ROAD, 'party', await page.evaluate(() => game.state.party.length));
     }
     await develop();

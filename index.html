@@ -27,7 +27,26 @@
       <button id="btn-continue">Continue</button>
       <button id="btn-load">Load Game</button>
     </div>
+    <button id="btn-credits" class="link title-credits">Credits</button>
     <div class="title-foot">Isometric tactics · Charge Time turns · Jobs &amp; abilities · Height and facing matter</div>
+  </div>
+</section>
+
+<!-- ================= Credits ================= -->
+<section id="screen-credits" class="screen">
+  <div class="credits-box">
+    <h2>Chronicles of Elderon</h2>
+    <p class="credits-version" id="credits-version"></p>
+    <dl class="credits-list">
+      <dt>Created by</dt><dd>taugustincst</dd>
+      <dt>Design, story, code, art and music</dt><dd>Written for this game, with Claude Code</dd>
+      <dt>Sprites and portraits</dt><dd>Drawn in code at run time; no image packs</dd>
+      <dt>Music and sound</dt><dd>Synthesized in the browser with the Web Audio API; no recordings</dd>
+      <dt>Testing</dt><dd>Playwright and Chromium, and a QA pass that found the Retreat button dead</dd>
+      <dt>Inspired by</dt><dd>The tactics RPGs of the late 1990s</dd>
+    </dl>
+    <p class="credits-links"><a href="https://github.com/taugustincst/fftremake" target="_blank" rel="noopener">Source on GitHub</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+    <button id="btn-credits-back">Back</button>
   </div>
 </section>
 
@@ -85,6 +104,7 @@
         <span class="gil" id="world-gil"></span>
         <button id="btn-sound-world" class="icon" aria-label="Sound"></button>
       </div>
+      <div class="audio-levels"></div>
       <button id="world-stock" class="stock link"></button>
       <h3>Party <small>(first 5 deploy)</small></h3>
       <div id="world-party"></div>
@@ -181,6 +201,7 @@
   </div>
   <div id="help">
     <div class="help-box">
+      <div class="audio-levels"></div>
       <h3>How to play</h3>
       <ul>
         <li><b>Deployment:</b> before each battle, pick who fights and where they stand. Units left in reserve take no part. The opposition is listed on the left.</li>
@@ -226,6 +247,16 @@
 </section>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<!-- The game's own yes-or-no question. The browser's confirm() is silently
+     refused inside a sandboxed frame and by some browser automation, which
+     left Retreat and every other question looking like a dead button. -->
+<div id="ask" role="alertdialog" aria-modal="true" aria-labelledby="ask-text" hidden>
+  <div class="ask-box">
+    <p id="ask-text"></p>
+    <div class="ask-actions"><button id="ask-no">Cancel</button><button id="ask-yes" class="primary">OK</button></div>
+  </div>
+</div>
 
 <script>
   // Register the offline cache. It is optional: the game runs perfectly well

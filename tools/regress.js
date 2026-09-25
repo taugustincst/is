@@ -934,6 +934,15 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('sw.js is stamped with the hash of the build it caches (node tools/stamp.js)', stamp.stampedHash() === stamp.currentHash(), `${stamp.stampedHash()} vs ${stamp.currentHash()}`);
   }
 
+  // The version the credits show is the version the package says it is.
+  {
+    const fs = require('fs'), path = require('path');
+    const root = path.join(__dirname, '..');
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+    const shown = (fs.readFileSync(path.join(root, 'js', 'game.js'), 'utf8').match(/const GAME_VERSION = '([^']+)';/) || [])[1];
+    ok('the credits show the package version', shown === pkg, `game ${shown}, package ${pkg}`);
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

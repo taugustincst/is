@@ -57,7 +57,7 @@ function affinityLabel(mult) {
 // Stat multipliers are applied to a level-based baseline (see unit.js).
 const JOBS = {
   squire: {
-    name: 'Squire', skillset: 'Fundaments', kind: 'human', sprite: 'warrior',
+    name: 'Squire', skillset: 'Fundamentals', kind: 'human', sprite: 'warrior',
     palette: { h: '#5a3a1e', c: '#8a7a55', p: '#4b3d2c', b: '#3a2a1a' },
     hp: 1.0, mp: 1.0, pa: 1.0, ma: 1.0, spd: 1.0, move: 4, jump: 3, evade: 8,
     weapon: { name: 'Short Sword', power: 5, range: 1, vert: 2 },

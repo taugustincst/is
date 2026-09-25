@@ -36,7 +36,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     const s = game.state; s.chapter = 24; s.branch = null;
     for (const saved of s.exiled || []) if (!s.party.some(u => u.name === saved.name)) s.party.push(Unit.fromSave(Object.assign({ team: 'player' }, saved)));
     s.exiled = [];
-    game.chooseRoad(id);
+    const chose = game.chooseRoad(id); game.answerAsk(true); await chose;
     const out = { id, branch: s.branch, party: s.party.length, exiled: (s.exiled || []).map(u => u.name), fights: [] };
     for (let i = 0; i < 2; i++) {
       const ch = game.chapterAt(24 + i);
@@ -68,12 +68,12 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   const seen = await page.evaluate(() => ({ n: Object.keys(game.state.endings).length, text: document.querySelector('#world-next .revisit-row').textContent, another: !!document.getElementById('btn-another') }));
   ok('with every road walked, the road card says so and offers no more', seen.n === 5 && /5 of 5/.test(seen.text) && /Every road has been walked/.test(seen.text) && !seen.another, JSON.stringify(seen));
   // Saving and loading keeps the road, the endings and the exiles.
-  await page.evaluate(async () => { const s = game.state; s.chapter = 24; s.branch = null; game.chooseRoad('iron'); game.saveGame(); });
+  await page.evaluate(async () => { const s = game.state; s.chapter = 24; s.branch = null; const chose = game.chooseRoad('iron'); game.answerAsk(true); await chose; game.saveGame(); });
   await page.reload(); await page.waitForSelector('#screen-title.active');
   await page.click('#btn-continue'); await page.waitForSelector('#screen-world.active');
   const loaded = await page.evaluate(() => ({ branch: game.state.branch, endings: Object.keys(game.state.endings).length, exiled: game.state.exiled.map(u => u.name).join(','), party: game.state.party.length, next: game.chapterAt(game.state.chapter).id }));
   ok('a save keeps the chosen road, the endings seen and those who left', loaded.branch === 'iron' && loaded.endings === 5 && loaded.exiled === 'Garret,Tamsin,Ingrid' && loaded.party === 10 && loaded.next === 'iron1', JSON.stringify(loaded));
-  await page.evaluate(() => { game.anotherRoad(); });
+  await page.evaluate(async () => { const back = game.anotherRoad(); game.answerAsk(true); await back; });
   const back = await page.evaluate(() => ({ party: game.state.party.length, fork: game.atFork(), exiled: game.state.exiled.length }));
   ok('another road returns to the capital with everyone back', back.party === 13 && back.fork && back.exiled === 0, JSON.stringify(back));
   // The trades open from the tree; the cities and the wagon carry the crown's gear.

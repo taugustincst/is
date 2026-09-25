@@ -527,7 +527,11 @@ class BattleUI {
   async confirmMove(tile) {
     const t = this.turn; if (!t || t.mode !== 'move') return;
     const path = this.battle.grid.pathTo(t.reach, tile.x, tile.y);
-    if (!path || path.length < 2) return;
+    if (!path || path.length < 2) {
+      if (tile.x === t.unit.x && tile.y === t.unit.y) this.setMode('menu'); // staying put
+      else this.missedMove(t.unit);
+      return;
+    }
     t.mode = 'busy';
     this.r.clearHighlights();
     this.el.menu.innerHTML = '';
@@ -540,6 +544,25 @@ class BattleUI {
     const untouched = u.hp === before.hp && u.mp === before.mp && b.rewards.gil === before.gil && b.crystals.length === before.crystals;
     t.undo = untouched ? before : null;
     if (u.turnFlags.acted) this.setMode('wait'); else this.setMode('menu');
+  }
+
+  // A click that lands out of reach is said out loud, so it never looks like
+  // a click the board failed to notice.
+  missedMove(u) {
+    audio.sfx('cancel');
+    this.el.hint.textContent = `${u.name} cannot reach that tile. ${TOUCH_ONLY ? 'Tap' : 'Select'} a blue tile, or ${TOUCH_ONLY ? 'tap' : 'press'} Cancel.`;
+    this.placeHint();
+  }
+
+  // While a move is being chosen, the tile under the pointer shows the walk
+  // that would be taken to it: the board has seen the pointer, and a click
+  // here will be a move.
+  previewMove(tile) {
+    const t = this.turn, path = this.r.hl.path;
+    path.clear();
+    if (!t || t.mode !== 'move' || !tile || !t.reach) return;
+    const route = this.battle.grid.pathTo(t.reach, tile.x, tile.y);
+    if (route && route.length > 1) for (const p of route.slice(1)) path.add(`${p.x},${p.y}`);
   }
 
   // Back to where the turn began, as if the move had not been offered.
@@ -587,7 +610,7 @@ class BattleUI {
       if (this.drag && this.drag.id === e.pointerId) {
         const dx = p.x - this.drag.x, dy = p.y - this.drag.y;
         // Touch needs a larger slop than a mouse before a tap becomes a drag.
-        const slop = e.pointerType === 'mouse' ? 4 : 10;
+        const slop = e.pointerType === 'mouse' ? 8 : 10;
         if (Math.abs(dx) + Math.abs(dy) > slop) this.drag.moved = true;
         if (this.drag.moved) {
           const z = this.r.zoom || 1;
@@ -611,7 +634,7 @@ class BattleUI {
       // A tap that never turned into a drag is a click on that tile.
       const p = pos(e);
       if (e.pointerType !== 'mouse') this.hoverAt(p); // show what was tapped
-      this.onClick(this.r.pickTile(p.x, p.y));
+      this.onClick(this.r.pickTile(p.x, p.y), this.r.pickGround(p.x, p.y));
     };
     cv.addEventListener('pointerup', release);
     cv.addEventListener('pointercancel', (e) => { this.pointers.delete(e.pointerId); this.drag = null; this.pinch = null; });
@@ -626,6 +649,7 @@ class BattleUI {
 
     window.addEventListener('keydown', (e) => {
       if (!this.battle || game.screen !== 'battle' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (game._ask) return; // an open question takes the keys
       if (e.key === 'Escape') return this.cancel();
       const pan = 40, z = this.r.zoom || 1;
       if (e.key === 'ArrowLeft') { this.r.cam.x += pan / z; this.r.clampCamera(); }
@@ -680,6 +704,7 @@ class BattleUI {
     this.renderTileInfo(t);
     this.refresh();
     if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
+    if (this.turn && this.turn.mode === 'move') this.previewMove(t);
   }
 
   // Tap an enemy while choosing what to do and the field shows every tile it
@@ -702,13 +727,24 @@ class BattleUI {
     return keys;
   }
 
-  onClick(tile) {
+  onClick(tile, ground) {
     if (this.deploy) return this.onDeployClick(tile);
     const t = this.turn;
     if (!t || !tile) return;
     if (t.mode === 'menu') {
       const who = this.battle.unitAt(tile.x, tile.y);
-      if (who && who.alive && who.team !== t.unit.team) this.toggleThreat(who);
+      if (who && who.alive && who.team !== t.unit.team) { this.toggleThreat(who); return; }
+      // Most players pick the unit and then where it should go, without
+      // pressing Move first. A tile it can reach from here moves it there; a
+      // tile it cannot reach says so, rather than doing nothing at all.
+      const u = t.unit;
+      if (!this.el.menu.querySelector('button[data-a="move"]:not([disabled])')) return;
+      const reach = this.battle.grid.reachable(u, this.battle.units);
+      // A friend is drawn taller than the square it stands on; a click on
+      // them may have been meant for the ground behind.
+      const dest = [tile, ground].find(d => d && !(d.x === u.x && d.y === u.y) && reach.has(`${d.x},${d.y}`));
+      if (dest) { this.setMode('move'); this.confirmMove(dest); return; }
+      if (!who && !(tile.x === u.x && tile.y === u.y)) this.missedMove(u);
       return;
     }
     if (t.mode === 'move') this.confirmMove(tile);
