@@ -75,6 +75,11 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     const boss = b.units.find(u => u.boss);
     boss.hp = Math.floor(boss.maxHp * 0.42);
     const hitter = roster[0]; hitter.x = boss.x; hitter.y = boss.y + 1; hitter.mods.pa = 40;
+    // The blow must land: this checks the phase change, not the dice. From
+    // in front, the Director's evade (or a parry) turned it aside about one
+    // run in ten, and then there was nothing to test.
+    hitter.learned.concentrate = true; hitter.setPassive('support', 'concentrate');
+    boss.passives.reaction = null;
     await b.applyAbility(hitter, ABILITIES.attack, boss.x, boss.y);
     return { job: boss.job, name: boss.name, alive: boss.alive, hpPct: boss.hp / boss.maxHp };
   });
