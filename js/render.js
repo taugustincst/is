@@ -282,7 +282,7 @@ class Renderer {
     this.ctx = canvas.getContext('2d');
     this.cam = { x: 0, y: 0 };
     this.battle = null;
-    this.hl = { move: new Set(), target: new Set(), area: new Set(), threat: new Set(), cursor: null };
+    this.hl = { move: new Set(), path: new Set(), target: new Set(), area: new Set(), threat: new Set(), cursor: null };
     this.mood = 'day';   // which MOODS entry dresses the field; set per map
     this.floats = [];
     this.bursts = [];
@@ -317,7 +317,7 @@ class Renderer {
     this.centerCamera();
   }
 
-  clearHighlights() { this.hl.move.clear(); this.hl.target.clear(); this.hl.area.clear(); this.hl.threat.clear(); this.hl.cursor = null; }
+  clearHighlights() { this.hl.move.clear(); this.hl.path.clear(); this.hl.target.clear(); this.hl.area.clear(); this.hl.threat.clear(); this.hl.cursor = null; }
 
   // The part of the canvas the panels are not sitting on. The board is framed
   // inside this rather than the whole screen, so on a phone it lands in the
@@ -537,6 +537,26 @@ class Renderer {
     return inside;
   }
 
+  // The ground under the pointer, ignoring any figure standing in front of it.
+  pickGround(px, py) {
+    if (!this.battle) return null;
+    const { x: mx, y: my } = this.toWorld(px, py);
+    const g = this.battle.grid;
+    const order = [];
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.tiles[y][x].t !== 'x') order.push(g.tiles[y][x]);
+    order.sort((a, b) => this.depthOf(b.x, b.y) - this.depthOf(a.x, a.y) || b.h - a.h);
+    for (const t of order) {
+      const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+      const top = [[sx, sy - 16], [sx + 32, sy], [sx, sy + 16], [sx - 32, sy]];
+      if (this.pointInPoly(mx, my, top)) return t;
+      const wh = t.h * HZ;
+      const lw = [[sx - 32, sy], [sx, sy + 16], [sx, sy + 16 + wh], [sx - 32, sy + wh]];
+      const rw = [[sx + 32, sy], [sx, sy + 16], [sx, sy + 16 + wh], [sx + 32, sy + wh]];
+      if (this.pointInPoly(mx, my, lw) || this.pointInPoly(mx, my, rw)) return t;
+    }
+    return null;
+  }
+
   pickTile(px, py) {
     if (!this.battle) return null;
     const { x: mx, y: my } = this.toWorld(px, py);
@@ -549,19 +569,7 @@ class Renderer {
       const { sx, sy } = this.unitScreenPos(u);
       if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) { onUnit = g.tile(u.x, u.y); break; }
     }
-    let onGround = null;
-    const order = [];
-    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.tiles[y][x].t !== 'x') order.push(g.tiles[y][x]);
-    order.sort((a, b) => this.depthOf(b.x, b.y) - this.depthOf(a.x, a.y) || b.h - a.h);
-    for (const t of order) {
-      const { sx, sy } = this.toScreen(t.x, t.y, t.h);
-      const top = [[sx, sy - 16], [sx + 32, sy], [sx, sy + 16], [sx - 32, sy]];
-      if (this.pointInPoly(mx, my, top)) { onGround = t; break; }
-      const wh = t.h * HZ;
-      const lw = [[sx - 32, sy], [sx, sy + 16], [sx, sy + 16 + wh], [sx - 32, sy + wh]];
-      const rw = [[sx + 32, sy], [sx, sy + 16], [sx, sy + 16 + wh], [sx + 32, sy + wh]];
-      if (this.pointInPoly(mx, my, lw) || this.pointInPoly(mx, my, rw)) { onGround = t; break; }
-    }
+    const onGround = this.pickGround(px, py);
     /* While the game is offering a choice, whichever of the two is on offer
        wins. A figure is drawn a good half-tile taller than the square it
        stands on, so it covers the tiles behind it; without this, a legal
@@ -754,6 +762,7 @@ class Renderer {
     // Highlights
     const key = `${t.x},${t.y}`;
     if (this.hl.move.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(70,130,255,0.45)'; c.fill(); }
+    if (this.hl.path.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(150,200,255,0.55)'; c.fill(); c.strokeStyle = 'rgba(230,245,255,0.9)'; c.lineWidth = 1.5; c.stroke(); c.lineWidth = 1; }
     if (this.hl.target.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(255,80,60,0.42)'; c.fill(); }
     if (this.hl.area.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(255,220,60,0.55)'; c.fill(); }
     if (this.hl.threat.has(key)) {

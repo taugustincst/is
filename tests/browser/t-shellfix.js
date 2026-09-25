@@ -42,7 +42,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.waitForSelector('#deploy-panel.open', { timeout: 20000 });
   await page.click('#deploy-panel button[data-a="go"]');
   await page.waitForFunction(() => game.ui.turn && game.ui.turn.mode === 'menu', null, { timeout: 40000 });
-  await page.evaluate(() => game.retreat());
+  await page.evaluate(() => { game.retreat(); game.answerAsk(true); });
   await page.waitForSelector('#screen-results.active', { timeout: 20000 });
   const daysAfter = await page.evaluate(() => game.state.errands.active[0].left);
   ok('a retreat is not a day gone by for an errand', daysAfter === daysBefore, `${daysBefore} -> ${daysAfter}`);

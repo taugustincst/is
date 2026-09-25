@@ -36,7 +36,7 @@ const S = require('./lib').OUT;
   }
   // Results roll-call.
   await page.evaluate(() => { window.__fought = game.battle.units.filter(u => u.team === 'player' && u.x >= 0).length; });
-  await page.click('#btn-retreat');
+  await page.click('#btn-retreat'); await page.click('#ask-yes');
   await page.waitForSelector('#screen-results.active', { timeout: 20000 });
   await page.waitForTimeout(300);
   const roll = await page.evaluate(() => ({ n: document.querySelectorAll('.res-unit').length, canvases: document.querySelectorAll('.res-unit canvas').length, fought: window.__fought }));

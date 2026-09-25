@@ -70,7 +70,7 @@ async function toDeploy(page) {
 }
 // Retreat counts as a defeat: a results screen comes before the camp.
 async function leaveBattle(page) {
-  await page.click('#btn-retreat');
+  await page.click('#btn-retreat'); await page.click('#ask-yes');
   await page.waitForSelector('#screen-results.active', { timeout: 20000 });
   await page.click('#btn-results');
   await page.waitForSelector('#screen-world.active', { timeout: 20000 });

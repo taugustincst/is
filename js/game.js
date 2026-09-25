@@ -7,6 +7,8 @@ const SAVE_KEY = 'elderon-tactics-save';
 const SLOT_COUNT = 3;
 const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
+// Shown in the credits; tools/regress.js keeps it equal to package.json's.
+const GAME_VERSION = '1.5.1';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -68,16 +70,16 @@ class Game {
     const arm = () => { audio.init(); if (audio.ctx && audio.ctx.state === 'running') { if (this.screen === 'world') audio.playMusic('town'); for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.removeEventListener(ev, arm); } };
     for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.addEventListener(ev, arm);
     this.showScreen('title');
-    $('btn-continue').disabled = !this.listSlots().some(x => x.d);
+    this.syncTitleButtons();
   }
 
   // A new build is waiting in the service worker: ask once, at camp or the
   // title, never mid-battle. Agreeing reloads into it.
-  tryUpdatePrompt() {
+  async tryUpdatePrompt() {
     const w = window.__updateWaiting;
     if (!w || this._updateAsked || (this.screen !== 'world' && this.screen !== 'title')) return;
     this._updateAsked = true;
-    if (confirm('A new version of the game is ready. Reload into it now? Your progress is saved first.')) {
+    if (await this.ask('A new version of the game is ready. Reload into it now? Your progress is saved first.', { yes: 'Reload now', no: 'Later' })) {
       if (this.state) this.saveGame();
       window.__reloadOnControl = true;
       w.postMessage('skipWaiting');
@@ -86,6 +88,7 @@ class Game {
 
   // ---- screens -----------------------------------------------------------------------
   showScreen(name) {
+    if (name !== this.screen) this.clearToast(false);
     this.screen = name;
     if (window.__updateWaiting) setTimeout(() => this.tryUpdatePrompt(), 400);
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
@@ -118,6 +121,7 @@ class Game {
     $('btn-hire-squire').onclick = () => this.hire('squire');
     $('btn-hire-chemist').onclick = () => this.hire('chemist');
     $('btn-retreat').onclick = () => this.retreat();
+    this.bindAsk();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
     $('btn-speed').onclick = () => this.cyclePace();
     $('btn-auto').onclick = () => this.ui.setAuto(!this.ui.auto);
@@ -134,7 +138,31 @@ class Game {
     const bl = $('btn-log');
     if (bl) bl.onclick = () => $('log').classList.toggle('hidden');
     this.renderSound();
+    this.renderAudioLevels();
     $('btn-help-close').onclick = () => $('help').classList.remove('open');
+    $('btn-credits').onclick = () => { $('credits-version').textContent = `Version ${GAME_VERSION}`; this.showScreen('credits'); };
+    $('btn-credits-back').onclick = () => this.showScreen('title');
+  }
+
+  // Effects and music levels, in the battle's help panel and at camp. Each
+  // copy moves the other, and the level is kept with the on/off switches.
+  renderAudioLevels() {
+    const row = (kind, label) => `<label for="vol-${kind}-%">${label}</label><input type="range" id="vol-${kind}-%" data-vol="${kind}" min="0" max="100" step="5"><output data-vol-out="${kind}"></output>`;
+    document.querySelectorAll('.audio-levels').forEach((el, i) => {
+      el.innerHTML = (row('sfx', 'Effects') + row('music', 'Music')).replace(/%/g, i);
+      el.querySelectorAll('input[data-vol]').forEach(inp => inp.oninput = () => {
+        audio.init();
+        if (inp.dataset.vol === 'sfx') audio.setSfxVolume(inp.value / 100);
+        else audio.setMusicVolume(inp.value / 100);
+        this.syncAudioLevels();
+      });
+    });
+    this.syncAudioLevels();
+  }
+  syncAudioLevels() {
+    const val = { sfx: Math.round(audio.sfxVolume * 100), music: Math.round(audio.musicVolume * 100) };
+    document.querySelectorAll('input[data-vol]').forEach(inp => { inp.value = val[inp.dataset.vol]; inp.setAttribute('aria-valuetext', `${val[inp.dataset.vol]} percent`); });
+    document.querySelectorAll('output[data-vol-out]').forEach(o => { o.textContent = `${val[o.dataset.volOut]}%`; });
   }
 
   renderSound() {
@@ -148,7 +176,63 @@ class Game {
 
   toast(msg) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.remove('show'), 1600);
+    clearTimeout(this._tt); clearTimeout(this._tt2);
+    this._tt = setTimeout(() => this.clearToast(true), 1600 + Math.min(2400, msg.length * 30));
+  }
+  // A faded toast used to keep its words: invisible, but still in a live
+  // region, so a screen reader (or a tester reading the page) found "Rowan
+  // learned First Aid!" half an hour later. It is emptied once it has faded,
+  // and at once on any change of screen.
+  clearToast(fade) {
+    const t = $('toast'); clearTimeout(this._tt); clearTimeout(this._tt2);
+    t.classList.remove('show');
+    if (fade) this._tt2 = setTimeout(() => { if (!t.classList.contains('show')) t.textContent = ''; }, 300);
+    else t.textContent = '';
+  }
+
+  // A yes-or-no question in the game's own dialog, resolved true or false.
+  // The browser's confirm() is silently refused inside a sandboxed frame and
+  // by some automation, where Retreat and every other question simply did
+  // nothing; this one always shows, and Escape, Back or a tap outside it
+  // answers no.
+  ask(text, { yes = 'OK', no = 'Cancel' } = {}) {
+    if (this._ask) this.answerAsk(false); // one question at a time
+    $('ask-text').textContent = text;
+    $('ask-yes').textContent = yes; $('ask-no').textContent = no;
+    $('ask').hidden = false;
+    const back = document.activeElement;
+    $('ask-yes').focus();
+    return new Promise(resolve => { this._ask = { resolve, back }; });
+  }
+  answerAsk(yes) {
+    const a = this._ask; if (!a) return false;
+    this._ask = null;
+    $('ask').hidden = true;
+    audio.sfx(yes ? 'select' : 'cancel');
+    if (a.back && a.back.focus && document.contains(a.back) && a.back !== document.body) a.back.focus();
+    a.resolve(!!yes);
+    return true;
+  }
+  bindAsk() {
+    $('ask-yes').onclick = () => this.answerAsk(true);
+    $('ask-no').onclick = () => this.answerAsk(false);
+    $('ask').addEventListener('click', (e) => { if (e.target === $('ask')) this.answerAsk(false); });
+    $('ask').addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.answerAsk(false); }
+      else if (e.key === 'Tab') {
+        // Keep focus on the two answers while the question stands.
+        e.preventDefault();
+        (document.activeElement === $('ask-yes') ? $('ask-no') : $('ask-yes')).focus();
+      }
+    });
+  }
+
+  // Continue and Load Game agree: with no saved game, neither has anything
+  // to open.
+  syncTitleButtons() {
+    const any = this.listSlots().some(x => x.d);
+    $('btn-continue').disabled = !any;
+    $('btn-load').disabled = !any;
   }
 
   // ---- state -----------------------------------------------------------------------------
@@ -206,16 +290,16 @@ class Game {
         <div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}">Overwrite</button>` : `<button data-slot-load="${n}" class="primary">Load</button><button data-slot-del="${n}" class="mini">Delete</button>`}</div></div>`;
     }).join('');
     $('slots-list').querySelectorAll('button[data-slot-load]').forEach(b => b.onclick = () => this.loadGame(+b.dataset.slotLoad));
-    $('slots-list').querySelectorAll('button[data-slot-new]').forEach(b => b.onclick = () => {
+    $('slots-list').querySelectorAll('button[data-slot-new]').forEach(b => b.onclick = async () => {
       const n = +b.dataset.slotNew;
-      if (this.listSlots()[n - 1].d && !confirm(`Write over slot ${n}? That game is gone for good.`)) return;
+      if (this.listSlots()[n - 1].d && !(await this.ask(`Write over slot ${n}? That game is gone for good.`, { yes: 'Overwrite' }))) return;
       this.newGame(n);
     });
-    $('slots-list').querySelectorAll('button[data-slot-del]').forEach(b => b.onclick = () => {
+    $('slots-list').querySelectorAll('button[data-slot-del]').forEach(b => b.onclick = async () => {
       const n = +b.dataset.slotDel;
-      if (!confirm(`Delete slot ${n}? That game is gone for good.`)) return;
+      if (!(await this.ask(`Delete slot ${n}? That game is gone for good.`, { yes: 'Delete' }))) return;
       store.del(slotKey(n));
-      $('btn-continue').disabled = !this.listSlots().some(x => x.d);
+      this.syncTitleButtons();
       this.openSlots(mode);
     });
     this.showScreen('slots');
@@ -233,7 +317,7 @@ class Game {
       playtime: this.state.playtime, savedAt: now,
     };
     if (!store.set(slotKey(this.state.slot || 1), JSON.stringify(data))) { this.toast('The game could not be saved: storage is blocked or full.'); return false; }
-    $('btn-continue').disabled = false;
+    this.syncTitleButtons();
     return true;
   }
 
@@ -254,7 +338,7 @@ class Game {
       // A truncated or hand-edited save used to throw inside the click handler,
       // leaving the player on the title screen with a button that did nothing.
       store.del(slotKey(slot));
-      $('btn-continue').disabled = !this.listSlots().some(x => x.d);
+      this.syncTitleButtons();
       this.toast('That save could not be read. Start a new game.');
       return;
     }
@@ -1379,11 +1463,12 @@ class Game {
     this.showScreen('choice');
   }
 
-  chooseRoad(id) {
+  async chooseRoad(id) {
     const r = ROADS[id]; if (!r || !this.atFork()) return;
     const leaving = id === 'iron' ? this.state.party.filter(u => IRON_REFUSERS.includes(u.name)) : [];
     const warn = leaving.length ? ` ${leaving.map(u => u.name).join(', ')} will not follow.` : '';
-    if (!confirm(`Take ${r.title}? ${r.tagline}${warn} The other roads close behind you until this one is walked to its end.`)) return;
+    if (!(await this.ask(`Take ${r.title}? ${r.tagline}${warn} The other roads close behind you until this one is walked to its end.`, { yes: 'Take this road' }))) return;
+    if (!this.atFork()) return;
     this.state.branch = id;
     // Those who refuse the Iron Crown leave now, and are kept so another road
     // from the capital brings them back.
@@ -1399,10 +1484,11 @@ class Game {
   }
 
   // Back to the capital, with the party as it is, to walk a road not taken.
-  anotherRoad() {
+  async anotherRoad() {
     const s = this.state;
     if (!s.branch) return;
-    if (!confirm('Return to the capital and choose another road? The party keeps everything it has. Anyone who left the company comes back.')) return;
+    if (!(await this.ask('Return to the capital and choose another road? The party keeps everything it has. Anyone who left the company comes back.', { yes: 'Return' }))) return;
+    if (!s.branch) return;
     s.chapter = COMMON;
     s.branch = null;
     for (const saved of s.exiled || []) if (!s.party.some(u => u.name === saved.name)) s.party.push(Unit.fromSave(Object.assign({ team: 'player' }, saved)));
@@ -1417,7 +1503,7 @@ class Game {
   async revisitChapter(i) {
     const ch = this.chapterAt(i);
     if (!ch || i >= this.state.chapter) return;
-    if (!confirm(`Revisit ${ch.title}? The same foes, half the pay, and nothing in the story changes.`)) return;
+    if (!(await this.ask(`Revisit ${ch.title}? The same foes, half the pay, and nothing in the story changes.`, { yes: 'Revisit' }))) return;
     const floor = this.avgLevel() - 1;
     const enemies = ch.enemies.map(e => Object.assign({}, e, { level: Math.max(e.level, floor) }));
     await this.battleFlow(MAPS[ch.map], enemies, Math.floor(ch.gil / 2), { objective: ch.objective });
@@ -1477,6 +1563,9 @@ class Game {
     // Who stood on the field, for the results screen, before the battle is
     // let go of.
     const fought = battle.units.filter(u => u.team === 'player' && (u.x >= 0 || u.carriedOff));
+    // Who ended it on the ground, taken now: everyone is revived below, before
+    // the results screen draws them.
+    const fell = new Set(fought.filter(u => !u.alive || u.carriedOff));
     for (const u of fought) { u.record.battles++; if (result === 'victory') u.record.wins++; }
     this.battle = null;
     const r0 = battle.rewards;
@@ -1495,7 +1584,7 @@ class Game {
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) r.loot = loot;
     }
-    const again = await this.results(result, r, battle.endReason, fought);
+    const again = await this.results(result, r, battle.endReason, fought, fell);
     return again === 'retry' ? 'retry' : result;
   }
 
@@ -1511,10 +1600,14 @@ class Game {
     this.toast(`Battle speed ${PACE.scale}×`);
   }
 
-  retreat() {
+  async retreat() {
     if (!this.battle || this.battle.over) return;
+    const battle = this.battle;
     const deploying = !!this.ui.deploy;
-    if (!confirm(deploying ? 'Leave without giving battle?' : 'Retreat from battle? This counts as a defeat.')) return;
+    const yes = await this.ask(deploying ? 'Leave without giving battle?' : 'Retreat from battle? This counts as a defeat, and no rewards are kept.',
+      { yes: deploying ? 'Leave' : 'Retreat', no: deploying ? 'Stay' : 'Keep fighting' });
+    // The fight may have ended, or another begun, while the question stood.
+    if (!yes || this.battle !== battle || battle.over) return;
     this.battle.over = true;
     this.battle.result = 'defeat';
     this.battle.retreated = true;
@@ -1525,7 +1618,7 @@ class Game {
     this.ui.abort();
   }
 
-  results(result, r, battleEndReason, fought = []) {
+  results(result, r, battleEndReason, fought = [], fell = new Set()) {
     return new Promise(resolve => {
       audio.sfx(result === 'victory' ? 'victory' : 'defeat');
       $('results-title').textContent = result === 'victory' ? 'Victory!' : 'Defeat...';
@@ -1543,12 +1636,14 @@ class Game {
       for (const u of fought) {
         const up = r.events.some(ev => ev.startsWith(u.name + ' ') && /level/i.test(ev));
         const item = document.createElement('div');
-        item.className = 'res-unit' + (up ? ' up' : '') + (u.alive ? '' : ' down');
+        const down = fell.has(u);
+        item.className = 'res-unit' + (up ? ' up' : '') + (down ? ' down' : '');
+        if (down) item.title = `${u.name} fell in this battle.`;
         const cv = document.createElement('canvas');
         paintUnitSprite(cv, u, 2);
         item.appendChild(cv);
         const cap = document.createElement('span');
-        cap.textContent = `${u.name} · Lv${u.level}${up ? ' ↑' : ''}`;
+        cap.textContent = `${u.name} · Lv${u.level}${up ? ' ↑' : ''}${down ? ' · fell' : ''}`;
         item.appendChild(cap);
         const jp = r.jpBy ? (r.jpBy.get(u) || 0) : 0;
         const learn = this.canLearnSomething(u);
@@ -1580,6 +1675,7 @@ class Game {
 function handleBack() {
   const g = window.game;
   if (!g) return false;
+  if (g._ask) { g.answerAsk(false); return true; }
   if (document.getElementById('help').classList.contains('open')) {
     document.getElementById('help').classList.remove('open');
     return true;
@@ -1593,7 +1689,7 @@ function handleBack() {
   // continues: both are awaited by a battle flow that must be allowed to finish.
   if (g.screen === 'story') { $('btn-story-skip').click(); $('btn-story-next').click(); return true; }
   if (g.screen === 'results') { $('btn-results').click(); return true; }
-  const parent = { formation: 'world', shop: 'world', inventory: 'world', choice: 'world', world: 'title', slots: 'title', title: null };
+  const parent = { formation: 'world', shop: 'world', inventory: 'world', choice: 'world', world: 'title', slots: 'title', credits: 'title', title: null };
   const to = parent[g.screen];
   if (to === 'world') { g.showWorld(); return true; }
   if (to === 'title') { $('btn-title').onclick(); return true; }

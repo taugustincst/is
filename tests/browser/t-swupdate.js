@@ -14,8 +14,8 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   const cssOriginal = fs.readFileSync(CSS, 'utf8'), swOriginal = fs.readFileSync(SW, 'utf8');
   const { browser, page, errors } = await open();
   try {
-    // The game decides for itself in this test; the prompt is declined.
-    await page.addInitScript(() => { window.confirm = () => false; });
+    // The test switches builds itself; the game's own update question is
+    // left unanswered, which neither blocks nor declines anything.
     await page.goto(BASE + '/index.html');
     const v1 = stamp.stampedHash();
     await page.waitForFunction(async (v) => { const c = await caches.open('elderon-' + v); return (await c.keys()).length >= 15; }, v1, { timeout: 20000 });

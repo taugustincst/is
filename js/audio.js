@@ -289,10 +289,15 @@ class GameAudio {
     this.step = 0;
     this.nextTime = 0;
     this.lastSfx = {};
-    const saved = localStorage.getItem(AUDIO_KEY);
-    const pref = saved ? JSON.parse(saved) : {};
+    let pref = {};
+    try { pref = JSON.parse(localStorage.getItem(AUDIO_KEY) || '{}') || {}; } catch (e) { pref = {}; }
     this.muted = !!pref.muted;
     this.musicMuted = !!pref.musicMuted;
+    // Levels, 0 to 1, apart from the on/off switches: a phone player wants
+    // the music down, not gone.
+    const level = (v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : 1);
+    this.sfxVolume = level(pref.sfxVolume);
+    this.musicVolume = level(pref.musicVolume);
     // A game in the background should be silent, on a phone above all: the
     // engine is suspended when the page is hidden and picks up where it left
     // off when it is shown again. (The tools load this file without a DOM.)
@@ -305,7 +310,9 @@ class GameAudio {
     }
   }
 
-  save() { localStorage.setItem(AUDIO_KEY, JSON.stringify({ muted: this.muted, musicMuted: this.musicMuted })); }
+  save() {
+    try { localStorage.setItem(AUDIO_KEY, JSON.stringify({ muted: this.muted, musicMuted: this.musicMuted, sfxVolume: this.sfxVolume, musicVolume: this.musicVolume })); } catch (e) { /* storage blocked: the setting lasts the session */ }
+  }
 
   // Browsers only allow audio after a gesture, so this is called on first input.
   init() {
@@ -320,10 +327,10 @@ class GameAudio {
     this.master.gain.value = this.muted ? 0 : 0.9;
     this.master.connect(this.ctx.destination);
     this.musicGain = this.ctx.createGain();
-    this.musicGain.gain.value = this.musicMuted ? 0 : 1;
+    this.musicGain.gain.value = this.musicMuted ? 0 : this.musicVolume;
     this.musicGain.connect(this.master);
     this.sfxGain = this.ctx.createGain();
-    this.sfxGain.gain.value = 1;
+    this.sfxGain.gain.value = this.sfxVolume;
     this.sfxGain.connect(this.master);
     if (this.pendingTrack) this.playMusic(this.pendingTrack);
     if (this.pendingAmbient) this.startAmbient(this.pendingAmbient);
@@ -336,7 +343,17 @@ class GameAudio {
 
   setMusicMuted(v) {
     this.musicMuted = v; this.save();
-    if (this.musicGain) this.musicGain.gain.value = v ? 0 : 1;
+    if (this.musicGain) this.musicGain.gain.value = v ? 0 : this.musicVolume;
+  }
+
+  setSfxVolume(v) {
+    this.sfxVolume = Math.max(0, Math.min(1, +v || 0)); this.save();
+    if (this.sfxGain) this.sfxGain.gain.value = this.sfxVolume;
+  }
+
+  setMusicVolume(v) {
+    this.musicVolume = Math.max(0, Math.min(1, +v || 0)); this.save();
+    if (this.musicGain && !this.musicMuted) this.musicGain.gain.value = this.musicVolume;
   }
 
   // ---- one-shot voices ---------------------------------------------------

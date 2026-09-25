@@ -49,7 +49,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
       await page.screenshot({ path: `${S}/card-face.png`, clip: { x: 1000, y: 0, width: 280, height: 260 } });
       // Win it outright and see the trial recorded.
       await page.evaluate(() => { for (const u of game.battle.units) if (u.team === 'enemy') { u.hp = 1; } });
-      await page.click('#btn-retreat');
+      await page.click('#btn-retreat'); await page.click('#ask-yes');
       await page.waitForSelector('#screen-results.active', { timeout: 20000 });
       await page.click('#btn-results');
       await page.waitForSelector('#screen-world.active', { timeout: 20000 });

@@ -11,7 +11,9 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = []; page.on('pageerror', e => errors.push(String(e)));
-  let dialogs = []; page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
+  // The game asks its own questions now; answer yes to each and keep its words.
+  let dialogs = [];
+  const answer = async () => { await page.waitForSelector('#ask:not([hidden])', { timeout: 5000 }); dialogs.push(await page.textContent('#ask-text')); await page.click('#ask-yes'); };
   await page.goto(BASE + '/index.html');
   await page.waitForSelector('#screen-title.active');
   ok('Continue and Load are offered on the title; Continue is off with nothing saved', await page.isVisible('#btn-load') && await page.evaluate(() => document.getElementById('btn-continue').disabled));
@@ -38,7 +40,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   ok('Continue opens the slot played last, which Title saved on the way out', await page.evaluate(() => game.state.slot === 1));
   await page.click('#btn-title'); await page.click('#btn-load'); await page.waitForSelector('#screen-slots.active');
   dialogs = [];
-  await page.click('button[data-slot-del="2"]'); await page.waitForTimeout(100);
+  await page.click('button[data-slot-del="2"]'); await answer(); await page.waitForTimeout(100);
   const afterDel = await page.evaluate(() => ({ s2: localStorage.getItem('elderon-tactics-save-2'), rows: document.querySelectorAll('.slot.empty').length }));
   ok('Delete asks, then empties the slot', dialogs.length === 1 && afterDel.s2 === null && afterDel.rows === 2, JSON.stringify(afterDel));
   // With slot 1 full and two empty, New Game still starts without a prompt; fill them all and it asks.
@@ -46,7 +48,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.click('#btn-slots-back'); await page.click('#btn-new'); await page.waitForSelector('#screen-slots.active');
   ok('with every slot taken, New Game asks which gives way', /gives way/.test(await page.textContent('#slots-title')));
   dialogs = [];
-  await page.click('button[data-slot-new="3"]'); await page.waitForSelector('#screen-world.active');
+  await page.click('button[data-slot-new="3"]'); await answer(); await page.waitForSelector('#screen-world.active');
   ok('overwriting asks first, then starts there', dialogs.length === 1 && await page.evaluate(() => game.state.slot === 3 && game.state.chapter === 0));
   await page.evaluate(() => { localStorage.removeItem('elderon-tactics-save-2'); localStorage.removeItem('elderon-tactics-save-3'); });
   // Story skip.
@@ -86,6 +88,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.evaluate(() => { game.state.chapter = 2; game.showWorld(); });
   dialogs = [];
   await page.evaluate(() => { const cv = document.getElementById('world-map'); const r = cv.getBoundingClientRect(); const [fx, fy] = WORLD_ROUTE[0]; cv.onclick({ clientX: r.left + fx * r.width, clientY: r.top + fy * r.height }); });
+  await answer();
   await page.waitForSelector('#deploy-panel.open', { timeout: 20000 });
   const revisit = await page.evaluate(() => ({ map: document.getElementById('battle-name').textContent, chapter: game.state.chapter, foes: game.battle.units.filter(u => u.team === 'enemy').length }));
   ok('a flagged stop can be fought again, with nothing in the story changed', dialogs.length === 1 && /Revisit/.test(dialogs[0]) && revisit.map === 'Verdant Road' && revisit.chapter === 2 && revisit.foes === 3, JSON.stringify(revisit));
