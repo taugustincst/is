@@ -638,7 +638,7 @@ const mk = (n, job, lvl, opts = {}) => {
       for (const id of Object.values(g.enemyGearFor(job, lvl, 1))) if (g.ITEMS[id] && g.ITEMS[id].late) leaked.push(`${job}@${lvl}:${id}`);
     }
     ok('master-tier gear is never issued to enemies', leaked.length === 0, leaked.slice(0, 4).join(',') || `${Object.values(g.ITEMS).filter(i => i.late).length} late items withheld`);
-    const legendary = Object.values(g.ITEMS).filter(i => i.tier >= 7);
+    const legendary = Object.values(g.ITEMS).filter(i => i.tier >= 7 && i.slot !== 'material');   // star-iron is legendary, but it is not an arm
     ok('legendary arms are all withheld from enemies', legendary.length > 0 && legendary.every(i => i.late), `${legendary.length} legendary items`);
     const openEnded = Object.entries(g.JOBS).filter(([, j]) => j.kind === 'human' && j.req && Object.keys(j.req).length && Object.values(j.req).some(l => l > 7));
     ok('no job asks for a job level that cannot be reached', openEnded.length === 0, openEnded.map(([k]) => k).join(',') || `max level ${g.JOB_LEVEL_JP.length - 1}`);
@@ -676,8 +676,31 @@ const mk = (n, job, lvl, opts = {}) => {
     const badCity = cities.filter(c => !g.MAPS[c.map] || !c.enemies.length || !c.hires.every(j => g.JOBS[j] && g.JOBS[j].req !== null) || !c.stock.every(i => g.ITEMS[i] && g.ITEMS[i].city === c.id) || !(c.intro.length >= 2 && c.intro.length <= 4) || !(c.outro.length >= 1 && c.outro.length <= 3) || c.from < 0 || c.from > g.CAMPAIGN.length).map(c => c.id);
     ok('every city has a field, holders, trained trades to hire and a market of its own', cities.length >= 6 && badCity.length === 0 && new Set(cities.map(c => c.id)).size === cities.length, badCity.join(',') || `${cities.length} cities`);
     const gameSrc = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
-    const pools = (gameSrc.match(/Object\.keys\(ITEMS\)\.filter\([^\n]*price > 0[^\n]*\)/g) || []);
-    ok('every random or wagon pool of items keeps city stock out', pools.length >= 3 && pools.every(p => p.includes('.city')), `${pools.length} pools`);
+    const pools = (gameSrc.match(/Object\.keys\(ITEMS\)\.filter\([^\n]*(price > 0|sellable\()[^\n]*\)/g) || []);
+    ok('every random or wagon pool of items keeps city stock and forge work out', pools.length >= 3 && pools.every(p => p.includes('sellable(')), `${pools.length} pools`);
+    // The forge: every piece of gear has its three steps up, each a real
+    // gain; a forge's work is issued to no enemy and sold on no shelf; every
+    // recipe is one city's, in a city that exists; a won field always leaves
+    // something, and never more than three.
+    const bases = Object.keys(g.ITEMS).filter(id => g.upgradeable(id));
+    const steps = bases.filter(id => [1, 2, 3].every(p => { const v = g.ITEMS[`${id}+${p}`], b = g.ITEMS[id]; return v && v.base === id && v.plus === p && v.price > 0 && !v.city && !v.forge && (v.power || 0) + (v.hp || 0) + (v.evade || 0) + (v.mp || 0) > (b.power || 0) + (b.hp || 0) + (b.evade || 0) + (b.mp || 0); }));
+    ok('every weapon, shield, helm and armour climbs +1, +2 and +3, each a gain', bases.length > 150 && steps.length === bases.length, `${steps.length}/${bases.length}`);
+    const costs = bases.filter(id => { const c1 = g.forgeCost(id), c3 = g.forgeCost(`${id}+2`); return c1 && c1.plus === 1 && c1.gil > 0 && Object.values(c1.mats)[0] === 1 && c3 && (c3.mats.emberGlass === 1 || c3.mats.starIron === 1) && g.forgeCost(`${id}+3`) === null; });
+    ok('each step asks a step more of the piece\'s own material, the last a coal of ember glass or star-iron', costs.length === bases.length, `${costs.length}/${bases.length}`);
+    const issued = [];
+    for (const job of Object.keys(g.JOB_EQUIP)) for (const lvl of [1, 8, 16, 26]) for (const id of Object.values(g.enemyGearFor(job, lvl, 1))) { const it = g.ITEMS[id]; if (it.base || it.forge || it.slot === 'material') issued.push(`${job}@${lvl}:${id}`); }
+    ok('no enemy is ever issued a forge\'s work', issued.length === 0, issued.slice(0, 4).join(','));
+    const onShelf = Object.keys(g.ITEMS).filter(id => g.sellable(id) && (g.ITEMS[id].base || g.ITEMS[id].forge || g.ITEMS[id].slot === 'material'));
+    ok('no shelf sells an improved piece, a forge\'s recipe or a material', onShelf.length === 0, onShelf.join(','));
+    const recipes = Object.entries(g.FORGE_ITEMS);
+    const badRecipe = recipes.filter(([id, it]) => !cities.some(c => c.id === it.forge) || !Object.keys(it.cost).every(m => g.MATERIALS[m]) || it.price <= 0 || !g.sellable(id) === false).map(([id]) => id);
+    ok('every recipe belongs to a real city, asks real materials and is never on a shelf', recipes.length >= 20 && badRecipe.length === 0, badRecipe.join(',') || `${recipes.length} recipes`);
+    const guns = recipes.filter(([, it]) => it.wtype === 'gun').length;
+    ok('the forge is where the better guns come from', guns >= 5 && recipes.some(([, it]) => it.wtype === 'gun' && it.tier >= 7), `${guns} guns`);
+    ok('every city has a forge that sells at least the plain materials', cities.every(c => c.forgeTier >= 1) && cities.some(c => c.forgeTier >= 7));
+    let drops = 0, dropBad = 0;
+    for (let i = 0; i < 400; i++) { const d = g.fieldMaterials(1 + (i % 7), i % 2 === 0); const n = Object.values(d).reduce((a, b) => a + b, 0); drops += n; if (n < 1 || n > 3 || Object.keys(d).some(m => g.MATERIALS[m].tier > 1 + (i % 7))) dropBad++; }
+    ok('a won field leaves one to three materials, none above the wagon\'s tier', dropBad === 0 && drops / 400 > 1.5, `${(drops / 400).toFixed(2)} on average`);
     const strayCity = Object.entries(g.ITEMS).filter(([, it]) => it.city && !cities.some(c => c.id === it.city && c.stock.includes(Object.keys(g.ITEMS).find(k => g.ITEMS[k] === it)))).map(([k]) => k);
     ok('every city-only item is sold by exactly the city that claims it', strayCity.length === 0, strayCity.join(',') || `${Object.values(g.ITEMS).filter(i => i.city).length} city items`);
     const errands = g.run('ERRANDS');

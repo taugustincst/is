@@ -1158,7 +1158,7 @@ const EPILOGUE_CAMP = [
    market that sells what the wagon never carries. Levels rise to meet a party
    that comes late. */
 const CITIES = [
-  { id: 'redwater', name: 'Redwater', from: 1, pos: [0.93, 0.90], map: 'quarry', level: 2, gil: 900, hireCost: 450,
+  { id: 'redwater', name: 'Redwater', from: 1, pos: [0.93, 0.90], map: 'quarry', level: 2, gil: 900, hireCost: 450, forgeTier: 2,
     held: 'held by the Redwater Reavers', blurb: 'A market town on the quarry road, taken by the guard that was paid to hold it.',
     intro: [
       'Redwater sits on the quarry road with its gates shut and its own guard on the walls, and the guard have decided the town belongs to them now.',
@@ -1172,7 +1172,7 @@ const CITIES = [
     ],
     hires: ['knight', 'archer', 'thief'], stock: ['redwaterSteel', 'reaverCloak'],
     open: 'Smoke from the smithies again, and a tavern that remembers your name.' },
-  { id: 'dunmarchTown', name: 'Dunmarch Town', from: 4, pos: [0.34, 0.56], map: 'dunmarch', level: 6, gil: 1300, hireCost: 500,
+  { id: 'dunmarchTown', name: 'Dunmarch Town', from: 4, pos: [0.34, 0.56], map: 'dunmarch', level: 6, gil: 1300, hireCost: 500, forgeTier: 3,
     held: 'held by the garrison holdouts', blurb: 'The town under the keep, still flying colours nobody pays for.',
     intro: [
       'Dunmarch town still flies Aldous\'s colours from the garrison, though the garrison has not been paid since Brannoc rode for Thornwall.',
@@ -1185,7 +1185,7 @@ const CITIES = [
     ],
     hires: ['whiteMage', 'blackMage', 'timeMage'], stock: ['garrisonPlate', 'priestStaff'],
     open: 'The chapel bell rings the hours again. The armoury door stands open.' },
-  { id: 'fordwaterTown', name: 'Fordwater', from: 7, pos: [0.62, 0.52], map: 'fordwater', level: 9, gil: 1800, hireCost: 600,
+  { id: 'fordwaterTown', name: 'Fordwater', from: 7, pos: [0.62, 0.52], map: 'fordwater', level: 9, gil: 1800, hireCost: 600, forgeTier: 3,
     held: 'held by the Concord customs house', blurb: 'A crossing town taxed to the bone by the Concord\'s customs men and their hounds.',
     intro: [
       'The Concord has a customs house at Fordwater, and the customs house has a garrison, and the garrison has hounds.',
@@ -1198,7 +1198,7 @@ const CITIES = [
     ],
     hires: ['engineer', 'gunner'], stock: ['customsPistol', 'ledgerCoat'],
     open: 'The ferry runs for nothing. The workshops have taken down the Concord\'s sign.' },
-  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.90, 0.50], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700,
+  { id: 'cogsworthTown', name: 'Cogsworth Town', from: 9, pos: [0.90, 0.50], map: 'cogsworth', level: 11, gil: 2300, hireCost: 700, forgeTier: 4,
     held: 'held by the Concord engine sheds', blurb: 'The town that grew up around the bridge, with sentinels walking its streets.',
     intro: [
       'Cogsworth town grew up around the bridge and the Concord\'s engine sheds. The sheds are still running and the sentinels still walk the streets.',
@@ -1211,7 +1211,7 @@ const CITIES = [
     ],
     hires: ['aeronaut', 'artificer'], stock: ['bridgewright', 'aetherLantern'],
     open: 'The engine sheds are quiet. Somebody has planted flowers in a sentinel\'s boiler.' },
-  { id: 'hearthold', name: 'Hearthold', from: 13, pos: [0.16, 0.26], map: 'rimewater', level: 14, gil: 3000, hireCost: 800,
+  { id: 'hearthold', name: 'Hearthold', from: 13, pos: [0.16, 0.26], map: 'rimewater', level: 14, gil: 3000, hireCost: 800, forgeTier: 4,
     held: 'besieged by the Court', blurb: 'The last village on the ice with a fire in it, and the Court has come to put it out.',
     intro: [
       'Hearthold was the last village on the ice with a fire in it. The Court has come to put the fire out.',
@@ -1224,7 +1224,7 @@ const CITIES = [
     ],
     hires: ['warden', 'frostweaver'], stock: ['hearthBlade', 'wardenCloak'],
     open: 'The hearth is lit. It is always lit. Somebody sits up with it all night to be sure.' },
-  { id: 'hollowMarket', name: 'The Hollow Market', from: 16, pos: [0.50, 0.26], map: 'hollowcourt', level: 16, gil: 4000, hireCost: 900,
+  { id: 'hollowMarket', name: 'The Hollow Market', from: 16, pos: [0.50, 0.26], map: 'hollowcourt', level: 16, gil: 4000, hireCost: 900, forgeTier: 7,
     held: 'held by the Court\'s creatures', blurb: 'The market beneath the Court, where the star-iron was traded for a hundred years.',
     intro: [
       'Beneath the Hollow Court a market once served a people who are mostly gone. The Court\'s creatures have it now, and the star-iron that was traded there.',
@@ -1237,7 +1237,7 @@ const CITIES = [
     ],
     hires: ['runeblade', 'samurai'], stock: ['starIronRing', 'auroraStaff'],
     open: 'Lamps in the stalls. The star-iron is sold by weight now, like anything else.' },
-  { id: 'saltwick', name: 'Saltwick', from: 17, pos: [0.82, 0.40], map: 'saltwick', level: 18, gil: 4500, hireCost: 950,
+  { id: 'saltwick', name: 'Saltwick', from: 17, pos: [0.82, 0.40], map: 'saltwick', level: 18, gil: 4500, hireCost: 950, forgeTier: 4,
     held: 'held by the wreckers', blurb: 'The Concord\'s harbour for the Isles trade, its light dark and its quays full of men who came back wrong.',
     intro: [
       'Saltwick town lies behind the harbour, and the wreckers hold it as they hold the quays: smiling, and in the rain, and dry.',
@@ -1250,7 +1250,7 @@ const CITIES = [
     ],
     hires: ['corsair', 'harpooner'], stock: ['saltwickSabre', 'wreckersCoat'],
     open: 'The light turns all night. Ships come in by it, and their crews are ordinary.' },
-  { id: 'tessaly', name: 'Tessaly', from: 20, pos: [0.66, 0.06], map: 'tessaly', level: 21, gil: 5500, hireCost: 1000,
+  { id: 'tessaly', name: 'Tessaly', from: 20, pos: [0.66, 0.06], map: 'tessaly', level: 21, gil: 5500, hireCost: 1000, forgeTier: 4,
     held: 'held by the drowned', blurb: 'The drowned city, bared for an hour at low water, with its guard still on their corners.',
     intro: [
       'At low water Tessaly\'s market square stands a fathom clear of the sea, and the drowned keep it as they kept it living.',
@@ -1263,7 +1263,7 @@ const CITIES = [
     ],
     hires: ['tidecaller', 'harpooner'], stock: ['queensTrident', 'tessalyPearl'],
     open: 'Open at the ebb. The stallholders are wet, and glad of the custom, and do not talk about the last four hundred years.' },
-  { id: 'aldermere', name: 'Aldermere', from: 22, pos: [0.36, 0.40], map: 'guildhall', level: 23, gil: 6000, hireCost: 1100,
+  { id: 'aldermere', name: 'Aldermere', from: 22, pos: [0.36, 0.40], map: 'guildhall', level: 23, gil: 6000, hireCost: 1100, forgeTier: 4,
     held: 'held by Black Hollis\'s company', blurb: 'The cities\' league town, where the charter was written, with a mercenary company sitting on it.',
     intro: [
       'Aldermere wrote the charter of the free cities in its guildhall, and Black Hollis\'s company has been paid to sit in the guildhall until it is forgotten.',
@@ -1276,7 +1276,7 @@ const CITIES = [
     ],
     hires: ['marshal', 'duelist'], stock: ['leagueCoat', 'charterRing'],
     open: 'The charter is back on the guildhall wall. People come to read it, and stay to argue.' },
-  { id: 'elderonCity', name: 'Elderon City', from: 23, pos: [0.52, 0.54], map: 'capital', level: 25, gil: 7000, hireCost: 1200,
+  { id: 'elderonCity', name: 'Elderon City', from: 23, pos: [0.52, 0.54], map: 'capital', level: 25, gil: 7000, hireCost: 1200, forgeTier: 4,
     held: 'held by the Chancellor\'s guard', blurb: 'The capital\'s high quarter, under the palace, with the guard on every corner.',
     intro: [
       'The high quarter of the capital is where the guard live, and they have shut it, because the company is in the low one.',

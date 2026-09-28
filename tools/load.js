@@ -20,6 +20,7 @@ const NAMES = [
   'itemsForSlot', 'bestGearFor', 'gearScore', 'enemyGearFor', 'passivesOfJob',
   'passiveEquipBonus', 'jobLevelFromJP', 'computeDeployZone', 'facingFromDelta',
   'ELEMENTS', 'AFFINITY', 'affinityOf', 'affinityLabel',
+  'MATERIALS', 'FORGE_ITEMS', 'FORGE_MAX', 'upgradeable', 'forgeMaterial', 'forgeCost', 'salvageYield', 'fieldMaterials', 'sellable', 'itemType',
 ];
 
 function load(files = ENGINE) {

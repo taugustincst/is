@@ -78,6 +78,9 @@ small { color: var(--muted); }
 .cities-card h4 small { color: var(--muted); font-weight: normal; font-size: 12px; }
 .city-hires { display: flex; gap: 8px; flex-wrap: wrap; }
 .city-stock .shop-row { padding: 6px 0; }
+.forge-tabs { flex-wrap: wrap; margin: 4px 0 8px; }
+.forge-tabs button { font-size: 12px; padding: 3px 10px; }
+.shop-row .cost em.short { color: #ffb3a8; font-style: normal; }
 .errand { padding: 8px 0; border-top: 1px solid #2a2d50; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .errand:first-child { border-top: none; }
 .errand small { color: var(--muted); font-size: 12px; }

@@ -51,9 +51,22 @@ for (const job of Object.keys(g.JOB_EQUIP)) {
 
 // ---- items ----
 for (const [id, it] of Object.entries(g.ITEMS)) {
-  if (!g.SLOT_NAMES[it.slot]) bad(`item ${id} has unknown slot '${it.slot}'`);
+  if (!g.SLOT_NAMES[it.slot] && it.slot !== 'material') bad(`item ${id} has unknown slot '${it.slot}'`);
   if (it.slot === 'weapon' && (!it.wtype || !it.power || !it.range)) bad(`weapon ${id} is missing wtype, power or range`);
   if (it.tier === undefined || it.price === undefined) bad(`item ${id} is missing tier or price`);
+}
+const CITY_IDS = g.run('typeof CITIES === "undefined" ? [] : CITIES.map(c => c.id)');
+// A recipe or material is merged into ITEMS after the literal, so an id used
+// twice would quietly replace a wagon item rather than fail to parse.
+const dataSrc = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'data.js'), 'utf8');
+for (const id of [...Object.keys(g.FORGE_ITEMS), ...Object.keys(g.MATERIALS)]) {
+  const n = (dataSrc.match(new RegExp(`^  ${id}: `, 'gm')) || []).length;
+  if (n !== 1) bad(`item id ${id} is defined ${n} times; a forge recipe or material must not reuse a wagon item's id`);
+}
+for (const [id, it] of Object.entries(g.FORGE_ITEMS)) {
+  if (!CITY_IDS.includes(it.forge)) bad(`forge recipe ${id} belongs to unknown city '${it.forge}'`);
+  for (const m of Object.keys(it.cost || {})) if (!g.MATERIALS[m]) bad(`forge recipe ${id} asks for unknown material '${m}'`);
+  if (!Object.keys(it.cost || {}).length) bad(`forge recipe ${id} costs nothing`);
 }
 for (const [job, kit] of Object.entries(g.STARTER_GEAR)) {
   for (const [slot, id] of Object.entries(kit)) {

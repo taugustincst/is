@@ -8,7 +8,7 @@ const SLOT_COUNT = 3;
 const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.5.2';
+const GAME_VERSION = '1.6.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -27,6 +27,8 @@ const SEA_LINE = (fx) => 0.21 + Math.sin(fx * 9) * 0.02 + Math.sin(fx * 23 + 1) 
 // The roster's ceiling: nine recruits join through the story, and the tavern
 // fills what is left.
 const PARTY_MAX = 16;
+// The forge's four pages, in the order they are shown.
+const FORGE_TABS = [['improve', 'Improve'], ['craft', 'Craft'], ['salvage', 'Salvage'], ['materials', 'Materials']];
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -525,8 +527,10 @@ class Game {
       this.toast(`Difficulty set to ${DIFFICULTIES[b.dataset.diff].name}.`);
       this.showWorld();
     });
-    const spare = Object.values(this.state.inventory).reduce((a, b) => a + b, 0);
-    $('world-stock').textContent = spare ? `Baggage: ${spare} spare item${spare === 1 ? '' : 's'} · open` : 'Baggage: nothing spare · open';
+    const inv = Object.entries(this.state.inventory).filter(([id]) => ITEMS[id]);
+    const spare = inv.filter(([id]) => ITEMS[id].slot !== 'material').reduce((a, [, n]) => a + n, 0);
+    const mats = inv.filter(([id]) => ITEMS[id].slot === 'material').reduce((a, [, n]) => a + n, 0);
+    $('world-stock').textContent = `Baggage: ${spare ? `${spare} spare item${spare === 1 ? '' : 's'}` : 'nothing spare'}${mats ? ` · ${mats} material${mats === 1 ? '' : 's'}` : ''} · open`;
     const hireLvl = Math.max(1, this.avgLevel() - 1);
     $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max ${PARTY_MAX}).`;
     $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= PARTY_MAX;
@@ -845,16 +849,148 @@ class Game {
     const el = $('cities'), s = this.state;
     const lvl = Math.max(1, this.avgLevel() - 1);
     const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= PARTY_MAX ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} gil</button>`).join('');
+    const forgeTab = FORGE_TABS.some(([id]) => id === this.forgeTab) ? this.forgeTab : 'improve';
     const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
     el.innerHTML = `
       <div class="city-head"><b>${city.name}</b><span class="muted">${city.open}</span><button id="btn-city-back" class="mini">Back to the road</button></div>
       <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max ${PARTY_MAX})</small></h4>
       <div class="city-hires">${hires}</div>
       <h4>Market <small>sold here and nowhere else</small></h4>
-      <div class="city-stock">${stock}</div>`;
+      <div class="city-stock">${stock}</div>
+      <h4>Forge <small>betters what you carry to +3, makes arms sold nowhere, and breaks spare gear down</small></h4>
+      <div class="tabs forge-tabs">${FORGE_TABS.map(([id, label]) => `<button data-forge="${id}" class="${id === forgeTab ? 'sel' : ''}">${label}</button>`).join('')}</div>
+      <div class="city-stock forge-body">${this.forgeRows(city, forgeTab)}</div>`;
     $('btn-city-back').onclick = () => { this.cityView = null; this.renderCities(); };
     el.querySelectorAll('button[data-hire-at]').forEach(b => b.onclick = () => this.hireAt(city, b.dataset.hireAt));
     el.querySelectorAll('button[data-buy-at]').forEach(b => b.onclick = () => this.buyAt(city, b.dataset.buyAt));
+    el.querySelectorAll('button[data-forge]').forEach(b => b.onclick = () => { audio.sfx('menu'); this.forgeTab = b.dataset.forge; this.renderCityPanel(city); });
+    el.querySelectorAll('button[data-improve]').forEach(b => b.onclick = () => this.improveAt(b.dataset.improve));
+    el.querySelectorAll('button[data-craft]').forEach(b => b.onclick = () => this.craftAt(city, b.dataset.craft));
+    el.querySelectorAll('button[data-salvage]').forEach(b => b.onclick = () => this.salvageAt(b.dataset.salvage));
+    el.querySelectorAll('button[data-mat]').forEach(b => b.onclick = () => this.buyMaterial(city, b.dataset.mat));
+  }
+
+  // ---- the forge ----------------------------------------------------------------------
+  /* Four pages. Improve lists every piece the company carries that a smith
+     could better, worn first and then spare, with what it becomes and what
+     that asks. Craft is the city's own recipes. Salvage breaks spare gear
+     down into materials. Materials is what this forge sells, and what the
+     baggage holds. Anything the purse or the baggage cannot cover is shown
+     dimmed with the shortfall named, so the answer to "why not" is on the
+     row itself. */
+  forgeRows(city, tab) {
+    const s = this.state;
+    const mats = (list) => Object.entries(list).map(([m, n]) => `${n}× ${ITEMS[m].name}`).join(', ');
+    if (tab === 'improve') {
+      const rows = [];
+      for (const u of s.party) for (const slot of FORGE_SLOTS) {
+        const id = u.gear[slot], cost = id && forgeCost(id);
+        if (cost) rows.push({ key: `u:${u.id}:${slot}`, id, cost, who: `${u.name} · ${SLOT_NAMES[slot]}` });
+      }
+      for (const id of Object.keys(s.inventory)) {
+        const cost = this.invCount(id) > 0 && forgeCost(id);
+        if (cost) rows.push({ key: `s:${id}`, id, cost, who: `spare ×${this.invCount(id)}` });
+      }
+      if (!rows.length) return '<p class="muted">Nothing the company carries can be bettered further.</p>';
+      return rows.map(r => {
+        const it = ITEMS[r.id], to = ITEMS[r.cost.to], ok = this.canPay(r.cost.mats, r.cost.gil);
+        return `<div class="shop-row ${ok ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(r.id)}</small>
+          <div class="fits">${r.who} · becomes <b>${to.name}</b>: ${this.itemSummary(r.cost.to)}</div>
+          <div class="fits cost">${this.costText(r.cost.mats, r.cost.gil)}</div></div>
+          <button data-improve="${r.key}" ${ok ? '' : 'disabled'}>Improve to +${r.cost.plus}</button></div>`;
+      }).join('');
+    }
+    if (tab === 'craft') {
+      return Object.keys(FORGE_ITEMS).filter(id => FORGE_ITEMS[id].forge === city.id).map(id => {
+        const it = ITEMS[id], fits = this.fitsList(id), gil = this.craftGil(id), ok = this.canPay(it.cost, gil);
+        return `<div class="shop-row ${fits && ok ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
+          <div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div>
+          <div class="fits cost">${this.costText(it.cost, gil)}</div></div>
+          <button data-craft="${id}" ${ok ? '' : 'disabled'}>Craft</button></div>`;
+      }).join('');
+    }
+    if (tab === 'salvage') {
+      const ids = Object.keys(s.inventory).filter(id => this.invCount(id) > 0 && salvageYield(id));
+      if (!ids.length) return '<p class="muted">Nothing spare to break down. Spare weapons, shields, helms and armour from the field and the shop can be salvaged here.</p>';
+      return ids.map(id => {
+        const it = ITEMS[id], give = salvageYield(id);
+        return `<div class="shop-row"><div><b>${it.name}</b> <small>×${this.invCount(id)} · ${this.itemSummary(id)}</small>
+          <div class="fits">Breaks down into ${mats(give)}${it.price ? ` · would sell for ${Math.floor(it.price / 2)} gil` : ''}</div></div>
+          <button data-salvage="${id}">Salvage</button></div>`;
+      }).join('');
+    }
+    const tier = city.forgeTier || 2;
+    const rows = Object.keys(MATERIALS).map(m => {
+      const it = ITEMS[m], here = it.tier <= tier, have = this.invCount(m);
+      if (!here && !have) return '';
+      return `<div class="shop-row"><div><b>${it.name}</b> <small>×${have} in the baggage</small><div class="fits">${it.desc}${here ? '' : ' · not sold here'}</div></div>
+        ${here ? `<button data-mat="${m}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button>` : ''}</div>`;
+    }).join('');
+    return rows || '<p class="muted">This forge sells nothing.</p>';
+  }
+
+  // Half the piece's worth in gil on top of the materials: the smith's labour.
+  craftGil(id) { return Math.round(ITEMS[id].price / 2); }
+  canPay(mats, gil) { return this.state.gil >= (gil || 0) && Object.entries(mats).every(([m, n]) => this.invCount(m) >= n); }
+  pay(mats, gil) { this.state.gil -= gil || 0; for (const [m, n] of Object.entries(mats)) this.invRemove(m, n); }
+  // "2× Steel Ingot (have 1) · 1× Ember Glass · 360 gil", the shortfalls marked.
+  costText(mats, gil) {
+    const parts = Object.entries(mats).map(([m, n]) => { const have = this.invCount(m); return `${n}× ${ITEMS[m].name}${have < n ? ` <em class="short">(have ${have})</em>` : ''}`; });
+    if (gil) parts.push(`${gil} gil${this.state.gil < gil ? ` <em class="short">(have ${this.state.gil})</em>` : ''}`);
+    return parts.join(' · ');
+  }
+
+  // A worn piece is bettered where it is worn; a spare one in the baggage.
+  improveAt(key) {
+    const [kind, a, b] = key.split(':');
+    const s = this.state;
+    let id, apply;
+    if (kind === 'u') {
+      const u = s.party.find(x => x.id === a); if (!u) return;
+      id = u.gear[b]; apply = (to) => { u.gear[b] = to; };
+    } else {
+      id = a; if (!this.invCount(id)) return;
+      apply = (to) => { this.invRemove(id); this.invAdd(to); };
+    }
+    const cost = id && forgeCost(id);
+    if (!cost || !this.canPay(cost.mats, cost.gil)) return;
+    this.pay(cost.mats, cost.gil);
+    apply(cost.to);
+    audio.sfx('impact-blunt');
+    this.toast(`${ITEMS[id].name} is now ${ITEMS[cost.to].name}.`);
+    this.showWorld();
+  }
+
+  craftAt(city, id) {
+    const it = FORGE_ITEMS[id];
+    if (!it || it.forge !== city.id) return;
+    const gil = this.craftGil(id);
+    if (!this.canPay(it.cost, gil)) return;
+    this.pay(it.cost, gil);
+    this.invAdd(id);
+    audio.sfx('impact-blunt');
+    this.toast(`The smiths of ${city.name} make a ${it.name}. It is in the baggage.`);
+    this.showWorld();
+  }
+
+  salvageAt(id) {
+    const give = this.invCount(id) > 0 && salvageYield(id);
+    if (!give) return;
+    this.invRemove(id);
+    for (const [m, n] of Object.entries(give)) this.invAdd(m, n);
+    audio.sfx('cancel');
+    this.toast(`${ITEMS[id].name} broken down: ${Object.entries(give).map(([m, n]) => `${n}× ${ITEMS[m].name}`).join(', ')}.`);
+    this.showWorld();
+  }
+
+  buyMaterial(city, m) {
+    const it = MATERIALS[m];
+    if (!it || it.tier > (city.forgeTier || 2) || this.state.gil < it.price) return;
+    this.state.gil -= it.price;
+    this.invAdd(m);
+    audio.sfx('coin');
+    this.toast(`Bought ${it.name}.`);
+    this.showWorld();
   }
 
   hireAt(city, job) {
@@ -975,7 +1111,7 @@ class Game {
       u.gainJP(pay.jp);
       let found = null;
       if (Math.random() < spec.item) {
-        const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && !ITEMS[id].city && ITEMS[id].tier <= this.shopTier() && ITEMS[id].tier >= Math.max(0, this.shopTier() - 2));
+        const pool = Object.keys(ITEMS).filter(id => sellable(id) && ITEMS[id].tier <= this.shopTier() && ITEMS[id].tier >= Math.max(0, this.shopTier() - 2));
         if (pool.length) { found = pool[Math.floor(Math.random() * pool.length)]; this.invAdd(found); }
       }
       e.reports.push(`${u.name} returns from "${spec.title}": ${pay.gil} gil and ${pay.jp} JP as a ${u.jobData.name}${found ? `, and brings back a ${ITEMS[found].name}` : ''}.`);
@@ -1076,7 +1212,7 @@ class Game {
 
   shopBuyRows() {
     const tier = this.shopTier();
-    const stock = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier && !ITEMS[id].city);
+    const stock = Object.keys(ITEMS).filter(id => sellable(id) && ITEMS[id].tier <= tier);
     const bySlot = {};
     for (const id of stock) (bySlot[ITEMS[id].slot] = bySlot[ITEMS[id].slot] || []).push(id);
     return Object.entries(CATEGORY_NAMES).filter(([slot]) => bySlot[slot]).map(([slot, label]) => {
@@ -1137,9 +1273,10 @@ class Game {
     this.bagCat = cat; this.bagType = type;
     const s = this.state;
     const ids = Object.keys(s.inventory).filter(id => this.invCount(id) > 0 && ITEMS[id]);
-    const spare = ids.reduce((n, id) => n + this.invCount(id), 0);
+    const count = (test) => ids.filter(id => test(ITEMS[id])).reduce((n, id) => n + this.invCount(id), 0);
+    const spare = count(it => it.slot !== 'material'), matN = count(it => it.slot === 'material');
     $('bag-gil').textContent = `${s.gil} gil`;
-    $('bag-count').textContent = spare ? `${spare} spare piece${spare === 1 ? '' : 's'}` : 'nothing spare';
+    $('bag-count').textContent = [spare ? `${spare} spare piece${spare === 1 ? '' : 's'}` : 'nothing spare', matN ? `${matN} material${matN === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
     const cats = ['all', ...Object.keys(CATEGORY_NAMES).filter(c => ids.some(id => ITEMS[id].slot === c))];
     $('bag-tabs').innerHTML = cats.map(c => `<button data-cat="${c}" class="${c === cat ? 'sel' : ''}">${c === 'all' ? 'All' : CATEGORY_NAMES[c]}</button>`).join('');
     $('bag-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openBaggage(b.dataset.cat, 'all'));
@@ -1154,15 +1291,15 @@ class Game {
       const it = ITEMS[id], t = itemType(id);
       if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
       const slot = it.slot;
-      const wearers = s.party.filter(u => u.canEquipItem(id, slot));
+      const wearers = it.slot === 'material' ? [] : s.party.filter(u => u.canEquipItem(id, slot));
       const opts = wearers.map(u => `<option value="${u.id}">${u.name} · ${u.jobData.name}${u.gear[slot] ? ` (wears ${ITEMS[u.gear[slot]].name})` : ' (empty)'}</option>`).join('');
-      html += `<div class="shop-row inv-row ${wearers.length ? '' : 'unfit'}" data-item="${id}">
+      html += `<div class="shop-row inv-row ${wearers.length || it.slot === 'material' ? '' : 'unfit'}" data-item="${id}">
         <div class="inv-main"><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
-          <div class="fits">x${this.invCount(id)} · tier ${it.tier}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}</div></div>
+          <div class="fits">${it.slot === 'material' ? `x${this.invCount(id)} · for the forge · ${it.desc}` : `x${this.invCount(id)} · tier ${it.tier}${it.plus ? ` · improved +${it.plus}` : ''}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''}${it.forge ? ' · forged at ' + CITIES.find(c => c.id === it.forge).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}`}</div></div>
         <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}" aria-label="Who to equip ${it.name}">${opts}</select><button data-equip="${id}">Equip</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">Sell ${Math.floor(it.price / 2)}</button>` : ''}</div>
       </div>`;
     }
-    $('bag-list').innerHTML = html || `<p class="muted">${ids.length ? 'Nothing of that kind.' : 'The baggage is empty. Spare gear from the shop, the field and the cities collects here.'}</p>`;
+    $('bag-list').innerHTML = html || `<p class="muted">${ids.length ? 'Nothing of that kind.' : 'The baggage is empty. Spare gear from the shop, the field and the cities collects here, and materials for the forge.'}</p>`;
     $('bag-list').querySelectorAll('button[data-equip]').forEach(b => b.onclick = () => {
       const id = b.dataset.equip, uid = b.closest('.inv-row').querySelector('select[data-wearer]').value;
       const u = s.party.find(x => x.id === uid); if (!u) return;
@@ -1187,7 +1324,7 @@ class Game {
   rollLoot(guaranteed) {
     if (!guaranteed && Math.random() > 0.4) return null;
     const tier = this.shopTier();
-    const pool = Object.keys(ITEMS).filter(id => ITEMS[id].price > 0 && ITEMS[id].tier <= tier && !ITEMS[id].city);
+    const pool = Object.keys(ITEMS).filter(id => sellable(id) && ITEMS[id].tier <= tier);
     if (!pool.length) return null;
     const id = pool[Math.floor(Math.random() * pool.length)];
     this.invAdd(id);
@@ -1587,6 +1724,9 @@ class Game {
       audio.sfx('coin');
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) r.loot = loot;
+      // And a few materials for the forge, every time.
+      r.materials = fieldMaterials(this.shopTier(), !!gilReward && gilReward >= 250);
+      for (const [m, n] of Object.entries(r.materials)) this.invAdd(m, n);
     }
     const again = await this.results(result, r, battle.endReason, fought, fell);
     return again === 'retry' ? 'retry' : result;
@@ -1632,6 +1772,7 @@ class Game {
         <div class="res-line">Experience earned: <b>${r.exp}</b></div>
         <div class="res-line">Gil ${result === 'victory' ? 'earned' : 'kept'}: <b>${result === 'victory' ? r.gil : 0}</b></div>
         ${r.loot ? `<div class="res-line res-loot">Recovered: <b>${r.loot}</b></div>` : ''}
+        ${r.materials && Object.keys(r.materials).length ? `<div class="res-line res-loot">For the forge: <b>${Object.entries(r.materials).map(([m, n]) => `${n}× ${ITEMS[m].name}`).join(', ')}</b></div>` : ''}
         <div class="res-party"></div>
         ${r.events.length ? `<ul class="res-events">${r.events.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}
         ${result === 'defeat' ? '<p class="res-note">Your party regroups. Train, learn new abilities, and try again.</p>' : ''}`;

@@ -46,7 +46,7 @@ function shop(party, state, chapter) {
       let best = null, bestValue = 0;
       for (const id of Object.keys(g.ITEMS)) {
         const it = g.ITEMS[id];
-        if (it.tier > tier || it.price > state.gil) continue;
+        if (it.tier > tier || it.price > state.gil || it.base || it.forge || it.slot === 'material') continue;
         if (!g.canEquipInSlot(u.job, id, slot, g.passiveEquipBonus(u))) continue;
         if (slot === 'offhand' && u.hasPassive('twoHands')) continue;
         const gain = g.gearScore(u.job, id) - curScore;
