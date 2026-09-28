@@ -1528,14 +1528,15 @@ const STARTER_GEAR = {
 const SLOT_NAMES = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', body: 'Body', acc: 'Accessory' };
 
 // How the baggage is sorted: a category for the tab, a type for the shelf.
-const CATEGORY_NAMES = { weapon: 'Weapons', offhand: 'Shields', head: 'Head', body: 'Body', acc: 'Accessories' };
+const CATEGORY_NAMES = { weapon: 'Weapons', offhand: 'Shields', head: 'Head', body: 'Body', acc: 'Accessories', material: 'Materials' };
 const TYPE_NAMES = {
   sword: 'Swords', knife: 'Knives', axe: 'Axes', spear: 'Spears', bow: 'Bows', gun: 'Guns', staff: 'Staves', rod: 'Rods',
   katana: 'Katanas', harp: 'Harps', greatsword: 'Greatswords', tome: 'Tomes', ninjablade: 'Ninja Blades', fist: 'Fists',
   light: 'Light Armour', heavy: 'Heavy Armour', cloth: 'Clothes', robe: 'Robes', hat: 'Hats', helm: 'Helms', shield: 'Shields', acc: 'Accessories',
+  material: 'Materials',
 };
 // The type an item shelves under: its weapon, armour, hat or shield kind, or accessory.
-function itemType(id) { const it = ITEMS[id]; return it ? (it.wtype || it.atype || it.htype || it.otype || 'acc') : 'acc'; }
+function itemType(id) { const it = ITEMS[id]; return it ? (it.slot === 'material' ? 'material' : it.wtype || it.atype || it.htype || it.otype || 'acc') : 'acc'; }
 // The order shelves come in: weapons by kind, then shields, head, body, accessories.
 const TYPE_ORDER = Object.keys(TYPE_NAMES);
 const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
@@ -1654,8 +1655,147 @@ function enemyGearFor(job, level, tierShift) {
   // piece of gear that would quietly cancel it.
   const innate = (JOBS[job] && JOBS[job].affinity) || {};
   const weak = Object.keys(innate).filter(e => innate[e] === 'weak');
-  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late && !ITEMS[i].city && !(ITEMS[i].resist && weak.some(e => ITEMS[i].resist[e])));
+  const pool = Object.keys(ITEMS).filter(i => ITEMS[i].tier <= tier && !ITEMS[i].late && !ITEMS[i].city && !ITEMS[i].forge && !ITEMS[i].base && ITEMS[i].slot !== 'material' && !(ITEMS[i].resist && weak.some(e => ITEMS[i].resist[e])));
   return bestGearFor(job, pool, tier);
+}
+
+// ============================================================================
+// The forge: materials, what a city's smiths make, and improvement
+// ============================================================================
+/* Materials are items too: they sit in the baggage, count and sell like
+   spare gear, and fit no slot. A won field leaves a few behind, a spare
+   piece broken down at a forge gives some back, and a forge sells the rest. */
+const MATERIALS = {
+  ironIngot:    { name: 'Iron Ingot', slot: 'material', price: 90, tier: 1, desc: 'Plain bar iron, for blades, hafts, mail, helms and shields.' },
+  oakHeartwood: { name: 'Oak Heartwood', slot: 'material', price: 110, tier: 1, desc: 'Seasoned heartwood, for bows, staves, rods, harps and tomes.' },
+  silkBolt:     { name: 'Silk Bolt', slot: 'material', price: 140, tier: 2, desc: 'Close-woven silk, for clothes, robes, cloaks and hats.' },
+  steelIngot:   { name: 'Steel Ingot', slot: 'material', price: 260, tier: 3, desc: 'Folded steel, for the better blades and plate.' },
+  brassFitting: { name: 'Brass Fitting', slot: 'material', price: 300, tier: 3, desc: 'Turned brass: locks, barrels and the works of a gun.' },
+  emberGlass:   { name: 'Ember Glass', slot: 'material', price: 650, tier: 4, desc: 'Glass with a coal still burning in it. A forge asks for it at the last step.' },
+  starIron:     { name: 'Star-Iron', slot: 'material', price: 1800, tier: 7, desc: 'Iron that fell from the sky. The Hollow Market sells it by weight.' },
+};
+
+/* What a city's smiths can make and nobody sells: materials and gil in, one
+   piece out. `forge` names the city; `cost` is what it asks. The guns among
+   them are the only guns past the wagon's, so a company that shoots has a
+   reason to open the workshop towns. */
+const FORGE_ITEMS = {
+  // Redwater: quarry steel and reaver leather.
+  quarryMaul:    { name: 'Quarry Maul', forge: 'redwater', slot: 'weapon', wtype: 'axe', power: 12, range: 1, vert: 2, spd: -1, price: 800, tier: 2, cost: { ironIngot: 3, oakHeartwood: 1 } },
+  reaverMail:    { name: 'Reaver Mail', forge: 'redwater', slot: 'body', atype: 'heavy', hp: 30, evade: 2, price: 700, tier: 2, cost: { ironIngot: 3 } },
+  // Dunmarch: the chapel and the garrison armoury.
+  chapelHelm:    { name: 'Chapel Helm', forge: 'dunmarchTown', slot: 'head', htype: 'helm', look: 'helm', hp: 18, mp: 10, price: 750, tier: 3, cost: { ironIngot: 2, silkBolt: 1 } },
+  wardingRod:    { name: 'Warding Rod', forge: 'dunmarchTown', slot: 'weapon', wtype: 'rod', power: 5, range: 1, vert: 2, ma: 6, resist: { dark: 'resist' }, price: 1000, tier: 3, cost: { oakHeartwood: 2, silkBolt: 1 } },
+  // Fordwater: the workshops, and the first gun a forge can make.
+  pepperbox:     { name: 'Pepperbox', forge: 'fordwaterTown', slot: 'weapon', wtype: 'gun', power: 9, range: 4, vert: 9, evade: 4, price: 1300, tier: 4, cost: { brassFitting: 2, ironIngot: 2 } },
+  ferrymanCoat:  { name: 'Ferryman\'s Coat', forge: 'fordwaterTown', slot: 'body', atype: 'light', hp: 32, resist: { water: 'resist' }, price: 1100, tier: 4, cost: { silkBolt: 2, ironIngot: 1 } },
+  // Cogsworth: bridgewrights, boilers and long barrels.
+  longRifle:     { name: 'Long Rifle', forge: 'cogsworthTown', slot: 'weapon', wtype: 'gun', power: 11, range: 7, vert: 9, spd: -1, price: 1900, tier: 5, cost: { brassFitting: 3, steelIngot: 1, oakHeartwood: 1 } },
+  boilerPlate:   { name: 'Boiler Plate', forge: 'cogsworthTown', slot: 'body', atype: 'heavy', hp: 52, resist: { fire: 'resist' }, price: 1800, tier: 5, cost: { steelIngot: 3, brassFitting: 1 } },
+  // Hearthold: the forge that remembers fire.
+  hearthSpear:   { name: 'Hearth Spear', forge: 'hearthold', slot: 'weapon', wtype: 'spear', power: 13, range: 2, vert: 3, resist: { ice: 'resist' }, price: 2000, tier: 5, cost: { steelIngot: 2, oakHeartwood: 2 } },
+  emberCloak:    { name: 'Ember Cloak', forge: 'hearthold', slot: 'body', atype: 'robe', hp: 34, mp: 30, resist: { ice: 'resist' }, price: 1900, tier: 5, cost: { silkBolt: 3, emberGlass: 1 } },
+  // The Hollow Market: star-iron, worked.
+  fallenStarBlade: { name: 'Fallen-star Blade', forge: 'hollowMarket', late: true, slot: 'weapon', wtype: 'sword', power: 18, range: 1, vert: 2, ma: 3, price: 7000, tier: 7, cost: { starIron: 2, steelIngot: 2 } },
+  starIronRifle: { name: 'Star-iron Rifle', forge: 'hollowMarket', late: true, slot: 'weapon', wtype: 'gun', power: 15, range: 6, vert: 9, ma: 2, price: 7400, tier: 7, cost: { starIron: 2, brassFitting: 3 } },
+  // Saltwick: the chandlery's smith.
+  seaDogPistol:  { name: 'Sea-dog Pistol', forge: 'saltwick', slot: 'weapon', wtype: 'gun', power: 11, range: 4, vert: 9, evade: 6, price: 2300, tier: 6, cost: { brassFitting: 3, steelIngot: 1 } },
+  wreckersHook:  { name: 'Wrecker\'s Hook', forge: 'saltwick', slot: 'weapon', wtype: 'spear', power: 13, range: 2, vert: 4, evade: 4, price: 2200, tier: 6, cost: { steelIngot: 2, oakHeartwood: 2 } },
+  // Tessaly: what the drowned smiths still make.
+  pearlBow:      { name: 'Pearl Bow', forge: 'tessaly', slot: 'weapon', wtype: 'bow', power: 10, range: 6, vert: 8, ma: 3, price: 2500, tier: 6, cost: { oakHeartwood: 3, emberGlass: 1 } },
+  tidewardHelm:  { name: 'Tideward Helm', forge: 'tessaly', slot: 'head', htype: 'helm', look: 'helm', hp: 32, mp: 15, resist: { water: 'immune' }, price: 2400, tier: 6, cost: { steelIngot: 2, emberGlass: 1 } },
+  // Aldermere: the league's armourers.
+  charterShield: { name: 'Charter Shield', forge: 'aldermere', slot: 'offhand', otype: 'shield', evade: 24, hp: 24, price: 2300, tier: 6, cost: { steelIngot: 2, silkBolt: 1 } },
+  duelistBlade:  { name: 'Duelist\'s Blade', forge: 'aldermere', slot: 'weapon', wtype: 'knife', power: 10, range: 1, vert: 2, spd: 2, evade: 8, price: 2400, tier: 6, cost: { steelIngot: 2, emberGlass: 1 } },
+  // Elderon City: the guard's own armouries.
+  handCannon:    { name: 'Hand Cannon', forge: 'elderonCity', slot: 'weapon', wtype: 'gun', power: 16, range: 3, vert: 9, spd: -1, price: 2700, tier: 6, cost: { brassFitting: 3, steelIngot: 2 } },
+  crownPlate:    { name: 'Crown Plate', forge: 'elderonCity', slot: 'body', atype: 'heavy', hp: 66, pa: 1, price: 2900, tier: 6, cost: { steelIngot: 4, emberGlass: 1 } },
+};
+Object.assign(ITEMS, MATERIALS, FORGE_ITEMS);
+
+/* Improvement. Any weapon, shield, helm or armour can be raised +1, +2 and
+   +3 at a forge. Each level is an item of its own (`longsword+2`), so the
+   baggage counts it, a save keeps it, the sprite wears it and the shop never
+   sees it: a variant carries `base` and `plus`, and nothing that sells or
+   issues gear touches one. Power climbs by a point a level; what protects
+   climbs by a share of itself, so a cloak and a plate both feel it. */
+const FORGE_MAX = 3;
+const FORGE_SLOTS = ['weapon', 'offhand', 'head', 'body'];
+function upgradeable(id) { const it = ITEMS[id]; return !!it && !it.base && FORGE_SLOTS.includes(it.slot); }
+function forgeVariant(id, plus) {
+  const b = ITEMS[id];
+  const v = Object.assign({}, b, { name: `${b.name} +${plus}`, base: id, plus });
+  delete v.city; delete v.forge; delete v.cost;
+  if (b.power) v.power = b.power + plus;
+  if (b.hp) v.hp = b.hp + Math.max(3, Math.round(b.hp * 0.15)) * plus;
+  if (b.mp) v.mp = b.mp + Math.max(2, Math.round(b.mp * 0.1)) * plus;
+  if (b.evade) v.evade = b.evade + (b.slot === 'offhand' ? 2 : 1) * plus;
+  // Free starter kit gains a value once it has been worked: the smith's
+  // labour is what is being sold back, not the gift.
+  v.price = b.price ? Math.round(b.price * (1 + 0.35 * plus)) : 80 * plus;
+  return v;
+}
+for (const id of Object.keys(ITEMS)) if (upgradeable(id)) for (let p = 1; p <= FORGE_MAX; p++) ITEMS[`${id}+${p}`] = forgeVariant(id, p);
+
+// Which material a piece is made of, for improving it and for what it gives
+// back when broken down.
+function forgeMaterial(id) {
+  const it = ITEMS[id], base = ITEMS[it.base || id], t = itemType(it.base || id);
+  if (t === 'gun') return 'brassFitting';
+  if (['bow', 'staff', 'rod', 'harp', 'tome'].includes(t)) return 'oakHeartwood';
+  if (['light', 'cloth', 'robe', 'hat'].includes(t)) return 'silkBolt';
+  return base.tier >= 3 ? 'steelIngot' : 'ironIngot';
+}
+
+// The next step up from a piece: the item it becomes and what the smith
+// asks, or null when it is as good as it gets. The last step wants a coal
+// of ember glass, or star-iron for the legendary arms.
+function forgeCost(id) {
+  const it = ITEMS[id];
+  if (!it || !upgradeable(it.base || id)) return null;
+  const plus = (it.plus || 0) + 1;
+  if (plus > FORGE_MAX) return null;
+  const baseId = it.base || id, base = ITEMS[baseId];
+  const mats = { [forgeMaterial(baseId)]: plus };
+  if (plus === FORGE_MAX) mats[base.tier >= 7 ? 'starIron' : 'emberGlass'] = 1;
+  return { to: `${baseId}+${plus}`, plus, mats, gil: Math.max(120 * plus, Math.round((base.price || 200) * 0.3 * plus)) };
+}
+
+// What breaking a spare piece down gives back, or null for what cannot be
+// (accessories and materials). Better steel yields more; the work already
+// put into an improved piece is half recovered.
+function salvageYield(id) {
+  const it = ITEMS[id];
+  if (!it || !upgradeable(it.base || id)) return null;
+  const baseId = it.base || id, base = ITEMS[baseId];
+  const out = { [forgeMaterial(baseId)]: 1 + (base.tier >= 4 ? 1 : 0) + Math.floor((it.plus || 0) / 2) };
+  if (base.tier >= 5) out.emberGlass = 1;
+  if (base.tier >= 7) out.starIron = 1;
+  return out;
+}
+
+// What a won field leaves for the forge: a few materials at about the
+// wagon's tier, leaning to the best of them, and one more from a battle
+// that paid well. Star-iron only where the legendary arms already are.
+function fieldMaterials(tier, rich, rnd = Math.random) {
+  const pool = Object.keys(MATERIALS).filter(m => MATERIALS[m].tier <= Math.max(1, tier));
+  const weight = m => MATERIALS[m].tier >= 7 ? 1 : 1 + MATERIALS[m].tier;
+  const total = pool.reduce((a, m) => a + weight(m), 0);
+  const n = 1 + (rich ? 1 : 0) + (rnd() < 0.5 ? 1 : 0);
+  const out = {};
+  for (let i = 0; i < n; i++) {
+    let r = rnd() * total;
+    for (const m of pool) { r -= weight(m); if (r <= 0) { out[m] = (out[m] || 0) + 1; break; } }
+  }
+  return out;
+}
+
+// Whether an item belongs on a shelf, in the wagon or in a chance find: not
+// a city's own stock, not a forge's work, not an improved piece, not a
+// material. Every pool that hands out gear goes through this.
+function sellable(id) {
+  const it = ITEMS[id];
+  return !!it && it.price > 0 && !it.city && !it.forge && !it.base && it.slot !== 'material';
 }
 
 // ============================================================================

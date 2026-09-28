@@ -95,6 +95,12 @@ a browser, or serve the folder with any static file server.
   Court. Fight one open and it stays open: a tavern that hires recruits
   already trained in an advanced trade, and a market with two wares of its
   own the wagon never carries — twenty arms across all ten towns.
+- **A forge in every open city.** It betters any weapon, shield, helm or
+  armour to +1, +2 and +3 for materials and gil, each step its own item
+  that the baggage counts and a save keeps; it makes twenty arms sold
+  nowhere else, two to a town, the best guns among them; and it breaks
+  spare gear down into materials. Seven materials, from bar iron to
+  star-iron, and every won field leaves a few behind.
 - **Errands.** Send a unit who is not the leader away from camp for a battle
   or two. They come back with gil, JP in the job they left in, and sometimes
   something found. Fourteen errands, two on the board at a time.
