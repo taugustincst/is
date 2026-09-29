@@ -151,6 +151,7 @@ const STRINGS = {
   'Spare: {n}': ['Übrig: {n}', 'En réserve : {n}', 'De sobra: {n}', 'Sobrando: {n}', '予備：{n}'],
   'Equip': ['Ausrüsten', 'Équiper', 'Equipar', 'Equipar', '装備'],
   'All': ['Alle', 'Tout', 'Todo', 'Tudo', 'すべて'],
+  'Every kind': ['Jede Art', 'Tous les types', 'Todo tipo', 'Todo tipo', 'すべての種類'],
   'Weapons': ['Waffen', 'Armes', 'Armas', 'Armas', '武器'],
   'Shields': ['Schilde', 'Boucliers', 'Escudos', 'Escudos', '盾'],
   'Head': ['Kopf', 'Tête', 'Cabeza', 'Cabeça', '頭'],
