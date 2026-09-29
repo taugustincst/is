@@ -242,8 +242,16 @@ class Battle {
     if (eff.type === 'damage' || eff.type === 'drain') {
       // Height advantage for physical attacks.
       if (ab.kind === 'physical') {
+        // Height: a twentieth a level, to a quarter either way. Ground is
+        // worth taking, and worth denying.
         const dh = this.grid.height(user.x, user.y) - this.grid.height(target.x, target.y);
-        if (dh >= 2) base *= 1.1; else if (dh <= -2) base *= 0.9;
+        base *= 1 + Math.max(-5, Math.min(5, dh)) * 0.05;
+        // Facing: a blow from behind lands a quarter harder, from the side a
+        // tenth. Where you stand is as much of the attack as what you swing.
+        if (target.team !== user.team) {
+          const rel = relativeFacing(target, user.x, user.y);
+          base *= rel === 'back' ? 1.25 : rel === 'side' ? 1.1 : 1;
+        }
         if (user.hasPassive('attackUp')) base *= 1.25;
         if (user.hasPassive('firstStrike') && target.hp === target.maxHp) base *= 1.5;
         if (user.hasPassive('monsterHunter') && target.jobData && target.jobData.kind === 'monster') base *= 1.5;
@@ -689,7 +697,7 @@ class Battle {
       t.hp = Math.max(1, Math.floor(t.maxHp / 4));
       this.log(`${t.name} rises again!`, 'heal');
       this.sound('heal');
-      if (this.hooks.showFloat) this.hooks.showFloat(t, 'Reraise', STATUSES.reraise.color);
+      if (this.hooks.showFloat) this.hooks.showFloat(t, STATUSES.reraise.name, STATUSES.reraise.color);
       return;
     }
     if (t.record) t.record.falls++;

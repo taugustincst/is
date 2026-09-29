@@ -7,8 +7,13 @@ const SAVE_KEY = 'elderon-tactics-save';
 const SLOT_COUNT = 3;
 const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
+// Once the first-chapter guide has been seen or skipped, it never returns.
+const COACH_KEY = 'elderon.coached';
+// A save code: a tag, then the save as it is stored, in base64 so it survives
+// a chat message, an email or a paste into a notes app.
+const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.6.0';
+const GAME_VERSION = '1.7.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -28,7 +33,7 @@ const SEA_LINE = (fx) => 0.21 + Math.sin(fx * 9) * 0.02 + Math.sin(fx * 23 + 1) 
 // fills what is left.
 const PARTY_MAX = 16;
 // The forge's four pages, in the order they are shown.
-const FORGE_TABS = [['improve', 'Improve'], ['craft', 'Craft'], ['salvage', 'Salvage'], ['materials', 'Materials']];
+const FORGE_TABS = [['improve', 'Improve'], ['craft', 'Craft'], ['salvage', 'Salvage'], ['materials', 'Materials']]; // labels pass through tr()
 const HIRE_NAMES = ['Aldo', 'Bea', 'Corin', 'Dessa', 'Emeric', 'Faye', 'Gil', 'Hollis', 'Ines', 'Joss', 'Kit', 'Lune', 'Marek', 'Nia', 'Orrin', 'Pell'];
 
 const $ = (id) => document.getElementById(id);
@@ -81,7 +86,7 @@ class Game {
     const w = window.__updateWaiting;
     if (!w || this._updateAsked || (this.screen !== 'world' && this.screen !== 'title')) return;
     this._updateAsked = true;
-    if (await this.ask('A new version of the game is ready. Reload into it now? Your progress is saved first.', { yes: 'Reload now', no: 'Later' })) {
+    if (await this.ask(tr('A new version of the game is ready. Reload into it now? Your progress is saved first.'), { yes: tr('Reload now'), no: tr('Later') })) {
       if (this.state) this.saveGame();
       window.__reloadOnControl = true;
       w.postMessage('skipWaiting');
@@ -107,6 +112,16 @@ class Game {
     $('btn-continue').onclick = () => this.loadGame();
     $('btn-load').onclick = () => this.openSlots('load');
     $('btn-slots-back').onclick = () => this.showScreen('title');
+    $('btn-slot-import').onclick = () => this.openTransfer('import');
+    $('btn-transfer-close').onclick = () => { $('transfer').hidden = true; };
+    $('btn-transfer-copy').onclick = () => this.copyCode();
+    $('btn-transfer-share').onclick = () => this.shareCode();
+    $('btn-transfer-file').onclick = () => this.fileCode();
+    $('btn-transfer-open').onclick = () => $('transfer-pick').click();
+    $('transfer-pick').onchange = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; f.text().then(t => { $('transfer-text').value = t.trim(); }); e.target.value = ''; };
+    $('btn-transfer-import').onclick = () => this.importCode($('transfer-text').value, +$('transfer-slot').value);
+    $('btn-coach-ok').onclick = () => this.ui.coachHide(false);
+    $('btn-coach-skip').onclick = () => this.ui.coachHide(true);
     $('btn-battle').onclick = () => this.startNextChapter();
     $('btn-train').onclick = () => this.startTraining();
     $('btn-formation').onclick = () => this.openFormation();
@@ -116,7 +131,7 @@ class Game {
     $('btn-shop-back').onclick = () => this.showWorld();
     $('btn-bag-back').onclick = () => this.showWorld();
     $('btn-bag-shop').onclick = () => this.openShop('buy');
-    $('btn-save').onclick = () => { if (this.saveGame()) this.toast('Game saved.'); };
+    $('btn-save').onclick = () => { if (this.saveGame()) this.toast(tr('Game saved.')); };
     // Leaving for the title saves first, so a slip of the thumb costs nothing.
     $('btn-title').onclick = () => { if (this.state) this.saveGame(); this.showScreen('title'); };
     $('btn-formation-back').onclick = () => this.showWorld();
@@ -143,6 +158,11 @@ class Game {
     this.renderAudioLevels();
     $('btn-help-close').onclick = () => $('help').classList.remove('open');
     $('btn-credits').onclick = () => { $('credits-version').textContent = `Version ${GAME_VERSION}`; this.showScreen('credits'); };
+    // The language, on the title too, so a first visit can switch before New Game.
+    const langSel = $('title-lang');
+    langSel.innerHTML = Object.entries(LANGS).map(([code, name]) => `<option value="${code}" lang="${code}">${name}</option>`).join('');
+    langSel.value = LANG;
+    langSel.onchange = () => this.changeLanguage(langSel.value);
     $('btn-credits-back').onclick = () => this.showScreen('title');
     // Which build is running, where anyone reporting a problem will see it.
     $('title-version').textContent = `v${GAME_VERSION}`;
@@ -199,7 +219,7 @@ class Game {
   // by some automation, where Retreat and every other question simply did
   // nothing; this one always shows, and Escape, Back or a tap outside it
   // answers no.
-  ask(text, { yes = 'OK', no = 'Cancel' } = {}) {
+  ask(text, { yes = tr('OK'), no = tr('Cancel') } = {}) {
     if (this._ask) this.answerAsk(false); // one question at a time
     $('ask-text').textContent = text;
     $('ask-yes').textContent = yes; $('ask-no').textContent = no;
@@ -273,40 +293,112 @@ class Game {
     const ch = Number.isFinite(d.chapter) ? d.chapter : 0;
     const road = d.branch && ROADS[d.branch];
     const chap = ch < COMMON ? CAMPAIGN[ch] : road && road.chapters[ch - COMMON];
-    const where = chap ? `Act ${Math.min(ACTS.length, ACTS.findIndex(a => ch >= a.from && ch <= a.to) + 1 || ACTS.length)} · Chapter ${ch + 1} · ${chap.title}`
-      : ch === COMMON && !road ? 'Five Roads · at the capital'
-      : `${road ? road.ending.title : 'After the war'} · Trial ${(d.trials || 0) + 1}`;
+    const where = chap ? `${tr('Act {n}', { n: Math.min(ACTS.length, ACTS.findIndex(a => ch >= a.from && ch <= a.to) + 1 || ACTS.length) })} · ${tr('Chapter {n}', { n: ch + 1 })} · ${chap.title}`
+      : ch === COMMON && !road ? tr('Five Roads · at the capital')
+      : `${road ? road.ending.title : tr('After the war')} · ${tr('Trial {n}', { n: (d.trials || 0) + 1 })}`;
     const lv = d.party.length ? Math.round(d.party.reduce((a, u) => a + (u.level || 1), 0) / d.party.length) : 1;
     const mins = Math.round((d.playtime || 0) / 60000), time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
-    const ago = d.savedAt ? (() => { const m = Math.round((Date.now() - d.savedAt) / 60000); return m < 2 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; })() : 'an older save';
+    const ago = d.savedAt ? (() => { const m = Math.round((Date.now() - d.savedAt) / 60000); return m < 2 ? tr('just now') : m < 60 ? tr('{n} min ago', { n: m }) : m < 2880 ? tr('{n} h ago', { n: Math.round(m / 60) }) : tr('{n} days ago', { n: Math.round(m / 1440) }); })() : tr('an older save');
     const lead = d.party.find(u => u.leader) || d.party[0];
-    return { where, line: `${d.party.length} soldier${d.party.length === 1 ? '' : 's'} · Lv ${lv} · ${d.gil || 0} gil · ${time} played · ${ago}`, leader: lead ? `${lead.name} the ${JOBS[lead.job] ? JOBS[lead.job].name : 'Squire'}` : '' };
+    return { where, line: `${d.party.length === 1 ? tr('1 soldier') : tr('{n} soldiers', { n: d.party.length })} · ${tr('Lv {n}', { n: lv })} · ${tr('{n} gil', { n: d.gil || 0 })} · ${tr('{time} played', { time })} · ${ago}`, leader: lead ? tr('{name} the {job}', { name: lead.name, job: JOBS[lead.job] ? JOBS[lead.job].name : 'Squire' }) : '' };
   }
 
   // The slots screen: to load, or to choose where a new game goes.
   openSlots(mode) {
     this.slotMode = mode;
-    $('slots-title').textContent = mode === 'new' ? 'Every slot is taken. Which one gives way?' : 'Load a game';
+    $('slots-title').textContent = mode === 'new' ? tr('Every slot is taken. Which one gives way?') : tr('Load a game');
     $('slots-list').innerHTML = this.listSlots().map(({ n, d }) => {
-      if (!d) return `<div class="slot empty"><div class="slot-text"><b>Slot ${n}</b><small>empty</small></div><div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}" class="primary">Start here</button>` : ''}</div></div>`;
+      if (!d) return `<div class="slot empty"><div class="slot-text"><b>${tr('Slot {n}', { n })}</b><small>${tr('empty')}</small></div><div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}" class="primary">${tr('Start here')}</button>` : ''}</div></div>`;
       const sum = this.slotSummary(d);
-      return `<div class="slot"><div class="slot-text"><b>Slot ${n}</b> <span class="slot-where">${sum.where}</span><small>${sum.leader} · ${sum.line}</small></div>
-        <div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}">Overwrite</button>` : `<button data-slot-load="${n}" class="primary">Load</button><button data-slot-del="${n}" class="mini">Delete</button>`}</div></div>`;
+      return `<div class="slot"><div class="slot-text"><b>${tr('Slot {n}', { n })}</b> <span class="slot-where">${sum.where}</span><small>${sum.leader} · ${sum.line}</small></div>
+        <div class="slot-actions">${mode === 'new' ? `<button data-slot-new="${n}">${tr('Overwrite')}</button>` : `<button data-slot-load="${n}" class="primary">${tr('Load')}</button><button data-slot-export="${n}" class="mini">${tr('Export')}</button><button data-slot-del="${n}" class="mini">${tr('Delete')}</button>`}</div></div>`;
     }).join('');
+    $('slots-list').querySelectorAll('button[data-slot-export]').forEach(b => b.onclick = () => this.openTransfer('export', +b.dataset.slotExport));
+    $('transfer').hidden = true;
     $('slots-list').querySelectorAll('button[data-slot-load]').forEach(b => b.onclick = () => this.loadGame(+b.dataset.slotLoad));
     $('slots-list').querySelectorAll('button[data-slot-new]').forEach(b => b.onclick = async () => {
       const n = +b.dataset.slotNew;
-      if (this.listSlots()[n - 1].d && !(await this.ask(`Write over slot ${n}? That game is gone for good.`, { yes: 'Overwrite' }))) return;
+      if (this.listSlots()[n - 1].d && !(await this.ask(tr('Write over slot {n}? That game is gone for good.', { n }), { yes: 'Overwrite' }))) return;
       this.newGame(n);
     });
     $('slots-list').querySelectorAll('button[data-slot-del]').forEach(b => b.onclick = async () => {
       const n = +b.dataset.slotDel;
-      if (!(await this.ask(`Delete slot ${n}? That game is gone for good.`, { yes: 'Delete' }))) return;
+      if (!(await this.ask(tr('Delete slot {n}? That game is gone for good.', { n }), { yes: 'Delete' }))) return;
       store.del(slotKey(n));
       this.syncTitleButtons();
       this.openSlots(mode);
     });
     this.showScreen('slots');
+  }
+
+  // ---- carrying a save between devices ----------------------------------------
+  /* The game keeps its saves on the device and sends nothing anywhere, so
+     moving a game to another phone, or to the web build, is done by hand: a
+     slot exports as a code, and a code imports into a slot. The code is the
+     stored save itself, so nothing a save can hold is lost on the way. */
+  openTransfer(mode, slot) {
+    const box = $('transfer'), text = $('transfer-text');
+    box.hidden = false;
+    this.transferMode = mode;
+    const exporting = mode === 'export';
+    for (const id of ['btn-transfer-copy', 'btn-transfer-share', 'btn-transfer-file']) $(id).hidden = !exporting;
+    for (const id of ['btn-transfer-open', 'btn-transfer-import']) $(id).hidden = exporting;
+    $('transfer-slot').parentElement.hidden = exporting;
+    $('btn-transfer-share').hidden = exporting ? !navigator.share : true;
+    if (exporting) {
+      const raw = store.get(slotKey(slot));
+      text.value = raw ? CODE_TAG + btoa(unescape(encodeURIComponent(raw))) : '';
+      text.readOnly = true;
+      $('transfer-note').textContent = tr('Slot {n} as a code. Copy it, share it, or save it as a file; on the other device, Load Game → Import a save code.', { n: slot });
+      text.focus(); text.select();
+    } else {
+      text.value = ''; text.readOnly = false;
+      $('transfer-note').textContent = tr('Paste a save code below, or open the file it was saved as, and choose the slot it goes into.');
+      const free = this.listSlots().find(x => !x.d);
+      $('transfer-slot').value = String(free ? free.n : 1);
+      text.focus();
+    }
+    box.scrollIntoView({ block: 'nearest' });
+  }
+
+  // A code back into a save, or null with the reason when it is not one.
+  decodeCode(text) {
+    const code = (text || '').trim();
+    if (!code.startsWith(CODE_TAG)) return { error: tr('That is not an Elderon save code: it should start with ELDERON1.') };
+    let d;
+    try { d = JSON.parse(decodeURIComponent(escape(atob(code.slice(CODE_TAG.length))))); } catch (e) { return { error: tr('The code is damaged or incomplete. Copy it again, whole.') }; }
+    if (!d || !Array.isArray(d.party) || !d.party.length) return { error: tr('The code holds no company.') };
+    return { data: d, raw: JSON.stringify(d) };
+  }
+
+  async importCode(text, slot) {
+    const r = this.decodeCode(text);
+    if (r.error) { this.toast(r.error); return false; }
+    if (this.listSlots()[slot - 1].d && !(await this.ask(tr('Write over slot {n} with the imported game? The game there is gone for good.', { n: slot }), { yes: tr('Overwrite') }))) return false;
+    if (!store.set(slotKey(slot), r.raw)) { this.toast(tr('The save could not be written: storage is blocked or full.')); return false; }
+    this.syncTitleButtons();
+    this.toast(tr('Imported into slot {n}: {where}.', { n: slot, where: this.slotSummary(r.data).where }));
+    this.openSlots('load');
+    return true;
+  }
+
+  async copyCode() {
+    const t = $('transfer-text');
+    try { await navigator.clipboard.writeText(t.value); this.toast(tr('Save code copied.')); }
+    catch (e) { t.focus(); t.select(); this.toast(tr('Select the code and copy it.')); }
+  }
+  async shareCode() {
+    try { await navigator.share({ title: 'Chronicles of Elderon save', text: $('transfer-text').value }); }
+    catch (e) { /* the sheet was closed, or is not there: the code is still on screen */ }
+  }
+  fileCode() {
+    const blob = new Blob([$('transfer-text').value], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `elderon-save-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    this.toast(tr('Saved as a file.'));
   }
 
   saveGame() {
@@ -320,7 +412,7 @@ class Game {
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
       playtime: this.state.playtime, savedAt: now,
     };
-    if (!store.set(slotKey(this.state.slot || 1), JSON.stringify(data))) { this.toast('The game could not be saved: storage is blocked or full.'); return false; }
+    if (!store.set(slotKey(this.state.slot || 1), JSON.stringify(data))) { this.toast(tr('The game could not be saved: storage is blocked or full.')); return false; }
     this.syncTitleButtons();
     return true;
   }
@@ -343,7 +435,7 @@ class Game {
       // leaving the player on the title screen with a button that did nothing.
       store.del(slotKey(slot));
       this.syncTitleButtons();
-      this.toast('That save could not be read. Start a new game.');
+      this.toast(tr('That save could not be read. Start a new game.'));
       return;
     }
     // Anything a Unit cannot make sense of, it heals on the way in.
@@ -468,23 +560,23 @@ class Game {
     this.renderErrands();
     if (ch) {
       const o = ch.objective || { type: 'rout' };
-      const goal = o.type === 'survive' ? `Hold out for ${o.rounds} rounds`
-        : o.type === 'boss' ? `Defeat ${(ch.enemies.find(e => e.boss) || {}).name || 'the commander'}`
-        : 'Defeat every enemy';
+      const goal = o.type === 'survive' ? tr('Hold out for {n} rounds', { n: o.rounds })
+        : o.type === 'boss' ? tr('Defeat {name}', { name: (ch.enemies.find(e => e.boss) || {}).name || tr('the commander') })
+        : tr('Defeat every enemy');
       const topLevel = Math.max(...ch.enemies.map(e => e.level));
       const ready = this.readiness(ch);
       const act = ACTS.find(a => s.chapter >= a.from && s.chapter <= a.to) || ACTS[ACTS.length - 1];
       const roadName = s.branch ? ` · ${ROADS[s.branch].title}` : '';
       $('world-next').innerHTML = `
-        <div class="chapter-num">Act ${ACTS.indexOf(act) + 1} · ${act.title}${roadName} · Chapter ${s.chapter + 1}</div>
+        <div class="chapter-num">${tr('Act {n}', { n: ACTS.indexOf(act) + 1 })} · ${act.title}${roadName} · ${tr('Chapter {n}', { n: s.chapter + 1 })}</div>
         <div class="chapter-title">${ch.title}</div>
-        <div class="chapter-map">${MAPS[ch.map].name} · ${ch.enemies.length} enemies · up to Lv ${topLevel}</div>
-        <div class="chapter-goal">Objective: ${goal}${o.protectLeader ? ' · Rowan must not be lost' : ''}</div>
+        <div class="chapter-map">${MAPS[ch.map].name} · ${tr('{n} enemies · up to Lv {lv}', { n: ch.enemies.length, lv: topLevel })}</div>
+        <div class="chapter-goal">${tr('Objective: {goal}', { goal })}${o.protectLeader ? ` · ${tr('Rowan must not be lost')}` : ''}</div>
         ${ready ? `<div class="chapter-warn">${ready}</div>` : ''}
-        ${s.chapter > 0 ? `<div class="chapter-map revisit-row"><label>Fight a won field again for half the pay: <select id="revisit-sel">${this.wonChapters().map(([i, c]) => `<option value="${i}">${i + 1}. ${c.title}</option>`).join('')}</select></label> <button id="btn-revisit" class="mini">Revisit</button></div>` : ''}`;
+        ${s.chapter > 0 ? `<div class="chapter-map revisit-row"><label>${tr('Fight a won field again for half the pay:')} <select id="revisit-sel">${this.wonChapters().map(([i, c]) => `<option value="${i}">${i + 1}. ${c.title}</option>`).join('')}</select></label> <button id="btn-revisit" class="mini">${tr('Revisit')}</button></div>` : ''}`;
       if ($('btn-revisit')) $('btn-revisit').onclick = () => this.revisitChapter(+$('revisit-sel').value);
       $('btn-battle').disabled = false;
-      $('btn-battle').textContent = 'March to Battle';
+      $('btn-battle').textContent = tr('March to Battle');
     } else if (this.atFork()) {
       // The capital: five roads, and the player picks one.
       const seen = Object.keys(s.endings || {}).filter(k => ROADS[k]);
@@ -493,10 +585,10 @@ class Game {
         <div class="chapter-title">${CHOICE.title}</div>
         <div class="chapter-map">${CHOICE.lines[0]}</div>
         <div class="chapter-goal">Choose a road. Each is two chapters and an ending of its own.${seen.length ? ` Endings seen: ${seen.map(k => ROADS[k].title).join(', ')}.` : ''}</div>
-        <div class="chapter-map revisit-row"><label>Fight a won field again for half the pay: <select id="revisit-sel">${this.wonChapters().map(([i, c]) => `<option value="${i}">${i + 1}. ${c.title}</option>`).join('')}</select></label> <button id="btn-revisit" class="mini">Revisit</button></div>`;
+        <div class="chapter-map revisit-row"><label>${tr('Fight a won field again for half the pay:')} <select id="revisit-sel">${this.wonChapters().map(([i, c]) => `<option value="${i}">${i + 1}. ${c.title}</option>`).join('')}</select></label> <button id="btn-revisit" class="mini">${tr('Revisit')}</button></div>`;
       if ($('btn-revisit')) $('btn-revisit').onclick = () => this.revisitChapter(+$('revisit-sel').value);
       $('btn-battle').disabled = false;
-      $('btn-battle').textContent = 'Choose a Road';
+      $('btn-battle').textContent = tr('Choose a Road');
     } else {
       // The road is walked; the trials are what a company does with peace,
       // and the capital waits with the roads not taken.
@@ -504,27 +596,28 @@ class Game {
       const road = ROADS[s.branch], seen = Object.keys(s.endings || {}).filter(k => ROADS[k]);
       const left = ROAD_ORDER.filter(k => !s.endings[k]);
       $('world-next').innerHTML = `
-        <div class="chapter-num">${road ? road.ending.title : 'After the war'} · Trial ${n}</div>
+        <div class="chapter-num">${road ? road.ending.title : tr('After the war')} · ${tr('Trial {n}', { n })}</div>
         <div class="chapter-title">${t.title}</div>
-        <div class="chapter-map">${MAPS[t.map].name} · ${t.enemies.length} enemies · Lv ${t.level}</div>
-        <div class="chapter-goal">Objective: Defeat every enemy · ${t.gil} gil</div>
+        <div class="chapter-map">${MAPS[t.map].name} · ${tr('{n} enemies · Lv {lv}', { n: t.enemies.length, lv: t.level })}</div>
+        <div class="chapter-goal">${tr('Objective: {goal}', { goal: tr('Defeat every enemy') })} · ${tr('{n} gil', { n: t.gil })}</div>
         <div class="chapter-map">Each trial is harder than the last, and nothing is lost by failing one. The wagon carries legendary arms, and a trial won may turn one up.</div>
         <div class="chapter-goal act-after">${road ? road.ending.after : AFTER_THE_WAR}</div>
         <div class="chapter-map revisit-row">Endings seen: ${seen.map(k => ROADS[k].title).join(', ') || 'none'} (${seen.length} of ${ROAD_ORDER.length}).${left.length ? ` <button id="btn-another" class="mini">Another road</button>` : ' Every road has been walked.'}</div>`;
       if ($('btn-another')) $('btn-another').onclick = () => this.anotherRoad();
       $('btn-battle').disabled = false;
-      $('btn-battle').textContent = `Trial ${n}`;
+      $('btn-battle').textContent = tr('Trial {n}', { n });
     }
     this.renderCampTabs();
     this.renderCampfire();
     this.renderCities();
+    this.renderLanguage();
     const diff = DIFFICULTIES[s.difficulty] || DIFFICULTIES.knight;
     $('world-difficulty').innerHTML = Object.entries(DIFFICULTIES).map(([id, d]) =>
-      `<button data-diff="${id}" class="${id === s.difficulty ? 'sel' : ''}" title="${d.desc}">${d.name}</button>`).join('') +
+      `<button data-diff="${id}" class="${id === s.difficulty ? 'sel' : ''}" title="${tr(d.desc)}">${tr(d.name)}</button>`).join('') +
       `<div class="diff-desc">${diff.desc}</div>`;
     $('world-difficulty').querySelectorAll('button').forEach(b => b.onclick = () => {
       this.state.difficulty = b.dataset.diff;
-      this.toast(`Difficulty set to ${DIFFICULTIES[b.dataset.diff].name}.`);
+      this.toast(tr('Difficulty set to {name}.', { name: tr(DIFFICULTIES[b.dataset.diff].name) }));
       this.showWorld();
     });
     const inv = Object.entries(this.state.inventory).filter(([id]) => ITEMS[id]);
@@ -548,7 +641,7 @@ class Game {
     const liberable = CITIES.filter(c => this.cityReachable(c) && !this.cityOpen(c.id)).length;
     const reports = (s.errands && s.errands.reports || []).length;
     const tabs = [
-      ['road', 'Road', 0], ['company', 'Company', reports], ['cities', 'Cities', liberable], ['options', 'Options', 0],
+      ['road', tr('Road'), 0], ['company', tr('Company'), reports], ['cities', tr('Cities'), liberable], ['options', tr('Options'), 0],
     ];
     el.innerHTML = tabs.map(([id, label, n]) => `<button data-camp="${id}" class="${id === cur ? 'sel' : ''}">${label}${n ? `<span class="badge">${n}</span>` : ''}</button>`).join('');
     el.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.showCampTab(b.dataset.camp); });
@@ -560,6 +653,21 @@ class Game {
     store.set('elderon.campTab', id);
     document.querySelectorAll('[data-camp-tab]').forEach(el => el.classList.toggle('tab-hidden', el.dataset.campTab !== id));
     document.querySelectorAll('#camp-tabs button').forEach(b => b.classList.toggle('sel', b.dataset.camp === id));
+  }
+
+  // The language, in the camp's Options tab and on the title screen. A change
+  // redraws the screen it was made on; every other screen reads the table as
+  // it is drawn, so nothing needs reloading.
+  renderLanguage() {
+    const el = $('world-lang'); if (!el) return;
+    el.innerHTML = Object.entries(LANGS).map(([code, name]) => `<button data-lang="${code}" class="${code === LANG ? 'sel' : ''}" lang="${code}">${name}</button>`).join('');
+    el.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.changeLanguage(b.dataset.lang); });
+  }
+  changeLanguage(code) {
+    setLang(code);
+    if (this.screen === 'world') this.showWorld();
+    this.syncTitleButtons();
+    const sel = $('title-lang'); if (sel) sel.value = LANG;
   }
 
   // What the company says the night before: the next chapter's talk, or, once
@@ -611,7 +719,7 @@ class Game {
     const pool = HIRE_NAMES.filter(n => !used.has(n));
     const name = pool[Math.floor(Math.random() * pool.length)] || `Recruit ${s.party.length}`;
     s.party.push(new Unit({ name, job, level: Math.max(1, this.avgLevel() - 1), team: 'player' }));
-    this.toast(`${name} the ${JOBS[job].name} joins the party.`);
+    this.toast(tr('{name} the {job} joins the party.', { name, job: JOBS[job].name }));
     this.showWorld();
   }
 
@@ -805,7 +913,7 @@ class Game {
       if (u.secondary === u.job) u.secondary = null;
       this.syncGear(u);
       audio.sfx('select');
-      this.toast(`${u.name} is now a ${j.name}.`);
+      this.toast(tr('{name} is now a {job}.', { name: u.name, job: j.name }));
       this.openFormation(this.formSel);
     };
   }
@@ -858,7 +966,7 @@ class Game {
       <h4>Market <small>sold here and nowhere else</small></h4>
       <div class="city-stock">${stock}</div>
       <h4>Forge <small>betters what you carry to +3, makes arms sold nowhere, and breaks spare gear down</small></h4>
-      <div class="tabs forge-tabs">${FORGE_TABS.map(([id, label]) => `<button data-forge="${id}" class="${id === forgeTab ? 'sel' : ''}">${label}</button>`).join('')}</div>
+      <div class="tabs forge-tabs">${FORGE_TABS.map(([id, label]) => `<button data-forge="${id}" class="${id === forgeTab ? 'sel' : ''}">${tr(label)}</button>`).join('')}</div>
       <div class="city-stock forge-body">${this.forgeRows(city, forgeTab)}</div>`;
     $('btn-city-back').onclick = () => { this.cityView = null; this.renderCities(); };
     el.querySelectorAll('button[data-hire-at]').forEach(b => b.onclick = () => this.hireAt(city, b.dataset.hireAt));
@@ -989,7 +1097,7 @@ class Game {
     this.state.gil -= it.price;
     this.invAdd(m);
     audio.sfx('coin');
-    this.toast(`Bought ${it.name}.`);
+    this.toast(tr('Bought {item}.', { item: it.name }));
     this.showWorld();
   }
 
@@ -1016,7 +1124,7 @@ class Game {
     this.state.gil -= it.price;
     this.invAdd(id);
     audio.sfx('coin');
-    this.toast(`Bought ${it.name}.`);
+    this.toast(tr('Bought {item}.', { item: it.name }));
     this.showWorld();
   }
 
@@ -1195,7 +1303,7 @@ class Game {
     const s = this.state;
     $('shop-gil').textContent = `${s.gil} gil`;
     $('shop-tabs').innerHTML = ['buy', 'sell'].map(t =>
-      `<button data-tab="${t}" class="${t === tab ? 'sel' : ''}">${t === 'buy' ? 'Buy' : 'Sell'}</button>`).join('');
+      `<button data-tab="${t}" class="${t === tab ? 'sel' : ''}">${t === 'buy' ? tr('Buy') : tr('Sell')}</button>`).join('');
     $('shop-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openShop(b.dataset.tab));
     const rows = tab === 'buy' ? this.shopBuyRows() : this.shopSellRows();
     $('shop-list').innerHTML = rows || `<p class="muted">${tab === 'buy' ? 'Nothing in stock.' : 'You have no spare equipment to sell.'}</p>`;
@@ -1225,10 +1333,10 @@ class Game {
         const afford = this.state.gil >= it.price;
         items += `<div class="shop-row ${fits ? '' : 'unfit'}">
           <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
-            <div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div>
-          <button data-buy="${id}" ${afford ? '' : 'disabled'}>${it.price} gil</button></div>`;
+            <div class="fits">${fits ? tr('Fits: {who}', { who: fits }) : tr('No one in your party can use this yet')}${this.invCount(id) ? ` · ${tr('in stock: {n}', { n: this.invCount(id) })}` : ''}</div></div>
+          <button data-buy="${id}" ${afford ? '' : 'disabled'}>${tr('{n} gil', { n: it.price })}</button></div>`;
       }
-      return `<h3>${label}</h3>${items}`;
+      return `<h3>${tr(label)}</h3>${items}`;
     }).join('');
   }
 
@@ -1240,8 +1348,8 @@ class Game {
       const it = ITEMS[id], value = Math.floor(it.price / 2), t = itemType(id);
       if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
       html += `<div class="shop-row">
-        <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">Spare: ${this.invCount(id)}</div></div>
-        <button data-sell="${id}">Sell ${value} gil</button></div>`;
+        <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${tr('Spare: {n}', { n: this.invCount(id) })}</div></div>
+        <button data-sell="${id}">${tr('Sell {n} gil', { n: value })}</button></div>`;
     }
     return html;
   }
@@ -1251,7 +1359,7 @@ class Game {
     if (!it || this.state.gil < it.price) return;
     this.state.gil -= it.price;
     this.invAdd(id);
-    this.toast(`Bought ${it.name}.`);
+    this.toast(tr('Bought {item}.', { item: it.name }));
     this.openShop('buy');
   }
 
@@ -1261,7 +1369,7 @@ class Game {
     this.invRemove(id);
     this.state.gil += Math.floor(it.price / 2);
     audio.sfx('coin');
-    this.toast(`Sold ${it.name}.`);
+    this.toast(tr('Sold {item}.', { item: it.name }));
     if (from === 'baggage') this.openBaggage(this.bagCat, this.bagType); else this.openShop('sell');
   }
 
@@ -1278,7 +1386,7 @@ class Game {
     $('bag-gil').textContent = `${s.gil} gil`;
     $('bag-count').textContent = [spare ? `${spare} spare piece${spare === 1 ? '' : 's'}` : 'nothing spare', matN ? `${matN} material${matN === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
     const cats = ['all', ...Object.keys(CATEGORY_NAMES).filter(c => ids.some(id => ITEMS[id].slot === c))];
-    $('bag-tabs').innerHTML = cats.map(c => `<button data-cat="${c}" class="${c === cat ? 'sel' : ''}">${c === 'all' ? 'All' : CATEGORY_NAMES[c]}</button>`).join('');
+    $('bag-tabs').innerHTML = cats.map(c => `<button data-cat="${c}" class="${c === cat ? 'sel' : ''}">${c === 'all' ? tr('All') : tr(CATEGORY_NAMES[c])}</button>`).join('');
     $('bag-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openBaggage(b.dataset.cat, 'all'));
     const inCat = ids.filter(id => cat === 'all' || ITEMS[id].slot === cat);
     const types = [...new Set(inCat.map(itemType))].sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
@@ -1296,7 +1404,7 @@ class Game {
       html += `<div class="shop-row inv-row ${wearers.length || it.slot === 'material' ? '' : 'unfit'}" data-item="${id}">
         <div class="inv-main"><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
           <div class="fits">${it.slot === 'material' ? `x${this.invCount(id)} · for the forge · ${it.desc}` : `x${this.invCount(id)} · tier ${it.tier}${it.plus ? ` · improved +${it.plus}` : ''}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''}${it.forge ? ' · forged at ' + CITIES.find(c => c.id === it.forge).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}`}</div></div>
-        <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}" aria-label="Who to equip ${it.name}">${opts}</select><button data-equip="${id}">Equip</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">Sell ${Math.floor(it.price / 2)}</button>` : ''}</div>
+        <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}" aria-label="Who to equip ${it.name}">${opts}</select><button data-equip="${id}">${tr('Equip')}</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">${tr('Sell {n}', { n: Math.floor(it.price / 2) })}</button>` : ''}</div>
       </div>`;
     }
     $('bag-list').innerHTML = html || `<p class="muted">${ids.length ? 'Nothing of that kind.' : 'The baggage is empty. Spare gear from the shop, the field and the cities collects here, and materials for the forge.'}</p>`;
@@ -1342,7 +1450,7 @@ class Game {
       const next = () => {
         if (i < lines.length) {
           const p = document.createElement('p'); p.textContent = lines[i++]; box.appendChild(p);
-          btn.textContent = i < lines.length ? 'Continue' : 'Onward';
+          btn.textContent = i < lines.length ? tr('Continue') : tr('Onward');
           skip.hidden = i >= lines.length;
         } else { btn.onclick = null; skip.onclick = null; resolve(); }
       };
@@ -1566,7 +1674,7 @@ class Game {
     await this.story(ch.title, ch.intro);
     // Experience and JP are earned even in a losing battle, so the run is
     // saved either way rather than letting a defeat quietly discard it.
-    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective }, async (result) => {
+    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, kind: 'chapter' }, async (result) => {
       if (result !== 'victory') return;
       this.state.chapter++;
       this.state.victories++;
@@ -1662,6 +1770,8 @@ class Game {
   }
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
+    // What kind of fight this is: the guide speaks only on the first chapter.
+    this.battleKind = opts.kind || 'other';
     const roster = this.state.party.filter(u => !this.errandOf(u));
     const levelBefore = new Map(roster.map(u => [u, u.level]));
     const jpBefore = new Map(roster.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
@@ -1741,15 +1851,15 @@ class Game {
   }
   cyclePace() {
     this.setPace(PACE.scale >= 3 ? 1 : PACE.scale + 1);
-    this.toast(`Battle speed ${PACE.scale}×`);
+    this.toast(tr('Battle speed {n}×', { n: PACE.scale }));
   }
 
   async retreat() {
     if (!this.battle || this.battle.over) return;
     const battle = this.battle;
     const deploying = !!this.ui.deploy;
-    const yes = await this.ask(deploying ? 'Leave without giving battle?' : 'Retreat from battle? This counts as a defeat, and no rewards are kept.',
-      { yes: deploying ? 'Leave' : 'Retreat', no: deploying ? 'Stay' : 'Keep fighting' });
+    const yes = await this.ask(deploying ? tr('Leave without giving battle?') : tr('Retreat from battle? This counts as a defeat, and no rewards are kept.'),
+      { yes: deploying ? tr('Leave') : tr('Retreat'), no: deploying ? tr('Stay') : tr('Keep fighting') });
     // The fight may have ended, or another begun, while the question stood.
     if (!yes || this.battle !== battle || battle.over) return;
     this.battle.over = true;
@@ -1765,17 +1875,17 @@ class Game {
   results(result, r, battleEndReason, fought = [], fell = new Set()) {
     return new Promise(resolve => {
       audio.sfx(result === 'victory' ? 'victory' : 'defeat');
-      $('results-title').textContent = result === 'victory' ? 'Victory!' : 'Defeat...';
+      $('results-title').textContent = result === 'victory' ? tr('Victory!') : tr('Defeat...');
       $('results-title').className = result;
       $('results-body').innerHTML = `
         ${battleEndReason ? `<p class="res-reason">${battleEndReason}</p>` : ''}
-        <div class="res-line">Experience earned: <b>${r.exp}</b></div>
-        <div class="res-line">Gil ${result === 'victory' ? 'earned' : 'kept'}: <b>${result === 'victory' ? r.gil : 0}</b></div>
-        ${r.loot ? `<div class="res-line res-loot">Recovered: <b>${r.loot}</b></div>` : ''}
-        ${r.materials && Object.keys(r.materials).length ? `<div class="res-line res-loot">For the forge: <b>${Object.entries(r.materials).map(([m, n]) => `${n}× ${ITEMS[m].name}`).join(', ')}</b></div>` : ''}
+        <div class="res-line">${tr('Experience earned:')} <b>${r.exp}</b></div>
+        <div class="res-line">${result === 'victory' ? tr('Gil earned:') : tr('Gil kept:')} <b>${result === 'victory' ? r.gil : 0}</b></div>
+        ${r.loot ? `<div class="res-line res-loot">${tr('Recovered:')} <b>${r.loot}</b></div>` : ''}
+        ${r.materials && Object.keys(r.materials).length ? `<div class="res-line res-loot">${tr('For the forge:')} <b>${Object.entries(r.materials).map(([m, n]) => `${n}× ${ITEMS[m].name}`).join(', ')}</b></div>` : ''}
         <div class="res-party"></div>
         ${r.events.length ? `<ul class="res-events">${r.events.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}
-        ${result === 'defeat' ? '<p class="res-note">Your party regroups. Train, learn new abilities, and try again.</p>' : ''}`;
+        ${result === 'defeat' ? `<p class="res-note">${tr('Your party regroups. Train, learn new abilities, and try again.')}</p>` : ''}`;
       // Everyone who fought, with a mark on those who came out of it stronger.
       const roll = $('results-body').querySelector('.res-party');
       for (const u of fought) {
@@ -1789,13 +1899,13 @@ class Game {
         item.appendChild(cv);
         const cap = document.createElement('span');
         const from = r.levelFrom ? r.levelFrom.get(u) : null;
-        cap.textContent = `${u.name} · Lv${up && from && from < u.level ? `${from}→${u.level}` : u.level}${down ? ' · fell' : ''}`;
+        cap.textContent = `${u.name} · Lv${up && from && from < u.level ? `${from}→${u.level}` : u.level}${down ? ` · ${tr('fell')}` : ''}`;
         item.appendChild(cap);
         const jp = r.jpBy ? (r.jpBy.get(u) || 0) : 0;
         const learn = this.canLearnSomething(u);
         const sub = document.createElement('small');
         sub.className = 'res-jp' + (learn ? ' learn' : '');
-        sub.textContent = `${jp ? `+${jp} JP` : 'no JP'}${learn ? ' ✦' : ''}`;
+        sub.textContent = `${jp ? `+${jp} JP` : tr('no JP')}${learn ? ' ✦' : ''}`;
         item.appendChild(sub);
         if (learn) item.classList.add('learn');
         roll.appendChild(item);
@@ -1805,8 +1915,8 @@ class Game {
         const note = document.createElement('p');
         note.className = 'res-note';
         const who = learners.length === 1 ? learners[0]
-          : `${learners.slice(0, -1).join(', ')} and ${learners[learners.length - 1]}`;
-        note.textContent = `✦ ${who} ${learners.length === 1 ? 'has' : 'have'} JP enough for something new. Spend it in Formation.`;
+          : tr('{a} and {b}', { a: learners.slice(0, -1).join(', '), b: learners[learners.length - 1] });
+        note.textContent = `✦ ${learners.length === 1 ? tr('{who} has JP enough for something new. Spend it in Formation.', { who }) : tr('{who} have JP enough for something new. Spend it in Formation.', { who })}`;
         roll.after(note);
       }
       $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };

@@ -55,9 +55,11 @@ function chromePath(chromium) {
 // Walks the game to the first battle, through the story, to the deployment
 // panel. The same path on a phone and a tablet.
 async function toDeploy(page) {
-  await page.waitForSelector('#screen-title.active');
-  await page.click('#btn-new');
-  await page.waitForSelector('#screen-world.active');
+  // From the title a new game is started; from the camp the road is taken as it is.
+  if (await page.evaluate(() => game.screen === 'title')) {
+    await page.click('#btn-new');
+    await page.waitForSelector('#screen-world.active');
+  }
   await page.click('#btn-battle');
   await page.waitForSelector('#screen-story.active');
   for (let i = 0; i < 12; i++) {
@@ -79,6 +81,62 @@ async function toMenu(page) {
   await page.click('#deploy-panel button[data-a="go"]');
   await page.waitForFunction(() => game.ui.turn && game.ui.turn.mode === 'menu', null, { timeout: 40000 });
   await page.waitForTimeout(300);
+}
+// A company that has fought its way to `chapter`: levelled, in advanced
+// jobs, wearing what the wagon sells there. The screenshots show the game
+// as it is a few hours in, not the first field with four squires on it.
+async function midCampaign(page, chapter) {
+  await page.evaluate((ch) => {
+    const s = game.state;
+    s.chapter = ch; s.gil = 4000;
+    const jobs = ['knight', 'blackMage', 'archer', 'whiteMage', 'monk'];
+    s.party.forEach((u, i) => { u.job = jobs[i % jobs.length]; u.level = ch + 2; u.jp[u.job] = 400; u.jpTotal[u.job] = 400; const kit = bestGearFor(u.job, null, Math.min(6, ch)); for (const [slot, id] of Object.entries(kit)) if (id) u.gear[slot] = id; u.resetBattleState(); });
+    // The mage knows Fire, so the spell in the shot is one she could cast.
+    const mage = s.party.find(u => u.job === 'blackMage'); if (mage) mage.learned.fire = true;
+    game.showWorld();
+  }, chapter);
+}
+// A spell landing among the enemy, mid-flight, with the numbers coming off.
+async function spellShot(page, name, shot) {
+  await page.waitForTimeout(1400);   // the turn banner
+  // Bring the enemy into the picture first: on a phone the board is wider
+  // than the screen and they start off its edge.
+  await page.evaluate(async () => { const b = game.battle; const foe = b.units.filter(u => u.team === 'enemy' && u.alive && u.x >= 0)[0]; await game.renderer.focus(foe, 0); });
+  await page.waitForTimeout(200);
+  await page.evaluate(() => {
+    const b = game.battle, r = game.renderer;
+    const foe = b.units.filter(u => u.team === 'enemy' && u.alive && u.x >= 0)[0];
+    const tiles = b.grid.areaTiles(foe.x, foe.y, 1);
+    r.landFx(ABILITIES.fire, tiles);
+    r.burst(tiles, ELEMENTS.fire.color, 400);
+    for (const t of tiles) { const hit = b.unitAt(t.x, t.y); if (hit) { r.showFloat(hit, String(40 + Math.round(Math.random() * 30)), '#ffd8a0'); hit.hitAt = performance.now(); } }
+  });
+  await page.waitForTimeout(160);
+  await shot(page, name);
+  await page.waitForTimeout(900);
+}
+// Attack chosen, a target under the finger, the forecast open.
+async function attackPreview(page) {
+  // An enemy stands beside the active unit, back turned: the forecast then
+  // has a target, and shows what a blow from behind is worth.
+  await page.evaluate(async () => {
+    const b = game.battle, u = game.ui.turn.unit;
+    const foe = b.units.filter(x => x.team === 'enemy' && x.alive && x.x >= 0)[0];
+    const spot = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dx, dy]) => b.grid.tile(u.x + dx, u.y + dy)).find(t => t && t.t !== 'x' && t.t !== 'w' && t.t !== 't' && !b.unitAt(t.x, t.y));
+    if (spot) { foe.x = spot.x; foe.y = spot.y; foe.facing = facingFromDelta(spot.x - u.x, spot.y - u.y); }
+    await game.renderer.focus(u, 0);
+  });
+  await page.click('#action-menu button[data-a="act"]');
+  await page.waitForTimeout(200);
+  // The first skillset is the weapon; a lone Attack goes straight to targets.
+  await page.click('#action-menu button[data-i="0"]');
+  await page.waitForFunction(() => game.ui.turn && (game.ui.turn.mode === 'target' || game.ui.turn.mode === 'abilities'));
+  if (await page.evaluate(() => game.ui.turn.mode === 'abilities')) {
+    await page.click('#action-menu button[data-id]:not([disabled])');
+    await page.waitForFunction(() => game.ui.turn && game.ui.turn.mode === 'target');
+  }
+  await page.evaluate(() => { const t = game.ui.turn; const b = game.battle; const target = t.targets.find(x => { const u = b.unitAt(x.x, x.y); return u && u.team === 'enemy'; }) || t.targets[0]; if (target) game.ui.previewTarget(target); });
+  await page.waitForTimeout(500);
 }
 
 (async () => {
@@ -104,6 +162,8 @@ async function toMenu(page) {
 
   // 2. Phone screenshots, 1200x2400: a 400x800 viewport at 3x. Exactly 2:1
   //    is the tallest Play allows, and the width a current phone lays out at.
+  //    Eight of them, the most Play shows, and each one the game's best
+  //    face: a spell landing, not a menu; the five roads, not the shop.
   {
     const ctx = await browser.newContext({ viewport: { width: 400, height: 800 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
@@ -112,43 +172,41 @@ async function toMenu(page) {
     await page.waitForSelector('#screen-title.active');
     await page.waitForTimeout(300);
     await shot(page, 'phone-1-title.jpg');
+    // A company a few chapters in, dressed for it, at the Foundry at Ironhold.
+    await page.click('#btn-new');
+    await page.waitForSelector('#screen-world.active');
+    await midCampaign(page, 8);
     await toDeploy(page);
-    await shot(page, 'phone-2-deploy.jpg');
     await toMenu(page);
+    await spellShot(page, 'phone-2-spell.jpg', shot);
     await page.click('#action-menu button[data-a="move"]');
-    await page.waitForTimeout(2000);   // let the turn banner fade first
+    await page.waitForTimeout(1600);   // let the turn banner fade first
+    await page.evaluate(() => { const t = game.ui.turn; const far = [...t.reach.values()].sort((a, b) => b.cost - a.cost)[0]; game.ui.previewMove(far); });
+    await page.waitForTimeout(150);
     await shot(page, 'phone-3-move.jpg');
     await page.click('#action-menu button[data-a="cancel"]');
     await page.waitForTimeout(200);
-    await page.click('#action-menu button[data-a="act"]');
-    await page.waitForTimeout(200);
-    // The first skillset is the weapon; a lone Attack goes straight to targets.
-    await page.click('#action-menu button[data-i="0"]');
-    await page.waitForFunction(() => game.ui.turn && (game.ui.turn.mode === 'target' || game.ui.turn.mode === 'abilities'));
-    if (await page.evaluate(() => game.ui.turn.mode === 'abilities')) {
-      await page.click('#action-menu button[data-id]:not([disabled])');
-      await page.waitForFunction(() => game.ui.turn && game.ui.turn.mode === 'target');
-    }
-    await page.waitForTimeout(600);
+    await attackPreview(page);
     await shot(page, 'phone-4-attack.jpg');
     await leaveBattle(page);
-    await page.click('#btn-formation');
-    await page.waitForSelector('#screen-formation.active');
+    // The realm, with two acts walked and a city opened.
+    await page.evaluate(() => { game.state.chapter = 14; game.state.cities.redwater = true; game.state.cities.fordwaterTown = true; game.showWorld(); });
     await page.waitForTimeout(300);
-    await shot(page, 'phone-5-formation.jpg');
-    await page.click('#btn-formation-back');
-    await page.waitForSelector('#screen-world.active');
-    await page.click('#btn-shop');
-    await page.waitForSelector('#screen-shop.active');
+    await shot(page, 'phone-5-realm.jpg');
+    // The forge at Fordwater, with something to better and something to make.
+    await page.evaluate(() => { game.invAdd('ironIngot', 3); game.invAdd('brassFitting', 2); game.invAdd('steelIngot', 1); game.forgeTab = 'improve'; game.goToCity('fordwaterTown'); });
     await page.waitForTimeout(300);
-    await shot(page, 'phone-6-shop.jpg');
-    // The camp, a few chapters in, so the map shows a road already walked.
-    await page.click('#btn-shop-back');
-    await page.waitForSelector('#screen-world.active');
-    await page.evaluate(() => { game.state.chapter = 3; game.showWorld(); });
+    await page.evaluate(() => document.getElementById('cities').scrollIntoView());
+    await shot(page, 'phone-6-forge.jpg');
+    // The five roads.
+    await page.evaluate(() => { game.showWorld(); game.state.chapter = CAMPAIGN.length; game.state.branch = null; game.openChoice(); });
     await page.waitForTimeout(300);
-    await shot(page, 'phone-7-camp.jpg');
-    written.push('phone-1-title.jpg', 'phone-2-deploy.jpg', 'phone-3-move.jpg', 'phone-4-attack.jpg', 'phone-5-formation.jpg', 'phone-6-shop.jpg', 'phone-7-camp.jpg');
+    await shot(page, 'phone-7-roads.jpg');
+    // The job tree.
+    await page.evaluate(() => { game.showWorld(); game.openFormation(0); game.renderJobTree(game.state.party[0].job); });
+    await page.waitForTimeout(300);
+    await shot(page, 'phone-8-jobs.jpg');
+    written.push('phone-1-title.jpg', 'phone-2-spell.jpg', 'phone-3-move.jpg', 'phone-4-attack.jpg', 'phone-5-realm.jpg', 'phone-6-forge.jpg', 'phone-7-roads.jpg', 'phone-8-jobs.jpg');
     await ctx.close();
   }
 
@@ -158,17 +216,18 @@ async function toMenu(page) {
     const page = await ctx.newPage();
     page.on('dialog', d => d.accept());
     await page.goto(`${base}/index.html`);
+    await page.waitForSelector('#screen-title.active');
+    await page.click('#btn-new');
+    await page.waitForSelector('#screen-world.active');
+    await midCampaign(page, 8);
     await toDeploy(page);
     await toMenu(page);
-    await page.click('#action-menu button[data-a="move"]');
-    await page.waitForTimeout(2000);
-    await shot(page, 'tablet-1-battle.jpg');
+    await spellShot(page, 'tablet-1-battle.jpg', shot);
     await leaveBattle(page);
-    await page.click('#btn-formation');
-    await page.waitForSelector('#screen-formation.active');
+    await page.evaluate(() => { game.state.chapter = 14; game.state.cities.redwater = true; game.state.cities.fordwaterTown = true; game.showWorld(); });
     await page.waitForTimeout(300);
-    await shot(page, 'tablet-2-formation.jpg');
-    written.push('tablet-1-battle.jpg', 'tablet-2-formation.jpg');
+    await shot(page, 'tablet-2-realm.jpg');
+    written.push('tablet-1-battle.jpg', 'tablet-2-realm.jpg');
     await ctx.close();
   }
 

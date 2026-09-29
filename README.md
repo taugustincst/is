@@ -21,7 +21,7 @@ a browser, or serve the folder with any static file server.
   described in `android/PLAY_STORE.md`). The same release carries the whole
   game as a single `.html` file. Releases are cut by
   `.github/workflows/release.yml`: run it from the Actions tab with a version
-  number, or push a tag such as `v1.6.0`.
+  number, or push a tag such as `v1.7.0`.
 
 ## The game
 
@@ -63,12 +63,17 @@ a browser, or serve the folder with any static file server.
   acts at 100. The turn order panel forecasts who is next, including spells
   still charging and fallen units counting down.
 - **Move, Act, then face.** Skipping either refunds CT toward your next turn.
-- **Facing and height matter.** Side attacks halve evasion, back attacks cannot
-  be dodged, high ground adds damage, and Jump limits what you can climb.
+- **Facing and height matter.** A side attack halves evasion and hits a tenth
+  harder; a back attack cannot be dodged and hits a quarter harder; every
+  level of high ground adds a twentieth, to a quarter, and every level of low
+  ground takes it away. Jump limits what you can climb.
 - **Charged abilities** resolve after their charge fills, so targets can walk
   out of the area. Area spells hit friends too.
 - **Full prediction** before you commit: hit chance, damage or healing, status
   odds and the angle of attack.
+- **A guide on the first field.** The first chapter walks a new player through
+  deployment, Move, Act and facing in five short lines, then never returns;
+  Skip ends it early, and training battles are never coached.
 
 **Building a party**
 
@@ -113,15 +118,15 @@ a browser, or serve the folder with any static file server.
   job's abilities, equip any studied job's skillset as your secondary, and
   reach job levels to unlock the advanced classes.
 - **Forty-four passive abilities** in three kinds: reaction (Counter, Parry,
-  Auto-Potion, Absorb MP, Regenerator, Vengeance, and others learned further
-  up each tree), support (Attack Up, Magick Up, Defend, Concentrate, Halve
-  MP, Two Hands, Martial Arts, Equip Armor, and the elemental and job-bred
+  Stopgap Draught, Spellsiphon, Mending Blood, Vengeance, and others learned
+  further up each tree), support (Might, Magick Up, Defend, Unerring, Halve
+  MP, Both Hands, Iron Fists, Equip Armor, and the elemental and job-bred
   passives the later acts add) and movement (Move +1/+2, Jump +2, Sure
   Footing, Move-HP-Up, Treasure Hunter, among them). Learn them in one job,
   equip them in any.
 - **207 pieces of equipment** across weapon, offhand, head, body and accessory
   slots, gated by job equip classes. Gear drives weapon power and range,
-  evasion and every stat. Ninja can dual wield; Two Hands trades the offhand
+  evasion and every stat. Ninja can dual wield; Both Hands trades the offhand
   for half again the weapon power.
 - **A baggage screen** with everything spare shelved by category and kind,
   swords with swords and robes with robes; hand a piece to anyone who can
@@ -211,8 +216,20 @@ a browser, or serve the folder with any static file server.
 The game is built for touch as well as mouse, in either orientation. There are
 three ways to get it onto a phone, in order of how little work they take.
 
+**Your game on another device.** Load Game → Export turns a save slot into a
+code beginning `ELDERON1.` — copy it, share it, or save it as a file — and
+Import a save code on the other device puts it in a slot there. Nothing leaves
+the device unless you send it; there is no account and no cloud.
+
+**Five languages.** The screens, menus, hints, questions and the guide speak
+German, French, Spanish, Brazilian Portuguese and Japanese as well as English,
+taken from the browser's language until you choose one on the title screen or in
+the camp's Options tab. Names, the story, item and ability text and the help's
+own paragraphs stay in English. The table is `js/i18n.js`, keyed by the English
+text; `tools/validate.js` checks every language has every key.
+
 **One file.** `node tools/bundle.js` writes `dist/elderon.html`: the stylesheet,
-all nine scripts and the icons inlined into a single self-contained page with
+all ten scripts and the icons inlined into a single self-contained page with
 nothing else to fetch. Send it to the phone however you like — a download, a
 message, a memory stick — and open it. It plays straight off the filesystem with
 no server, and saves persist. Host that one file anywhere and it is also a
@@ -259,6 +276,7 @@ The `?` button in battle opens a rules summary.
 ```
 index.html        screens and markup
 css/style.css     styling, including the small-screen layout
+js/i18n.js        the shell in five languages, keyed by the English text
 js/audio.js       WebAudio synthesis: the combat sound table and the music sequencer
 js/data.js        jobs, abilities, passives, items, statuses, training pools, errands
 js/maps.js        every battlefield: heights, terrain, deployment, mood

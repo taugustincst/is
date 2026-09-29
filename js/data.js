@@ -25,7 +25,7 @@ const STATUSES = {
   silence: { name: 'Silence', dur: 48, bad: true,  color: '#8f8fa8', desc: 'Cannot use anything that costs MP.' },
   blind:   { name: 'Blind',   dur: 48, bad: true,  color: '#4a4a5a', desc: 'Physical attacks are half as likely to land.' },
   berserk: { name: 'Berserk', dur: 36, bad: true,  color: '#e05a3a', desc: 'Attacks the nearest foe unbidden, for half again the damage.' },
-  reraise: { name: 'Reraise', dur: 72, bad: false, color: '#ffe0a0', desc: 'Rises again with a quarter of max HP the first time it falls.' },
+  reraise: { name: 'Second Breath', dur: 72, bad: false, color: '#ffe0a0', desc: 'Rises again with a quarter of max HP the first time it falls.' },
 };
 
 // ------------------------------------------------------------------- elements
@@ -89,7 +89,7 @@ const JOBS = {
     req: { squire: 2 }, desc: 'Strikes from afar. Charged Aim shots trade time for power.',
   },
   monk: {
-    name: 'Monk', skillset: 'Martial Arts', kind: 'human', sprite: 'monk',
+    name: 'Monk', skillset: 'Pugilism', kind: 'human', sprite: 'monk',
     palette: { h: '#1a1a1a', c: '#d07a3a', p: '#e8d8b0', b: '#8a6a4a' },
     hp: 1.2, mp: 0.7, pa: 1.3, ma: 0.85, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Bare Hands', power: 6, range: 1, vert: 3 },
@@ -636,9 +636,9 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }], desc: 'Strike with your weapon.' },
 
   // Squire
-  throwStone: { name: 'Throw Stone', job: 'squire', jp: 50, mp: 0, range: 4, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'all',
+  throwStone: { name: 'Sling Stone', job: 'squire', jp: 50, mp: 0, range: 4, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 2 }], desc: 'Hurl a stone. Weak, but reaches far.' },
-  accumulate: { name: 'Accumulate', job: 'squire', jp: 100, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+  accumulate: { name: 'Brace', job: 'squire', jp: 100, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'statmod', stat: 'pa', amount: 1 }], desc: 'Focus. PA +1 for the rest of the battle.' },
   yell: { name: 'Yell', job: 'squire', jp: 150, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally',
     effects: [{ type: 'statmod', stat: 'spd', amount: 2 }], desc: 'Rally an ally. Speed +2 for the rest of the battle.' },
@@ -661,9 +661,9 @@ const ABILITIES = {
     effects: [{ type: 'revive', pct: 0.25 }], desc: 'Revive a fallen ally with 25% HP.' },
 
   // Knight
-  powerBreak: { name: 'Power Break', job: 'knight', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+  powerBreak: { name: 'Crippling Blow', job: 'knight', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'pa', amount: -2 }], desc: 'Strike and lower target PA by 2.' },
-  speedBreak: { name: 'Speed Break', job: 'knight', jp: 200, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+  speedBreak: { name: 'Hamstring', job: 'knight', jp: 200, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'spd', amount: -2 }], desc: 'Strike and lower target Speed by 2.' },
   magicBreak: { name: 'Magick Break', job: 'knight', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'ma', amount: -3 }], desc: 'Strike and lower target MA by 3.' },
@@ -681,11 +681,11 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Fire a volley over an area. Ignores height.' },
 
   // Monk
-  waveFist: { name: 'Wave Fist', job: 'monk', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all',
+  waveFist: { name: 'Shock Palm', job: 'monk', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 4 }], desc: 'Punch the air itself to strike at range.' },
   quakeFist: { name: 'Quake Fist', job: 'monk', jp: 180, mp: 0, range: 2, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Slam the ground, striking an area.' },
-  chakra: { name: 'Chakra', job: 'monk', jp: 150, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'support', affects: 'ally', self: true,
+  chakra: { name: 'Inner Fire', job: 'monk', jp: 150, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'heal', formula: 'pa', power: 4 }, { type: 'mpheal', formula: 'pa', power: 1 }], desc: 'Restore HP and MP to yourself and adjacent allies.' },
   bloodRage: { name: 'Blood Rage', job: 'monk', jp: 200, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'berserk', hit: 100 }], desc: 'Give yourself over to the fight. You strike harder, but you no longer choose.' },
@@ -765,11 +765,11 @@ const ABILITIES = {
 
   // Samurai. Iaido is magickal in its reckoning and cares nothing for evasion
   // or for how the target stands; it costs MP rather than the blade.
-  ashura: { name: 'Ashura', job: 'samurai', jp: 100, mp: 6, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
+  ashura: { name: 'Kestrel Draw', job: 'samurai', jp: 100, mp: 6, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
     effects: [{ type: 'damage', formula: 'ma', power: 5 }], desc: 'Draw and cut the air in an arc. Strikes an area; cannot be evaded.' },
-  bizenBoat: { name: 'Bizen Boat', job: 'samurai', jp: 150, mp: 6, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
+  bizenBoat: { name: 'Tidebreaker', job: 'samurai', jp: 150, mp: 6, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
     effects: [{ type: 'mpdamage', formula: 'ma', power: 4 }], desc: 'A cut that bleeds MP rather than blood. Silences casters the slow way.' },
-  kiyomori: { name: 'Kiyomori', job: 'samurai', jp: 200, mp: 10, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
+  kiyomori: { name: 'Sakura Ward', job: 'samurai', jp: 200, mp: 10, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }],
     desc: 'The blade\'s spirit wards you and every ally nearby with Protect and Shell.' },
   muramasa: { name: 'Muramasa', job: 'samurai', jp: 350, mp: 14, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all', element: 'dark',
@@ -806,13 +806,13 @@ const ABILITIES = {
     desc: 'A wall of cold water over an area. Some come up unable to speak.' },
 
   // Bard. Songs carry to everyone within earshot of the singer.
-  battleSong: { name: 'Battle Song', job: 'bard', jp: 100, mp: 6, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+  battleSong: { name: 'March of Steel', job: 'bard', jp: 100, mp: 6, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'statmod', stat: 'pa', amount: 1 }], desc: 'A marching song. PA +1 for every ally within three tiles, for the battle.' },
-  lifeSong: { name: 'Life Song', job: 'bard', jp: 120, mp: 8, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+  lifeSong: { name: 'Hearth Hymn', job: 'bard', jp: 120, mp: 8, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'heal', formula: 'ma', power: 3 }], desc: 'A song of mending. Restores HP to every ally within three tiles.' },
-  angelSong: { name: 'Angel Song', job: 'bard', jp: 180, mp: 0, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+  angelSong: { name: 'Lullaby of Dawn', job: 'bard', jp: 180, mp: 0, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'mpheal', formula: 'ma', power: 2 }], desc: 'A song that gives back what casting takes. MP to every ally within three tiles.' },
-  namelessSong: { name: 'Nameless Song', job: 'bard', jp: 300, mp: 14, range: 0, aoe: 2, vert: 4, ct: 20, kind: 'support', affects: 'ally', self: true,
+  namelessSong: { name: 'The Unwritten Verse', job: 'bard', jp: 300, mp: 14, range: 0, aoe: 2, vert: 4, ct: 20, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'haste', hit: 100 }], desc: 'The old song. Haste for every ally within two tiles, once it is sung through.' },
 
   // Paladin
@@ -856,9 +856,9 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'ma', power: 12 }], desc: 'The white spell. Holy ruin over an area.' },
   fullLife: { name: 'Full-Life', job: 'sage', jp: 300, mp: 20, range: 4, aoe: 0, vert: 4, ct: 14, kind: 'magic', affects: 'ally', deadOnly: true,
     effects: [{ type: 'revive', pct: 1.0 }], desc: 'Bring a fallen ally back with every point of HP.' },
-  reraise: { name: 'Reraise', job: 'sage', jp: 400, mp: 18, range: 3, aoe: 0, vert: 4, ct: 16, kind: 'magic', affects: 'ally', allowSelf: true,
+  reraise: { name: 'Second Breath', job: 'sage', jp: 400, mp: 18, range: 3, aoe: 0, vert: 4, ct: 16, kind: 'magic', affects: 'ally', allowSelf: true,
     effects: [{ type: 'status', status: 'reraise', hit: 100 }], desc: 'A life held in reserve. The first time the target falls, it rises with a quarter of its HP.' },
-  ultima: { name: 'Ultima', job: 'sage', jp: 600, mp: 36, range: 4, aoe: 2, vert: 9, ct: 6, kind: 'magic', affects: 'enemy', element: null,
+  ultima: { name: 'Sundering', job: 'sage', jp: 600, mp: 36, range: 4, aoe: 2, vert: 9, ct: 6, kind: 'magic', affects: 'enemy', element: null,
     effects: [{ type: 'damage', formula: 'ma', power: 18 }], desc: 'The last spell. Wide, slow, and it knows friend from foe.' },
 
   // Dragonlord
@@ -880,7 +880,7 @@ const ABILITIES = {
     effects: [{ type: 'revive', pct: 0.5 }], desc: 'Every fallen ally within the area rises with half their HP.' },
   aegis: { name: 'Aegis', job: 'hierophant', jp: 450, mp: 26, range: 3, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
     effects: [{ type: 'status', status: 'reraise', hit: 100 }, { type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }],
-    desc: 'Reraise, Protect and Shell on every ally in a wide area. Nothing in it dies today.' },
+    desc: 'Second Breath, Protect and Shell on every ally in a wide area. Nothing in it dies today.' },
   timeStop: { name: 'Time Stop', job: 'hierophant', jp: 400, mp: 20, range: 4, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'stop', hit: 80 }], desc: 'Tell time to wait. Most of those in the area are Stopped.' },
 
@@ -1031,7 +1031,7 @@ const ABILITIES = {
   frostbrand: { name: 'Frostbrand', job: 'runeblade', jp: 250, mp: 6, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'all', element: 'ice',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.3 }], desc: 'The blade burns cold. 1.3x weapon damage, as ice.' },
   starWard: { name: 'Star Ward', job: 'runeblade', jp: 400, mp: 20, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'status', status: 'reraise', hit: 100 }, { type: 'status', status: 'protect', hit: 100 }], desc: 'The star-iron does not stay down. Reraise and Protect on yourself.' },
+    effects: [{ type: 'status', status: 'reraise', hit: 100 }, { type: 'status', status: 'protect', hit: 100 }], desc: 'The star-iron does not stay down. Second Breath and Protect on yourself.' },
   nova: { name: 'Nova', job: 'runeblade', jp: 500, mp: 22, range: 3, aoe: 2, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: null,
     effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'What the star did when it fell, in small. Heavy damage over a wide area, of no element.' },
 
@@ -1138,7 +1138,7 @@ const ABILITIES = {
   barkSkin: { name: 'Bark Skin', job: 'treant', jp: 0, mp: 6, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }],
     desc: 'Hardens its bark and closes its wounds.' },
-  nightSword: { name: 'Night Sword', job: 'darkKnight', jp: 0, mp: 8, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'dark',
+  nightSword: { name: 'Nightdrinker', job: 'darkKnight', jp: 0, mp: 8, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'dark',
     effects: [{ type: 'drain', formula: 'pa', power: 6 }], desc: 'A draining slash.' },
   shadowBlade: { name: 'Shadow Blade', job: 'darkKnight', jp: 0, mp: 12, range: 3, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'dark',
     effects: [{ type: 'damage', formula: 'ma', power: 6 }], desc: 'Dark energy that sears an area.' },
@@ -1271,7 +1271,7 @@ const ITEMS = {
   dragonLance: { name: 'Dragon Lance', slot: 'weapon', wtype: 'spear', power: 13, range: 2, vert: 3, jump: 1, price: 1900, tier: 5 },
   shortbow:    { name: 'Shortbow', slot: 'weapon', wtype: 'bow', power: 4, range: 4, vert: 5, price: 0, tier: 0 },
   longbow:     { name: 'Longbow', slot: 'weapon', wtype: 'bow', power: 6, range: 5, vert: 6, price: 600, tier: 2 },
-  yoichiBow:   { name: 'Yoichi Bow', slot: 'weapon', wtype: 'bow', power: 9, range: 6, vert: 8, price: 1700, tier: 5 },
+  yoichiBow:   { name: 'Heron Bow', slot: 'weapon', wtype: 'bow', power: 9, range: 6, vert: 8, price: 1700, tier: 5 },
   staff:       { name: 'Staff', slot: 'weapon', wtype: 'staff', power: 3, range: 1, vert: 2, ma: 1, price: 0, tier: 0 },
   healingStaff: { name: 'Healing Staff', slot: 'weapon', wtype: 'staff', power: 4, range: 1, vert: 2, ma: 4, price: 650, tier: 2 },
   sageStaff:   { name: 'Sage Staff', slot: 'weapon', wtype: 'staff', power: 5, range: 1, vert: 2, ma: 7, mp: 20, price: 1800, tier: 5 },
@@ -1284,12 +1284,12 @@ const ITEMS = {
   kunai:       { name: 'Kunai', slot: 'weapon', wtype: 'ninjablade', power: 5, range: 1, vert: 2, spd: 1, price: 0, tier: 0 },
   ninjaBlade:  { name: 'Ninja Blade', slot: 'weapon', wtype: 'ninjablade', power: 8, range: 1, vert: 2, spd: 1, price: 1200, tier: 4 },
   murasame:    { name: 'Murasame', slot: 'weapon', wtype: 'ninjablade', power: 11, range: 1, vert: 2, spd: 2, price: 2200, tier: 6 },
-  ashuraBlade: { name: 'Ashura Blade', slot: 'weapon', wtype: 'katana', power: 7, range: 1, vert: 2, price: 0, tier: 0 },
+  ashuraBlade: { name: 'Kestrel Blade', slot: 'weapon', wtype: 'katana', power: 7, range: 1, vert: 2, price: 0, tier: 0 },
   kotetsu:     { name: 'Kotetsu', slot: 'weapon', wtype: 'katana', power: 12, range: 1, vert: 2, evade: 4, price: 950, tier: 3 },
   masamune:    { name: 'Masamune', slot: 'weapon', wtype: 'katana', power: 15, range: 1, vert: 2, spd: 1, evade: 6, price: 2300, tier: 6 },
-  ramiaHarp:   { name: 'Ramia Harp', slot: 'weapon', wtype: 'harp', power: 3, range: 3, vert: 4, ma: 2, price: 0, tier: 0 },
-  bloodstrings:{ name: 'Bloodstrings', slot: 'weapon', wtype: 'harp', power: 6, range: 3, vert: 4, ma: 4, spd: 1, price: 1300, tier: 4 },
-  faerieHarp:  { name: 'Faerie Harp', slot: 'weapon', wtype: 'harp', power: 8, range: 4, vert: 5, ma: 6, mp: 20, price: 2200, tier: 6 },
+  ramiaHarp:   { name: 'Reed Harp', slot: 'weapon', wtype: 'harp', power: 3, range: 3, vert: 4, ma: 2, price: 0, tier: 0 },
+  bloodstrings:{ name: 'Wolfgut Harp', slot: 'weapon', wtype: 'harp', power: 6, range: 3, vert: 4, ma: 4, spd: 1, price: 1300, tier: 4 },
+  faerieHarp:  { name: 'Moonwater Harp', slot: 'weapon', wtype: 'harp', power: 8, range: 4, vert: 5, ma: 6, mp: 20, price: 2200, tier: 6 },
   ironGreatsword: { name: 'Iron Greatsword', slot: 'weapon', wtype: 'greatsword', power: 9, range: 1, vert: 2, price: 0, tier: 0 },
   claymore:    { name: 'Claymore', slot: 'weapon', wtype: 'greatsword', power: 14, range: 1, vert: 2, price: 1100, tier: 3 },
   zweihander:  { name: 'Zweihander', slot: 'weapon', wtype: 'greatsword', power: 18, range: 1, vert: 2, spd: -1, price: 2100, tier: 5 },
@@ -1297,7 +1297,7 @@ const ITEMS = {
   grimoire:    { name: 'Grimoire', slot: 'weapon', wtype: 'tome', power: 4, range: 2, vert: 3, ma: 2, price: 0, tier: 0 },
   codex:       { name: 'Codex of Ash', slot: 'weapon', wtype: 'tome', power: 6, range: 2, vert: 3, ma: 6, price: 1200, tier: 3 },
   omnibus:     { name: 'Omnibus', slot: 'weapon', wtype: 'tome', power: 8, range: 2, vert: 3, ma: 10, mp: 30, price: 2600, tier: 6 },
-  zorlinShape: { name: 'Zorlin Shape', late: true, slot: 'weapon', wtype: 'knife', power: 11, range: 1, vert: 2, spd: 2, evade: 6, price: 2400, tier: 6 },
+  zorlinShape: { name: 'Widow\'s Kiss', late: true, slot: 'weapon', wtype: 'knife', power: 11, range: 1, vert: 2, spd: 2, evade: 6, price: 2400, tier: 6 },
   // ---- legendary arms, for the road after the war ----
   ragnarok:    { name: 'Ragnarok', late: true, slot: 'weapon', wtype: 'greatsword', power: 24, range: 1, vert: 2, ma: 3, resist: { holy: 'resist' }, price: 8400, tier: 7 },
   chaosBlade:  { name: 'Chaos Blade', late: true, slot: 'weapon', wtype: 'katana', power: 21, range: 1, vert: 2, spd: 1, evade: 8, resist: { dark: 'resist' }, price: 8000, tier: 7 },
@@ -1321,7 +1321,7 @@ const ITEMS = {
   summonersHood: { name: 'Summoner\'s Hood', late: true, slot: 'head', htype: 'hat', look: 'wizard', hp: 14, mp: 34, ma: 2, price: 900, tier: 4 },
   sageCrown:   { name: 'Sage\'s Crown', late: true, slot: 'head', htype: 'hat', look: 'ribbon', hp: 22, mp: 44, ma: 3, price: 2200, tier: 6 },
   crusaderHelm:{ name: 'Crusader Helm', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 44, mp: 12, resist: { dark: 'resist' }, price: 2000, tier: 6 },
-  genjiHelm:   { name: 'Genji Helm', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 60, mp: 20, price: 6000, tier: 7 },
+  genjiHelm:   { name: 'Warlord\'s Helm', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 60, mp: 20, price: 6000, tier: 7 },
   crownOfKings:{ name: 'Crown of Kings', late: true, slot: 'head', htype: 'hat', look: 'ribbon', hp: 40, mp: 60, ma: 4, spd: 1,
                  wards: ['silence', 'blind', 'berserk', 'poison', 'slow', 'stop'], price: 9000, tier: 7 },
 
@@ -1336,7 +1336,7 @@ const ITEMS = {
   robeOfLords: { name: 'Robe of Lords', slot: 'body', atype: 'robe', hp: 55, mp: 55, ma: 3, price: 2400, tier: 6 },
   crusaderMail:{ name: 'Crusader Mail', late: true, slot: 'body', atype: 'heavy', hp: 70, resist: { holy: 'resist', dark: 'resist' }, price: 2600, tier: 6 },
   shadowCloth: { name: 'Shadow Cloth', late: true, slot: 'body', atype: 'light', hp: 40, evade: 10, spd: 1, price: 2300, tier: 6 },
-  genjiArmor:  { name: 'Genji Armor', late: true, slot: 'body', atype: 'heavy', hp: 96, spd: 1, price: 8400, tier: 7 },
+  genjiArmor:  { name: 'Warlord\'s Mail', late: true, slot: 'body', atype: 'heavy', hp: 96, spd: 1, price: 8400, tier: 7 },
   dragonMail:  { name: 'Dragon Mail', late: true, slot: 'body', atype: 'heavy', hp: 84, pa: 2, resist: { fire: 'absorb', ice: 'weak' }, price: 7600, tier: 7 },
   archmageRobe:{ name: 'Archmage Robe', late: true, slot: 'body', atype: 'robe', hp: 66, mp: 90, ma: 5, price: 8400, tier: 7 },
   nightweave:  { name: 'Nightweave', late: true, slot: 'body', atype: 'light', hp: 56, evade: 14, spd: 2, price: 8000, tier: 7 },
@@ -1435,7 +1435,7 @@ const ITEMS = {
   artemisBow:    { name: 'Artemis Bow', late: true, slot: 'weapon', wtype: 'bow', power: 16, range: 6, vert: 8, evade: 4, price: 8000, tier: 7 },
   lute:          { name: 'Lute', slot: 'weapon', wtype: 'harp', power: 4, range: 3, vert: 4, ma: 3, price: 600, tier: 2 },
   thornLyre:     { name: 'Lyre of Thorns', slot: 'weapon', wtype: 'harp', power: 5, range: 3, vert: 4, ma: 4, price: 900, tier: 3 },
-  fairyHarp:     { name: 'Fairy Harp', slot: 'weapon', wtype: 'harp', power: 7, range: 3, vert: 4, ma: 6, mp: 20, price: 1800, tier: 5 },
+  fairyHarp:     { name: 'Glimmer Harp', slot: 'weapon', wtype: 'harp', power: 7, range: 3, vert: 4, ma: 6, mp: 20, price: 1800, tier: 5 },
   lamiaHarp:     { name: 'Lamia Harp', late: true, slot: 'weapon', wtype: 'harp', power: 9, range: 4, vert: 4, ma: 9, mp: 30, price: 8000, tier: 7 },
   ironKunai:     { name: 'Iron Kunai', slot: 'weapon', wtype: 'ninjablade', power: 7, range: 1, vert: 2, spd: 1, price: 600, tier: 2 },
   steelNinjato:  { name: 'Steel Ninjato', slot: 'weapon', wtype: 'ninjablade', power: 8, range: 1, vert: 2, spd: 1, evade: 2, price: 900, tier: 3 },
@@ -1443,7 +1443,7 @@ const ITEMS = {
   kogaBlade:     { name: 'Koga Blade', late: true, slot: 'weapon', wtype: 'ninjablade', power: 15, range: 1, vert: 2, spd: 2, evade: 6, price: 8000, tier: 7 },
   osafune:       { name: 'Osafune', slot: 'weapon', wtype: 'katana', power: 9, range: 1, vert: 2, price: 600, tier: 2 },
   masamuneKai:   { name: 'Kikuichimonji', slot: 'weapon', wtype: 'katana', power: 12, range: 1, vert: 2, ma: 2, price: 1300, tier: 4 },
-  kiyomori:      { name: 'Kiyomori', slot: 'weapon', wtype: 'katana', power: 14, range: 1, vert: 2, evade: 3, price: 1800, tier: 5 },
+  kiyomori:      { name: 'Sakura Edge', slot: 'weapon', wtype: 'katana', power: 14, range: 1, vert: 2, evade: 3, price: 1800, tier: 5 },
   oakRod:        { name: 'Oak Rod', slot: 'weapon', wtype: 'rod', power: 4, range: 1, vert: 2, ma: 3, price: 300, tier: 1 },
   thunderRod:    { name: 'Thunder Rod', slot: 'weapon', wtype: 'rod', power: 5, range: 1, vert: 2, ma: 5, resist: { thunder: 'resist' }, price: 900, tier: 3 },
   sageRod:       { name: 'Sage\'s Rod', slot: 'weapon', wtype: 'rod', power: 5, range: 1, vert: 2, ma: 6, mp: 15, price: 1300, tier: 4 },
@@ -1625,7 +1625,9 @@ function gearScore(job, id) {
 function bestGearFor(job, pool, maxTier, extra) {
   const eq = JOB_EQUIP[job];
   if (!eq) return {};
-  const ids = pool || Object.keys(ITEMS).filter(i => ITEMS[i].tier <= (maxTier === undefined ? 6 : maxTier));
+  // The default pool is what a wagon could sell: never an improved piece,
+  // a forge's recipe or a material, which would otherwise win every slot.
+  const ids = pool || Object.keys(ITEMS).filter(i => ITEMS[i].tier <= (maxTier === undefined ? 6 : maxTier) && !ITEMS[i].base && !ITEMS[i].forge && ITEMS[i].slot !== 'material');
   const gear = {};
   const used = {};
   for (const slot of ['weapon', 'offhand', 'head', 'body', 'acc']) {
@@ -1808,17 +1810,17 @@ const PASSIVES = {
   // ---- reaction: triggered when something happens to the unit ----
   counter: { name: 'Counter', kind: 'reaction', job: 'monk', jp: 250,
     desc: 'Strike back when a foe within your weapon\'s reach damages you with a physical attack.' },
-  autoPotion: { name: 'Auto-Potion', kind: 'reaction', job: 'chemist', jp: 180,
+  autoPotion: { name: 'Stopgap Draught', kind: 'reaction', job: 'chemist', jp: 180,
     desc: 'Drink a potion for 35 HP whenever you take damage.' },
   parry: { name: 'Parry', kind: 'reaction', job: 'knight', jp: 250,
     desc: '35% chance to turn aside a physical attack entirely.' },
-  absorbMp: { name: 'Absorb MP', kind: 'reaction', job: 'blackMage', jp: 200,
+  absorbMp: { name: 'Spellsiphon', kind: 'reaction', job: 'blackMage', jp: 200,
     desc: 'Recover 10 MP whenever magick damages you.' },
-  regenerator: { name: 'Regenerator', kind: 'reaction', job: 'whiteMage', jp: 220,
+  regenerator: { name: 'Mending Blood', kind: 'reaction', job: 'whiteMage', jp: 220,
     desc: 'Gain Regen the first time you are damaged in a battle.' },
   vengeance: { name: 'Vengeance', kind: 'reaction', job: 'dragoon', jp: 260,
     desc: 'Physical Attack rises by 1 each time you are damaged.' },
-  bladeGrasp: { name: 'Blade Grasp', kind: 'reaction', job: 'samurai', jp: 400,
+  bladeGrasp: { name: 'Steel Catch', kind: 'reaction', job: 'samurai', jp: 400,
     desc: 'Catch the blade: half of all physical attacks against you are turned aside.' },
   secondWind: { name: 'Second Wind', kind: 'reaction', job: 'paladin', jp: 350,
     desc: 'Recover a tenth of your HP every time you are damaged and left standing.' },
@@ -1833,7 +1835,7 @@ const PASSIVES = {
     desc: 'Every wound makes you angrier: PA and MA both rise by 1 each time you are damaged.' },
 
   // ---- support: always-on modifiers ----
-  attackUp: { name: 'Attack Up', kind: 'support', job: 'knight', jp: 300,
+  attackUp: { name: 'Might', kind: 'support', job: 'knight', jp: 300,
     desc: 'Physical damage you deal rises by 25%.' },
   magickUp: { name: 'Magick Up', kind: 'support', job: 'blackMage', jp: 300,
     desc: 'Magickal damage you deal rises by 25%.' },
@@ -1841,13 +1843,13 @@ const PASSIVES = {
     desc: 'Physical damage you take falls by 20%.' },
   halfMp: { name: 'Halve MP', kind: 'support', job: 'timeMage', jp: 320,
     desc: 'Spells cost half as much MP.' },
-  twoHands: { name: 'Two Hands', kind: 'support', job: 'knight', jp: 350,
+  twoHands: { name: 'Both Hands', kind: 'support', job: 'knight', jp: 350,
     desc: 'Grip your weapon with both hands for 50% more weapon power. The offhand must be empty.' },
-  concentrate: { name: 'Concentrate', kind: 'support', job: 'archer', jp: 320,
+  concentrate: { name: 'Unerring', kind: 'support', job: 'archer', jp: 320,
     desc: 'Your physical attacks ignore evasion entirely.' },
   equipArmor: { name: 'Equip Armor', kind: 'support', job: 'whiteMage', jp: 280,
     desc: 'Wear light and heavy armor whatever your job.' },
-  martialArts: { name: 'Martial Arts', kind: 'support', job: 'monk', jp: 260,
+  martialArts: { name: 'Iron Fists', kind: 'support', job: 'monk', jp: 260,
     desc: 'Fist weapons strike for 50% more power.' },
   mpRegen: { name: 'Mana Well', kind: 'support', job: 'summoner', jp: 300,
     desc: 'Recover a tenth of your MP at the start of every turn.' },

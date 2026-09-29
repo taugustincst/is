@@ -19,17 +19,18 @@
 <!-- ================= Title ================= -->
 <section id="screen-title" class="screen active">
   <div class="title-box">
-    <div class="title-sub">A Tactical Role-Playing Game</div>
+    <div class="title-sub" data-i18n>A Tactical Role-Playing Game</div>
     <h1>Chronicles of Elderon</h1>
-    <div class="title-tag">Two princes. One crown. A squire who knows too much.</div>
+    <div class="title-tag" data-i18n>Two princes. One crown. A squire who knows too much.</div>
     <div class="title-buttons">
-      <button id="btn-new">New Game</button>
-      <button id="btn-continue">Continue</button>
-      <button id="btn-load">Load Game</button>
+      <button id="btn-new" data-i18n>New Game</button>
+      <button id="btn-continue" data-i18n>Continue</button>
+      <button id="btn-load" data-i18n>Load Game</button>
     </div>
-    <button id="btn-credits" class="link title-credits">Credits</button>
+    <button id="btn-credits" class="link title-credits" data-i18n>Credits</button>
     <small id="title-version" class="title-version"></small>
-    <div class="title-foot">Isometric tactics · Charge Time turns · Jobs &amp; abilities · Height and facing matter</div>
+    <select id="title-lang" class="title-lang" aria-label="Language" data-i18n-aria="Language"></select>
+    <div class="title-foot" data-i18n="Isometric tactics · Charge Time turns · Jobs & abilities · Height and facing matter">Isometric tactics · Charge Time turns · Jobs &amp; abilities · Height and facing matter</div>
   </div>
 </section>
 
@@ -47,16 +48,33 @@
       <dt>Inspired by</dt><dd>The tactics RPGs of the late 1990s</dd>
     </dl>
     <p class="credits-links"><a href="https://github.com/taugustincst/fftremake" target="_blank" rel="noopener">Source on GitHub</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
-    <button id="btn-credits-back">Back</button>
+    <button id="btn-credits-back" data-i18n>Back</button>
   </div>
 </section>
 
 <!-- ================= Save slots ================= -->
 <section id="screen-slots" class="screen">
   <div class="slots-box">
-    <h2 id="slots-title">Load a game</h2>
+    <h2 id="slots-title" data-i18n>Load a game</h2>
     <div id="slots-list"></div>
-    <button id="btn-slots-back">Back</button>
+    <div class="slots-transfer">
+      <button id="btn-slot-import" class="mini" data-i18n>Import a save code</button>
+      <div id="transfer" hidden>
+        <p id="transfer-note" class="muted"></p>
+        <textarea id="transfer-text" rows="4" spellcheck="false" aria-label="Save code"></textarea>
+        <div class="transfer-actions">
+          <button id="btn-transfer-copy" data-i18n>Copy</button>
+          <button id="btn-transfer-share" data-i18n>Share</button>
+          <button id="btn-transfer-file" data-i18n>Save as file</button>
+          <label class="transfer-into"><span data-i18n>Into</span> <select id="transfer-slot" aria-label="Which slot to import into"><option value="1" data-i18n="Slot {n}" data-i18n-vars='{"n":1}'>Slot 1</option><option value="2" data-i18n="Slot {n}" data-i18n-vars='{"n":2}'>Slot 2</option><option value="3" data-i18n="Slot {n}" data-i18n-vars='{"n":3}'>Slot 3</option></select></label>
+          <input id="transfer-pick" type="file" accept=".txt,.json,text/plain,application/json" hidden>
+          <button id="btn-transfer-open" data-i18n>Open a file</button>
+          <button id="btn-transfer-import" class="primary" data-i18n>Import</button>
+          <button id="btn-transfer-close" class="mini" data-i18n>Close</button>
+        </div>
+      </div>
+    </div>
+    <button id="btn-slots-back" data-i18n>Back</button>
   </div>
 </section>
 
@@ -64,40 +82,44 @@
 <section id="screen-world" class="screen">
   <div class="world-layout">
     <div class="world-main">
-      <h2>Camp</h2>
+      <h2 data-i18n>Camp</h2>
       <canvas id="world-map" width="800" height="400" title="The road ahead"></canvas>
       <div id="world-next" class="card"></div>
       <div class="world-actions">
         <button id="btn-battle" class="primary">March to Battle</button>
-        <button id="btn-train">Training Battle</button>
-        <button id="btn-formation">Formation &amp; Jobs</button>
-        <button id="btn-shop">Shop</button>
-        <button id="btn-baggage">Baggage</button>
-        <button id="btn-save">Save</button>
-        <button id="btn-title">Title</button>
+        <button id="btn-train" data-i18n>Training Battle</button>
+        <button id="btn-formation" data-i18n="Formation & Jobs">Formation &amp; Jobs</button>
+        <button id="btn-shop" data-i18n>Shop</button>
+        <button id="btn-baggage" data-i18n>Baggage</button>
+        <button id="btn-save" data-i18n>Save</button>
+        <button id="btn-title" data-i18n>Title</button>
       </div>
       <div id="camp-tabs" class="tabs camp-tabs"></div>
       <div class="card campfire" data-camp-tab="road">
-        <h3>Around the fire <small>the night before</small></h3>
+        <h3><span data-i18n>Around the fire</span> <small data-i18n>the night before</small></h3>
         <div id="campfire"></div>
       </div>
       <div class="card tavern" data-camp-tab="company">
-        <h3>Tavern</h3>
+        <h3 data-i18n>Tavern</h3>
         <div id="hire-info"></div>
-        <button id="btn-hire-squire">Hire Squire</button>
-        <button id="btn-hire-chemist">Hire Chemist</button>
+        <button id="btn-hire-squire" data-i18n>Hire Squire</button>
+        <button id="btn-hire-chemist" data-i18n>Hire Chemist</button>
       </div>
       <div class="card errands-card" data-camp-tab="company">
-        <h3>Errands <small>work away from the line, for pay and JP</small></h3>
+        <h3><span data-i18n>Errands</span> <small data-i18n>work away from the line, for pay and JP</small></h3>
         <div id="errands"></div>
       </div>
       <div class="card cities-card" data-camp-tab="cities">
-        <h3>Cities <small>held until you open them; open, they hire, they sell and they forge</small></h3>
+        <h3><span data-i18n>Cities</span> <small data-i18n>held until you open them; open, they hire, they sell and they forge</small></h3>
         <div id="cities"></div>
       </div>
       <div class="card difficulty" data-camp-tab="options">
-        <h3>Difficulty <small>changeable at any time</small></h3>
+        <h3><span data-i18n>Difficulty</span> <small data-i18n>changeable at any time</small></h3>
         <div id="world-difficulty" class="tabs"></div>
+      </div>
+      <div class="card language" data-camp-tab="options">
+        <h3><span data-i18n>Language</span> <small data-i18n>names, story and item text stay in English</small></h3>
+        <div id="world-lang" class="tabs"></div>
       </div>
     </div>
     <aside class="world-side">
@@ -107,7 +129,7 @@
       </div>
       <div class="audio-levels"></div>
       <button id="world-stock" class="stock link"></button>
-      <h3>Party <small>(first 5 deploy)</small></h3>
+      <h3><span data-i18n>Party</span> <small data-i18n>(first 5 deploy)</small></h3>
       <div id="world-party"></div>
     </aside>
   </div>
@@ -117,10 +139,10 @@
 <section id="screen-formation" class="screen">
   <div class="form-layout">
     <div class="form-left">
-      <div class="form-head"><h2>Formation</h2><span id="form-gil"></span></div>
+      <div class="form-head"><h2 data-i18n>Formation</h2><span id="form-gil"></span></div>
       <div id="form-list"></div>
-      <p class="muted">Units 1–5 deploy in battle. Use ▲▼ to reorder. Change jobs freely; abilities are learned with JP earned in that job.</p>
-      <button id="btn-formation-back">Back to Camp</button>
+      <p class="muted" data-i18n>Units 1–5 deploy in battle. Use ▲▼ to reorder. Change jobs freely; abilities are learned with JP earned in that job.</p>
+      <button id="btn-formation-back" data-i18n>Back to Camp</button>
     </div>
     <div class="form-right" id="form-detail"></div>
   </div>
@@ -130,12 +152,12 @@
 <section id="screen-shop" class="screen">
   <div class="shop-layout">
     <div class="shop-head">
-      <h2>Merchant's Wagon</h2>
+      <h2 data-i18n>Merchant's Wagon</h2>
       <span id="shop-gil"></span>
     </div>
     <div id="shop-tabs" class="tabs"></div>
     <div id="shop-list"></div>
-    <button id="btn-shop-back">Back to Camp</button>
+    <button id="btn-shop-back" data-i18n>Back to Camp</button>
   </div>
 </section>
 
@@ -143,15 +165,15 @@
 <section id="screen-inventory" class="screen">
   <div class="shop-layout">
     <div class="shop-head">
-      <h2>Baggage <small id="bag-count"></small></h2>
+      <h2><span data-i18n>Baggage</span> <small id="bag-count"></small></h2>
       <span id="bag-gil" class="gil"></span>
     </div>
     <div id="bag-tabs" class="tabs"></div>
     <div id="bag-types" class="chips"></div>
     <div id="bag-list" class="list-panel"></div>
-    <h3 class="worn-title">Worn by the party <small>× returns a piece to the baggage</small></h3>
+    <h3 class="worn-title"><span data-i18n>Worn by the party</span> <small data-i18n>× returns a piece to the baggage</small></h3>
     <div id="bag-worn" class="worn-panel"></div>
-    <div class="row-buttons"><button id="btn-bag-back">Back to Camp</button><button id="btn-bag-shop">Shop</button></div>
+    <div class="row-buttons"><button id="btn-bag-back" data-i18n>Back to Camp</button><button id="btn-bag-shop" data-i18n>Shop</button></div>
   </div>
 </section>
 
@@ -160,7 +182,7 @@
   <div class="story-box">
     <h2 id="story-title"></h2>
     <div id="story-text"></div>
-    <div class="story-buttons"><button id="btn-story-next">Continue</button><button id="btn-story-skip" class="mini">Skip</button></div>
+    <div class="story-buttons"><button id="btn-story-next" data-i18n>Continue</button><button id="btn-story-skip" class="mini" data-i18n>Skip</button></div>
   </div>
 </section>
 
@@ -169,7 +191,7 @@
     <h2 id="choice-title"></h2>
     <div id="choice-text"></div>
     <div id="choice-list" class="choice-list"></div>
-    <div class="story-buttons"><button id="btn-choice-back">Back to Camp</button></div>
+    <div class="story-buttons"><button id="btn-choice-back" data-i18n>Back to Camp</button></div>
   </div>
 </section>
 
@@ -185,16 +207,17 @@
     <span id="tile-info"></span>
     <button id="btn-sound" class="icon" aria-label="Sound effects"></button>
     <button id="btn-music" class="icon" aria-label="Music"></button>
-    <button id="btn-speed" class="icon" title="Battle speed (F)" aria-label="Battle speed">1×</button>
-    <button id="btn-auto" class="icon" title="Auto-battle (A)" aria-pressed="false">Auto</button>
+    <button id="btn-speed" class="icon" title="Battle speed (F)" aria-label="Battle speed" data-i18n-aria="Battle speed">1×</button>
+    <button id="btn-auto" class="icon" title="Auto-battle (A)" aria-pressed="false" data-i18n>Auto</button>
     <button id="btn-rot-l" class="icon" title="Turn the field left (Q)" aria-label="Turn the field left">↺</button>
     <button id="btn-rot-r" class="icon" title="Turn the field right (E)" aria-label="Turn the field right">↻</button>
-    <button id="btn-log" class="icon" title="Battle log" aria-label="Battle log">☰</button>
-    <button id="btn-help" title="Help" aria-label="Help">?</button>
-    <button id="btn-retreat">Retreat</button>
+    <button id="btn-log" class="icon" title="Battle log" aria-label="Battle log" data-i18n-title="Battle log" data-i18n-aria="Battle log">☰</button>
+    <button id="btn-help" title="Help" aria-label="Help" data-i18n-title="Help" data-i18n-aria="Help">?</button>
+    <button id="btn-retreat" data-i18n>Retreat</button>
   </div>
   <div id="log" class="panel"></div>
   <div id="hint" aria-live="polite"></div>
+  <div id="coach" hidden><p class="coach-text"></p><div class="coach-actions"><button id="btn-coach-ok" class="primary" data-i18n>Got it</button><button id="btn-coach-skip" class="mini" data-i18n>Skip the guide</button></div></div>
   <div id="deploy-panel" class="panel"></div>
   <div id="command" class="panel">
     <div id="action-menu"></div>
@@ -203,38 +226,38 @@
   <div id="help">
     <div class="help-box">
       <div class="audio-levels"></div>
-      <h3>How to play</h3>
+      <h3 data-i18n>How to play</h3>
       <ul>
-        <li><b>Deployment:</b> before each battle, pick who fights and where they stand. Units left in reserve take no part. The opposition is listed on the left.</li>
-        <li><b>Charge Time (CT):</b> every unit gains CT equal to its Speed each tick. At 100 CT it takes a turn. The Turn Order panel forecasts who acts next.</li>
-        <li><b>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 CT toward your next turn. A move can be taken back until the unit acts, unless something happened on the way.</li>
-        <li><b>Facing:</b> attacks from the side halve the target's evasion; attacks from behind cannot be evaded. Face your enemies when you Wait.</li>
-        <li><b>Friend or foe:</b> your side stands on smooth blue rings and wears blue; the enemy stands on jagged red rings and wears red. The bar over every head is framed in the same colour, so a figure hidden behind a wall still tells you whose it is. The wedge on the ring points the way that unit is facing.</li>
-        <li><b>Height:</b> attacking from 2+ tiles above deals 10% more damage; from below, 10% less. Jump limits how high you can climb.</li>
-        <li><b>Elements:</b> fire, ice, thunder, earth, holy, dark and water. Creatures and equipment answer them: a bomb drinks fire and burns in ice, a dire wolf fears fire, a fell knight feeds on dark and dreads holy, and the drowned drink water and burn in thunder. The targeting preview tells you before you commit.</li>
-        <li><b>The north:</b> hollow knights, wights and the Court's weavers absorb ice and fear fire and holy light. Snow is walked like grass; river ice is walked like stone. Stop and Slow are the Court's favourite tricks: a Warden's Iron Footing or a Warmth Stone shrugs them off.</li>
-        <li><b>Guns and machines:</b> a gun reaches four tiles or more and does not care about height, so the Concord's gunners will shoot down at you from anywhere. Their sentinels and hounds are brass: lightning gets through it, fire does not.</li>
-        <li><b>Charged abilities:</b> spells and Aim shots resolve after their charge fills. Targets that move out of the area are missed. Friendly fire is real.</li>
-        <li><b>Falling:</b> a downed unit counts down three turns before it is carried from the field. Revive it in time and it stays. Losing your leader loses the battle.</li>
-        <li><b>Crystals:</b> where a unit is carried off, a crystal remains. End a move on it and that unit is restored in full, HP and MP. The enemy will go for one when hurt; so should you.</li>
-        <li><b>Saves:</b> three slots. New Game takes an empty one, or asks which to write over; Continue takes the latest; Load Game lists them all. A lost battle offers Try again from the results, without the story before it, and any flagged stop on the map can be fought again for half the pay.</li>
-        <li><b>Camp tabs:</b> the camp is four pages: Road (the night before), Company (tavern and errands), Cities, and Options. The unit page in Formation is three: Unit, Gear and Skills.</li>
-        <li><b>Cities:</b> towns on the map are held by someone until you fight them open. An open city stays open: its tavern hires recruits already trained in an advanced trade, and its market sells arms the wagon never carries. Tap a city on the map, or use the Cities card at camp.</li>
-        <li><b>Forges:</b> every open city has one. It betters any weapon, shield, helm or armour to +1, +2 and +3 for materials and gil, makes arms sold nowhere else (the best guns among them), and breaks spare gear down into materials. Every won field leaves a few materials behind, and the baggage keeps them.</li>
-        <li><b>Errands:</b> at camp, send a unit who is not the leader away on an errand. They miss the next battle or two and come back with gil, JP in the job they left in, and sometimes something found.</li>
-        <li><b>Objective:</b> shown in the bar above. Some battles end when the enemy commander falls, or when you have held out long enough.</li>
-        <li><b>Jobs:</b> earn JP by acting. Spend it in Formation on abilities and passives. Reach job levels to unlock advanced jobs, and equip a second skillset from any job you have studied.</li>
-        <li><b>Passives:</b> one reaction, one support and one movement ability at a time. Learn them in one job and wear them in any.</li>
-        <li><b>Equipment:</b> buy gear at the shop and fit it in Formation, or press Optimize. Weapons set your power and reach; armour, shields and accessories do the rest.</li>
-        <li><b>Baggage:</b> everything spare, shelved by category and kind: swords with swords, robes with robes. Hand a piece to anyone who can wear it from the shelf, sell it there, or take a piece off someone in the table below.</li>
-        <li><b>Know your enemy:</b> point at or tap any enemy and its card lists the skills it can use.</li>
-        <li><b>Threat:</b> tap an enemy while choosing an action, or during deployment, and the tiles it could strike on its next turn turn violet. Tap it again to clear.</li>
-        <li><b>Auto:</b> the Auto button, or A, hands your turns to the computer until you press it again. It fights like the enemy does: fine for a training battle, no substitute for you in a hard one.</li>
-        <li><b>Speed:</b> the 1× button, or F, runs battles at double or triple time. Nothing is skipped; it all just happens faster. Handy once you have watched enough enemy turns.</li>
-        <li><b>Turning the field:</b> the board turns a quarter at a time with the ↺ and ↻ buttons, or Q and E. Height hides things; turn the field to see behind a wall, or to line up a shot you could not see.</li>
-        <li><b>Controls:</b> click or tap tiles and buttons, keys 1-9 for menu entries. Right-click or Esc cancels. Drag or pinch to pan and zoom, arrows and +/- as well, 0 to reframe.</li>
+        <li><b data-i18n>Deployment:</b> before each battle, pick who fights and where they stand. Units left in reserve take no part. The opposition is listed on the left.</li>
+        <li><b data-i18n>Charge Time (CT):</b> every unit gains CT equal to its Speed each tick. At 100 CT it takes a turn. The Turn Order panel forecasts who acts next.</li>
+        <li><b data-i18n>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 CT toward your next turn. A move can be taken back until the unit acts, unless something happened on the way.</li>
+        <li><b data-i18n>Facing:</b> a physical attack from the side halves the target's evasion and deals a tenth more; from behind it cannot be evaded and deals a quarter more. Face your enemies when you Wait, and get behind theirs.</li>
+        <li><b data-i18n>Friend or foe:</b> your side stands on smooth blue rings and wears blue; the enemy stands on jagged red rings and wears red. The bar over every head is framed in the same colour, so a figure hidden behind a wall still tells you whose it is. The wedge on the ring points the way that unit is facing.</li>
+        <li><b data-i18n>Height:</b> every level of ground above the target adds 5% to a physical blow, up to 25%; every level below takes 5% off. Jump limits how high you can climb.</li>
+        <li><b data-i18n>Elements:</b> fire, ice, thunder, earth, holy, dark and water. Creatures and equipment answer them: a bomb drinks fire and burns in ice, a dire wolf fears fire, a fell knight feeds on dark and dreads holy, and the drowned drink water and burn in thunder. The targeting preview tells you before you commit.</li>
+        <li><b data-i18n>The north:</b> hollow knights, wights and the Court's weavers absorb ice and fear fire and holy light. Snow is walked like grass; river ice is walked like stone. Stop and Slow are the Court's favourite tricks: a Warden's Iron Footing or a Warmth Stone shrugs them off.</li>
+        <li><b data-i18n>Guns and machines:</b> a gun reaches four tiles or more and does not care about height, so the Concord's gunners will shoot down at you from anywhere. Their sentinels and hounds are brass: lightning gets through it, fire does not.</li>
+        <li><b data-i18n>Charged abilities:</b> spells and Aim shots resolve after their charge fills. Targets that move out of the area are missed. Friendly fire is real.</li>
+        <li><b data-i18n>Falling:</b> a downed unit counts down three turns before it is carried from the field. Revive it in time and it stays. Losing your leader loses the battle.</li>
+        <li><b data-i18n>Crystals:</b> where a unit is carried off, a crystal remains. End a move on it and that unit is restored in full, HP and MP. The enemy will go for one when hurt; so should you.</li>
+        <li><b data-i18n>Saves:</b> three slots. New Game takes an empty one, or asks which to write over; Continue takes the latest; Load Game lists them all. A lost battle offers Try again from the results, without the story before it, and any flagged stop on the map can be fought again for half the pay.</li>
+        <li><b data-i18n>Camp tabs:</b> the camp is four pages: Road (the night before), Company (tavern and errands), Cities, and Options. The unit page in Formation is three: Unit, Gear and Skills.</li>
+        <li><b data-i18n>Cities:</b> towns on the map are held by someone until you fight them open. An open city stays open: its tavern hires recruits already trained in an advanced trade, and its market sells arms the wagon never carries. Tap a city on the map, or use the Cities card at camp.</li>
+        <li><b data-i18n>Forges:</b> every open city has one. It betters any weapon, shield, helm or armour to +1, +2 and +3 for materials and gil, makes arms sold nowhere else (the best guns among them), and breaks spare gear down into materials. Every won field leaves a few materials behind, and the baggage keeps them.</li>
+        <li><b data-i18n>Errands:</b> at camp, send a unit who is not the leader away on an errand. They miss the next battle or two and come back with gil, JP in the job they left in, and sometimes something found.</li>
+        <li><b data-i18n>Objective:</b> shown in the bar above. Some battles end when the enemy commander falls, or when you have held out long enough.</li>
+        <li><b data-i18n>Jobs:</b> earn JP by acting. Spend it in Formation on abilities and passives. Reach job levels to unlock advanced jobs, and equip a second skillset from any job you have studied.</li>
+        <li><b data-i18n>Passives:</b> one reaction, one support and one movement ability at a time. Learn them in one job and wear them in any.</li>
+        <li><b data-i18n>Equipment:</b> buy gear at the shop and fit it in Formation, or press Optimize. Weapons set your power and reach; armour, shields and accessories do the rest.</li>
+        <li><b data-i18n>Baggage:</b> everything spare, shelved by category and kind: swords with swords, robes with robes. Hand a piece to anyone who can wear it from the shelf, sell it there, or take a piece off someone in the table below.</li>
+        <li><b data-i18n>Know your enemy:</b> point at or tap any enemy and its card lists the skills it can use.</li>
+        <li><b data-i18n>Threat:</b> tap an enemy while choosing an action, or during deployment, and the tiles it could strike on its next turn turn violet. Tap it again to clear.</li>
+        <li><b data-i18n>Auto:</b> the Auto button, or A, hands your turns to the computer until you press it again. It fights like the enemy does: fine for a training battle, no substitute for you in a hard one.</li>
+        <li><b data-i18n>Speed:</b> the 1× button, or F, runs battles at double or triple time. Nothing is skipped; it all just happens faster. Handy once you have watched enough enemy turns.</li>
+        <li><b data-i18n>Turning the field:</b> the board turns a quarter at a time with the ↺ and ↻ buttons, or Q and E. Height hides things; turn the field to see behind a wall, or to line up a shot you could not see.</li>
+        <li><b data-i18n>Controls:</b> click or tap tiles and buttons, keys 1-9 for menu entries. Right-click or Esc cancels. Drag or pinch to pan and zoom, arrows and +/- as well, 0 to reframe.</li>
       </ul>
-      <button id="btn-help-close">Close</button>
+      <button id="btn-help-close" data-i18n>Close</button>
     </div>
   </div>
 </section>
@@ -244,7 +267,7 @@
   <div class="results-box">
     <h2 id="results-title"></h2>
     <div id="results-body"></div>
-    <div class="results-buttons"><button id="btn-results">Continue</button><button id="btn-retry" hidden>Try again</button></div>
+    <div class="results-buttons"><button id="btn-results" data-i18n>Continue</button><button id="btn-retry" hidden data-i18n>Try again</button></div>
   </div>
 </section>
 
@@ -256,7 +279,7 @@
 <div id="ask" role="alertdialog" aria-modal="true" aria-labelledby="ask-text" hidden>
   <div class="ask-box">
     <p id="ask-text"></p>
-    <div class="ask-actions"><button id="ask-no">Cancel</button><button id="ask-yes" class="primary">OK</button></div>
+    <div class="ask-actions"><button id="ask-no" data-i18n>Cancel</button><button id="ask-yes" class="primary" data-i18n>OK</button></div>
   </div>
 </div>
 
@@ -292,6 +315,7 @@
     }).catch(() => {}));
   }
 </script>
+<script src="js/i18n.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/data.js"></script>
 <script src="js/maps.js"></script>
