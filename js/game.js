@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.7.0';
+const GAME_VERSION = '1.7.1';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -1390,7 +1390,8 @@ class Game {
     $('bag-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openBaggage(b.dataset.cat, 'all'));
     const inCat = ids.filter(id => cat === 'all' || ITEMS[id].slot === cat);
     const types = [...new Set(inCat.map(itemType))].sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
-    $('bag-types').innerHTML = types.length > 1 ? ['all', ...types].map(t => `<button class="chip ${t === type ? 'sel' : ''}" data-type="${t}">${t === 'all' ? 'Every kind' : TYPE_NAMES[t] || t}</button>`).join('') : '';
+    $('bag-types').innerHTML = cat !== 'all' && types.length > 1 ? ['all', ...types].map(t => `<button class="chip ${t === type ? 'sel' : ''}" data-type="${t}">${t === 'all' ? tr('Every kind') : TYPE_NAMES[t] || t}</button>`).join('') : '';
+    $('bag-types').hidden = !$('bag-types').innerHTML;
     $('bag-types').querySelectorAll('button').forEach(b => b.onclick = () => this.openBaggage(cat, b.dataset.type));
     const shown = inCat.filter(id => type === 'all' || itemType(id) === type)
       .sort((a, b) => (TYPE_ORDER.indexOf(itemType(a)) - TYPE_ORDER.indexOf(itemType(b))) || (ITEMS[a].tier - ITEMS[b].tier) || (ITEMS[a].price - ITEMS[b].price));
@@ -1400,7 +1401,7 @@ class Game {
       if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
       const slot = it.slot;
       const wearers = it.slot === 'material' ? [] : s.party.filter(u => u.canEquipItem(id, slot));
-      const opts = wearers.map(u => `<option value="${u.id}">${u.name} · ${u.jobData.name}${u.gear[slot] ? ` (wears ${ITEMS[u.gear[slot]].name})` : ' (empty)'}</option>`).join('');
+      const opts = wearers.map(u => `<option value="${u.id}">${u.name} · ${u.gear[slot] ? ITEMS[u.gear[slot]].name : tr('empty')}</option>`).join('');
       html += `<div class="shop-row inv-row ${wearers.length || it.slot === 'material' ? '' : 'unfit'}" data-item="${id}">
         <div class="inv-main"><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
           <div class="fits">${it.slot === 'material' ? `x${this.invCount(id)} · for the forge · ${it.desc}` : `x${this.invCount(id)} · tier ${it.tier}${it.plus ? ` · improved +${it.plus}` : ''}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''}${it.forge ? ' · forged at ' + CITIES.find(c => c.id === it.forge).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}`}</div></div>

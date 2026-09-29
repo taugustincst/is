@@ -8,7 +8,7 @@
    old cache is deleted only when the new one is complete, so a player never
    runs half of one build and half of another. The page is told when a new
    build is waiting and asks before switching to it. */
-const VERSION = 'cfb2dc735d';
+const VERSION = '50cf4f3016';
 const CACHE = 'elderon-' + VERSION;
 
 const ASSETS = [
