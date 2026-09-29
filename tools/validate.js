@@ -76,6 +76,58 @@ for (const [job, kit] of Object.entries(g.STARTER_GEAR)) {
   }
 }
 
+// ---- names that are another game's ----
+// Mechanics cannot be owned, but proper nouns are recognised on sight, and a
+// store listing full of them reads as a copy rather than a game of its own.
+const LIFTED = ['zorlin', 'ramia', 'yoichi', 'blade grasp', 'auto-potion', 'concentrate', 'accumulate', 'throw stone',
+  'power break', 'speed break', 'magic break', 'mind break', 'bloodstrings', 'bloody strings', 'faerie harp', 'fairy harp',
+  'ashura', 'asura', 'wave fist', 'earth slash', 'chakra', 'chirijiraden', 'kikuichimoji', 'bizen', "heaven's cloud", 'kiyomori',
+  'nagrarock', 'save the queen', 'materia blade', 'ultima', 'reraise', 'wiznaibus', 'daravon', 'ivalice', 'zodiac', 'lucavi',
+  'ramza', 'delita', 'orlandu', 'agrias', 'hamedo', 'genji', 'battle song', 'life song', 'angel song', 'nameless song',
+  'night sword', 'absorb mp', 'regenerator', 'attack up', 'two hands', 'martial arts', 'two swords', 'gained jp', 'move-find'];
+const named = [];
+for (const [kind, table] of [['item', g.ITEMS], ['ability', g.ABILITIES], ['passive', g.PASSIVES], ['status', g.STATUSES], ['job', g.JOBS]]) {
+  for (const [id, o] of Object.entries(table)) {
+    for (const text of [o.name, o.skillset]) {
+      const n = (text || '').toLowerCase();
+      const hit = LIFTED.find(w => n.includes(w));
+      if (hit) named.push(`${kind} ${id} "${text}" (${hit})`);
+    }
+  }
+}
+for (const n of named) bad(`name lifted from another game: ${n}`);
+
+// ---- languages ----
+// Every string the shell asks for must be in every language, with the same
+// placeholders, or a screen goes half-English or shows a bare {name}.
+{
+  const fs = require('fs'), path = require('path'), vm = require('vm');
+  const root = path.join(__dirname, '..');
+  const ictx = { console }; vm.createContext(ictx);
+  vm.runInContext(fs.readFileSync(path.join(root, 'js/i18n.js'), 'utf8'), ictx, { filename: 'i18n.js' });
+  const STRINGS = vm.runInContext('STRINGS', ictx), COLS = vm.runInContext('LANG_COLS', ictx);
+  const holes = (s) => (s.match(/\{\w+\}/g) || []).sort().join(',');
+  for (const [key, row] of Object.entries(STRINGS)) {
+    if (!Array.isArray(row) || row.length !== COLS.length) { bad(`language table: "${key}" has ${row && row.length} of ${COLS.length} languages`); continue; }
+    row.forEach((text, i) => {
+      if (!text || !text.trim()) bad(`language table: "${key}" is empty in ${COLS[i]}`);
+      else if (holes(text) !== holes(key)) bad(`language table: "${key}" in ${COLS[i]} has placeholders {${holes(text)}}, not {${holes(key)}}`);
+    });
+  }
+  // The keys the code asks for: tr('...') with a literal, and data-i18n in the shell.
+  const asked = new Set();
+  for (const f of ['js/game.js', 'js/ui.js']) {
+    const src = fs.readFileSync(path.join(root, f), 'utf8');
+    for (const m of src.matchAll(/\btr\('((?:[^'\\]|\\.)*)'/g)) asked.add(m[1].replace(/\\'/g, "'"));
+  }
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  for (const m of html.matchAll(/\sdata-i18n(?:="([^"]*)")?(?=[\s>])[^>]*>([^<]*)</g)) asked.add((m[1] || m[2]).replace(/&amp;/g, '&').trim());
+  for (const m of html.matchAll(/data-i18n-(?:title|aria)="([^"]*)"/g)) asked.add(m[1]);
+  for (const k of asked) if (!STRINGS[k]) bad(`language table lacks "${k}"`);
+  // Table labels that reach the screen through a variable.
+  for (const k of [...Object.values(g.run('CATEGORY_NAMES')), ...Object.values(g.run('DIFFICULTIES')).flatMap(d => [d.name, d.desc]), 'Attack']) if (!STRINGS[k]) bad(`language table lacks "${k}"`);
+}
+
 // ---- campaign ----
 const ROADS = g.run('typeof ROADS === "undefined" ? {} : ROADS');
 const ALL_CHAPTERS = [...g.CAMPAIGN, ...Object.values(ROADS).flatMap(r => r.chapters)];

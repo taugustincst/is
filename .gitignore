@@ -26,3 +26,6 @@ android/keystore.properties
 
 # Browser test output: screenshots and logs
 tests/out/
+
+# The promo video is rendered by tools/make-video.js and uploaded to YouTube, not kept here.
+store/promo.*

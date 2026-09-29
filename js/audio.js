@@ -149,14 +149,21 @@ const COMBAT_SFX = {
   'impact-slash': [
     { n: 1, freq: 2600, sweep: 400, dur: 0.13, vol: 0.30, q: 0.7 },
     { t: 1, freq: 200, to: 80, dur: 0.11, vol: 0.18, type: 'square' },
+    // The edge rings after it bites, and the body under it thuds.
+    { t: 1, freq: 3400, to: 3300, dur: 0.16, vol: 0.05, type: 'sine', d: 0.02 },
+    { t: 1, freq: 90, to: 40, dur: 0.14, vol: 0.16, type: 'sine' },
   ],
   'impact-pierce': [
     { n: 1, freq: 3600, sweep: 900, dur: 0.09, vol: 0.26, q: 2 },
     { t: 1, freq: 300, to: 120, dur: 0.08, vol: 0.14, type: 'square' },
+    { t: 1, freq: 110, to: 50, dur: 0.10, vol: 0.12, type: 'sine' },
   ],
   'impact-blunt': [
     { n: 1, freq: 420, sweep: 110, dur: 0.18, vol: 0.30, q: 0.6 },
     { t: 1, freq: 130, to: 45, dur: 0.16, vol: 0.24, type: 'square' },
+    // Weight: a sub-thump you feel more than hear, and a dull knock on top.
+    { t: 1, freq: 60, to: 30, dur: 0.22, vol: 0.22, type: 'sine' },
+    { n: 1, freq: 180, sweep: 90, dur: 0.06, vol: 0.20, q: 1.5, filter: 'lowpass' },
   ],
   'impact-wood': [
     { n: 1, freq: 1100, sweep: 480, dur: 0.09, vol: 0.20, q: 1.2 },
@@ -186,6 +193,9 @@ const COMBAT_SFX = {
     { n: 1, freq: 3200, sweep: 1800, dur: 0.05, vol: 0.55, q: 0.5 },
     { t: 1, freq: 110, to: 40, dur: 0.18, vol: 0.30, type: 'square' },
     { n: 1, freq: 900, sweep: 300, dur: 0.22, vol: 0.18, q: 0.8, d: 0.03 },
+    // The report: a sub-bass punch, and the smoke rolling off after it.
+    { t: 1, freq: 55, to: 25, dur: 0.24, vol: 0.28, type: 'sine' },
+    { n: 1, freq: 400, sweep: 120, dur: 0.45, vol: 0.10, q: 0.5, d: 0.06, filter: 'lowpass' },
   ],
   // Something thrown whistles as it goes.
   'throw': [
@@ -195,6 +205,9 @@ const COMBAT_SFX = {
   'cast': [
     { t: 1, freq: 240, to: 900, dur: 0.22, vol: 0.12, type: 'sine' },
     { n: 1, freq: 400, sweep: 1800, dur: 0.20, vol: 0.06, q: 2 },
+    // A shimmer over the rise: two high partials a little apart, beating.
+    { t: 1, freq: 1810, to: 2400, dur: 0.26, vol: 0.035, type: 'sine', d: 0.05 },
+    { t: 1, freq: 1830, to: 2440, dur: 0.26, vol: 0.035, type: 'sine', d: 0.05 },
   ],
 
   // ---- the elements ------------------------------------------------------
@@ -416,9 +429,10 @@ class GameAudio {
       return;
     }
     switch (name) {
-      case 'menu': this.tone({ freq: 660, dur: 0.06, type: 'square', vol: 0.12 }); break;
-      case 'select': this.tone({ freq: 880, to: 1320, dur: 0.09, type: 'square', vol: 0.14 }); break;
-      case 'cancel': this.tone({ freq: 500, to: 300, dur: 0.1, type: 'square', vol: 0.13 }); break;
+      // The menus: a wooden tick with a soft tone in it, not a bare bleep.
+      case 'menu': this.noise({ dur: 0.03, vol: 0.14, freq: 2400, q: 1.2 }); this.tone({ freq: 660, dur: 0.05, type: 'triangle', vol: 0.10 }); break;
+      case 'select': this.noise({ dur: 0.03, vol: 0.12, freq: 3000, q: 1.2 }); this.tone({ freq: 880, to: 1320, dur: 0.09, type: 'triangle', vol: 0.14 }); break;
+      case 'cancel': this.noise({ dur: 0.04, vol: 0.10, freq: 1200, q: 1 }); this.tone({ freq: 500, to: 300, dur: 0.1, type: 'triangle', vol: 0.13 }); break;
       case 'move':
         this.noise({ dur: 0.08, vol: 0.13, freq: 900, sweep: 400 });
         break;

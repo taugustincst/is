@@ -32,9 +32,10 @@ below is maintained by hand. Character limits are Play's.
     order is always shown, so you can plan around it.
 
     HEIGHT AND FACING
-    Strike from above for more damage, from the side to halve evasion, from
-    behind to land every time. Climb, jump, and turn the field to see what a
-    wall is hiding.
+    Every level of high ground adds to a blow, to a quarter more. A strike
+    from the side halves evasion and lands a tenth harder; from behind it
+    cannot be dodged and lands a quarter harder. Climb, jump, and turn the
+    field to see what a wall is hiding.
 
     THIRTY-FIVE JOBS
     Squires become knights, archers, monks, thieves, mages, ninja and
@@ -85,15 +86,330 @@ below is maintained by hand. Character limits are Play's.
 from this repository, for instance
 `https://github.com/taugustincst/is/blob/main/PRIVACY.md`
 
+## Store listing in other languages
+
+The game's shell speaks German, French, Spanish, Brazilian Portuguese and
+Japanese (chosen on the title screen or in the camp's Options tab, and taken
+from the phone's language until then); names, story and item text stay in
+English in every language, and the listings say so. Add each as a translation
+of the main store listing in the Play Console. Short descriptions are within
+Play's 80 characters.
+
+### Deutsch (de-DE)
+
+**Kurzbeschreibung** (78)
+
+    Taktik-RPG: Ladezeit-Züge, Jobs, Höhe und Blickrichtung. Offline, ohne Werbung.
+
+**Vollständige Beschreibung**
+
+    Zwei Prinzen. Eine Krone. Ein Knappe, der zu viel weiß.
+
+    Chronicles of Elderon ist ein taktisches Rollenspiel in der Tradition der
+    isometrischen Klassiker. Führe eine kleine Kompanie durch fünf Akte und
+    vierundzwanzig Kapitel voller Schlachten auf Feldern mit Höhenkarte, von
+    einem Grenzkrieg über einen verfluchten Winterhof und ein Meer aus Wracks
+    bis zu einer Krone, die fünf verschiedene Enden wert ist. Wo du stehst und
+    wohin du blickst, zählt so viel wie das, womit du zuschlägst.
+
+    LADEZEIT-ZÜGE
+    Jede Einheit sammelt in jedem Tick Ladung und handelt bei hundert. Schnelle
+    Einheiten handeln oft; ein langsamer Zauber trifft vielleicht erst, wenn
+    das Schlachtfeld weitergezogen ist. Die Zugreihenfolge ist immer sichtbar.
+
+    HÖHE UND BLICKRICHTUNG
+    Jede Stufe Höhe verstärkt einen Schlag, bis zu einem Viertel. Ein Angriff
+    von der Seite halbiert das Ausweichen und trifft ein Zehntel härter; von
+    hinten kann er nicht abgewehrt werden und trifft ein Viertel härter.
+    Klettere, springe und drehe das Feld, um zu sehen, was eine Mauer verbirgt.
+
+    FÜNFUNDDREISSIG JOBS
+    Aus Knappen werden Ritter, Bogenschützen, Mönche, Diebe, Magier, Ninja und
+    Dragoner; dann Samurai, Beschwörer, Geomanten und Barden; dann Paladine,
+    Arkanisten, Assassinen und Weise; dazu die Ingenieure, Schützen, Aeronauten
+    und Artificer des Messingbunds, die Frostweber, Wächter und Runenklingen
+    des Winterhofs, die Korsaren, Gezeitenrufer und Harpuniere der Sundersee
+    und die Marschälle, Inquisitoren und Duellanten der Krone. Darüber die
+    legendären Drachenherren, Hierophanten und Fell Knights.
+
+    FÜNF WEGE, FÜNF ENDEN
+    In der Hauptstadt gabelt sich der Weg fünffach. Jedes Ende wird
+    festgehalten, und dieselbe Kompanie kann aus demselben Spielstand jeden
+    Weg gehen.
+
+    ELEMENTE, DIE ZÄHLEN
+    Feuer, Eis, Blitz, Erde, Wasser, Heilig und Dunkel. Die Zielvorschau zeigt
+    das Ergebnis, bevor du dich festlegst.
+
+    SCHMIEDEN UND STÄDTE
+    Zehn Städte, jede freigekämpft, jede mit eigenen Waren und eigener
+    Schmiede: verbessere Ausrüstung bis +3, fertige Gewehre und zerlege, was
+    du nicht mehr brauchst.
+
+    FÜR DAS TELEFON GEMACHT
+    Tippen zum Bewegen und Handeln, ziehen zum Schwenken, kneifen zum Zoomen.
+    Hoch- oder Querformat. Drei Schwierigkeitsgrade, jederzeit änderbar. Ein
+    Spielstand-Code trägt dein Spiel auf ein anderes Gerät.
+
+    KEINE HAKEN
+    Keine Werbung. Keine Konten. Keine Käufe. Keine Internetberechtigung: das
+    ganze Spiel ist auf deinem Gerät und läuft offline.
+
+    Menüs, Hinweise und Schaltflächen auf Deutsch; Namen, Geschichte und
+    Gegenstandstexte bleiben auf Englisch.
+
+### Français (fr-FR)
+
+**Description courte** (77)
+
+    RPG tactique : tours à temps de charge, métiers, hauteur, orientation. Hors ligne.
+
+**Description complète**
+
+    Deux princes. Une couronne. Un écuyer qui en sait trop.
+
+    Chronicles of Elderon est un jeu de rôle tactique dans la tradition des
+    classiques isométriques. Menez une petite compagnie à travers cinq actes
+    et vingt-quatre chapitres de batailles sur des champs en relief, d’une
+    guerre de frontière à une cour d’hiver hantée, d’une mer d’épaves à une
+    couronne qui vaut cinq fins différentes. Où vous vous tenez et vers où vous
+    regardez comptent autant que ce que vous brandissez.
+
+    TOURS À TEMPS DE CHARGE
+    Chaque unité gagne de la charge à chaque tic et agit à cent. Les unités
+    rapides agissent souvent ; un sort lent peut tomber quand le champ de
+    bataille a déjà bougé. L’ordre des tours est toujours affiché.
+
+    HAUTEUR ET ORIENTATION
+    Chaque niveau de terrain élevé renforce un coup, jusqu’à un quart. Une
+    attaque de flanc divise l’esquive par deux et frappe un dixième plus fort ;
+    dans le dos, elle ne peut être esquivée et frappe un quart plus fort.
+    Grimpez, sautez et faites tourner le champ pour voir ce qu’un mur cache.
+
+    TRENTE-CINQ MÉTIERS
+    Les écuyers deviennent chevaliers, archers, moines, voleurs, mages, ninjas
+    et dragons ; puis samouraïs, invocateurs, géomanciens et bardes ; puis
+    paladins, arcanistes, assassins et sages ; les ingénieurs, tireurs,
+    aéronautes et artificiers du Concorde de Laiton ; les tisse-givre, gardiens
+    et lames-runiques de la Cour d’Hiver ; les corsaires, mareleurs et
+    harponneurs de la Mer Fendue ; les maréchaux, inquisiteurs et duellistes
+    de la couronne. Et au-dessus d’eux tous, le Seigneur-dragon, le Hiérophante
+    et le Chevalier fell.
+
+    CINQ ROUTES, CINQ FINS
+    À la capitale, la route se sépare en cinq. Chaque fin est consignée, et la
+    même compagnie peut parcourir chaque route depuis la même sauvegarde.
+
+    DES ÉLÉMENTS QUI COMPTENT
+    Feu, glace, foudre, terre, eau, sacré et ténèbres. L’aperçu de ciblage vous
+    donne le résultat avant de valider.
+
+    FORGES ET VILLES
+    Dix villes, chacune libérée par les armes, chacune avec ses marchandises
+    et sa forge : améliorez l’équipement jusqu’à +3, fabriquez des armes à feu
+    et récupérez ce dont vous n’avez plus besoin.
+
+    FAIT POUR LE TÉLÉPHONE
+    Touchez pour vous déplacer et agir, glissez pour faire défiler, pincez pour
+    zoomer. Portrait ou paysage. Trois difficultés, modifiables à tout moment.
+    Un code de sauvegarde emporte votre partie sur un autre appareil.
+
+    SANS CONDITIONS
+    Pas de publicité. Pas de compte. Pas d’achat. Aucune permission Internet :
+    tout le jeu est sur votre appareil et se joue hors ligne.
+
+    Menus, indications et boutons en français ; les noms, l’histoire et les
+    textes des objets restent en anglais.
+
+### Español (es-ES, es-419)
+
+**Descripción breve** (76)
+
+    RPG táctico: turnos por carga, oficios, altura y orientación. Sin conexión.
+
+**Descripción completa**
+
+    Dos príncipes. Una corona. Un escudero que sabe demasiado.
+
+    Chronicles of Elderon es un juego de rol táctico en la tradición de los
+    clásicos isométricos. Guía a una pequeña compañía a lo largo de cinco actos
+    y veinticuatro capítulos de batallas en campos con relieve, de una guerra
+    fronteriza a una corte invernal encantada, de un mar de naufragios a una
+    corona que vale cinco finales distintos. Dónde te colocas y hacia dónde
+    miras importa tanto como lo que empuñas.
+
+    TURNOS POR TIEMPO DE CARGA
+    Cada unidad gana carga en cada tic y actúa al llegar a cien. Las unidades
+    rápidas actúan a menudo; un hechizo lento puede caer cuando el campo ya se
+    ha movido. El orden de turnos siempre está a la vista.
+
+    ALTURA Y ORIENTACIÓN
+    Cada nivel de altura refuerza un golpe, hasta un cuarto más. Un ataque de
+    flanco reduce la evasión a la mitad y golpea un décimo más fuerte; por la
+    espalda no se puede esquivar y golpea un cuarto más fuerte. Trepa, salta y
+    gira el campo para ver lo que esconde un muro.
+
+    TREINTA Y CINCO OFICIOS
+    Los escuderos se vuelven caballeros, arqueros, monjes, ladrones, magos,
+    ninjas y dragontinos; luego samuráis, invocadores, geomantes y bardos;
+    luego paladines, arcanistas, asesinos y sabios; los ingenieros, tiradores,
+    aeronautas y artífices del Concordato de Latón; los tejehielos, guardianes
+    y espadas rúnicas de la Corte Invernal; los corsarios, mareantes y
+    arponeros del Mar Hendido; y los mariscales, inquisidores y duelistas de la
+    corona. Y por encima de todos, el Señor de Dragones, el Hierofante y el
+    Caballero Fell.
+
+    CINCO CAMINOS, CINCO FINALES
+    En la capital el camino se bifurca en cinco. Cada final queda registrado, y
+    la misma compañía puede recorrer todos los caminos desde la misma partida.
+
+    ELEMENTOS QUE IMPORTAN
+    Fuego, hielo, rayo, tierra, agua, sagrado y oscuridad. La previsualización
+    te muestra el resultado antes de confirmar.
+
+    FORJAS Y CIUDADES
+    Diez ciudades, cada una liberada en combate, cada una con sus propias
+    mercancías y su forja: mejora el equipo hasta +3, fabrica armas de fuego y
+    desguaza lo que ya no necesites.
+
+    HECHO PARA EL TELÉFONO
+    Toca para moverte y actuar, arrastra para desplazarte, pellizca para
+    acercar. Vertical u horizontal. Tres dificultades, cambiables en cualquier
+    momento. Un código de guardado lleva tu partida a otro dispositivo.
+
+    SIN CONDICIONES
+    Sin anuncios. Sin cuentas. Sin compras. Sin permiso de Internet: todo el
+    juego está en tu dispositivo y funciona sin conexión.
+
+    Menús, indicaciones y botones en español; los nombres, la historia y los
+    textos de los objetos siguen en inglés.
+
+### Português (pt-BR)
+
+**Descrição breve** (74)
+
+    RPG tático: turnos por carga, classes, altura e direção. Offline, sem anúncios.
+
+**Descrição completa**
+
+    Dois príncipes. Uma coroa. Um escudeiro que sabe demais.
+
+    Chronicles of Elderon é um RPG tático na tradição dos clássicos
+    isométricos. Lidere uma pequena companhia por cinco atos e vinte e quatro
+    capítulos de batalhas em campos com relevo, de uma guerra de fronteira a
+    uma corte de inverno assombrada, de um mar de naufrágios a uma coroa que
+    vale cinco finais diferentes. Onde você fica e para onde olha importam
+    tanto quanto o que você empunha.
+
+    TURNOS POR TEMPO DE CARGA
+    Cada unidade ganha carga a cada tique e age ao chegar a cem. Unidades
+    rápidas agem com frequência; um feitiço lento pode cair quando o campo já
+    mudou. A ordem de turnos fica sempre à vista.
+
+    ALTURA E DIREÇÃO
+    Cada nível de terreno alto reforça um golpe, até um quarto a mais. Um
+    ataque pelo flanco reduz a evasão pela metade e acerta um décimo mais
+    forte; pelas costas não pode ser desviado e acerta um quarto mais forte.
+    Suba, salte e gire o campo para ver o que um muro esconde.
+
+    TRINTA E CINCO CLASSES
+    Escudeiros viram cavaleiros, arqueiros, monges, ladrões, magos, ninjas e
+    dragões; depois samurais, invocadores, geomantes e bardos; depois
+    paladinos, arcanistas, assassinos e sábios; os engenheiros, atiradores,
+    aeronautas e artífices do Concórdia de Latão; os tecelões de gelo,
+    guardiões e lâminas rúnicas da Corte de Inverno; os corsários, chamadores
+    de maré e arpoadores do Mar Partido; e os marechais, inquisidores e
+    duelistas da coroa. E acima de todos, o Senhor dos Dragões, o Hierofante e
+    o Cavaleiro Fell.
+
+    CINCO ESTRADAS, CINCO FINAIS
+    Na capital a estrada se divide em cinco. Cada final fica registrado, e a
+    mesma companhia pode percorrer todas as estradas a partir do mesmo save.
+
+    ELEMENTOS QUE IMPORTAM
+    Fogo, gelo, trovão, terra, água, sagrado e trevas. A prévia de alvo mostra
+    o resultado antes de você confirmar.
+
+    FORJAS E CIDADES
+    Dez cidades, cada uma libertada em combate, cada uma com suas mercadorias e
+    sua forja: melhore equipamentos até +3, fabrique armas de fogo e desmonte
+    o que não precisa mais.
+
+    FEITO PARA O CELULAR
+    Toque para mover e agir, arraste para rolar, faça pinça para ampliar.
+    Retrato ou paisagem. Três dificuldades, alteráveis a qualquer momento. Um
+    código de save leva seu jogo para outro aparelho.
+
+    SEM AMARRAS
+    Sem anúncios. Sem contas. Sem compras. Sem permissão de Internet: o jogo
+    inteiro está no seu aparelho e roda offline.
+
+    Menus, dicas e botões em português; nomes, história e textos de itens
+    continuam em inglês.
+
+### 日本語 (ja-JP)
+
+**簡単な説明** (40)
+
+    タクティカルRPG。チャージタイム制、ジョブ、高低差と向き。オフライン、広告なし。
+
+**詳細な説明**
+
+    二人の王子。一つの王冠。知りすぎた従者。
+
+    Chronicles of Elderon は、クォータービューの名作の流れを汲むタクティカルRPGです。
+    小さな部隊を率いて、全5幕・24章の戦いを進みましょう。国境の戦から呪われた
+    冬の宮廷へ、難破船の海を越えて、五つの異なる結末を持つ王冠へ。どこに立ち、
+    どちらを向くかが、何を振るうかと同じくらい勝敗を左右します。
+
+    チャージタイム制
+    ユニットは毎ティックにチャージを蓄え、100で行動します。速いユニットは
+    何度も動き、遅い魔法は戦況が変わった後に着弾するかもしれません。行動順は
+    常に表示されます。
+
+    高低差と向き
+    高い位置からの一撃は段差ごとに強くなり、最大で25%増。側面からの攻撃は
+    敵の回避を半減させ10%強く、背後からは回避不能で25%強くなります。登り、
+    跳び、視点を回して壁の裏を見ましょう。
+
+    35のジョブ
+    見習いはナイト、アーチャー、モンク、シーフ、魔道士、忍者、竜騎士へ。さらに
+    侍、召喚士、風水士、吟遊詩人。パラディン、秘術師、暗殺者、賢者。真鍮同盟の
+    技師、銃士、飛空士、細工師。冬の宮廷の霜織り、守り手、ルーンの剣。裂けた海の
+    海賊、潮呼び、銛使い。王冠の元帥、審問官、決闘士。そしてその上に、伝説の
+    竜王、大神官、堕騎士。
+
+    五つの道、五つの結末
+    王都で道は五つに分かれます。結末はすべて記録され、同じ部隊が同じセーブ
+    データからすべての道を歩めます。
+
+    意味のある属性
+    火、氷、雷、土、水、聖、闇。攻撃前のプレビューが結果を教えてくれます。
+
+    鍛冶場と都市
+    十の都市を戦って解放し、それぞれの品揃えと鍛冶場を手に入れましょう。装備を
+    +3まで強化し、銃を製作し、不要な物は分解できます。
+
+    スマートフォンのために
+    タップで移動と行動、ドラッグでスクロール、ピンチでズーム。縦横どちらでも。
+    難易度は3段階、いつでも変更可。セーブコードで別の端末へ引き継げます。
+
+    しがらみなし
+    広告なし。アカウント不要。課金なし。インターネット権限も不要。ゲーム全体が
+    端末の中にあり、オフラインで遊べます。
+
+    メニュー・案内・ボタンは日本語。名前、物語、アイテムの説明は英語のままです。
+
 ## Graphics (all in this folder)
 
 | Asset | File | Play's requirement |
 |---|---|---|
 | App icon | `icon-512.png` | 512×512 PNG, under 1 MB |
 | Feature graphic | `feature-graphic-1024x500.jpg` | 1024×500, JPEG or PNG without alpha |
-| Phone screenshots (2–8) | `phone-1-title.jpg` … `phone-7-camp.jpg` | 1200×2400, each side 320–3840 px, long side at most twice the short |
-| 7-inch tablet (up to 8) | `tablet-1-battle.jpg`, `tablet-2-formation.jpg` | 2560×1600 |
+| Phone screenshots (2–8) | `phone-1-title.jpg` … `phone-8-jobs.jpg`: the title, a spell landing, a move with its path, an attack forecast, the realm, a forge, the five roads, the job tree | 1200×2400, each side 320–3840 px, long side at most twice the short |
+| 7-inch tablet (up to 8) | `tablet-1-battle.jpg`, `tablet-2-realm.jpg` | 2560×1600 |
 | 10-inch tablet (up to 8) | the same two files | 2560×1600 |
+| Promo video (optional) | `promo.webm` from `node tools/make-video.js`, uploaded to YouTube; the console takes the link | 30 s, 1280×720; no sound, since a headless browser records none. Not kept in the repository. |
 
 The tablet screenshots are optional unless you want the app promoted on
 tablets; the same two files satisfy both slots.
@@ -133,7 +449,15 @@ health features. **News**: not a news app.
 
 **Advertising ID**: the app does not use the advertising ID.
 
-## Release notes for the first version
+## Release notes
+
+**1.7.0**
+
+    Menus in German, French, Spanish, Portuguese and Japanese. A save code carries a game to
+    another device. A guide walks the first battle. Height and facing count for more, with a
+    new icon and fuller sound.
+
+**1.0.0**
 
     First release. Twenty-four chapters in five acts with five endings, thirty-five jobs, ten cities,
     three difficulties, and nothing to buy.

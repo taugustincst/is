@@ -354,8 +354,13 @@ class Renderer {
     // the edges and the player pans instead.
     const fitX = (view.w * 0.96) / Math.max(1, maxX - minX);
     const fitY = (view.h * 0.92) / Math.max(1, maxY - minY);
-    const floor = Math.min(this.W || this.cv.width, this.H || this.cv.height) < 520 ? 0.9 : 0.55;
-    this.zoom = Math.max(floor, Math.min(1.35, Math.min(fitX, fitY)));
+    const narrow = Math.min(this.W || this.cv.width, this.H || this.cv.height) < 520;
+    const floor = narrow ? 0.9 : 0.55;
+    // A portrait phone is always width-limited, and fitting the width left
+    // the tall free band two-thirds empty with figures too small to tap.
+    // There the board fills the height instead, and the player pans across.
+    const fit = narrow && fitX < fitY ? Math.min(1.25, fitY) : Math.min(fitX, fitY);
+    this.zoom = Math.max(floor, Math.min(1.35, fit));
   }
 
   // Pan so a set of tiles sits in the free part of the view. Used when the game

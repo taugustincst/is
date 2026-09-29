@@ -124,35 +124,102 @@ function drawSprite(s, name, palette, ox, oy, scale) {
 }
 
 // `pad` leaves room for Android's maskable safe zone, which crops to a circle.
+// Fill a polygon by scanline, for the shapes a sprite cannot give.
+function poly(s, pts, color) {
+  const ys = pts.map(p => p[1]);
+  const y0 = Math.max(0, Math.floor(Math.min(...ys))), y1 = Math.min(s.size - 1, Math.ceil(Math.max(...ys)));
+  for (let y = y0; y <= y1; y++) {
+    const xs = [];
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i], [xj, yj] = pts[j];
+      if ((yi <= y + 0.5) !== (yj <= y + 0.5)) xs.push(xi + (y + 0.5 - yi) * (xj - xi) / (yj - yi));
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const xa = Math.max(0, Math.round(xs[k])), xb = Math.min(s.size, Math.round(xs[k + 1]));
+      if (xb > xa) s.rect(xa, y, xb - xa, 1, color);
+    }
+  }
+}
+
+/* The icon is the crown the whole story is about: gold, five-pointed, set
+   with a red stone, resting on a block of the game's own stone tile so the
+   isometric field is in it too. It reads at 48 dp because it is one shape
+   with one highlight, not a figure with a face. `pad` leaves room for
+   Android's maskable safe zone, which crops to a circle. */
 function icon(size, pad, transparent, mono) {
   const s = surface(size);
+  s.size = size;
   const inner = size * (1 - pad * 2);
   const y0 = size * pad;
-  // Background: the game's night sky, lighter towards the top. An adaptive
-  // foreground layer leaves this out and sits on the declared colour instead.
+  // Background: the night sky, lighter at the top, with a faint aurora. An
+  // adaptive foreground layer leaves this out and sits on the declared colour.
   if (!transparent) {
     for (let y = 0; y < size; y++) {
       const k = y / size;
-      const c = [
-        Math.round(0x1a + (0x0d - 0x1a) * k),
-        Math.round(0x1c + (0x0e - 0x1c) * k),
-        Math.round(0x2c + (0x18 - 0x2c) * k),
-      ];
+      const c = [Math.round(0x1c + (0x0c - 0x1c) * k), Math.round(0x1e + (0x0e - 0x1e) * k), Math.round(0x34 + (0x1a - 0x34) * k)];
       s.rect(0, y, size, 1, c);
     }
+    // A soft curtain of aurora across the top, not a stripe.
+    const band = Math.round(size * 0.22);
+    for (let i = 0; i < band; i++) {
+      const y = Math.round(size * 0.06) + i, a = Math.pow(Math.sin((i / band) * Math.PI), 2) * 0.35;
+      for (let x = 0; x < size; x++) {
+        const w = 0.6 + 0.4 * Math.sin(x / size * 6 + i / band * 3);
+        s.set(x, y, [60, 200, 170, Math.round(255 * a * w)]);
+      }
+    }
   }
-  const tw = inner * 0.52;
-  const wall = inner * 0.10;
   const cx = size / 2;
-  const cy = y0 + inner * 0.82;
-  // A low step: one tile in front, one raised behind, to read as a height map.
-  tile(s, cx - tw * 0.52, cy, tw, wall, rgb('#4a7d3a'), rgb('#3a6330'), rgb('#2f5228'));
-  tile(s, cx + tw * 0.52, cy, tw, wall, rgb('#4a7d3a'), rgb('#3a6330'), rgb('#2f5228'));
-  const stepY = cy - tw * 0.25 - wall;
-  tile(s, cx, stepY, tw, wall, rgb('#5f9e4a'), rgb('#4a7d3a'), rgb('#3c6630'));
-  // A knight standing on the raised tile, feet on its centre.
-  const scale = Math.max(1, Math.round(inner / 34));
-  drawSprite(s, 'warrior', g.JOBS.knight.palette, cx - 6 * scale, stepY - 18 * scale + 2, scale);
+  // The stone: a raised isometric block, grey flagstone with a mossy lip.
+  const tw = inner * 0.78, wall = inner * 0.14;
+  const ty = y0 + inner * 0.80;
+  tile(s, cx, ty, tw, wall, rgb('#9a9aa8'), rgb('#7a7a88'), rgb('#606070'));
+  // The crown, drawn in the space above the stone.
+  const cw = inner * 0.66, ch = inner * 0.36;
+  const left = cx - cw / 2, base = ty + inner * 0.02;
+  // Its shadow on the stone.
+  poly(s, [[left + cw * 0.05, base + inner * 0.01], [left + cw * 0.95, base + inner * 0.01], [left + cw * 0.85, base + inner * 0.07], [left + cw * 0.15, base + inner * 0.07]], rgb('#6a6a78'));
+  const gold = rgb('#e8c45a'), dark = rgb('#a8862c'), bright = rgb('#fff0b0'), gem = rgb('#d8483b'), gemHi = rgb('#ffb3a8');
+  // Band, with its own shadow underneath.
+  const bandH = ch * 0.34;
+  poly(s, [[left, base], [left + cw, base], [left + cw, base - bandH], [left, base - bandH]], gold);
+  poly(s, [[left, base], [left + cw, base], [left + cw, base - bandH * 0.25], [left, base - bandH * 0.25]], dark);
+  // Five points: the middle tallest, the outer two leaning out.
+  const pts = [0, 0.25, 0.5, 0.75, 1].map((k, i) => {
+    const x = left + k * cw, h = i === 2 ? ch : i === 1 || i === 3 ? ch * 0.78 : ch * 0.62;
+    return [x, base - h];
+  });
+  const notch = ch * 0.5;
+  const crown = [[left, base - bandH]];
+  for (let i = 0; i < 5; i++) {
+    crown.push(pts[i]);
+    if (i < 4) crown.push([(pts[i][0] + pts[i + 1][0]) / 2, base - notch]);
+  }
+  crown.push([left + cw, base - bandH]);
+  poly(s, crown, gold);
+  // The left face of each point catches the light.
+  for (let i = 0; i < 5; i++) {
+    const [px, py] = pts[i];
+    const w = cw * 0.045;
+    poly(s, [[px, py + ch * 0.06], [px - w, py + ch * 0.42], [px, py + ch * 0.36]], bright);
+  }
+  // Balls on the points.
+  for (let i = 0; i < 5; i++) {
+    const r = Math.max(1, cw * 0.035);
+    const [px, py] = pts[i];
+    poly(s, [[px - r, py], [px, py - r], [px + r, py], [px, py + r]], i === 2 ? bright : gold);
+  }
+  // The stone, set in the band.
+  const gr = bandH * 0.42;
+  const gy = base - bandH * 0.5;
+  poly(s, [[cx - gr, gy], [cx, gy - gr], [cx + gr, gy], [cx, gy + gr]], gem);
+  poly(s, [[cx - gr * 0.5, gy - gr * 0.1], [cx - gr * 0.1, gy - gr * 0.5], [cx, gy - gr * 0.2]], gemHi);
+  // Two lesser stones either side.
+  for (const dx of [-0.3, 0.3]) {
+    const x = cx + dx * cw, r = gr * 0.5;
+    poly(s, [[x - r, gy], [x, gy - r], [x + r, gy], [x, gy + r]], rgb('#3f6fb0'));
+  }
   if (mono) {
     // Every painted pixel becomes solid white; the launcher supplies the colour.
     for (let i = 0; i < s.px.length; i += 4) {

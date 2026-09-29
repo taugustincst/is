@@ -4,7 +4,7 @@
 
 // Phrase the prompts for whatever the player is actually using.
 const TOUCH_ONLY = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
-const CANCEL_HINT = TOUCH_ONLY ? 'Cancel goes back.' : 'Right-click or Esc cancels.';
+const CANCEL_HINT = () => TOUCH_ONLY ? tr('Cancel goes back.') : tr('Right-click or Esc cancels.');
 
 class BattleUI {
   constructor(renderer) {
@@ -67,7 +67,7 @@ class BattleUI {
       onLand: (u, x, y) => this.r.onLand(u, x, y),
       onDeath: (u) => this.r.onDeath(u),
       focus: (u) => this.r.focus(u),
-      onTurnStart: async (u) => { await this.r.focus(u); this.banner(`${u.name}'s turn`, u.team); this.refresh(); },
+      onTurnStart: async (u) => { await this.r.focus(u); this.banner(tr('{name}\'s turn', { name: u.name }), u.team); this.refresh(); },
       onTurnEnd: () => { this.r.clearHighlights(); this.refresh(); },
       awaitPlayerTurn: (u) => this.awaitPlayerTurn(u),
     };
@@ -140,7 +140,7 @@ class BattleUI {
 
   renderOrder() {
     const list = this.battle.forecast(9);
-    let html = '<div class="panel-title">Turn Order</div>';
+    let html = `<div class="panel-title">${tr('Turn Order')}</div>`;
     for (const e of list) {
       if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? e.unit.jobData.name : 'fallen'}</span></div>`;
       else html += `<div class="order-row pending"><span class="dot"></span>${e.p.ability.name}<span class="sub">${e.p.unit.name}</span></div>`;
@@ -168,7 +168,7 @@ class BattleUI {
       <div class="bar ct"><i style="width:${Math.min(100, u.ct)}%"></i><span>CT ${u.ct}</span></div>
       <div class="stats">
         <span>PA ${u.pa}</span><span>MA ${u.ma}</span><span>SPD ${u.spd}</span>
-        <span>Move ${u.move}</span><span>Jump ${u.jump}</span><span>Evade ${u.evade}%</span>
+        <span>${tr('Move')} ${u.move}</span><span>${tr('Jump')} ${u.jump}</span><span>${tr('Evade')} ${u.evade}%</span>
       </div>
       ${mods ? `<div class="mods">${mods}</div>` : ''}
       <div class="statuses">${st}</div>
@@ -197,17 +197,43 @@ class BattleUI {
       document.getElementById('command').style.display = 'none';
       this.renderDeploy();
       this.renderEnemyRoster();
+      this.coachStart();
+      this.coachSay('deploy', tr('Your first field. Tap a green tile to place each soldier, or Auto-place, then Begin Battle. Nothing is lost by a bad start: a lost battle can be fought again.'));
     });
+  }
+
+  // ---- the first-chapter guide -----------------------------------------------
+  /* On a company's first field, a few words at each step: where to stand,
+     how to move, how to strike, which way to face, what the strip at the top
+     means. Each is said once; Skip ends the guide for good, and so does
+     reaching the end of it. Every later field is silent. */
+  coachStart() {
+    const first = game.state && game.state.chapter === 0 && game.battleKind === 'chapter' && !store.get(COACH_KEY);
+    this.coach = first ? { seen: {}, turns: 0 } : null;
+    if (!first) this.coachHide(false);
+  }
+  coachSay(key, text) {
+    if (!this.coach || this.coach.seen[key]) return;
+    this.coach.seen[key] = true;
+    const el = document.getElementById('coach');
+    el.querySelector('.coach-text').textContent = text;
+    el.hidden = false;
+    this.placeHint();
+  }
+  coachHide(done) {
+    const el = document.getElementById('coach');
+    if (el) el.hidden = true;
+    if (done) { this.coach = null; store.set(COACH_KEY, '1'); }
   }
 
   endDeploy() {
     const d = this.deploy;
     if (!d) return;
-    if (!this.battle.deployed().length) { this.toastHint('Place at least one unit.'); return; }
+    if (!this.battle.deployed().length) { this.toastHint(tr('Place at least one unit.')); return; }
     // A battle that is lost when the leader falls cannot be fought without them.
     const need = this.battle.requiredUnit;
     if (need && !this.battle.onField(need)) {
-      this.toastHint(`${need.name} must take the field: this battle is lost without them.`);
+      this.toastHint(tr('{name} must take the field: this battle is lost without them.', { name: need.name }));
       return;
     }
     this.deploy = null;
@@ -225,6 +251,9 @@ class BattleUI {
     const panel = this.deploy ? this.el.roster : this.el.menu.parentElement;
     const h = panel && panel.offsetParent ? panel.offsetHeight : 0;
     this.el.hint.style.bottom = `${h + 18}px`;
+    // The guide sits above the hint, so neither covers the other.
+    const coach = document.getElementById('coach');
+    if (coach && !coach.hidden) coach.style.bottom = `${h + 18 + (this.el.hint.textContent ? this.el.hint.offsetHeight + 6 : 0)}px`;
   }
 
   toastHint(msg) {
@@ -237,7 +266,7 @@ class BattleUI {
 
   renderEnemyRoster() {
     const foes = this.battle.units.filter(u => u.team === 'enemy');
-    this.el.order.innerHTML = '<div class="panel-title">Opposition</div>' + foes.map(u =>
+    this.el.order.innerHTML = `<div class="panel-title">${tr('Opposition')}</div>` + foes.map(u =>
       `<div class="order-row enemy"><span class="dot"></span>${u.name}<span class="sub">Lv${u.level} ${u.jobData.name}</span></div>`).join('');
   }
 
@@ -247,13 +276,13 @@ class BattleUI {
     const b = this.battle;
     const placed = b.deployed().length;
     const need = b.requiredUnit && !this.battle.onField(b.requiredUnit)
-      ? `${b.requiredUnit.name} must take the field. ` : '';
-    const verb = TOUCH_ONLY ? 'Tap' : 'Click';
-    this.el.hint.textContent = `${need}${verb} a green tile to place ${d.sel ? d.sel.name : 'a unit'}. ${verb} a deployed unit to pick it up.`;
+      ? tr('{name} must take the field. ', { name: b.requiredUnit.name }) : '';
+    const who = d.sel ? d.sel.name : tr('a unit');
+    this.el.hint.textContent = need + (TOUCH_ONLY ? tr('Tap a green tile to place {name}. Tap a deployed unit to pick it up.', { name: who }) : tr('Click a green tile to place {name}. Click a deployed unit to pick it up.', { name: who }));
     this.el.hint.classList.toggle('warn', !!need);
     this.el.roster.classList.add('open');
     this.el.roster.innerHTML = `
-      <div class="panel-title">Deploy <small>${placed}/${b.maxDeploy}</small></div>
+      <div class="panel-title">${tr('Deploy')} <small>${placed}/${b.maxDeploy}</small></div>
       <div class="roster-list">${d.roster.map((u, i) => `
         <div class="roster-row ${u === d.sel ? 'sel' : ''} ${u.x >= 0 ? 'placed' : ''}" data-i="${i}" tabindex="0" role="button">
           <canvas class="row-portrait" data-portrait="${i}"></canvas>
@@ -266,9 +295,9 @@ class BattleUI {
         <button data-d="W">${dirArrow('W', this.r.rot)} W</button><button data-d="S">${dirArrow('S', this.r.rot)} S</button>
       </div>
       <div class="deploy-actions">
-        <button data-a="auto">Auto-place</button>
-        <button data-a="clear">Clear</button>
-        <button data-a="go" class="primary">Begin Battle</button>
+        <button data-a="auto">${tr('Auto-place')}</button>
+        <button data-a="clear">${tr('Clear')}</button>
+        <button data-a="go" class="primary">${tr('Begin Battle')}</button>
       </div>`;
     this.placeHint();
     // Whoever you are about to send in, wearing what you gave them.
@@ -293,7 +322,7 @@ class BattleUI {
         if (d.sel && d.sel.x >= 0) this.r.focus(d.sel);
         this.renderDeploy();
         // After the redraw, so the panel's own hint does not wipe it.
-        this.toastHint(`Placed ${b.deployed().length} of ${Math.min(b.maxDeploy, d.roster.length)}, facing the enemy.`);
+        this.toastHint(tr('Placed {n} of {max}, facing the enemy.', { n: b.deployed().length, max: Math.min(b.maxDeploy, d.roster.length) }));
         return;
       }
       else if (a === 'clear') for (const u of d.roster) b.withdraw(u);
@@ -317,7 +346,7 @@ class BattleUI {
     if (!d.sel) return;
     if (this.threatOf) { this.threatOf = null; this.r.hl.threat.clear(); }
     if (!b.placeUnit(d.sel, tile.x, tile.y)) {
-      this.toastHint(b.deployKeys.has(`${tile.x},${tile.y}`) ? `Only ${b.maxDeploy} units may deploy.` : 'Outside the deployment zone.');
+      this.toastHint(b.deployKeys.has(`${tile.x},${tile.y}`) ? tr('Only {n} units may deploy.', { n: b.maxDeploy }) : tr('Outside the deployment zone.'));
       return;
     }
     // Move the selection along to the next unit still waiting in reserve.
@@ -334,7 +363,7 @@ class BattleUI {
     const b = document.getElementById('btn-auto');
     if (b) { b.classList.toggle('on', this.auto); b.setAttribute('aria-pressed', this.auto ? 'true' : 'false'); }
     if (this.battle && !this.battle.over) {
-      this.el.hint.textContent = this.auto ? 'Auto: your units act on their own. Press Auto again to take back command.' : 'Auto off: command returns to you at the next turn.';
+      this.el.hint.textContent = this.auto ? tr('Auto: your units act on their own. Press Auto again to take back command.') : tr('Auto off: command returns to you at the next turn.');
       this.placeHint();
     }
     // Switching Auto on in the middle of a unit's menu hands that turn over now.
@@ -356,6 +385,11 @@ class BattleUI {
     }
     return new Promise(resolve => {
       this.turn = { unit, mode: 'menu', ability: null, reach: null, targets: null, resolve };
+      if (this.coach) {
+        this.coach.turns++;
+        if (this.coach.turns === 2) this.coachSay('order', tr('The strip at the top is the turn order: fast units act more often, and a charged spell waits for its charge. Undo Move takes a move back until the unit acts.'));
+        if (this.coach.turns === 3) { this.coachSay('done', tr('That is the heart of it. The ? button has the rest. Good hunting.')); this.coach = null; store.set(COACH_KEY, '1'); }
+      }
       this.setMode('menu');
     });
   }
@@ -394,15 +428,17 @@ class BattleUI {
     const u = t.unit;
     const hint = this.el.hint;
     if (mode === 'menu') {
-      hint.textContent = `Choose an action. ${CANCEL_HINT}`;
-      if (u.hasStatus('berserk')) hint.textContent = `${u.name} is beyond command.`;
+      hint.textContent = `${tr('Choose an action.')} ${CANCEL_HINT()}`;
+      if (!u.turnFlags.moved) this.coachSay('move', tr('{name}\'s turn. Tap Move, then a blue tile. Higher ground hits harder, and the enemy\'s back is the best place to stand.', { name: u.name }));
+      else if (!u.turnFlags.acted) this.coachSay('act', tr('Now Act, then Attack, then a red tile. The forecast shows the odds and the damage before you commit; Cancel backs out.'));
+      if (u.hasStatus('berserk')) hint.textContent = tr('{name} is beyond command.', { name: u.name });
       const canUndo = !!t.undo && u.turnFlags.moved && !u.turnFlags.acted;
       this.el.menu.innerHTML = `
         <div class="menu-title">${u.name}</div>
-        <button data-a="move" ${u.turnFlags.moved ? 'disabled' : ''}>Move</button>
-        ${canUndo ? '<button data-a="undo">Undo Move</button>' : ''}
-        <button data-a="act" ${u.turnFlags.acted ? 'disabled' : ''}>Act</button>
-        <button data-a="wait">Wait</button>`;
+        <button data-a="move" ${u.turnFlags.moved ? 'disabled' : ''}>${tr('Move')}</button>
+        ${canUndo ? `<button data-a="undo">${tr('Undo Move')}</button>` : ''}
+        <button data-a="act" ${u.turnFlags.acted ? 'disabled' : ''}>${tr('Act')}</button>
+        <button data-a="wait">${tr('Wait')}</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => this.menuAction(b.dataset.a));
     } else if (mode === 'move') {
       t.reach = this.battle.grid.reachable(u, this.battle.units);
@@ -410,14 +446,14 @@ class BattleUI {
       // Bring the whole range into view: an option off the edge of a phone
       // screen may as well not be offered.
       this.r.frameTiles([...t.reach.values()]);
-      hint.textContent = TOUCH_ONLY ? 'Tap a tile to move to.' : 'Select a tile to move to.';
-      this.el.menu.innerHTML = `<div class="menu-title">Move</div><button data-a="cancel">Cancel</button>`;
+      hint.textContent = TOUCH_ONLY ? tr('Tap a tile to move to.') : tr('Select a tile to move to.');
+      this.el.menu.innerHTML = `<div class="menu-title">${tr('Move')}</div><button data-a="cancel">${tr('Cancel')}</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode('menu');
     } else if (mode === 'act') {
-      hint.textContent = 'Choose a skillset.';
+      hint.textContent = tr('Choose a skillset.');
       const sets = u.actionMenu();
-      this.el.menu.innerHTML = `<div class="menu-title">Act</div>` +
-        sets.map((s, i) => `<button data-i="${i}">${s.label}</button>`).join('') + `<button data-a="cancel">Cancel</button>`;
+      this.el.menu.innerHTML = `<div class="menu-title">${tr('Act')}</div>` +
+        sets.map((s, i) => `<button data-i="${i}">${tr(s.label)}</button>`).join('') + `<button data-a="cancel">${tr('Cancel')}</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => {
         if (b.dataset.a === 'cancel') return this.setMode('menu');
         t.set = sets[+b.dataset.i];
@@ -425,16 +461,16 @@ class BattleUI {
         else this.setMode('abilities');
       });
     } else if (mode === 'abilities') {
-      hint.textContent = TOUCH_ONLY ? 'Choose an ability.' : 'Choose an ability. Hover for details.';
-      this.el.menu.innerHTML = `<div class="menu-title">${t.set.label}</div>` +
+      hint.textContent = TOUCH_ONLY ? tr('Choose an ability.') : tr('Choose an ability. Hover for details.');
+      this.el.menu.innerHTML = `<div class="menu-title">${tr(t.set.label)}</div>` +
         t.set.abilities.map(id => {
           const ab = ABILITIES[id];
           const usable = u.canUse(id);
           const ok = usable && this.battle.canAfford(u, ab);
-          const why = !usable ? (u.hasStatus('berserk') ? 'raging' : 'silenced') : ok ? '' : 'no MP';
+          const why = !usable ? (u.hasStatus('berserk') ? tr('raging') : tr('silenced')) : ok ? '' : tr('no MP');
           const cost = ab.mp ? `${this.battle.mpCost(u, ab)} MP` : '';
-          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.name}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
-        }).join('') + `<button data-a="cancel">Back</button>`;
+          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${tr(ab.name)}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
+        }).join('') + `<button data-a="cancel">${tr('Back')}</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => {
         b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);
         b.onmouseenter = () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); };
@@ -446,17 +482,18 @@ class BattleUI {
       t.targets = this.battle.targetTilesFor(u, ab);
       for (const tile of t.targets) this.r.hl.target.add(`${tile.x},${tile.y}`);
       this.r.frameTiles(t.targets);
-      hint.textContent = `${ab.name}: ${TOUCH_ONLY ? 'tap' : 'select'} a target tile.`;
-      this.el.menu.innerHTML = `<div class="menu-title">${ab.name}</div><button data-a="cancel">Cancel</button>`;
+      hint.textContent = TOUCH_ONLY ? tr('{ability}: tap a target tile.', { ability: tr(ab.name) }) : tr('{ability}: select a target tile.', { ability: tr(ab.name) });
+      this.el.menu.innerHTML = `<div class="menu-title">${tr(ab.name)}</div><button data-a="cancel">${tr('Cancel')}</button>`;
       this.el.menu.querySelector('button').onclick = () => this.setMode(ab === ABILITIES.attack ? 'act' : 'abilities');
       if (ab.self) { this.previewTarget(this.battle.grid.tile(u.x, u.y)); }
     } else if (mode === 'wait') {
-      hint.textContent = TOUCH_ONLY ? 'Tap a direction to face, or tap a tile.' : 'Choose a direction to face (or click a tile).';
-      this.el.menu.innerHTML = `<div class="menu-title">Face</div>
+      hint.textContent = TOUCH_ONLY ? tr('Tap a direction to face, or tap a tile.') : tr('Choose a direction to face (or click a tile).');
+      this.coachSay('face', tr('Last, choose a facing. A blow from behind cannot be dodged and lands a quarter harder, so face the enemy.'));
+      this.el.menu.innerHTML = `<div class="menu-title">${tr('Face')}</div>
         <div class="dirs">
-          <button data-d="N">${dirArrow('N', this.r.rot)} North</button><button data-d="E">${dirArrow('E', this.r.rot)} East</button>
-          <button data-d="W">${dirArrow('W', this.r.rot)} West</button><button data-d="S">${dirArrow('S', this.r.rot)} South</button>
-        </div><button data-a="keep">Keep facing</button>`;
+          <button data-d="N">${dirArrow('N', this.r.rot)} ${tr('North')}</button><button data-d="E">${dirArrow('E', this.r.rot)} ${tr('East')}</button>
+          <button data-d="W">${dirArrow('W', this.r.rot)} ${tr('West')}</button><button data-d="S">${dirArrow('S', this.r.rot)} ${tr('South')}</button>
+        </div><button data-a="keep">${tr('Keep facing')}</button>`;
       this.el.menu.querySelectorAll('button').forEach(b => b.onclick = () => {
         if (b.dataset.d) u.facing = b.dataset.d;
         this.endTurn();
@@ -472,8 +509,8 @@ class BattleUI {
     const el = ab.element && ELEMENTS[ab.element]
       ? ` · <span style="color:${ELEMENTS[ab.element].color}">${ELEMENTS[ab.element].name}</span>` : '';
     const mp = ab.mp ? ` · ${this.battle.mpCost(u, ab)} MP` : '';
-    this.el.pred.innerHTML = `<div class="ab-info"><b>${ab.name}</b><div>${ab.desc}</div>
-      <div class="ab-meta">Range ${range} · Area ${ab.aoe ? (ab.aoe === 1 ? 'cross' : 'wide') : 'single'} · Vert ${vert}${mp}${ab.ct ? ` · Charge ${ab.ct}` : ' · Instant'}${el}</div></div>`;
+    this.el.pred.innerHTML = `<div class="ab-info"><b>${tr(ab.name)}</b><div>${ab.desc}</div>
+      <div class="ab-meta">${tr('Range {r} · Area {a} · Vert {v}', { r: range, a: ab.aoe ? (ab.aoe === 1 ? tr('cross') : tr('wide')) : tr('single'), v: vert })}${mp}${ab.ct ? ` · ${tr('Charge {n}', { n: ab.ct })}` : ` · ${tr('Instant')}`}${el}</div></div>`;
   }
 
   menuAction(a) {
@@ -550,7 +587,7 @@ class BattleUI {
   // a click the board failed to notice.
   missedMove(u) {
     audio.sfx('cancel');
-    this.el.hint.textContent = `${u.name} cannot reach that tile. ${TOUCH_ONLY ? 'Tap' : 'Select'} a blue tile, or ${TOUCH_ONLY ? 'tap' : 'press'} Cancel.`;
+    this.el.hint.textContent = TOUCH_ONLY ? tr('{name} cannot reach that tile. Tap a blue tile, or tap Cancel.', { name: u.name }) : tr('{name} cannot reach that tile. Select a blue tile, or press Cancel.', { name: u.name });
     this.placeHint();
   }
 
@@ -711,12 +748,12 @@ class BattleUI {
   // could strike on its next turn. Tap it again, or do anything else, to clear.
   toggleThreat(unit) {
     const b = this.battle;
-    if (this.threatOf === unit) { this.threatOf = null; this.r.hl.threat.clear(); this.el.hint.textContent = this.deploy ? '' : `Choose an action. ${CANCEL_HINT}`; this.placeHint(); return; }
+    if (this.threatOf === unit) { this.threatOf = null; this.r.hl.threat.clear(); this.el.hint.textContent = this.deploy ? '' : `${tr('Choose an action.')} ${CANCEL_HINT()}`; this.placeHint(); return; }
     this.threatOf = unit;
     this.r.hl.threat.clear();
     for (const k of this.threatTiles(unit)) this.r.hl.threat.add(k);
     audio.sfx('menu');
-    this.el.hint.textContent = `Violet: where ${unit.name} can strike next turn. Tap ${unit.name} again to clear.`;
+    this.el.hint.textContent = tr('Violet: where {name} can strike next turn. Tap {name} again to clear.', { name: unit.name });
     this.placeHint();
   }
 

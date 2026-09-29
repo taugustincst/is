@@ -37,6 +37,11 @@ small { color: var(--muted); }
 .slot-text small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .slot-where { color: var(--gold); margin-left: 6px; }
 .slot-actions { display: flex; gap: 6px; }
+.slots-transfer { margin: 4px 0 12px; }
+#transfer { margin-top: 8px; padding: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
+#transfer-text { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 11px; background: #0f1020; color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px; resize: vertical; }
+.transfer-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.transfer-into { color: var(--muted); font-size: 12px; }
 .story-buttons, .results-buttons { display: flex; gap: 8px; align-items: center; justify-content: center; }
 .story-buttons { justify-content: flex-start; margin-top: 12px; }
 #btn-story-next { margin-top: 0; }
@@ -229,7 +234,7 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #battle-top { position: absolute; top: 12px; left: 224px; right: 264px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
 #battle-name { color: var(--gold); font-family: Georgia, serif; font-size: 16px; }
 #tile-info { color: var(--muted); font-size: 12px; min-width: 160px; }
-#battle-top button { padding: 3px 10px; font-size: 12px; }
+#battle-top button { padding: 3px 10px; font-size: 12px; white-space: nowrap; }
 #log { bottom: 12px; left: 12px; width: 340px; height: 170px; overflow-y: auto; font-size: 12px; }
 .log-line { padding: 1px 0; color: #c8c6e0; }
 .log-line.dmg { color: #ff9a8a; } .log-line.heal { color: #8affa0; } .log-line.miss { color: #aaa; }
@@ -282,6 +287,8 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .title-credits { margin-top: 14px; background: none; border: none; color: var(--muted); text-decoration: underline; }
 .title-credits:hover:not(:disabled) { background: none; color: var(--gold); }
 .title-version { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; opacity: 0.7; }
+.title-lang { margin-top: 10px; background: rgba(0, 0, 0, 0.35); color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; }
+#world-lang { flex-wrap: wrap; }
 #screen-credits .credits-box { max-width: 560px; margin: 48px auto; padding: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
 .credits-version { color: var(--muted); margin: 0 0 16px; }
 .credits-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 18px; }
@@ -363,6 +370,12 @@ button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-
 .deploy-actions { display: flex; gap: 6px; }
 .deploy-actions button { flex: 1; }
 #hint.warn { color: var(--red); }
+/* The first-chapter guide: a card above the hint, gold-edged so it reads as
+   advice rather than a warning, with its own way out. */
+#coach { position: absolute; right: 12px; bottom: 0; width: 320px; z-index: 6; background: rgba(20, 18, 40, 0.96); border: 1px solid var(--gold); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); }
+#coach[hidden] { display: none; }
+#coach .coach-text { margin: 0 0 6px; }
+#coach .coach-actions { display: flex; gap: 6px; justify-content: flex-end; }
 #objective { color: var(--gold); font-size: 12px; border-left: 1px solid var(--border); padding-left: 12px; }
 .order-row.fallen { opacity: 0.5; border-left-color: #555; }
 .order-row.fallen .dot { background: #555; }
@@ -437,6 +450,7 @@ html, body, button, select { touch-action: manipulation; }
   .banner { top: calc(120px + var(--safe-t)); }
   #command, #deploy-panel { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
   #hint { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; text-align: center; }
+  #coach { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
   .roster-list { max-height: 18vh; }
   /* The log is docked above the command panel, so a line of the log never sits on Wait. */
   #log { bottom: calc(150px + var(--safe-b)); height: 80px; }
