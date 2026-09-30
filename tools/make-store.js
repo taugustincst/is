@@ -122,8 +122,15 @@ async function attackPreview(page) {
   await page.evaluate(async () => {
     const b = game.battle, u = game.ui.turn.unit;
     const foe = b.units.filter(x => x.team === 'enemy' && x.alive && x.x >= 0)[0];
-    const spot = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dx, dy]) => b.grid.tile(u.x + dx, u.y + dy)).find(t => t && t.t !== 'x' && t.t !== 'w' && t.t !== 't' && !b.unitAt(t.x, t.y));
+    // Of the free neighbouring tiles, the one lowest on screen is nearest
+    // the viewer: the foe stands in front of the company, not behind it.
+    const spots = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dx, dy]) => b.grid.tile(u.x + dx, u.y + dy)).filter(t => t && t.t !== 'x' && t.t !== 'w' && t.t !== 't' && !b.unitAt(t.x, t.y));
+    const spot = spots.sort((p, q) => game.renderer.toScreen(q.x, q.y, q.h).sy - game.renderer.toScreen(p.x, p.y, p.h).sy)[0];
     if (spot) { foe.x = spot.x; foe.y = spot.y; foe.facing = facingFromDelta(spot.x - u.x, spot.y - u.y); }
+    // Everyone else steps back a row, so the two of them stand clear.
+    for (const m of b.units) if (m.team === 'player' && m !== u && m.x >= 0) { const back = [[0, -1], [-1, 0], [0, -2], [-1, -1]].map(([dx, dy]) => b.grid.tile(m.x + dx, m.y + dy)).find(t => t && t.t !== 'x' && t.t !== 'w' && !b.unitAt(t.x, t.y) && (t.x !== spot.x || t.y !== spot.y)); if (back) { m.x = back.x; m.y = back.y; } }
+    // Closer in: the two figures and the forecast are the picture.
+    game.renderer.zoom = Math.min(1.7, game.renderer.zoom * 1.4);
     await game.renderer.focus(u, 0);
   });
   await page.click('#action-menu button[data-a="act"]');

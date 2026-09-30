@@ -82,9 +82,10 @@ below is maintained by hand. Character limits are Play's.
 **App category**: Game → Strategy
 **Tags**: Tactical RPG, Turn-based strategy, Single player, Offline
 **Contact email**: your address (Play shows it publicly)
-**Privacy policy URL**: a public copy of `PRIVACY.md` / `privacy.html`
-from this repository, for instance
-`https://github.com/taugustincst/is/blob/main/PRIVACY.md`
+**Privacy policy URL**: the game's own page, served with the web build:
+`https://taugustincst.github.io/fftremake/privacy.html` (or the `is`
+repository's Pages address once it is enabled). Play wants a plain web page,
+not a file inside a repository.
 
 ## Store listing in other languages
 
@@ -450,6 +451,12 @@ health features. **News**: not a news app.
 **Advertising ID**: the app does not use the advertising ID.
 
 ## Release notes
+
+**1.8.1**
+
+    Store kit: the attack screenshot shows its target in the open, the realm map keeps names
+    clear of one another on a phone, the privacy policy names every setting the game keeps,
+    and the promo video is rerecorded on the new look.
 
 **1.8.0**
 

@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.8.0';
+const GAME_VERSION = '1.8.1';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -1667,7 +1667,7 @@ class Game {
     // important names are placed first and get the best spots.
     const labels = [];
     const overlap = (r) => obstacles.reduce((sum, o) => sum + Math.max(0, Math.min(r.x + r.w, o.x + o.w) - Math.max(r.x, o.x)) * Math.max(0, Math.min(r.y + r.h, o.y + o.h) - Math.max(r.y, o.y)), 0);
-    const place = (text, x, y, font, size, color, r) => {
+    const place = (text, x, y, font, size, color, r, optional) => {
       c.font = font;
       const w = c.measureText(text).width + 4, h = size + 3;
       const spots = [
@@ -1676,6 +1676,9 @@ class Game {
       ].map(([sx, sy]) => ({ x: Math.max(2, Math.min(W - w - 2, sx)), y: Math.max(2, Math.min(H - h - 2, sy)), w, h }));
       let best = null, bestArea = Infinity;
       for (const sp of spots) { const a = overlap(sp); if (a < bestArea) { best = sp; bestArea = a; } if (a === 0) break; }
+      // A name that would have to sit on another is left off: the stop's
+      // number still says which it is, and the road card names it on a tap.
+      if (optional && bestArea > 0) return;
       obstacles.push(best);
       labels.push({ text, font, color, x: best.x + 2, y: best.y + size });
     };
@@ -1692,9 +1695,9 @@ class Game {
     stopsAll.forEach(({ i, ch, p }) => {
       if (i === nextI) return;
       const done = i < nextI;
-      place(done ? MAPS[ch.map].name : '?', p.x, p.y, nameFont, nameSize, done ? '#e6e6f0' : 'rgba(230,230,240,0.35)', 10);
+      place(done ? MAPS[ch.map].name : '?', p.x, p.y, nameFont, nameSize, done ? '#e6e6f0' : 'rgba(230,230,240,0.35)', 10, true);
     });
-    if (!chosen) for (const sp of spurs) { const q = sp.stops[1]; place(forkOpen ? ROADS[sp.id].title : '?', q.x, q.y, nameFont, nameSize, forkOpen ? 'rgba(230,230,240,0.55)' : 'rgba(230,230,240,0.25)', 6); }
+    if (!chosen) for (const sp of spurs) { const q = sp.stops[1]; place(forkOpen ? ROADS[sp.id].title : '?', q.x, q.y, nameFont, nameSize, forkOpen ? 'rgba(230,230,240,0.55)' : 'rgba(230,230,240,0.25)', 6, true); }
     c.textAlign = 'left'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
     for (const l of labels) {
       c.font = l.font; c.lineWidth = 3; c.strokeStyle = 'rgba(15,14,26,0.85)'; c.strokeText(l.text, l.x, l.y);
