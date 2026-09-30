@@ -21,7 +21,7 @@ a browser, or serve the folder with any static file server.
   described in `android/PLAY_STORE.md`). The same release carries the whole
   game as a single `.html` file. Releases are cut by
   `.github/workflows/release.yml`: run it from the Actions tab with a version
-  number, or push a tag such as `v1.7.0`.
+  number, or push a tag such as `v1.8.0`.
 
 ## The game
 

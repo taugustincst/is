@@ -1,33 +1,61 @@
 :root {
-  --bg: #0f1020; --panel: rgba(14, 16, 32, 0.88); --border: #3b3f6b; --text: #e8e6f0; --muted: #9a9bb8;
+  --bg: #0f1020; --border: #3d4275; --text: #e8e6f0; --muted: #9a9bb8;
   --gold: #e6c35a; --player: #3b7bd8; --enemy: #d8483b; --green: #5ad35a; --red: #ff6a5a;
+  /* Every panel is the same slab: a faint top light on lacquered navy, a
+     hairline highlight along its upper edge, and a shadow that lifts it off
+     the ground. The shell reads as one object because every part of it is. */
+  --panel: linear-gradient(180deg, rgba(26, 28, 56, 0.94) 0%, rgba(14, 16, 34, 0.95) 100%);
+  --panel-shadow: 0 6px 18px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --btn: linear-gradient(180deg, #2c3060 0%, #1e2244 100%);
+  --btn-hover: linear-gradient(180deg, #363b72 0%, #262a52 100%);
+  --btn-gold: linear-gradient(180deg, #6a5320 0%, #3d2f0c 100%);
+  --btn-gold-hover: linear-gradient(180deg, #86692a 0%, #4e3c10 100%);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
-button { font: inherit; background: #23264a; color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
-button:hover:not(:disabled) { background: #2f3366; border-color: #6a6fb0; }
+button { font: inherit; background: var(--btn); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.45); transition: background 0.12s, border-color 0.12s, transform 0.08s; }
+button:hover:not(:disabled) { background: var(--btn-hover); border-color: #6a6fb0; }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04); }
 button:disabled { opacity: 0.4; cursor: default; }
-button.primary { background: #4a3a10; border-color: var(--gold); color: var(--gold); font-weight: bold; }
-button.primary:hover:not(:disabled) { background: #6a5420; }
-select { font: inherit; background: #1a1c38; color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
-h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; margin: 0 0 8px; }
+button.primary { background: var(--btn-gold); border-color: var(--gold); color: #ffe08a; font-weight: bold; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); }
+button.primary:hover:not(:disabled) { background: var(--btn-gold-hover); }
+select { font: inherit; background: #171a36; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4); }
+h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; margin: 0 0 8px; letter-spacing: 0.01em; }
+/* The headline of each screen carries a hairline of gold beneath it. */
+.world-main > h2, .shop-head h2, .form-head h2, .slots-box > h2, .credits-box h2 { color: var(--gold); position: relative; padding-bottom: 6px; }
+.world-main > h2::after, .shop-head h2::after, .form-head h2::after, .slots-box > h2::after, .credits-box h2::after { content: ''; position: absolute; left: 0; bottom: 0; width: 64px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
 small { color: var(--muted); }
 .muted { color: var(--muted); }
 
 .screen { display: none; position: fixed; inset: 0; }
 .screen.active { display: block; }
+/* Every screen but the field stands on the same night: a deep vignette with a
+   faint warmth at the top, so panels have something to sit against. */
+.screen:not(#screen-battle):not(#screen-title) { background: radial-gradient(ellipse 120% 70% at 50% -10%, #23264c 0%, #121430 45%, #0a0b18 100%); }
+@keyframes screen-in { from { opacity: 0; } to { opacity: 1; } }
+.screen.active:not(#screen-battle) { animation: screen-in 0.22s ease-out; }
+@media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
+/* One skin for every slab of the shell. */
+.card, .panel, .slot, .form-row, .form-right, .list-panel, #shop-list, .worn-panel, #transfer, .results-box, .road, .party-chip, .job-card, .tree-detail, .help-box, .story-box, .choice-box .road { box-shadow: var(--panel-shadow); }
 /* Camp, Formation and the shop grow with the party; a short window must scroll them. */
 .screen:not(#screen-battle) { overflow-y: auto; }
 
 /* ---------- title ---------- */
-#screen-title { background: radial-gradient(ellipse at 50% 30%, #2a2d5a 0%, #0f1020 70%); }
-.title-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-.title-sub { letter-spacing: 4px; text-transform: uppercase; color: var(--muted); font-size: 12px; }
-.title-box h1 { font-size: 56px; color: var(--gold); margin: 8px 0; text-shadow: 0 4px 24px rgba(230, 195, 90, 0.35); }
-.title-tag { font-style: italic; color: #c8c6e0; margin-bottom: 28px; }
-.title-buttons button { font-size: 18px; padding: 10px 28px; margin: 0 8px; }
-.title-foot { margin-top: 36px; color: var(--muted); font-size: 12px; }
-.title-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+#screen-title { background: #1a1020; }
+/* The first field of the campaign, drawn by the game's own renderer, turns
+   slowly behind the title; a veil darkens it enough for the crest to read. */
+.title-art { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.title-veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 8, 22, 0.86) 0%, rgba(10, 8, 22, 0.62) 38%, rgba(10, 8, 22, 0.18) 62%, rgba(10, 8, 22, 0.1) 84%, rgba(10, 8, 22, 0.7) 100%); pointer-events: none; }
+.title-box { position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: min(92%, 640px); }
+.title-sub { letter-spacing: 5px; text-transform: uppercase; color: #b8b4d0; font-size: 12px; text-shadow: 0 1px 4px #000; }
+.title-box h1 { font-size: 64px; line-height: 1.02; margin: 10px 0 8px; font-weight: normal;
+  background: linear-gradient(180deg, #fff3c0 0%, #f0cf66 45%, #c9992a 75%, #f2d374 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 rgba(70, 45, 0, 0.9)) drop-shadow(0 10px 28px rgba(0, 0, 0, 0.7)); }
+.title-tag { font-family: Georgia, serif; font-style: italic; color: #e0dcf0; font-size: 16px; margin-bottom: 30px; text-shadow: 0 1px 6px #000, 0 0 18px rgba(0, 0, 0, 0.8); }
+.title-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.title-buttons button { font-size: 18px; padding: 11px 30px; min-width: 176px; font-family: Georgia, serif; letter-spacing: 0.02em; }
+.title-foot { margin-top: 36px; color: #b0accc; font-size: 12px; text-shadow: 0 1px 4px #000; }
 /* ---------- save slots ---------- */
 .slots-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(640px, 92%); max-height: calc(100% - 24px); overflow-y: auto; }
 .slots-box h2 { color: var(--gold); }
@@ -52,7 +80,8 @@ small { color: var(--muted); }
 /* The realm: where the company has been and where it goes next. */
 #world-map { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--border); background: #14121f; cursor: pointer; margin-bottom: 12px; }
 .world-side { width: 300px; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+#world-next { border-left: 3px solid var(--gold); }
 .chapter-num { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
 .chapter-title { font-family: Georgia, serif; font-size: 26px; color: var(--gold); }
 .act-after { color: #9ec0ff; font-style: italic; }
@@ -165,10 +194,11 @@ small { color: var(--muted); }
 .detail-id h2 { margin: 0; }
 
 /* ---------- story ---------- */
-#screen-story { background: radial-gradient(ellipse at 50% 60%, #1e2040 0%, #0b0c18 70%); }
-.story-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, 90%); max-height: calc(100% - 24px); overflow-y: auto; }
-.story-box h2 { color: var(--gold); font-size: 30px; }
-#story-text p { font-size: 17px; line-height: 1.6; color: #ddd; animation: fadein 0.5s; }
+.story-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(720px, 92%); max-height: calc(100% - 24px); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border); border-top: 2px solid var(--gold); border-radius: 10px; padding: 22px 26px 20px; }
+.story-box h2 { color: var(--gold); font-size: 30px; position: relative; padding-bottom: 8px; margin-bottom: 10px; }
+.story-box h2::after { content: ''; position: absolute; left: 0; bottom: 0; width: 80px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
+#story-text p { font-family: Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.65; color: #e2e0ee; animation: fadein 0.5s; }
 @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #btn-story-next { margin-top: 12px; padding: 10px 24px; }
 
@@ -193,7 +223,7 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 /* ---------- battle ---------- */
 #screen-battle { background: #0d0e18; }
 #battle-canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
-.panel { position: absolute; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+.panel { position: absolute; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
 .panel-title { color: var(--gold); font-family: Georgia, serif; margin-bottom: 6px; }
 #turn-order { top: 12px; left: 12px; width: 200px; }
 /* The queue answers the same question the field does, so it answers it the
@@ -219,9 +249,9 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .card-head.player { border-color: var(--player); }
 .card-head.enemy { border-color: var(--enemy); }
 .card-skills { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
-.bar { position: relative; height: 14px; background: #111; border-radius: 3px; margin: 3px 0; overflow: hidden; }
-.bar i { display: block; height: 100%; }
-.bar.hp i { background: var(--green); } .bar.mp i { background: #4aa3ff; } .bar.ct i { background: #ffd84a; }
+.bar { position: relative; height: 14px; background: #0a0b16; border-radius: 4px; margin: 3px 0; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7); }
+.bar i { display: block; height: 100%; border-radius: 4px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.bar.hp i { background: linear-gradient(180deg, #7fe07f, #3aa53a); } .bar.mp i { background: linear-gradient(180deg, #74baff, #2f86e0); } .bar.ct i { background: linear-gradient(180deg, #ffe680, #e6b820); }
 .bar span { position: absolute; inset: 0; font-size: 11px; line-height: 14px; padding-left: 4px; text-shadow: 0 0 3px #000, 0 0 3px #000; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px 6px; font-size: 12px; margin-top: 6px; }
 .mods { color: #ffe97c; font-size: 12px; margin-top: 4px; }
@@ -231,7 +261,7 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 /* The bar sits in the gap between the turn order on the left and the unit
    card on the right, and wraps when that gap is narrow, rather than being
    centred over whichever panel it happens to reach. */
-#battle-top { position: absolute; top: 12px; left: 224px; right: 264px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+#battle-top { position: absolute; top: 12px; left: 224px; right: 264px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; box-shadow: var(--panel-shadow); }
 #battle-name { color: var(--gold); font-family: Georgia, serif; font-size: 16px; }
 #tile-info { color: var(--muted); font-size: 12px; min-width: 160px; }
 #battle-top button { padding: 3px 10px; font-size: 12px; white-space: nowrap; }
@@ -271,6 +301,8 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 /* ---------- results ---------- */
 .results-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 90%); max-height: min(92vh, calc(100% - 16px)); overflow-y: auto; box-sizing: border-box; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 24px; text-align: center; }
 #results-title { font-size: 40px; } #results-title.victory { color: var(--gold); } #results-title.defeat { color: var(--red); }
+#results-title::before, #results-title::after { content: '\2726'; font-size: 16px; vertical-align: middle; opacity: 0.6; margin: 0 14px; }
+.results-box { border-top: 2px solid var(--gold); }
 .res-line { font-size: 16px; margin: 6px 0; }
 .res-events { text-align: left; color: var(--gold); margin: 12px auto; max-width: 400px; }
 .res-party { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 14px; margin: 14px 0 6px; }
@@ -284,10 +316,10 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .audio-levels { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; margin: 6px 0 10px; font-size: 12px; color: var(--muted); }
 .audio-levels input[type=range] { width: 100%; min-width: 90px; accent-color: var(--gold); }
 .audio-levels output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
-.title-credits { margin-top: 14px; background: none; border: none; color: var(--muted); text-decoration: underline; }
+.title-credits { margin-top: 14px; background: none; border: none; box-shadow: none; color: #b8b4d0; text-decoration: underline; text-shadow: 0 1px 4px #000; }
 .title-credits:hover:not(:disabled) { background: none; color: var(--gold); }
 .title-version { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; opacity: 0.7; }
-.title-lang { margin-top: 10px; background: rgba(0, 0, 0, 0.35); color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; }
+.title-lang { margin-top: 10px; background: rgba(0, 0, 0, 0.35); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; }
 #world-lang { flex-wrap: wrap; }
 #screen-credits .credits-box { max-width: 560px; margin: 48px auto; padding: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
 .credits-version { color: var(--muted); margin: 0 0 16px; }
@@ -298,11 +330,11 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 @media (max-width: 560px) { .credits-list { grid-template-columns: 1fr; gap: 2px; } .credits-list dd { margin-bottom: 8px; } #screen-credits .credits-box { margin: 16px; } }
 #ask { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(4, 5, 14, 0.62); }
 #ask[hidden] { display: none; }
-#ask .ask-box { max-width: 420px; width: 100%; background: #16183a; border: 1px solid var(--gold); border-radius: 8px; padding: 18px 20px 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+#ask .ask-box { max-width: 420px; width: 100%; background: var(--panel); border: 1px solid var(--gold); border-radius: 10px; padding: 18px 20px 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #ask p { margin: 0 0 16px; line-height: 1.45; }
 #ask .ask-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 #ask .ask-actions button { min-width: 96px; min-height: 40px; }
-#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2f3366; border: 1px solid var(--gold); padding: 8px 18px; border-radius: 6px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 50; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--panel); border: 1px solid var(--gold); padding: 8px 18px; border-radius: 8px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 50; box-shadow: var(--panel-shadow); }
 #toast.show { opacity: 1; transform: translateX(-50%); }
 
 /* ---------- shop ---------- */
@@ -314,7 +346,8 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .camp-tabs, .form-tabs { flex-wrap: wrap; margin: 0 0 12px; }
 .camp-tabs button .badge, .form-tabs button .badge { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--gold); color: #1a1408; font-size: 11px; line-height: 16px; }
 .tab-hidden { display: none !important; }
-.tabs button.sel { background: #4a3a10; border-color: var(--gold); color: var(--gold); }
+.tabs button { border-radius: 999px; padding: 5px 14px; }
+.tabs button.sel { background: var(--btn-gold); border-color: var(--gold); color: #ffe08a; }
 #shop-list { flex: 1; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
 #shop-list h3 { color: var(--gold); margin-top: 12px; border-bottom: 1px solid #2a2d50; }
 .shop-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 4px; border-bottom: 1px solid #23264a; }
@@ -331,7 +364,7 @@ button.stock.link:hover { color: var(--gold); border-color: var(--gold); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .chips[hidden] { display: none; }
 .chips .chip { font-size: 12px; padding: 3px 10px; border-radius: 12px; }
-.chips .chip.sel { background: #4a3a10; border-color: var(--gold); color: var(--gold); }
+.chips .chip.sel { background: var(--btn-gold); border-color: var(--gold); color: #ffe08a; }
 .list-panel { flex: 1; min-height: 120px; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
 .list-panel h3, #shop-list h4 { color: var(--gold); margin: 10px 0 2px; }
 #shop-list h4 { font-size: 13px; color: #c8b878; border-bottom: 1px dotted #2a2d50; margin-top: 8px; }
@@ -373,7 +406,7 @@ button.mini { padding: 2px 8px; font-size: 11px; vertical-align: middle; margin-
 #hint.warn { color: var(--red); }
 /* The first-chapter guide: a card above the hint, gold-edged so it reads as
    advice rather than a warning, with its own way out. */
-#coach { position: absolute; right: 12px; bottom: 0; width: 320px; z-index: 6; background: rgba(20, 18, 40, 0.96); border: 1px solid var(--gold); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text); }
+#coach { position: absolute; right: 12px; bottom: 0; width: 320px; z-index: 6; background: var(--panel); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--text); box-shadow: var(--panel-shadow); }
 #coach[hidden] { display: none; }
 #coach .coach-text { margin: 0 0 6px; }
 #coach .coach-actions { display: flex; gap: 6px; justify-content: flex-end; }
@@ -446,7 +479,9 @@ html, body, button, select { touch-action: manipulation; }
   .world-layout, .form-layout, .shop-layout { flex-direction: column; height: auto; }
   .world-side, .form-left { width: auto; }
   .screen { overflow-y: auto; }
-  .title-box h1 { font-size: 34px; }
+  .title-box h1 { font-size: 40px; }
+  .title-buttons { flex-direction: column; align-items: center; }
+  .title-buttons button { width: min(260px, 80vw); }
   .banner { font-size: 17px; padding: 4px 16px; }
 }
 
