@@ -20,7 +20,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     game.showWorld(); game.goToCity('redwater');
   });
   const panel = await page.evaluate(() => ({ tabs: [...document.querySelectorAll('button[data-forge]')].map(b => b.dataset.forge), heads: [...document.querySelectorAll('#cities h4')].map(h => h.firstChild.textContent.trim()) }));
-  ok('an open city has a forge with four pages beside its tavern and market', panel.heads.join(',') === 'Tavern,Market,Forge' && panel.tabs.join(',') === 'improve,craft,salvage,materials', JSON.stringify(panel));
+  ok('an open city has a forge with four pages beside its tavern, kennel and market', panel.heads.join(',') === 'Tavern,Kennel,Market,Forge' && panel.tabs.join(',') === 'improve,craft,salvage,materials', JSON.stringify(panel));
 
   // Improve: Rowan's short sword, worn, becomes Short Sword +1 and hits harder.
   const before = await page.evaluate(() => { const u = game.state.party[0]; return { id: u.gear.weapon, power: u.weapon.power, gil: game.state.gil, iron: game.invCount('ironIngot'), rows: document.querySelectorAll('button[data-improve]').length }; });
