@@ -90,6 +90,7 @@ class Battle {
     this.over = false;
     this.result = null;
     this.rewards = { exp: 0, gil: 0, events: [] };
+    this.tamed = [];  // wild creatures won over during the fight, in the order they turned
     this.active = null;
     for (const u of this.units) {
       u.resetBattleState();
@@ -218,6 +219,17 @@ class Battle {
   }
 
   // ---- prediction / resolution ----------------------------------------------
+  // The chance Tame wins a creature over: nothing above half its health, then
+  // the weaker it is the surer, to a cap. Only the company tames; the enemy
+  // has no kennel to keep what it wins. Bosses and the unnameable never turn.
+  tameChance(user, t) {
+    if (user.team !== 'player' || t.team === user.team || !t.alive) return 0;
+    if (!PETS[t.job] || t.boss || t.pet) return 0;
+    const frac = t.hp / t.maxHp;
+    if (frac > 0.5) return 0;
+    return Math.min(95, Math.round(90 * (1 - frac)));
+  }
+
   hitChance(user, ab, target) {
     if (ab.kind !== 'physical') return 100;
     if (target.team === user.team) return 100;
@@ -302,6 +314,10 @@ class Battle {
         else if (eff.type === 'gil') p.notes.push(`steal ${t.level * (user.hasPassive('freebooter') ? 40 : 20)} gil`);
         else if (eff.type === 'ctmod') p.notes.push(`CT ${eff.amount}`);
         else if (eff.type === 'ctset') p.notes.push(`CT = ${eff.amount}`);
+        else if (eff.type === 'tame') {
+          const c = this.tameChance(user, t);
+          p.notes.push(c > 0 ? `tame ${c}%` : !PETS[t.job] || t.boss || t.pet ? 'untameable' : 'too strong yet');
+        }
       }
       const aff = affinityOf(t, ab.element);
       if (aff !== 1 && !p.notes.includes('absorbs')) p.notes.push(affinityLabel(aff));
@@ -562,6 +578,34 @@ class Battle {
         if (this.hooks.showFloat) this.hooks.showFloat(t, 'Quick!', '#ffe97c');
         return true;
       }
+      case 'tame': {
+        const chance = this.tameChance(user, t);
+        if (chance <= 0) {
+          const why = !t.alive ? 'is past taming' : !PETS[t.job] || t.boss || t.pet ? 'cannot be tamed' : 'is too strong yet to be tamed';
+          this.log(`${t.name} ${why}.`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, 'Wild', '#ddd');
+          return false;
+        }
+        if (Math.random() * 100 >= chance) {
+          this.log(`${t.name} snarls and will not be tamed.`, 'miss');
+          if (this.hooks.showFloat) this.hooks.showFloat(t, 'Resists', '#ddd');
+          return false;
+        }
+        // It turns: a name of its own, the company's side, and whatever it was
+        // about to do forgotten.
+        const was = t.name;
+        t.name = petNameFor(t.job, this.units.map(u => u.name));
+        t.team = user.team; t.pet = true; t.boss = false; t.leader = false;
+        delete t.phases;
+        t.removeStatus('berserk');
+        this.pending = this.pending.filter(p => p.unit !== t);
+        this.tamed.push(t);
+        this.log(`${was} is tamed! ${t.name} fights for ${user.name} now.`, 'lvl');
+        this.sound('buff');
+        if (this.hooks.showFloat) this.hooks.showFloat(t, 'Tamed', '#ffe97c');
+        if (this.hooks.onTame) this.hooks.onTame(t, user);
+        return true;
+      }
     }
     return false;
   }
@@ -747,7 +791,9 @@ class Battle {
     if (user.team !== 'player') return;
     const exp = 28 + Math.max(0, (t.level - user.level) * 4);
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
-    user.gainJP(12);
+    // A job level, or a beast's bond, can turn on the JP of a kill as well.
+    const jpEv = user.gainJP(12);
+    if (jpEv) { this.log(jpEv, 'lvl'); this.rewards.events.push(jpEv); }
     this.rewards.exp += exp;
     this.rewards.gil += 30 + t.level * 14;
   }
@@ -1055,6 +1101,7 @@ class Battle {
       }
       for (const n of p.notes) {
         if (n.startsWith('revive')) score += enemy ? -60 : 60;
+        else if (n.startsWith('tame ')) score += enemy ? (parseInt(n.slice(5), 10) || 0) * 0.8 : 0;
         else if (/Poison|Slow|Stop|Silence|Blind|Berserk/.test(n)) {
           const id = n.split(' ')[0].toLowerCase();
           if (t.hasStatus(id)) continue;

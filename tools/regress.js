@@ -957,6 +957,41 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('sw.js is stamped with the hash of the build it caches (node tools/stamp.js)', stamp.stampedHash() === stamp.currentHash(), `${stamp.stampedHash()} vs ${stamp.currentHash()}`);
   }
 
+  // Beasts: a wild creature below half its health can be tamed, turns at once
+  // with a name of its own, and its bond opens the skills of its kind.
+  {
+    const archer = mk('Hunter', 'archer', 8);
+    let b; const hooks = { log: () => {}, awaitPlayerTurn: async () => {} };
+    b = g.Battle.setup(g.MAPS.verdant, [archer], [{ job: 'wolf', level: 3, x: 4, y: 1 }, { job: 'goblin', level: 3, x: 6, y: 1 }], hooks, { type: 'rout' });
+    const wolf = b.units.find(u => u.job === 'wolf'), goblin = b.units.find(u => u.job === 'goblin');
+    ok('a hale creature cannot be tamed', b.tameChance(archer, wolf) === 0);
+    wolf.hp = Math.floor(wolf.maxHp * 0.25);
+    const chance = b.tameChance(archer, wolf);
+    ok('a hurt creature can be tamed, the surer the weaker', chance >= 60 && chance <= 95, `${chance}%`);
+    const rnd = Math.random; Math.random = () => 0;
+    try { await b.applyAbility(archer, g.ABILITIES.tame, wolf.x, wolf.y); } finally { Math.random = rnd; }
+    ok('a tamed creature turns at once, with a name of its own', wolf.team === 'player' && wolf.pet && b.tamed[0] === wolf && wolf.name !== 'Dire Wolf', `${wolf.name} ${wolf.team}`);
+    ok('the enemy has no kennel: it cannot tame', b.tameChance(goblin, wolf) === 0 && b.tameChance(goblin, archer) === 0);
+    ok('a beast cannot be tamed back', b.tameChance(archer, wolf) === 0);
+    ok('the battle goes on while a foe stands', !b.checkEnd() && !b.over);
+    goblin.hp = 0; goblin.x = -1;
+    ok('a field with only beasts on it is won', b.checkEnd() && b.result === 'victory');
+    // The bond: JP opens the next skill of its kind at each level.
+    wolf.learned = {}; wolf.jp = {}; wolf.jpTotal = {};
+    wolf.openBondSkills();
+    ok('a beast knows the first skill of its kind at once', wolf.learned.bite && !wolf.learned.howl);
+    let msg = null; for (let i = 0; i < 7 && !msg; i++) msg = wolf.gainJP(16);
+    ok('the bond opens the next skill at its level', wolf.learned.howl && /Howl/.test(msg || '') && wolf.bondLevel() === 2, msg);
+    ok('a beast wears a collar and nothing else', g.canEquipInSlot('wolf', 'holyPendant', 'acc') && !g.canEquipInSlot('wolf', 'leatherArmor', 'body') && !g.canEquipInSlot('wolf', 'holyPendant', 'body'));
+    const back = g.Unit.fromSave(JSON.parse(JSON.stringify(wolf.toSave())));
+    ok('a beast survives a save', back.pet && back.job === 'wolf' && back.learned.howl && back.name === wolf.name);
+    const fake = new g.Unit({ name: 'Not', job: 'knight', level: 1, pet: true });
+    ok('only a creature can be a beast', !fake.pet);
+    ok('every kennel keeps a beast the table knows', Object.keys(g.PETS).every(id => g.JOBS[id].kind === 'monster'));
+    const taken = g.PETS.wolf.names.slice();
+    ok('names run out gracefully', !taken.includes(g.petNameFor('wolf', taken)) && g.petNameFor('wolf', taken).startsWith('Dire Wolf'), g.petNameFor('wolf', taken));
+  }
+
   // The version the credits show is the version the package says it is.
   {
     const fs = require('fs'), path = require('path');

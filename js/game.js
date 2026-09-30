@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.8.1';
+const GAME_VERSION = '1.9.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -745,6 +745,7 @@ class Game {
     // Average gear tier of the pieces actually worn, against what the shop sells.
     let tiers = 0, slots = 0;
     for (const u of deploy) {
+      if (u.pet) continue; // a beast wears a collar at most; it is not underequipped
       for (const slot of Object.keys(SLOT_NAMES)) {
         const it = u.equipped(slot);
         tiers += it ? it.tier : 0;
@@ -785,7 +786,7 @@ class Game {
         <span class="slot">${i < 5 ? i + 1 : 'R'}</span>
         <canvas class="row-portrait" data-portrait="${i}"></canvas>
         <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
-        <span class="job">Lv${u.level} ${u.jobData.name}${this.errandOf(u) ? ' · away' : ''}${this.canLearnSomething(u) ? ' <span class="learn-mark" title="JP to spend">✦</span>' : ''}</span>
+        <span class="job">Lv${u.level} ${u.jobData.name}${u.pet ? ' · beast' : ''}${this.errandOf(u) ? ' · away' : ''}${this.canLearnSomething(u) ? ' <span class="learn-mark" title="JP to spend">✦</span>' : ''}</span>
         <span class="btns"><button data-up="${i}" ${i === 0 ? 'disabled' : ''}>▲</button><button data-down="${i}" ${i === s.party.length - 1 ? 'disabled' : ''}>▼</button></span>
       </div>`).join('');
     $('form-list').querySelectorAll('canvas[data-portrait]').forEach(cv => paintUnitSprite(cv, s.party[+cv.dataset.portrait], 1));
@@ -802,6 +803,7 @@ class Game {
 
   renderFormationDetail() {
     const u = this.state.party[this.formSel];
+    if (u.pet) return this.renderPetDetail(u);
     const st = u.baseStats();
     const jobOpts = Object.entries(JOBS).filter(([, j]) => j.req !== null).map(([id, j]) => {
       const ok = u.canUseJob(id);
@@ -906,6 +908,72 @@ class Game {
     });
   }
 
+  // A beast's page: what it is, the collar it wears, and the skills of its
+  // kind that its bond has opened or will open. No job to change, no
+  // secondary, no passives, nothing to spend.
+  renderPetDetail(u) {
+    const st = u.baseStats();
+    const tab = this.formTab || 'unit';
+    const bond = u.bondLevel(), next = u.nextBondSkill(), earned = u.jpTotal[u.job] || 0;
+    const abilities = u.jobData.abilities.map((id, i) => {
+      const ab = ABILITIES[id], learned = !!u.learned[id];
+      return `<div class="ab-row ${learned ? 'learned' : ''}">
+        <div><b>${ab.name}</b> <small>${ab.mp ? ab.mp + ' MP · ' : ''}Range ${ab.range === 'weapon' ? 'weapon' : ab.range}${ab.aoe ? ' · Area' : ''}${ab.ct ? ' · Charge ' + ab.ct : ''}</small><div class="ab-desc">${ab.desc}</div></div>
+        <div>${learned ? '<span class="tag">Learned</span>' : `<span class="tag">Bond ${petSkillBond(i)}</span>`}</div>
+      </div>`;
+    }).join('');
+    const affLine = Object.keys(ELEMENTS).map(e => ({ e, m: affinityOf(u, e) })).filter(a => a.m !== 1)
+      .map(a => `<span style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join(' · ');
+    $('form-detail').innerHTML = `
+      <div class="detail-head">
+        <canvas id="form-portrait" class="portrait"></canvas>
+        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP · ${u.jobData.name} · a beast of the company</span></div>
+      </div>
+      <div id="form-tabs" class="tabs form-tabs">
+        <button data-form="unit" class="${tab === 'unit' ? 'sel' : ''}">Beast</button>
+        <button data-form="gear" class="${tab === 'gear' ? 'sel' : ''}">Collar</button>
+        <button data-form="skills" class="${tab === 'skills' ? 'sel' : ''}">Skills</button>
+      </div>
+      <div data-form-tab="unit" class="${tab === 'unit' ? '' : 'tab-hidden'}">
+        <p class="job-desc">${(PETS[u.job] || u.jobData).desc}</p>
+        <div class="stat-grid">
+          <span>HP ${st.maxHp}</span><span>MP ${st.maxMp}</span><span>PA ${st.pa}</span><span>MA ${st.ma}</span>
+          <span>Speed ${st.spd}</span><span>Move ${st.move}</span><span>Jump ${st.jump}</span><span>Evade ${st.evade}%</span>
+        </div>
+        <div class="weapon">Weapon: ${u.weapon.name} (power ${u.weapon.power}, range ${u.weapon.range})</div>
+        <div class="job-levels">Bond: level ${bond} · ${earned} earned${next ? ` · ${ABILITIES[next.id].name} opens at bond ${next.bond} (${JOB_LEVEL_JP[next.bond - 1] || 0})` : ' · every skill of its kind known'}</div>
+        <div class="job-levels">Record: ${recordLine(u)}</div>
+        ${affLine ? `<div class="job-levels">Elements: ${affLine}</div>` : ''}
+        <p class="job-desc">A beast keeps its kind: no job to change, no secondary, no passives. Its bond deepens with every action it takes, and each level of it opens the next skill of its kind. It wears a collar and nothing else, and it never runs errands.</p>
+      </div>
+      <div data-form-tab="gear" class="${tab === 'gear' ? '' : 'tab-hidden'}">
+        <h3>Collar <small>any accessory fits</small></h3>
+        <div class="equip-grid">${this.equipRows(u, ['acc'])}</div>
+      </div>
+      <div data-form-tab="skills" class="${tab === 'skills' ? '' : 'tab-hidden'}">
+        <h3>${u.jobData.skillset} <small>bond level ${bond} · ${u.learnedIn(u.job).length}/${u.jobData.abilities.length} known</small></h3>
+        <div class="ab-list">${abilities}</div>
+      </div>`;
+    $('form-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.formTab = b.dataset.form; this.renderFormationDetail(); });
+    paintUnitSprite($('form-portrait'), u, 3);
+    $('form-detail').querySelectorAll('select[data-slot]').forEach(sel => sel.onchange = (e) => {
+      this.equip(u, sel.dataset.slot, e.target.value || null);
+      this.renderFormationDetail();
+    });
+  }
+
+  // A creature won on the field becomes one of the company: the player's
+  // side, its own name kept, nothing of the enemy's about it.
+  adoptPet(t) {
+    t.team = 'player'; t.pet = true; t.boss = false; t.leader = false;
+    delete t.phases;
+    t.gear = {}; t.secondary = null;
+    t.passives = { reaction: null, support: null, movement: null };
+    t.openBondSkills();
+    t.resetBattleState();
+    this.state.party.push(t);
+  }
+
   // The whole tree at once, for the selected unit: what they are, what they
   // could be now, and exactly how far off everything else is.
   renderJobTree(selJob) {
@@ -972,6 +1040,7 @@ class Game {
 
   // Can this unit afford an ability or passive of its current job it has not learned?
   canLearnSomething(u) {
+    if (u.pet) return false; // a beast learns by fighting, not by spending
     const jp = u.jp[u.job] || 0;
     return u.jobData.abilities.some(id => !u.learned[id] && ABILITIES[id].jp <= jp)
       || passivesOfJob(u.job).some(id => !u.learned[id] && PASSIVES[id].jp <= jp);
@@ -1010,11 +1079,15 @@ class Game {
     const lvl = Math.max(1, this.avgLevel() - 1);
     const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= PARTY_MAX ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} gil</button>`).join('');
     const forgeTab = FORGE_TABS.some(([id]) => id === this.forgeTab) ? this.forgeTab : 'improve';
+    const kennelFull = s.party.filter(u => u.pet).length >= PET_MAX || s.party.length >= PARTY_MAX;
+    const pets = (city.pets || []).map(j => `<button data-pet-at="${j}" ${s.gil < PETS[j].price || kennelFull ? 'disabled' : ''}>${JOBS[j].name} · ${PETS[j].price} gil</button>`).join('');
     const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
     el.innerHTML = `
       <div class="city-head"><b>${city.name}</b><span class="muted">${city.open}</span><button id="btn-city-back" class="mini">Back to the road</button></div>
       <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max ${PARTY_MAX})</small></h4>
       <div class="city-hires">${hires}</div>
+      ${pets ? `<h4>Kennel <small>level ${lvl} beasts that fight for the company (${PET_MAX} at most); they learn by fighting and wear only a collar</small></h4>
+      <div class="city-hires">${pets}</div>` : ''}
       <h4>Market <small>sold here and nowhere else</small></h4>
       <div class="city-stock">${stock}</div>
       <h4>Forge <small>betters what you carry to +3, makes arms sold nowhere, and breaks spare gear down</small></h4>
@@ -1022,6 +1095,7 @@ class Game {
       <div class="city-stock forge-body">${this.forgeRows(city, forgeTab)}</div>`;
     $('btn-city-back').onclick = () => { this.cityView = null; this.renderCities(); };
     el.querySelectorAll('button[data-hire-at]').forEach(b => b.onclick = () => this.hireAt(city, b.dataset.hireAt));
+    el.querySelectorAll('button[data-pet-at]').forEach(b => b.onclick = () => this.buyPetAt(city, b.dataset.petAt));
     el.querySelectorAll('button[data-buy-at]').forEach(b => b.onclick = () => this.buyAt(city, b.dataset.buyAt));
     el.querySelectorAll('button[data-forge]').forEach(b => b.onclick = () => { audio.sfx('menu'); this.forgeTab = b.dataset.forge; this.renderCityPanel(city); });
     el.querySelectorAll('button[data-improve]').forEach(b => b.onclick = () => this.improveAt(b.dataset.improve));
@@ -1170,6 +1244,19 @@ class Game {
     this.showWorld();
   }
 
+  // A beast from the kennel: a level under the company, its first skill known.
+  buyPetAt(city, job) {
+    const s = this.state, p = PETS[job];
+    if (!p || !(city.pets || []).includes(job) || s.gil < p.price) return;
+    if (s.party.filter(u => u.pet).length >= PET_MAX || s.party.length >= PARTY_MAX) return;
+    s.gil -= p.price;
+    const u = new Unit({ name: petNameFor(job, s.party.map(x => x.name)), job, level: Math.max(1, this.avgLevel() - 1), team: 'player', pet: true });
+    s.party.push(u);
+    audio.sfx('select');
+    this.toast(`${u.name} the ${JOBS[job].name} joins the company at ${city.name}.`);
+    this.showWorld();
+  }
+
   buyAt(city, id) {
     const it = ITEMS[id];
     if (!it || !city.stock.includes(id) || this.state.gil < it.price) return;
@@ -1243,7 +1330,7 @@ class Game {
   }
 
   sendOnErrand(spec, unit) {
-    if (!unit || unit.leader || this.errandOf(unit)) return false;
+    if (!unit || unit.leader || unit.pet || this.errandOf(unit)) return false;
     const free = this.state.party.filter(u => !this.errandOf(u) && u !== unit).length;
     if (free < 1) { this.toast('Someone has to stay and fight.'); return false; }
     this.state.errands.active.push({ id: spec.id, unit: unit.id, left: spec.days });
@@ -1283,7 +1370,7 @@ class Game {
     const el = $('errands'); if (!el) return;
     const s = this.state, e = s.errands;
     const offered = this.offeredErrands();
-    const eligible = s.party.filter(u => !u.leader && !this.errandOf(u));
+    const eligible = s.party.filter(u => !u.leader && !u.pet && !this.errandOf(u));
     const active = e.active.map(a => {
       const u = s.party.find(x => x.id === a.unit), spec = ERRANDS.find(x => x.id === a.id);
       return `<div class="errand active"><span class="errand-text"><b>${u ? u.name : '?'}</b> · ${spec.title}</span><small>back after ${a.left} more battle${a.left === 1 ? '' : 's'}</small></div>`;
@@ -1322,8 +1409,8 @@ class Game {
     return parts.join(' · ');
   }
 
-  equipRows(u) {
-    return Object.entries(SLOT_NAMES).map(([slot, label]) => {
+  equipRows(u, only) {
+    return Object.entries(SLOT_NAMES).filter(([slot]) => !only || only.includes(slot)).map(([slot, label]) => {
       const cur = u.gear[slot] || '';
       const opts = this.slotOptions(u, slot);
       if (!opts.length && !cur) return `<label class="equip-row"><span>${label}</span><em class="none">nothing available</em></label>`;
@@ -1893,6 +1980,17 @@ class Game {
       // And a few materials for the forge, every time.
       r.materials = fieldMaterials(this.shopTier(), !!gilReward && gilReward >= 250);
       for (const [m, n] of Object.entries(r.materials)) this.invAdd(m, n);
+      // Whatever was tamed follows the company off a field it has won, while
+      // there is room in the kennel and in the company.
+      for (const t of battle.tamed) {
+        if (this.state.party.includes(t)) continue;
+        if (this.state.party.filter(u => u.pet).length >= PET_MAX) { r.events.push(`${t.name} the ${t.jobData.name} would follow, but the company keeps ${PET_MAX} beasts at most.`); continue; }
+        if (this.state.party.length >= PARTY_MAX) { r.events.push(`${t.name} the ${t.jobData.name} would follow, but the company is full.`); continue; }
+        this.adoptPet(t);
+        r.events.push(`${t.name} the ${t.jobData.name} follows the company!`);
+      }
+    } else if (battle.tamed.length) {
+      r.events.push(`${battle.tamed.map(t => t.name).join(', ')} slip${battle.tamed.length === 1 ? 's' : ''} away in the confusion.`);
     }
     const again = await this.results(result, r, battle.endReason, fought, fell);
     return again === 'retry' ? 'retry' : result;
@@ -1961,7 +2059,7 @@ class Game {
         const learn = this.canLearnSomething(u);
         const sub = document.createElement('small');
         sub.className = 'res-jp' + (learn ? ' learn' : '');
-        sub.textContent = `${jp ? `+${jp} JP` : tr('no JP')}${learn ? ' ✦' : ''}`;
+        sub.textContent = `${jp ? `+${jp} ${u.pet ? tr('bond') : 'JP'}` : tr('no JP')}${learn ? ' ✦' : ''}`;
         item.appendChild(sub);
         if (learn) item.classList.add('learn');
         roll.appendChild(item);
