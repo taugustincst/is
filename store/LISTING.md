@@ -451,6 +451,11 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.8.0**
+
+    A new look: the first field of the campaign stands behind the title, every screen shares one
+    lacquered panel style, the board casts a shadow, and the store art shows the company.
+
 **1.7.0**
 
     Menus in German, French, Spanish, Portuguese and Japanese. A save code carries a game to

@@ -694,6 +694,7 @@ class Renderer {
     c.translate(W / 2, H / 2); c.scale(z, z); c.translate(-W / 2, -H / 2);
     c.imageSmoothingEnabled = false;
     const g = this.battle.grid;
+    this.drawGroundShadow();
     const items = [];
     for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
       const t = g.tiles[y][x];
@@ -727,6 +728,29 @@ class Renderer {
     // The mood's light and weather lie over everything, in screen space.
     if (mood.tint) { c.fillStyle = mood.tint; c.fillRect(0, 0, W, H); }
     if (mood.air) drawAir(c, W, H, mood.air, this.time);
+  }
+
+  // The board casts a soft shadow onto the sky beneath it, so it reads as a
+  // diorama standing in the light rather than tiles floating in a gradient.
+  // The shadow is an ellipse fitted to the board's footprint at ground level,
+  // offset a little downward as the light comes from above and in front.
+  drawGroundShadow() {
+    const c = this.ctx, g = this.battle.grid;
+    let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    for (const row of g.tiles) for (const t of row) {
+      if (t.t === 'x') continue;
+      const { sx, sy } = this.toScreen(t.x, t.y, 0);
+      minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
+      minY = Math.min(minY, sy - 16); maxY = Math.max(maxY, sy + 16);
+    }
+    if (minX > maxX) return;
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2 + 40;
+    const rx = (maxX - minX) / 2 + 30, ry = (maxY - minY) / 2 + 30;
+    const grad = c.createRadialGradient(cx, cy, 0, cx, cy, 1);
+    grad.addColorStop(0, 'rgba(0,0,0,0.45)'); grad.addColorStop(0.7, 'rgba(0,0,0,0.25)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+    c.save(); c.translate(cx, cy); c.scale(rx, ry);
+    c.fillStyle = grad; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill();
+    c.restore();
   }
 
   drawTile(t) {
@@ -884,6 +908,7 @@ class Renderer {
     // HP bar. The fill answers "how hurt", the frame answers "whose" — the
     // one part of a figure that stays visible when a wall or a neighbour eats
     // the rest of it.
+    if (this.cover) return; // the title's picture: figures without their bars
     const w = 24, hpk = u.hp / u.maxHp;
     c.fillStyle = 'rgba(0,0,0,0.8)'; c.fillRect(sx - w / 2 - 3, sy - 38, w + 6, 8);
     c.fillStyle = TEAM_COLORS[u.team]; c.fillRect(sx - w / 2 - 2, sy - 37, w + 4, 6);

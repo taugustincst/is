@@ -26,6 +26,7 @@
   <div class="chips"><span class="chip">Charge-time turns</span><span class="chip">Height &amp; facing</span><span class="chip">No ads · no accounts · offline</span></div>
 </div>
 <script src="../../js/data.js"></script>
+<script src="../../js/color.js"></script>
 <script src="../../js/sprites.js"></script>
 <script>
   // The right-hand side: a strip of the game's own tiles with the party on it,
@@ -69,11 +70,13 @@
   const S = 3;
   c.imageSmoothingEnabled = false;
   const cast = [
-    ['knight', 'player', '2,1', { weapon: 'longsword', offhand: 'kiteShield', head: 'ironHelm', body: 'plateMail' }],
-    ['blackMage', 'player', '1,1', { weapon: 'sageStaff', head: 'wizardHat', body: 'wizardRobe' }],
+    // The company in a line across the front, the foes back and to the right,
+    // so no figure stands on another.
+    ['knight', 'player', '2,2', { weapon: 'longsword', offhand: 'kiteShield', head: 'ironHelm', body: 'plateMail' }],
+    ['blackMage', 'player', '1,2', { weapon: 'sageStaff', head: 'wizardHat', body: 'wizardRobe' }],
     ['archer', 'player', '0,2', { weapon: 'yoichiBow', head: 'featherHat', body: 'leatherArmor' }],
     ['squire', 'enemy', '3,0', { weapon: 'broadsword', body: 'leatherArmor' }],
-    ['wolf', 'enemy', '3,1', null],
+    ['wolf', 'enemy', '2,0', null],
   ];
   const order = cast.slice().sort((a, b) => { const [ax, ay] = a[2].split(','), [bx, by] = b[2].split(','); return (+ax + +ay) - (+bx + +by); });
   for (const [job, team, at, kit] of order) {

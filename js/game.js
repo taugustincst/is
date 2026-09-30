@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.7.1';
+const GAME_VERSION = '1.8.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -99,6 +99,7 @@ class Game {
     this.screen = name;
     if (window.__updateWaiting) setTimeout(() => this.tryUpdatePrompt(), 400);
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
+    if (name === 'title') this.showTitleArt(); else this.hideTitleArt();
     // Each part of the game keeps its own theme.
     if (name === 'battle') { audio.playMusic(this.battleMusic || 'battle'); audio.startAmbient(AMBIENCE[this.renderer.mood] || null); }
     else if (name === 'story') { audio.playMusic('ruin'); audio.stopAmbient(); }
@@ -106,6 +107,57 @@ class Game {
     else if (name !== 'title') { audio.playMusic('town'); audio.stopAmbient(); }
     else { audio.stopMusic(); audio.stopAmbient(); }
   }
+
+  // ---- the title's diorama ---------------------------------------------------------------
+  // Behind the title stands the first field of the campaign with the company
+  // deployed on it, drawn by the same renderer as a battle and turning slowly
+  // under a dusk sky. Nothing in it is played: it is the game's own art, used
+  // as its own cover. It costs a draw loop while the title is up and nothing
+  // once the game begins.
+  showTitleArt() {
+    const cv = $('title-art'); if (!cv) return;
+    if (!this.titleArt) {
+      try {
+        this.titleArt = new Renderer(cv);
+        const ch = CAMPAIGN[0], map = MAPS[ch.map];
+        const party = STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p)));
+        for (const u of party) { const kit = bestGearFor(u.job, null, 2); for (const [slot, id] of Object.entries(kit)) if (id) u.gear[slot] = id; u.resetBattleState(); }
+        const quiet = new Proxy({}, { get: () => () => {} });
+        const battle = Battle.setup(map, party, ch.enemies, quiet, ch.objective, 'knight');
+        for (const u of battle.units) if (u.team === 'player') u.facing = 'E';
+        this.titleArt.mood = 'dusk';
+        this.titleArt.cover = true; // no bars over heads: it is a picture, not a fight
+        this.titleArt.setBattle(battle);
+        // A slow turn, a full circle every few minutes, unless motion is unwelcome.
+        const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const r = this.titleArt, base = r.draw.bind(r);
+        r.draw = () => { if (!still) r.rot = (r.time / 150000) % 4; base(); };
+      } catch (e) { this.titleArt = null; return; } // the title stands without it
+    }
+    // The picture is drawn at about twenty-five frames a second by its own
+    // timer rather than the battle renderer's full-rate loop: it is a cover,
+    // not a fight, and a phone left on the title should not run warm.
+    if (!this._titleTick) {
+      this._titleTick = () => {
+        if (this.screen !== 'title' || !this.titleArt) { this._titleTimer = null; return; }
+        this.titleArt.time = performance.now(); this.titleArt.draw();
+        this._titleTimer = setTimeout(() => requestAnimationFrame(this._titleTick), 40);
+      };
+    }
+    if (!this._titleTimer) this._titleTimer = setTimeout(() => requestAnimationFrame(this._titleTick), 0);
+    // The board is framed to the screen's width and set low, under the crest:
+    // its upper edge clears the buttons on a phone and the whole of it shows
+    // on a desktop, with the shadowed ground running off the bottom.
+    const frame = () => {
+      const r = this.titleArt; r.fit(); r.centerCamera();
+      const W = r.W || cv.width, H = r.H || cv.height, narrow = W < 640;
+      r.zoom = narrow ? Math.min(1.1, r.zoom) : Math.min(1.35, r.zoom);
+      r.cam.y += H * (narrow ? 0.36 : 0.30);
+    };
+    frame();
+    if (!this._titleResize) { this._titleResize = () => { if (this.screen === 'title' && this.titleArt) frame(); }; window.addEventListener('resize', this._titleResize); }
+  }
+  hideTitleArt() { if (this._titleTimer) { clearTimeout(this._titleTimer); this._titleTimer = null; } }
 
   bindScreens() {
     $('btn-new').onclick = () => this.newGame();
