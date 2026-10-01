@@ -992,6 +992,53 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('names run out gracefully', !taken.includes(g.petNameFor('wolf', taken)) && g.petNameFor('wolf', taken).startsWith('Dire Wolf'), g.petNameFor('wolf', taken));
   }
 
+  // Every ability in the game does something when it is used: the field is
+  // set up so its target is one it can affect (an ally, a foe, a fallen
+  // friend, a cursed one), every roll is made to land, and then something
+  // about the units must have changed. An ability that changes nothing is a
+  // menu entry with no game behind it.
+  {
+    const snapshot = (units) => JSON.stringify(units.map(u => [u.hp, u.mp, u.ct, u.statuses, u.mods, u.gilStolen, u.team, u.name, u.x, u.y]));
+    const silent = [];
+    const rnd = Math.random; Math.random = () => 0;
+    try {
+      for (const [id, ab] of Object.entries(g.ABILITIES)) {
+        const job = ab.job && g.JOBS[ab.job] ? ab.job : 'squire';
+        const user = new g.Unit({ name: 'User', job, level: 20, team: 'player' });
+        const friend = new g.Unit({ name: 'Friend', job: 'knight', level: 20, team: 'player' });
+        user.learned[id] = true;
+        const hooks = { log: () => {}, awaitPlayerTurn: async () => {} };
+        // Tame wants a creature; everything else gets a knight with no passives, so
+        // no parry or counter can stand in for the ability's own effect.
+        const b = g.Battle.setup(g.MAPS.verdant, [user, friend], [{ job: id === 'tame' ? 'wolf' : 'knight', level: 10, x: 3, y: 3 }], hooks, { type: 'rout' });
+        const foe = b.units.find(u => u.team === 'enemy');
+        foe.passives = { reaction: null, support: null, movement: null };
+        // Everyone within a step of the user, on the same ground.
+        user.x = 3; user.y = 2; friend.x = 2; friend.y = 2; foe.x = 3; foe.y = 3;
+        for (const u of b.units) u.ct = 50;
+        const wantsAlly = ab.affects === 'ally' || ab.self;
+        const target = ab.self ? user : wantsAlly ? friend : foe;
+        const types = ab.effects.map(e => e.type);
+        // Set the target so each effect has something to do.
+        if (types.includes('revive')) target.hp = 0;
+        else target.hp = Math.max(1, Math.floor(target.maxHp * 0.4));
+        target.mp = types.includes('mpheal') ? 0 : target.maxMp;
+        user.hp = Math.max(1, Math.floor(user.maxHp * 0.5));
+        for (const e of ab.effects) if (e.type === 'cure') target.statuses[e.statuses[0]] = 10;
+        const before = snapshot(b.units);
+        const cost = b.mpCost(user, ab);
+        await b.applyAbility(user, ab, target.x, target.y);
+        user.mp = Math.min(user.maxMp, user.mp + cost); // the cost of casting is not the casting
+        if (snapshot(b.units) === before) silent.push(id);
+      }
+    } finally { Math.random = rnd; }
+    ok(`every one of the ${Object.keys(g.ABILITIES).length} abilities does something when used`, silent.length === 0, silent.join(',') || 'all act');
+    // And every player job's kit is learnable: a cost, a description, and at least six things to learn.
+    const thin = Object.entries(g.JOBS).filter(([, j]) => j.req !== null && j.kind === 'human' && j.abilities.length < 6).map(([id]) => id);
+    const unpriced = Object.entries(g.JOBS).filter(([, j]) => j.req !== null).flatMap(([, j]) => j.abilities).filter(a => !(g.ABILITIES[a].jp > 0) || !g.ABILITIES[a].desc);
+    ok('every player job teaches at least six skills, each priced and described', thin.length === 0 && unpriced.length === 0, (thin.concat(unpriced)).join(',') || 'all kits full');
+  }
+
   // The version the credits show is the version the package says it is.
   {
     const fs = require('fs'), path = require('path');

@@ -452,6 +452,11 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.11.0**
+
+    Every job learns more: two or three new skills for each of the thirty-five trades, from a
+    Knight's Cleave to a Hierophant's Benediction, learned last and dearly.
+
 **1.10.0**
 
     An icon for every item: weapons, shields, hats, helms, armour, accessories, the forge's

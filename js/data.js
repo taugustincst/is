@@ -61,7 +61,7 @@ const JOBS = {
     palette: { h: '#5a3a1e', c: '#8a7a55', p: '#4b3d2c', b: '#3a2a1a' },
     hp: 1.0, mp: 1.0, pa: 1.0, ma: 1.0, spd: 1.0, move: 4, jump: 3, evade: 8,
     weapon: { name: 'Short Sword', power: 5, range: 1, vert: 2 },
-    abilities: ['throwStone', 'accumulate', 'yell', 'firstAid'],
+    abilities: ['throwStone', 'accumulate', 'yell', 'firstAid', 'dustKick', 'holdGround'],
     req: {}, desc: 'A well-rounded recruit. The root of the warrior path.',
   },
   chemist: {
@@ -69,7 +69,7 @@ const JOBS = {
     palette: { h: '#2a2a2a', c: '#e8e0c8', p: '#6b5b40', b: '#3a2a1a' },
     hp: 0.85, mp: 1.1, pa: 0.9, ma: 1.05, spd: 1.05, move: 3, jump: 3, evade: 6,
     weapon: { name: 'Knife', power: 4, range: 1, vert: 2 },
-    abilities: ['potion', 'hiPotion', 'antidote', 'ether', 'remedy', 'phoenixDown'],
+    abilities: ['potion', 'hiPotion', 'antidote', 'ether', 'remedy', 'phoenixDown', 'xPotion', 'echoHerbs'],
     req: {}, desc: 'Field medic who uses items. The root of the mage path.',
   },
   knight: {
@@ -77,7 +77,7 @@ const JOBS = {
     palette: { h: '#c9a24a', c: '#8892a8', p: '#3a4256', b: '#2a2a3a' },
     hp: 1.25, mp: 0.8, pa: 1.2, ma: 0.8, spd: 0.95, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Broadsword', power: 6, range: 1, vert: 2 },
-    abilities: ['powerBreak', 'speedBreak', 'magicBreak', 'shieldBash'],
+    abilities: ['powerBreak', 'speedBreak', 'magicBreak', 'shieldBash', 'sunder', 'cleave'],
     req: { squire: 2 }, desc: 'Heavy armor and a heavy blade. Cripples foes with Breaks.',
   },
   archer: {
@@ -85,7 +85,7 @@ const JOBS = {
     palette: { h: '#7a4a2a', c: '#4f7a3f', p: '#5a4a30', b: '#3a2a1a' },
     hp: 0.95, mp: 0.9, pa: 1.1, ma: 0.9, spd: 1.05, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Longbow', power: 4, range: 4, vert: 5 },
-    abilities: ['aim1', 'aim3', 'aim5', 'arrowRain', 'tame'],
+    abilities: ['aim1', 'aim3', 'aim5', 'arrowRain', 'tame', 'pinningShot', 'eagleEye'],
     req: { squire: 2 }, desc: 'Strikes from afar. Charged Aim shots trade time for power.',
   },
   monk: {
@@ -93,7 +93,7 @@ const JOBS = {
     palette: { h: '#1a1a1a', c: '#d07a3a', p: '#e8d8b0', b: '#8a6a4a' },
     hp: 1.2, mp: 0.7, pa: 1.3, ma: 0.85, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Bare Hands', power: 6, range: 1, vert: 3 },
-    abilities: ['waveFist', 'quakeFist', 'chakra', 'bloodRage', 'revive'],
+    abilities: ['waveFist', 'quakeFist', 'chakra', 'bloodRage', 'revive', 'pressurePoint', 'whirlwindKick'],
     req: { knight: 2 }, desc: 'Fights unarmed with tremendous power and chi techniques.',
   },
   thief: {
@@ -101,7 +101,7 @@ const JOBS = {
     palette: { h: '#d0b060', c: '#5a3a6a', p: '#2a1a3a', b: '#1a1a1a' },
     hp: 0.9, mp: 0.8, pa: 1.0, ma: 0.8, spd: 1.25, move: 5, jump: 4, evade: 18,
     weapon: { name: 'Dagger', power: 4, range: 1, vert: 2 },
-    abilities: ['stealGil', 'poisonBlade', 'mug'],
+    abilities: ['stealGil', 'poisonBlade', 'mug', 'sneakAttack', 'caltrops', 'tripWire'],
     req: { archer: 2 }, desc: 'Swift and slippery. Robs enemies blind.',
   },
   whiteMage: {
@@ -109,7 +109,7 @@ const JOBS = {
     palette: { h: '#e8e8f0', c: '#f4f0e8', p: '#c84040', b: '#6a4a3a' },
     hp: 0.8, mp: 1.3, pa: 0.75, ma: 1.25, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Staff', power: 3, range: 1, vert: 2 },
-    abilities: ['cure', 'cura', 'raise', 'protect', 'shell', 'regen', 'esuna', 'holyBolt'],
+    abilities: ['cure', 'cura', 'raise', 'protect', 'shell', 'regen', 'esuna', 'holyBolt', 'dispel', 'curaga'],
     req: { chemist: 2 }, desc: 'Mends wounds and shields allies with holy magick.',
   },
   blackMage: {
@@ -117,7 +117,7 @@ const JOBS = {
     palette: { h: '#2a2a4a', c: '#3a3a6a', p: '#c8a040', b: '#3a2a1a' },
     hp: 0.75, mp: 1.4, pa: 0.7, ma: 1.35, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Rod', power: 3, range: 1, vert: 2 },
-    abilities: ['fire', 'thunder', 'blizzard', 'poisonSpell', 'silenceSpell', 'stone', 'fira', 'flare'],
+    abilities: ['fire', 'thunder', 'blizzard', 'poisonSpell', 'silenceSpell', 'stone', 'fira', 'flare', 'thundara', 'drain'],
     req: { chemist: 2 }, desc: 'Rains elemental ruin upon whole groups of foes.',
   },
   timeMage: {
@@ -125,7 +125,7 @@ const JOBS = {
     palette: { h: '#6a4a2a', c: '#4a6a8a', p: '#e8d060', b: '#3a2a1a' },
     hp: 0.75, mp: 1.4, pa: 0.7, ma: 1.25, spd: 0.95, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Hourglass Staff', power: 3, range: 1, vert: 2 },
-    abilities: ['haste', 'slowSpell', 'stopSpell', 'quick'],
+    abilities: ['haste', 'slowSpell', 'stopSpell', 'quick', 'rewind', 'timeTheft'],
     req: { whiteMage: 2 }, desc: 'Bends the flow of Charge Time itself.',
   },
   ninja: {
@@ -133,7 +133,7 @@ const JOBS = {
     palette: { h: '#1a1a1a', c: '#2a2a3a', p: '#1a1a2a', b: '#101018' },
     hp: 0.9, mp: 0.8, pa: 1.15, ma: 0.9, spd: 1.35, move: 5, jump: 5, evade: 22,
     weapon: { name: 'Twin Blades', power: 4, range: 1, vert: 2 },
-    abilities: ['shuriken', 'flameBomb', 'smoke'],
+    abilities: ['shuriken', 'flameBomb', 'smoke', 'kunaiStorm', 'poisonNeedle', 'blink'],
     req: { thief: 3 }, desc: 'Strikes twice with each Attack and hurls thrown weapons.',
   },
   dragoon: {
@@ -141,7 +141,7 @@ const JOBS = {
     palette: { h: '#3a2a5a', c: '#3a5a9a', p: '#2a3a5a', b: '#1a1a2a' },
     hp: 1.2, mp: 0.8, pa: 1.25, ma: 0.8, spd: 1.0, move: 3, jump: 5, evade: 8,
     weapon: { name: 'Spear', power: 6, range: 2, vert: 3 },
-    abilities: ['jump', 'lancet', 'dragonRoar'],
+    abilities: ['jump', 'lancet', 'dragonRoar', 'highJump', 'spearSweep', 'dragonFang'],
     req: { thief: 2 }, desc: 'Leaps to the sky and crashes down on distant enemies.',
   },
 
@@ -151,7 +151,7 @@ const JOBS = {
     palette: { h: '#1a1a1a', c: '#b03030', p: '#e8e0d0', b: '#2a2a2a' },
     hp: 1.15, mp: 0.9, pa: 1.3, ma: 1.05, spd: 1.0, move: 3, jump: 3, evade: 12,
     weapon: { name: 'Katana', power: 7, range: 1, vert: 2 },
-    abilities: ['ashura', 'bizenBoat', 'kiyomori', 'muramasa'],
+    abilities: ['ashura', 'bizenBoat', 'kiyomori', 'muramasa', 'moonCut', 'stillWater'],
     req: { knight: 3, dragoon: 2 }, desc: 'Draws the spirit out of the blade. Iaido strikes an area and asks nothing of the target\'s guard.',
   },
   summoner: {
@@ -159,7 +159,7 @@ const JOBS = {
     palette: { h: '#2f6b3a', c: '#3a8a5a', p: '#e8d8a0', b: '#3a2a1a' },
     hp: 0.7, mp: 1.6, pa: 0.65, ma: 1.45, spd: 0.95, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Summoner\'s Rod', power: 3, range: 1, vert: 2 },
-    abilities: ['ifrit', 'shiva', 'ramuh', 'titan', 'moogle', 'carbuncle'],
+    abilities: ['ifrit', 'shiva', 'ramuh', 'titan', 'moogle', 'carbuncle', 'sylph', 'undine'],
     req: { blackMage: 3, timeMage: 2 }, desc: 'Calls down the espers. Wide, slow, and the spirits know friend from foe.',
   },
   geomancer: {
@@ -167,7 +167,7 @@ const JOBS = {
     palette: { h: '#3a2a1a', c: '#8a9a5a', p: '#5a4a30', b: '#4a3a2a' },
     hp: 1.05, mp: 1.0, pa: 1.1, ma: 1.1, spd: 1.05, move: 4, jump: 4, evade: 10,
     weapon: { name: 'Hatchet', power: 6, range: 1, vert: 3 },
-    abilities: ['tremor', 'windSlash', 'quicksand', 'torrent'],
+    abilities: ['tremor', 'windSlash', 'quicksand', 'torrent', 'gust', 'brambles'],
     req: { monk: 3 }, desc: 'Turns the land itself against the enemy. Geomancy costs nothing and lands at once.',
   },
   bard: {
@@ -175,7 +175,7 @@ const JOBS = {
     palette: { h: '#c8a060', c: '#6a4aa0', p: '#3a2a5a', b: '#2a1a1a' },
     hp: 0.8, mp: 1.2, pa: 0.8, ma: 1.15, spd: 1.1, move: 4, jump: 3, evade: 12,
     weapon: { name: 'Harp', power: 3, range: 3, vert: 4 },
-    abilities: ['battleSong', 'lifeSong', 'angelSong', 'namelessSong'],
+    abilities: ['battleSong', 'lifeSong', 'angelSong', 'namelessSong', 'dirge', 'cadence'],
     req: { whiteMage: 2, archer: 2 }, desc: 'Fights from the back with a harp and a voice. Songs lift everyone within earshot.',
   },
 
@@ -186,7 +186,7 @@ const JOBS = {
     affinity: { holy: 'resist' },
     hp: 1.4, mp: 1.0, pa: 1.3, ma: 1.1, spd: 0.95, move: 3, jump: 3, evade: 12,
     weapon: { name: 'Greatsword', power: 9, range: 1, vert: 2 },
-    abilities: ['holyStrike', 'sanctuary', 'judgment', 'oath'],
+    abilities: ['holyStrike', 'sanctuary', 'judgment', 'oath', 'shieldOfFaith', 'smite'],
     req: { samurai: 2, whiteMage: 3 }, desc: 'A knight sworn to the light. Holy steel for the enemy, a shield of prayer for friends.',
   },
   arcanist: {
@@ -194,7 +194,7 @@ const JOBS = {
     palette: { h: '#3a1a5a', c: '#5a2a8a', p: '#e8c860', b: '#2a1a1a' },
     hp: 0.7, mp: 1.7, pa: 0.6, ma: 1.6, spd: 0.95, move: 3, jump: 3, evade: 6,
     weapon: { name: 'Grimoire', power: 4, range: 2, vert: 3 },
-    abilities: ['meteor', 'gravity', 'drainSoul', 'doomBolt'],
+    abilities: ['meteor', 'gravity', 'drainSoul', 'doomBolt', 'comet', 'siphon'],
     req: { summoner: 2, geomancer: 2 }, desc: 'Reads what should not be read. Ruin from the sky, and spells that take rather than strike.',
   },
   assassin: {
@@ -202,7 +202,7 @@ const JOBS = {
     palette: { h: '#2a1a1a', c: '#1a1a22', p: '#3a1a1a', b: '#101010' },
     hp: 0.9, mp: 0.9, pa: 1.25, ma: 1.0, spd: 1.45, move: 5, jump: 5, evade: 26,
     weapon: { name: 'Twin Fangs', power: 5, range: 1, vert: 2 },
-    abilities: ['shadowstitch', 'assassinate', 'vanish', 'smokeStep'],
+    abilities: ['shadowstitch', 'assassinate', 'vanish', 'smokeStep', 'garrote', 'markForDeath'],
     req: { ninja: 3, bard: 2 }, desc: 'The fastest thing on the field. Ends fights with one cut, when the cut lands.',
   },
   sage: {
@@ -211,7 +211,7 @@ const JOBS = {
     affinity: { dark: 'resist' },
     hp: 0.8, mp: 1.8, pa: 0.7, ma: 1.55, spd: 1.0, move: 3, jump: 3, evade: 6,
     weapon: { name: 'Sage\'s Tome', power: 4, range: 2, vert: 3 },
-    abilities: ['holy', 'fullLife', 'reraise', 'ultima'],
+    abilities: ['holy', 'fullLife', 'reraise', 'ultima', 'aurora', 'scourge'],
     req: { summoner: 3, bard: 2 }, desc: 'Has read everything the Arcanist has, and closed the book. The last word in magick.',
   },
 
@@ -225,7 +225,7 @@ const JOBS = {
     affinity: { fire: 'resist' },
     hp: 1.6, mp: 1.0, pa: 1.6, ma: 1.1, spd: 1.05, move: 4, jump: 6, evade: 14,
     weapon: { name: 'Dragon Lance', power: 9, range: 2, vert: 4 },
-    abilities: ['dragonBreath', 'skyRend', 'scaleWard', 'roarOfKings'],
+    abilities: ['dragonBreath', 'skyRend', 'scaleWard', 'roarOfKings', 'wingStorm', 'dragonsBlood'],
     req: { samurai: 3, dragoon: 3, paladin: 2 }, desc: 'The dragon\'s road ends here. Fire from the throat, death from the sky, and a roar that lifts an army.',
   },
   hierophant: {
@@ -234,7 +234,7 @@ const JOBS = {
     affinity: { holy: 'resist', dark: 'resist' },
     hp: 0.9, mp: 2.0, pa: 0.7, ma: 1.9, spd: 1.0, move: 3, jump: 3, evade: 8,
     weapon: { name: 'Apocryphon', power: 5, range: 2, vert: 3 },
-    abilities: ['starfall', 'ascension', 'aegis', 'timeStop'],
+    abilities: ['starfall', 'ascension', 'aegis', 'timeStop', 'benediction', 'wrath'],
     req: { sage: 3, arcanist: 3 }, desc: 'The book\'s road ends here. Stars fall, the fallen rise, and time itself can be told to wait.',
   },
   fellKnight: {
@@ -243,7 +243,7 @@ const JOBS = {
     affinity: { dark: 'absorb', holy: 'weak' },
     hp: 1.5, mp: 1.1, pa: 1.55, ma: 1.3, spd: 1.1, move: 4, jump: 4, evade: 14,
     weapon: { name: 'Fell Blade', power: 9, range: 1, vert: 3 },
-    abilities: ['fellSlash', 'abyss', 'soulRend', 'darkPact'],
+    abilities: ['fellSlash', 'abyss', 'soulRend', 'darkPact', 'nightmare', 'grimHarvest'],
     req: { paladin: 3, assassin: 3 }, desc: 'The bargain\'s road ends here, the same one Brannoc made. Every blow feeds the one who strikes it.',
   },
 
@@ -254,7 +254,7 @@ const JOBS = {
     palette: { h: '#6a4a2a', c: '#8a6a3a', p: '#4a3a2a', b: '#2a2a2a' },
     hp: 1.0, mp: 1.1, pa: 1.0, ma: 1.15, spd: 1.0, move: 3, jump: 3, evade: 8,
     weapon: { name: 'Spanner', power: 6, range: 1, vert: 2 },
-    abilities: ['repair', 'oilSlick', 'steamVent', 'overclock'],
+    abilities: ['repair', 'oilSlick', 'steamVent', 'overclock', 'shrapnel', 'recalibrate'],
     req: { chemist: 2 }, desc: 'Keeps the machines running, and the people. Steam, oil and a heavy spanner.',
   },
   gunner: {
@@ -262,7 +262,7 @@ const JOBS = {
     palette: { h: '#3a2a1a', c: '#4a5a6a', p: '#3a3a3a', b: '#2a2a2a' },
     hp: 0.95, mp: 0.8, pa: 1.1, ma: 0.8, spd: 1.05, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Flintlock', power: 5, range: 4, vert: 9 },
-    abilities: ['aimedShot', 'scattershot', 'legShot', 'suppress'],
+    abilities: ['aimedShot', 'scattershot', 'legShot', 'suppress', 'doubleTap', 'flashPowder'],
     req: { archer: 2 }, desc: 'A long gun that does not care about height. Slow to aim, hard to argue with.',
   },
   aeronaut: {
@@ -270,7 +270,7 @@ const JOBS = {
     palette: { h: '#c9a24a', c: '#7a4a2a', p: '#3a3a4a', b: '#2a2a2a' },
     hp: 1.0, mp: 1.0, pa: 1.15, ma: 1.05, spd: 1.15, move: 4, jump: 7, evade: 18,
     weapon: { name: 'Flintlock', power: 5, range: 4, vert: 9 },
-    abilities: ['bombingRun', 'signalFlare', 'updraft', 'grapnel'],
+    abilities: ['bombingRun', 'signalFlare', 'updraft', 'grapnel', 'strafe', 'skyhook'],
     req: { gunner: 2, thief: 1 }, desc: 'A canvas balloon and a head for heights. Comes down where it is least wanted.',
   },
   artificer: {
@@ -279,7 +279,7 @@ const JOBS = {
     affinity: { thunder: 'resist' },
     hp: 1.1, mp: 1.5, pa: 1.2, ma: 1.5, spd: 1.05, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Aether Rod', power: 6, range: 1, vert: 2 },
-    abilities: ['teslaCoil', 'aetherShield', 'gearstorm', 'overdrive'],
+    abilities: ['teslaCoil', 'aetherShield', 'gearstorm', 'overdrive', 'galvanize', 'magnetize'],
     req: { engineer: 3, gunner: 3 }, desc: 'Lightning in a bottle, and the bottle is the whole battlefield.',
   },
   // ---- the north: what the Winter Court made, and what stood against it ----
@@ -289,7 +289,7 @@ const JOBS = {
     affinity: { ice: 'absorb', fire: 'weak' },
     hp: 0.75, mp: 1.7, pa: 0.6, ma: 1.65, spd: 1.0, move: 3, jump: 3, evade: 8,
     weapon: { name: 'Ice Rod', power: 5, range: 1, vert: 2 },
-    abilities: ['rime', 'glaciate', 'hoarfrost', 'whiteout'],
+    abilities: ['rime', 'glaciate', 'hoarfrost', 'whiteout', 'frostbite', 'iceVeil'],
     req: { blackMage: 3, timeMage: 2 }, desc: 'The Court\'s own art, learned back from it: cold that stops, blinds and holds.',
   },
   warden: {
@@ -298,7 +298,7 @@ const JOBS = {
     affinity: { ice: 'resist' },
     hp: 1.15, mp: 0.9, pa: 1.25, ma: 0.9, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Warden Spear', power: 7, range: 2, vert: 3 },
-    abilities: ['pin', 'wardPost', 'rally', 'volley'],
+    abilities: ['pin', 'wardPost', 'rally', 'volley', 'spearWall', 'standFast'],
     req: { archer: 3, knight: 2 }, desc: 'The old north\'s sentries: a spear, a post to hold, and a voice the line can hear.',
   },
   runeblade: {
@@ -307,7 +307,7 @@ const JOBS = {
     affinity: { ice: 'resist', dark: 'resist' },
     hp: 1.3, mp: 1.3, pa: 1.4, ma: 1.35, spd: 1.05, move: 4, jump: 4, evade: 14,
     weapon: { name: 'Rune Sword', power: 8, range: 1, vert: 2 },
-    abilities: ['runecut', 'frostbrand', 'starWard', 'nova'],
+    abilities: ['runecut', 'frostbrand', 'starWard', 'nova', 'runeShield', 'starStrike'],
     req: { samurai: 2, arcanist: 2 }, desc: 'A blade with the star-iron\'s own runes cut into it. It burns cold, and it does not stay down.',
   },
   // ---- the sea's trades ----
@@ -316,7 +316,7 @@ const JOBS = {
     palette: { h: '#2a1a10', c: '#8a3a3a', p: '#3a2a2a', b: '#2a1a1a' },
     hp: 1.1, mp: 0.8, pa: 1.3, ma: 0.8, spd: 1.15, move: 4, jump: 4, evade: 18,
     weapon: { name: 'Cutlass', power: 8, range: 1, vert: 2 },
-    abilities: ['boarding', 'plunder', 'broadside', 'seaLegs'],
+    abilities: ['boarding', 'plunder', 'broadside', 'seaLegs', 'powderKeg', 'rumRation'],
     req: { thief: 3, gunner: 2 }, desc: 'A blade, a pistol and no manners. Quick over a deck, and paid by what falls out of the other side.',
   },
   tidecaller: {
@@ -325,7 +325,7 @@ const JOBS = {
     affinity: { water: 'absorb', thunder: 'weak' },
     hp: 0.8, mp: 1.7, pa: 0.6, ma: 1.6, spd: 1.0, move: 3, jump: 3, evade: 8,
     weapon: { name: 'Tide Rod', power: 5, range: 1, vert: 2 },
-    abilities: ['undertow', 'tidalWave', 'brine', 'saltWard'],
+    abilities: ['undertow', 'tidalWave', 'brine', 'saltWard', 'tideMend', 'drowningGrip'],
     req: { blackMage: 3, summoner: 2 }, desc: 'The Priory\'s art, taken back to the shore: the sea called in over a field, and the salt that stays after.',
   },
   harpooner: {
@@ -334,7 +334,7 @@ const JOBS = {
     affinity: { water: 'resist' },
     hp: 1.2, mp: 0.8, pa: 1.35, ma: 0.8, spd: 1.05, move: 4, jump: 4, evade: 12,
     weapon: { name: 'Harpoon', power: 8, range: 2, vert: 3 },
-    abilities: ['harpoon', 'whaleslayer', 'barb', 'reel'],
+    abilities: ['harpoon', 'whaleslayer', 'barb', 'reel', 'netThrow', 'gaffHook'],
     req: { dragoon: 2, archer: 2 }, desc: 'Whalers who learned on the Sunder Sea that anything big enough to see is big enough to hit.',
   },
   // ---- the crown's trades ----
@@ -343,7 +343,7 @@ const JOBS = {
     palette: { h: '#4a3a2a', c: '#8a2a2a', p: '#3a2a2a', b: '#2a1a1a' },
     hp: 1.3, mp: 1.0, pa: 1.35, ma: 1.0, spd: 1.05, move: 4, jump: 3, evade: 12,
     weapon: { name: 'Marshal\'s Blade', power: 8, range: 1, vert: 2 },
-    abilities: ['orders', 'holdTheLine', 'charge', 'rallyingCry'],
+    abilities: ['orders', 'holdTheLine', 'charge', 'rallyingCry', 'flankingOrder', 'volleyFire'],
     req: { knight: 4, warden: 2 }, desc: 'The one the line listens to. Orders that move allies, and a voice that holds them together.',
   },
   inquisitor: {
@@ -352,7 +352,7 @@ const JOBS = {
     affinity: { holy: 'resist', dark: 'weak' },
     hp: 0.9, mp: 1.6, pa: 0.8, ma: 1.55, spd: 1.0, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Rod of Office', power: 6, range: 1, vert: 2 },
-    abilities: ['judgement', 'sealMagic', 'purge', 'brand'],
+    abilities: ['judgement', 'sealMagic', 'purge', 'brand', 'excommunication', 'litany'],
     req: { whiteMage: 3, arcanist: 2 }, desc: 'Holy light turned to a purpose: magic sealed, statuses burned off, and judgement on whoever is left.',
   },
   duelist: {
@@ -360,7 +360,7 @@ const JOBS = {
     palette: { h: '#2a2a3a', c: '#e0d0b0', p: '#4a3a3a', b: '#2a2a2a' },
     hp: 1.0, mp: 0.9, pa: 1.35, ma: 0.9, spd: 1.2, move: 4, jump: 4, evade: 22,
     weapon: { name: 'Rapier', power: 8, range: 1, vert: 2 },
-    abilities: ['lunge', 'feint', 'enGarde', 'coupDeGrace'],
+    abilities: ['lunge', 'feint', 'enGarde', 'coupDeGrace', 'flurry', 'disarm'],
     req: { samurai: 2, corsair: 2 }, desc: 'One blade, one foe at a time. Faster than anyone on the field and rude about it.',
   },
   hollowKnight: {
@@ -989,7 +989,7 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }], desc: 'The halberd swung round: weapon damage on every foe adjacent.' },
   guardsOath: { name: 'Guard\'s Oath', job: 'royalGuard', jp: 0, mp: 8, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }, { type: 'status', status: 'slow', hit: 40 }], desc: 'The halberd\'s reach, and a fair chance the target is Slowed.' },
-  brace: { name: 'Brace', job: 'mercenary', jp: 0, mp: 4, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+  brace: { name: 'Dig In', job: 'mercenary', jp: 0, mp: 4, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 5 }], desc: 'Protect and Evade +5. A sellsword lives to be paid.' },
   sellswordCut: { name: 'Sellsword Cut', job: 'mercenary', jp: 0, mp: 4, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }, { type: 'gil' }], desc: 'A cut, and a hand in the purse.' },
@@ -1100,6 +1100,191 @@ const ABILITIES = {
   overdrive: { name: 'Overdrive', job: 'artificer', jp: 500, mp: 24, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'haste', hit: 100 }, { type: 'statmod', stat: 'pa', amount: 2 }, { type: 'statmod', stat: 'ma', amount: 2 }, { type: 'statmod', stat: 'spd', amount: 2 }],
     desc: 'Everything past the red line. Haste, and PA, MA and Speed +2, for the battle.' },
+
+  // ---- The second studies: two more skills for every trade, learned last ----
+  // Each job's kit ends with these, so an enemy who knows only the first few
+  // things of a trade never has them, and a boss, who knows everything, does.
+  // Squire
+  dustKick: { name: 'Dust Kick', job: 'squire', jp: 120, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'status', status: 'blind', hit: 55 }], desc: 'Grit in the eyes. A little damage, and an even chance of Blind.' },
+  holdGround: { name: 'Hold Ground', job: 'squire', jp: 180, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'evade', amount: 8 }], desc: 'Feet set, weight low. Evade +8 for the rest of the battle.' },
+  // Chemist
+  xPotion: { name: 'X-Potion', job: 'chemist', jp: 320, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', flat: 150 }], desc: 'Restore 150 HP.' },
+  echoHerbs: { name: 'Echo Herbs', job: 'chemist', jp: 90, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['silence', 'blind'] }], desc: 'Cure Silence and Blind.' },
+  // Knight
+  sunder: { name: 'Sunder Armour', job: 'knight', jp: 220, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'evade', amount: -10 }], desc: 'Strike at the straps. Damage, and the target\'s Evade falls by 10.' },
+  cleave: { name: 'Cleave', job: 'knight', jp: 300, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'enemy', self: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.8 }], desc: 'One wide swing. Weapon damage, a little lighter, on every foe adjacent.' },
+  // Archer
+  pinningShot: { name: 'Pinning Shot', job: 'archer', jp: 220, mp: 0, range: 'weapon', aoe: 0, vert: 'weapon', ct: 12, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'stop', hit: 35 }], desc: 'Through the foot and into the ground. Weapon damage after a short charge, and a fair chance of Stop.' },
+  eagleEye: { name: 'Eagle Eye', job: 'archer', jp: 180, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'evade', amount: 10 }, { type: 'statmod', stat: 'spd', amount: 1 }], desc: 'See them coming. Evade +10 and Speed +1 for the rest of the battle.' },
+  // Monk
+  pressurePoint: { name: 'Pressure Point', job: 'monk', jp: 220, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'status', status: 'silence', hit: 65 }], desc: 'Two fingers at the throat. Damage, and likely Silence.' },
+  whirlwindKick: { name: 'Whirlwind Kick', job: 'monk', jp: 300, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'enemy', self: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'ctmod', amount: -10 }], desc: 'A spinning kick at everyone close. Damage, and 10 CT knocked off each.' },
+  // Thief
+  sneakAttack: { name: 'Sneak Attack', job: 'thief', jp: 260, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.4 }], desc: 'Where they are not looking. 1.4x weapon damage; get behind them first and it cannot be evaded.' },
+  caltrops: { name: 'Caltrops', job: 'thief', jp: 180, mp: 0, range: 3, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 1 }, { type: 'status', status: 'slow', hit: 70 }], desc: 'A handful of iron spikes over an area. A scratch, and most in it are Slowed.' },
+  tripWire: { name: 'Trip Wire', job: 'thief', jp: 140, mp: 0, range: 2, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'ctmod', amount: -20 }], desc: 'A cord at ankle height. A little damage, and 20 CT lost getting up.' },
+  // White Mage
+  dispel: { name: 'Dispel', job: 'whiteMage', jp: 220, mp: 10, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'cure', statuses: ['haste', 'protect', 'shell', 'regen', 'reraise'] }], desc: 'Strip Haste, Protect, Shell, Regen and Second Breath from a foe.' },
+  curaga: { name: 'Curaga', job: 'whiteMage', jp: 340, mp: 20, range: 4, aoe: 1, vert: 3, ct: 12, kind: 'magic', affects: 'all', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 12 }], desc: 'The greatest mending. A flood of HP to all in the area.' },
+  // Black Mage
+  thundara: { name: 'Thundara', job: 'blackMage', jp: 240, mp: 14, range: 4, aoe: 0, vert: 8, ct: 14, kind: 'magic', affects: 'all', element: 'thunder',
+    effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'A greater bolt on a single target. Ignores height.' },
+  drain: { name: 'Drain', job: 'blackMage', jp: 200, mp: 10, range: 3, aoe: 0, vert: 3, ct: 16, kind: 'magic', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'drain', formula: 'ma', power: 6 }], desc: 'Pull the target\'s life into your own. Dark.' },
+  // Time Mage
+  rewind: { name: 'Rewind', job: 'timeMage', jp: 180, mp: 10, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'ally', allowSelf: false,
+    effects: [{ type: 'ctmod', amount: 40 }], desc: 'Give an ally back a little of the time it took. CT +40.' },
+  timeTheft: { name: 'Time Theft', job: 'timeMage', jp: 200, mp: 10, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'ctmod', amount: -40 }], desc: 'Take a foe\'s turn away from it. CT -40.' },
+  // Ninja
+  kunaiStorm: { name: 'Kunai Storm', job: 'ninja', jp: 220, mp: 0, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'A fistful of blades over an area. Nobody in it is spared.' },
+  poisonNeedle: { name: 'Poison Needle', job: 'ninja', jp: 160, mp: 0, range: 4, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'status', status: 'poison', hit: 85 }], desc: 'A dart dipped in something. A scratch, and almost surely Poison.' },
+  blink: { name: 'Blink', job: 'ninja', jp: 200, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'statmod', stat: 'evade', amount: 15 }], desc: 'Never quite where they look. Evade +15 for the rest of the battle.' },
+  // Dragoon
+  highJump: { name: 'High Jump', job: 'dragoon', jp: 320, mp: 0, range: 5, aoe: 0, vert: 9, ct: 45, kind: 'physical', affects: 'all', airborne: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 2.0 }], desc: 'Out of sight for a long count, and down for 2x weapon damage. Untargetable while airborne.' },
+  spearSweep: { name: 'Spear Sweep', job: 'dragoon', jp: 200, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'enemy', self: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.7 }], desc: 'The haft swung in a circle. Weapon damage, lighter, on every foe adjacent.' },
+  dragonFang: { name: 'Dragon Fang', job: 'dragoon', jp: 240, mp: 6, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'fire',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }], desc: 'The spear comes down burning. Weapon damage and a little more, as fire.' },
+  // Samurai
+  moonCut: { name: 'Moon Cut', job: 'samurai', jp: 250, mp: 8, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all',
+    effects: [{ type: 'damage', formula: 'ma', power: 6 }, { type: 'status', status: 'slow', hit: 45 }], desc: 'A cut as wide as the moon. Damage over an area, and some are left Slowed.' },
+  stillWater: { name: 'Still Water', job: 'samurai', jp: 180, mp: 8, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 4 }, { type: 'cure', statuses: ['silence', 'berserk'] }], desc: 'A breath before the draw. Heals yourself and adjacent allies, and lifts Silence and Berserk.' },
+  // Summoner
+  sylph: { name: 'Sylph', job: 'summoner', jp: 180, mp: 16, range: 4, aoe: 2, vert: 6, ct: 12, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'ma', power: 5 }, { type: 'status', status: 'silence', hit: 55 }], desc: 'Call the wind esper. Light damage over a wide area, and the voices of most in it are taken.' },
+  undine: { name: 'Undine', job: 'summoner', jp: 240, mp: 20, range: 4, aoe: 2, vert: 4, ct: 12, kind: 'magic', affects: 'enemy', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Call the water esper. The sea over every enemy in a wide area.' },
+  // Geomancer
+  gust: { name: 'Gust', job: 'geomancer', jp: 160, mp: 4, range: 4, aoe: 1, vert: 9, ct: 4, kind: 'magic', affects: 'all',
+    effects: [{ type: 'damage', formula: 'ma', power: 4 }, { type: 'ctmod', amount: -15 }], desc: 'Wind from nowhere, from any height. Light damage, and 15 CT lost to staying upright.' },
+  brambles: { name: 'Brambles', job: 'geomancer', jp: 220, mp: 4, range: 3, aoe: 1, vert: 2, ct: 4, kind: 'magic', affects: 'all', element: 'earth',
+    effects: [{ type: 'damage', formula: 'ma', power: 3 }, { type: 'status', status: 'poison', hit: 55 }], desc: 'Thorns out of the ground. Light damage, and the scratches turn: Poison.' },
+  // Bard
+  dirge: { name: 'Dirge of Dust', job: 'bard', jp: 200, mp: 8, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'enemy', self: true,
+    effects: [{ type: 'statmod', stat: 'pa', amount: -1 }], desc: 'A song for the losing side. PA -1 for every foe within three tiles, for the battle.' },
+  cadence: { name: 'Marching Cadence', job: 'bard', jp: 240, mp: 10, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'ctmod', amount: 15 }], desc: 'Left, right. Every ally within three tiles gains 15 CT.' },
+  // Paladin
+  shieldOfFaith: { name: 'Shield of Faith', job: 'paladin', jp: 280, mp: 12, range: 3, aoe: 1, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'Protect and Regen on every ally in the area.' },
+  smite: { name: 'Smite', job: 'paladin', jp: 320, mp: 8, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all', element: 'holy',
+    effects: [{ type: 'damage', formula: 'pa', power: 5 }, { type: 'status', status: 'stop', hit: 30 }], desc: 'Light brought down like a hammer, at two tiles. Holy damage, and some are Stopped by it.' },
+  // Arcanist
+  comet: { name: 'Comet', job: 'arcanist', jp: 300, mp: 18, range: 4, aoe: 0, vert: 9, ct: 10, kind: 'magic', affects: 'all', element: null,
+    effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'A single stone out of the sky, on a single target, of no element at all.' },
+  siphon: { name: 'Siphon', job: 'arcanist', jp: 260, mp: 8, range: 3, aoe: 0, vert: 4, ct: 12, kind: 'magic', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'drain', formula: 'ma', power: 7 }], desc: 'Draw a foe\'s blood into your own veins. Dark.' },
+  // Assassin
+  garrote: { name: 'Garrote', job: 'assassin', jp: 250, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'silence', hit: 70 }], desc: 'A wire round the throat. Weapon damage, and likely Silence.' },
+  markForDeath: { name: 'Mark for Death', job: 'assassin', jp: 300, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'enemy',
+    effects: [{ type: 'statmod', stat: 'evade', amount: -15 }, { type: 'statmod', stat: 'spd', amount: -1 }], desc: 'Chalk on the back. The target\'s Evade falls by 15 and its Speed by 1, for the battle.' },
+  // Sage
+  aurora: { name: 'Aurora', job: 'sage', jp: 380, mp: 22, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 6 }, { type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }], desc: 'Light over a wide area. Heals every ally in it and lifts every affliction.' },
+  scourge: { name: 'Scourge', job: 'sage', jp: 420, mp: 20, range: 4, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'dark',
+    effects: [{ type: 'damage', formula: 'ma', power: 10 }, { type: 'status', status: 'poison', hit: 60 }], desc: 'The black spell. Dark damage over an area, and most who survive it are Poisoned.' },
+  // Dragonlord
+  wingStorm: { name: 'Wing Storm', job: 'dragonlord', jp: 350, mp: 10, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'physical', affects: 'enemy', self: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'ctmod', amount: -20 }], desc: 'Wings on everything within two tiles. Damage, and 20 CT lost to the wind.' },
+  dragonsBlood: { name: 'Dragon\'s Blood', job: 'dragonlord', jp: 400, mp: 14, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 8 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'A cup of it. Heals an ally and leaves Regen behind.' },
+  // Hierophant
+  benediction: { name: 'Benediction', job: 'hierophant', jp: 450, mp: 26, range: 4, aoe: 2, vert: 9, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 10 }, { type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }], desc: 'A blessing over a wide area: a great deal of HP to every ally in it, and every affliction lifted.' },
+  wrath: { name: 'Wrath of Heaven', job: 'hierophant', jp: 500, mp: 24, range: 4, aoe: 0, vert: 9, ct: 10, kind: 'magic', affects: 'all', element: 'holy',
+    effects: [{ type: 'damage', formula: 'ma', power: 14 }, { type: 'status', status: 'silence', hit: 50 }], desc: 'All of heaven\'s displeasure on one target. Holy damage, and an even chance of Silence.' },
+  // Fell Knight
+  nightmare: { name: 'Nightmare', job: 'fellKnight', jp: 350, mp: 14, range: 3, aoe: 1, vert: 4, ct: 8, kind: 'magic', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'status', status: 'berserk', hit: 60 }, { type: 'status', status: 'blind', hit: 40 }], desc: 'What they dream of. Most in the area go Berserk, and some are Blinded.' },
+  grimHarvest: { name: 'Grim Harvest', job: 'fellKnight', jp: 450, mp: 16, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'enemy', element: 'dark',
+    effects: [{ type: 'drain', formula: 'ma', power: 6 }], desc: 'Reap an area and keep what grows. Dark drain from every foe in it.' },
+  // Engineer
+  shrapnel: { name: 'Shrapnel', job: 'engineer', jp: 200, mp: 8, range: 3, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 4 }, { type: 'status', status: 'blind', hit: 40 }], desc: 'A canister of scrap, burst over an area. Damage, and some are Blinded by it.' },
+  recalibrate: { name: 'Recalibrate', job: 'engineer', jp: 220, mp: 8, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['slow', 'stop', 'silence'] }, { type: 'mpheal', formula: 'ma', power: 2 }], desc: 'Set the gears right. Lifts Slow, Stop and Silence from an ally, and restores a little MP.' },
+  // Gunner
+  doubleTap: { name: 'Double Tap', job: 'gunner', jp: 300, mp: 4, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.7 }, { type: 'damage', formula: 'pa', power: 'weapon', mult: 0.7 }], desc: 'Two shots, close together, each a little lighter than one.' },
+  flashPowder: { name: 'Flash Powder', job: 'gunner', jp: 220, mp: 4, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'physical', affects: 'all',
+    effects: [{ type: 'status', status: 'blind', hit: 75 }, { type: 'ctmod', amount: -10 }], desc: 'A pan of powder in the face. Most in the area are Blinded, and all lose 10 CT.' },
+  // Aeronaut
+  strafe: { name: 'Strafe', job: 'aeronaut', jp: 250, mp: 6, range: 4, aoe: 1, vert: 9, ct: 8, kind: 'physical', affects: 'all',
+    effects: [{ type: 'damage', formula: 'pa', power: 4 }], desc: 'A pass over the area with everything that fires. Damage from any height.' },
+  skyhook: { name: 'Skyhook', job: 'aeronaut', jp: 280, mp: 6, range: 3, aoe: 0, vert: 9, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'statmod', stat: 'jump', amount: 3 }, { type: 'ctmod', amount: 15 }], desc: 'A line from above. Jump +3 for the battle, and 15 CT now.' },
+  // Artificer
+  galvanize: { name: 'Galvanize', job: 'artificer', jp: 350, mp: 14, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'statmod', stat: 'spd', amount: 1 }, { type: 'mpheal', formula: 'ma', power: 2 }], desc: 'A current through the line. Speed +1 and a little MP for every ally in the area.' },
+  magnetize: { name: 'Magnetize', job: 'artificer', jp: 400, mp: 16, range: 3, aoe: 1, vert: 4, ct: 8, kind: 'magic', affects: 'enemy', element: 'thunder',
+    effects: [{ type: 'damage', formula: 'ma', power: 6 }, { type: 'status', status: 'stop', hit: 30 }], desc: 'Everything with iron in it seizes. Thunder damage over an area, and some are Stopped.' },
+  // Frostweaver
+  frostbite: { name: 'Frostbite', job: 'frostweaver', jp: 220, mp: 10, range: 3, aoe: 0, vert: 4, ct: 6, kind: 'magic', affects: 'all', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 6 }, { type: 'status', status: 'slow', hit: 70 }], desc: 'The cold in the fingers first. Ice damage, and likely Slow.' },
+  iceVeil: { name: 'Ice Veil', job: 'frostweaver', jp: 260, mp: 10, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 8 }], desc: 'A sheet of ice between you and them. Protect, and Evade +8.' },
+  // Warden
+  spearWall: { name: 'Spear Wall', job: 'warden', jp: 250, mp: 6, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'enemy', self: true,
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.8 }, { type: 'status', status: 'slow', hit: 40 }], desc: 'Points out in every direction. Weapon damage on every foe adjacent, and some are Slowed.' },
+  standFast: { name: 'Stand Fast', job: 'warden', jp: 300, mp: 10, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['slow', 'stop'] }, { type: 'status', status: 'protect', hit: 100 }], desc: 'Slow and Stop lifted from allies in the area, and Protect on all of them.' },
+  // Runeblade
+  runeShield: { name: 'Rune Shield', job: 'runeblade', jp: 300, mp: 12, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'ma', amount: 2 }], desc: 'The runes read outward. Shell, and MA +2, on an ally.' },
+  starStrike: { name: 'Star Strike', job: 'runeblade', jp: 450, mp: 10, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.2 }, { type: 'ctmod', amount: -15 }], desc: 'The star-iron falls on them again. 1.2x weapon damage, and 15 CT lost.' },
+  // Corsair
+  powderKeg: { name: 'Powder Keg', job: 'corsair', jp: 300, mp: 8, range: 3, aoe: 1, vert: 3, ct: 8, kind: 'physical', affects: 'enemy', element: 'fire',
+    effects: [{ type: 'damage', formula: 'pa', power: 6 }], desc: 'Lit, rolled, and the enemy stands too close to it. Fire damage over an area.' },
+  rumRation: { name: 'Rum Ration', job: 'corsair', jp: 220, mp: 6, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'heal', flat: 20 }, { type: 'cure', statuses: ['blind', 'silence', 'slow'] }], desc: 'A cup all round. 20 HP to every ally within two tiles, and Blind, Silence and Slow forgotten.' },
+  // Tidecaller
+  tideMend: { name: 'Tide Mend', job: 'tidecaller', jp: 220, mp: 12, range: 3, aoe: 1, vert: 4, ct: 4, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 6 }, { type: 'cure', statuses: ['poison'] }], desc: 'Salt water on the wound. Heals allies in the area and washes Poison out.' },
+  drowningGrip: { name: 'Drowning Grip', job: 'tidecaller', jp: 320, mp: 14, range: 3, aoe: 0, vert: 4, ct: 6, kind: 'magic', affects: 'enemy', element: 'water',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }, { type: 'status', status: 'stop', hit: 40 }], desc: 'The sea closes over one target. Water damage, and a fair chance of Stop.' },
+  // Harpooner
+  netThrow: { name: 'Net Throw', job: 'harpooner', jp: 240, mp: 6, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'status', status: 'slow', hit: 70 }, { type: 'status', status: 'stop', hit: 25 }], desc: 'Weighted cord over an area. Most in it are Slowed, and some are held fast.' },
+  gaffHook: { name: 'Gaff Hook', job: 'harpooner', jp: 300, mp: 6, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }, { type: 'ctmod', amount: -20 }], desc: 'In, and pulled. Weapon damage at two tiles, and 20 CT lost.' },
+  // Marshal
+  flankingOrder: { name: 'Flanking Order', job: 'marshal', jp: 220, mp: 8, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'support', affects: 'ally',
+    effects: [{ type: 'statmod', stat: 'move', amount: 1 }, { type: 'statmod', stat: 'spd', amount: 1 }], desc: 'Round the side. Move +1 and Speed +1 for an ally, for the battle.' },
+  volleyFire: { name: 'Volley Fire', job: 'marshal', jp: 400, mp: 12, range: 4, aoe: 1, vert: 9, ct: 10, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 5 }], desc: 'Every bow in the company on one area, on the word. Damage from any height.' },
+  // Inquisitor
+  excommunication: { name: 'Excommunication', job: 'inquisitor', jp: 300, mp: 14, range: 3, aoe: 0, vert: 4, ct: 4, kind: 'magic', affects: 'enemy',
+    effects: [{ type: 'cure', statuses: ['haste', 'protect', 'shell', 'regen', 'reraise'] }, { type: 'mpdamage', formula: 'ma', power: 5 }], desc: 'Every blessing stripped from a foe, and MP burned away with them.' },
+  litany: { name: 'Litany', job: 'inquisitor', jp: 350, mp: 14, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'ma', amount: 1 }], desc: 'The words said over the line. Shell and MA +1 for every ally within two tiles.' },
+  // Duelist
+  flurry: { name: 'Flurry', job: 'duelist', jp: 300, mp: 8, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'damage', formula: 'pa', power: 3 }, { type: 'damage', formula: 'pa', power: 3 }], desc: 'Three cuts before they have answered the first.' },
+  disarm: { name: 'Disarm', job: 'duelist', jp: 260, mp: 6, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'statmod', stat: 'pa', amount: -3 }], desc: 'The blade turned out of their hand. A little damage, and PA -3 for the battle.' },
 
   // The Concord's machines
   pistonStrike: { name: 'Piston Strike', job: 'sentinel', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
