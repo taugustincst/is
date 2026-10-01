@@ -84,6 +84,12 @@ a browser, or serve the folder with any static file server.
 
 **Building a party**
 
+- **Every trade has a second study.** Each of the thirty-five player jobs
+  teaches six or more skills, the last two or three learned late and dearly:
+  a Knight's Cleave and Sunder Armour, a White Mage's Dispel and Curaga, a
+  Time Mage's Rewind and Time Theft, a Gunner's Double Tap, a Duelist's
+  Flurry, a Hierophant's Benediction. 221 skills across the player jobs, and
+  every one of the game's 281 abilities is proven to do something when used.
 - **Thirty-five jobs** on an unlock tree — Squire, Chemist, Knight, Archer,
   Monk, Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon; a second
   tier of Samurai, Summoner, Geomancer and Bard; a third of Paladin, Arcanist,

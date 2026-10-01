@@ -725,6 +725,38 @@ const ICON_GLYPHS = {
     '...xsFFFFFFsx...',
     '....xxxxxxxx....',
   ],
+  xpotion: [
+    '.....xxxxxx.....',
+    '.....xssssx.....',
+    '.....xssssx.....',
+    '....xxssssxx....',
+    '...xssssssssx...',
+    '..xssffffffssx..',
+    '.xsffyyyyyyffsx.',
+    '.xsffyffffyffsx.',
+    '.xsffyffhfyffsx.',
+    '.xsffyyyyyyffsx.',
+    '.xsfffffffffffx.',
+    '..xsFFFFFFFFsx..',
+    '..xssFFFFFFssx..',
+    '...xxxxxxxxxx...',
+  ],
+  herbs: [
+    '................',
+    '..........xx....',
+    '.........xggx...',
+    '...xx...xgGgx...',
+    '..xggx..xgGgx...',
+    '..xgGgx.xggx....',
+    '...xgGgxxgx.....',
+    '....xgGgwx......',
+    '.....xgwxx......',
+    '......xwx.......',
+    '.....xywx.......',
+    '....xyyWx.......',
+    '....xyyyx.......',
+    '.....xxx........',
+  ],
   phoenix: [
     '..............x.',
     '.............xfx',
@@ -765,9 +797,9 @@ const ICON_STAT_ACCENT = { pa: '#e05a4a', ma: '#b07cf0', spd: '#f0d060', hp: '#7
 const ICON_CLOTHS = ['#8a6a48', '#4a6a9a', '#6a4a8a', '#9a3a3a', '#3a7a6a', '#c8b060', '#e8e0d0', '#d8c8f0'];
 const ICON_FIXED = { x: '#1a1a24', w: '#8a5a32', W: '#5a3a1e', l: '#9a6a3a', L: '#6a4424', s: '#e8e4d8', b: '#c89a3a', y: '#d8b040', Y: '#9a7a20' };
 // The chemist's items, each its own colour of liquid.
-const ICON_LIQUIDS = { potion: '#4a8ae8', hipotion: '#3a6ae0', ether: '#9a6ae8', antidote: '#5ac85a', remedy: '#e8c040', phoenix: '#f08a3a' };
+const ICON_LIQUIDS = { potion: '#4a8ae8', hipotion: '#3a6ae0', xpotion: '#2a4ad0', ether: '#9a6ae8', antidote: '#5ac85a', remedy: '#e8c040', phoenix: '#f08a3a', herbs: '#5ac85a' };
 const ICON_MATERIAL_KIND = { ironIngot: 'ingot', steelIngot: 'ingot', oakHeartwood: 'wood', silkBolt: 'silk', brassFitting: 'brass', emberGlass: 'glass', starIron: 'star' };
-const ICON_ABILITY_KIND = { potion: 'potion', hiPotion: 'hipotion', ether: 'ether', antidote: 'antidote', remedy: 'remedy', phoenixDown: 'phoenix' };
+const ICON_ABILITY_KIND = { potion: 'potion', hiPotion: 'hipotion', xPotion: 'xpotion', ether: 'ether', antidote: 'antidote', remedy: 'remedy', phoenixDown: 'phoenix', echoHerbs: 'herbs' };
 
 // The element a piece answers to, if any: what it resists or drinks in.
 function iconElementOf(it) {
@@ -834,6 +866,7 @@ function iconPalette(key, kind) {
     pal.F = shiftHex(pal.f, -50);
     pal.h = '#ffffff';
     if (kind === 'phoenix') pal.h = '#ffe070';
+    if (kind === 'herbs') { pal.g = '#5ac85a'; pal.G = '#2e8a3a'; }
     return pal;
   }
   const it = ITEMS[key] || {};
