@@ -85,7 +85,7 @@ const JOBS = {
     palette: { h: '#7a4a2a', c: '#4f7a3f', p: '#5a4a30', b: '#3a2a1a' },
     hp: 0.95, mp: 0.9, pa: 1.1, ma: 0.9, spd: 1.05, move: 3, jump: 3, evade: 10,
     weapon: { name: 'Longbow', power: 4, range: 4, vert: 5 },
-    abilities: ['aim1', 'aim3', 'aim5', 'arrowRain'],
+    abilities: ['aim1', 'aim3', 'aim5', 'arrowRain', 'tame'],
     req: { squire: 2 }, desc: 'Strikes from afar. Charged Aim shots trade time for power.',
   },
   monk: {
@@ -679,6 +679,8 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 5 }], desc: 'A long charged shot. Weapon power +5.' },
   arrowRain: { name: 'Arrow Rain', job: 'archer', jp: 200, mp: 0, range: 4, aoe: 1, vert: 6, ct: 30, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'Fire a volley over an area. Ignores height.' },
+  tame: { name: 'Tame', job: 'archer', jp: 150, mp: 0, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'enemy',
+    effects: [{ type: 'tame' }], desc: 'Win over a wild creature below half its health: the weaker it is, the surer the bond. It fights beside you at once, and follows the company off a field it has won.' },
 
   // Monk
   waveFist: { name: 'Shock Palm', job: 'monk', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all',
@@ -1545,6 +1547,8 @@ const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
 // such as the Equip Armor support ability.
 function canEquip(job, id, extra) {
   const it = ITEMS[id], eq = JOB_EQUIP[job];
+  // A beast has no hands for arms or armour, but it will wear a collar.
+  if (it && !eq && JOBS[job] && JOBS[job].kind === 'monster') return it.slot === 'acc';
   if (!it || !eq) return false;
   const w = extra ? eq.w.concat(extra.w || []) : eq.w;
   const a = extra ? eq.a.concat(extra.a || []) : eq.a;
@@ -1560,6 +1564,7 @@ function canEquip(job, id, extra) {
 // in the offhand instead of a shield.
 function canEquipInSlot(job, id, slot, extra) {
   const it = ITEMS[id], eq = JOB_EQUIP[job];
+  if (it && !eq) return slot === 'acc' && canEquip(job, id, extra);
   if (!it || !eq) return false;
   if (slot === 'offhand' && it.slot === 'weapon') return !!eq.dual && canEquip(job, id, extra);
   return it.slot === slot && canEquip(job, id, extra);
@@ -1805,6 +1810,61 @@ function sellable(id) {
 // ============================================================================
 // Learned with JP inside a job, but once learned they can be equipped no matter
 // which job the unit is currently wearing. One of each kind at a time.
+
+// ============================================================================
+// Beasts
+// ============================================================================
+// Creatures that will fight for the company. A beast is a unit whose job is one
+// of the monster jobs above, on the player's side: its stats come from that job,
+// and its skills are the job's, learned not with JP spent but with a bond that
+// deepens as it fights. The first skill it knows at once; each further one opens
+// at the next bond level (the job-level table: level 2 at 100 JP, 3 at 250).
+//
+// A beast is won two ways: Tame, an Archer's ability, on a wild creature below
+// half its health, or bought from a city's kennel. Only the species here can be
+// tamed or kept; bosses and the things at the bottom of the sea never can.
+const PET_MAX = 4;
+const PETS = {
+  wolf:      { price: 600,  names: ['Ash', 'Ember', 'Brindle', 'Sable'],
+               desc: 'Fast, loyal, and fond of a flank. Howl lifts the whole pack.' },
+  goblin:    { price: 500,  names: ['Nib', 'Grub', 'Tallow', 'Sprocket'],
+               desc: 'Vicious for its size and cheap to feed. It fights for whoever fed it last.' },
+  bomb:      { price: 800,  names: ['Cinder', 'Wick', 'Fuse', 'Kettle'],
+               desc: 'A floating ember that drinks fire. Keep it away from ice, and from anyone it might explode near.' },
+  skeleton:  { price: 900,  names: ['Old Bones', 'Rattle', 'Marrow', 'Knuckle'],
+               desc: 'It has forgotten everything but the war, and now, apparently, you. Holy light and fire undo it.' },
+  wisp:      { price: 900,  names: ['Lantern', 'Glim', 'Fen', 'Marsh'],
+               desc: 'A light over the water that has decided to follow you instead. Thunder feeds it.' },
+  treant:    { price: 1200, names: ['Alder', 'Yew', 'Elm', 'Hazel'],
+               desc: 'Slow, old and immensely strong. It roots what it catches and does not mind being disturbed by you.' },
+  ironhound: { price: 1500, names: ['Rivet', 'Bolt', 'Cog', 'Piston'],
+               desc: 'A wolf as the Concord would build one, running on your side of the line now. Lightning gets in.' },
+  sentinel:  { price: 1600, names: ['Tock', 'Anvil', 'Brass', 'Boiler'],
+               desc: 'An inch of brass around a boiler. It goes where it is pointed and stops for nothing but lightning.' },
+  iceDrake:  { price: 2600, names: ['Hoar', 'Sleet', 'Glass', 'Frost'],
+               desc: 'The Court\'s hunting drake, with a breath that stops the blood. Fire and holy light are what it fears.' },
+  reefCrab:  { price: 1400, names: ['Pinch', 'Barnacle', 'Scuttle', 'Cockle'],
+               desc: 'A shell the size of a door with a temper inside it. Thunder gets through the shell.' },
+  siren:     { price: 1800, names: ['Lull', 'Hush', 'Echo', 'Tide'],
+               desc: 'It sang ships onto the rocks once. It sings for the company now, and the enemy still listens.' },
+  griffon:   { price: 2800, names: ['Gale', 'Talon', 'Quill', 'Sky'],
+               desc: 'The crown\'s hunting beast, and nothing on the field is too high for it.' },
+  golem:     { price: 2600, names: ['Cairn', 'Flint', 'Mortar', 'Slab'],
+               desc: 'Stone that walks. Slow, and very hard to move once it has decided to stand somewhere.' },
+};
+
+// A name for a new beast of `job` that no one in `taken` already has.
+function petNameFor(job, taken) {
+  const used = new Set(taken || []);
+  const pool = ((PETS[job] || {}).names || []).filter(n => !used.has(n));
+  if (pool.length) return pool[Math.floor(Math.random() * pool.length)];
+  const base = JOBS[job] ? JOBS[job].name : 'Beast';
+  for (let i = 2; ; i++) if (!used.has(`${base} ${i}`)) return `${base} ${i}`;
+}
+
+// The bond level a beast needs before it knows the i-th skill of its kind:
+// the first at level 1, which every beast has, and one more each level after.
+function petSkillBond(i) { return i + 1; }
 
 const PASSIVES = {
   // ---- reaction: triggered when something happens to the unit ----

@@ -24,6 +24,8 @@ class Unit {
     this.team = opts.team || 'player';
     this.leader = !!opts.leader;
     this.boss = !!opts.boss;
+    // A beast: a creature on the company's side. Only a monster job can be one.
+    this.pet = !!opts.pet && JOBS[this.job].kind === 'monster';
     this.jp = opts.jp || {};            // spendable JP per job
     this.jpTotal = opts.jpTotal || {};  // lifetime JP per job (job level)
     // Learned things this build no longer has are dropped, so nothing downstream
@@ -55,6 +57,7 @@ class Unit {
     const r = opts.record || {};
     this.record = { battles: r.battles | 0, wins: r.wins | 0, kills: r.kills | 0, falls: r.falls | 0 };
     if (opts.autoLearn) this.autoLearn(opts.autoLearn);
+    if (this.pet) this.openBondSkills();
     this.resetBattleState();
   }
 
@@ -67,7 +70,7 @@ class Unit {
     return {
       id: this.id, name: this.name, job: this.job, level: this.level, exp: this.exp, team: this.team,
       leader: this.leader, jp: this.jp, jpTotal: this.jpTotal, learned: this.learned, secondary: this.secondary, record: this.record,
-      gear: this.gear, passives: this.passives,
+      gear: this.gear, passives: this.passives, pet: this.pet || undefined,
     };
   }
 
@@ -242,8 +245,39 @@ class Unit {
     return events;
   }
 
+  // ---- beasts -------------------------------------------------------------
+  // A beast's bond is the job level of its kind: it grows with every action,
+  // like JP, and is never spent. Each level opens the next of its skills.
+  bondLevel() { return this.jobLevel(this.job); }
+
+  // The skills of its kind the bond has opened, marked learned. Returns the
+  // names of anything newly opened.
+  openBondSkills() {
+    const out = [];
+    if (!this.pet) return out;
+    const lv = this.bondLevel();
+    this.jobData.abilities.forEach((id, i) => {
+      if (!this.learned[id] && lv >= petSkillBond(i) && ABILITIES[id]) { this.learned[id] = true; out.push(ABILITIES[id].name); }
+    });
+    return out;
+  }
+
+  // The bond level at which a beast's next unknown skill opens, or null when
+  // it knows them all.
+  nextBondSkill() {
+    const i = this.jobData.abilities.findIndex(id => !this.learned[id]);
+    return i < 0 ? null : { id: this.jobData.abilities[i], bond: petSkillBond(i) };
+  }
+
   gainJP(amount) {
-    if (this.team !== 'player' || this.jobData.kind === 'monster') return null;
+    if (this.team !== 'player') return null;
+    if (this.pet) {
+      this.jp[this.job] = (this.jp[this.job] || 0) + amount;
+      this.jpTotal[this.job] = (this.jpTotal[this.job] || 0) + amount;
+      const opened = this.openBondSkills();
+      return opened.length ? `${this.name}'s bond deepens: ${opened.join(' and ')} learned!` : null;
+    }
+    if (this.jobData.kind === 'monster') return null;
     const before = this.jobLevel(this.job);
     this.jp[this.job] = (this.jp[this.job] || 0) + amount;
     this.jpTotal[this.job] = (this.jpTotal[this.job] || 0) + amount;

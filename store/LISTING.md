@@ -452,6 +452,12 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.9.0**
+
+    Beasts: tame a wild creature below half its health with an Archer's Tame and it fights for
+    you at once, or buy one at a city kennel. Thirteen kinds, each learning the skills of its
+    kind as its bond deepens, four to a company.
+
 **1.8.1**
 
     Store kit: the attack screenshot shows its target in the open, the realm map keeps names

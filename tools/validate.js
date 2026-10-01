@@ -55,6 +55,18 @@ for (const [id, it] of Object.entries(g.ITEMS)) {
   if (it.slot === 'weapon' && (!it.wtype || !it.power || !it.range)) bad(`weapon ${id} is missing wtype, power or range`);
   if (it.tier === undefined || it.price === undefined) bad(`item ${id} is missing tier or price`);
 }
+// ---- beasts ----
+for (const [id, p] of Object.entries(g.PETS)) {
+  if (!g.JOBS[id] || g.JOBS[id].kind !== 'monster') bad(`beast ${id} is not a monster job`);
+  if (!Array.isArray(p.names) || p.names.length < 2) bad(`beast ${id} needs at least two names`);
+  if (!(p.price > 0)) bad(`beast ${id} has no kennel price`);
+  if (!p.desc) bad(`beast ${id} has no description`);
+}
+for (const c of g.run('typeof CITIES === "undefined" ? [] : CITIES')) {
+  for (const j of c.pets || []) if (!g.PETS[j]) bad(`city ${c.id} kennels an unknown beast '${j}'`);
+}
+if (!Object.values(g.ABILITIES).some(ab => ab.effects.some(e => e.type === 'tame'))) bad('no ability tames');
+
 const CITY_IDS = g.run('typeof CITIES === "undefined" ? [] : CITIES.map(c => c.id)');
 // A recipe or material is merged into ITEMS after the literal, so an id used
 // twice would quietly replace a wagon item rather than fail to parse.

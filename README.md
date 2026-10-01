@@ -92,6 +92,13 @@ a browser, or serve the folder with any static file server.
   treant, clockwork sentinel, iron hound, steam colossus, rime wight, ice
   drake, the Nameless Cold, siren, reef crab, leviathan, the drowned, the
   Deep, griffon and golem) and bosses across five acts.
+- **Beasts of the company.** A creature can fight on your side. An Archer's
+  Tame, used on a wild creature below half its health, wins it over on the
+  spot: it turns at once, takes a name of its own, and follows the company
+  off a field you win. City kennels sell them outright. A beast keeps its
+  kind, wears only a collar, and learns the skills of its kind as its bond
+  deepens with every action it takes. Thirteen kinds can be kept, from a
+  dire wolf to a griffon, four at a time.
 - **A job tree you can read.** Every job on one page, in ranks from the
   roots to the summit, marked current, open, or locked with exactly how far
   off each requirement is — and a button to make the change from there.
