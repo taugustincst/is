@@ -351,6 +351,15 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #shop-list { flex: 1; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
 #shop-list h3 { color: var(--gold); margin-top: 12px; border-bottom: 1px solid #2a2d50; }
 .shop-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 4px; border-bottom: 1px solid #23264a; }
+/* Item icons: a pixel glyph drawn per piece; crisp at any size. */
+.item-icon { width: 32px; height: 32px; image-rendering: pixelated; image-rendering: crisp-edges; flex: none; vertical-align: middle; }
+.item-icon.small { width: 20px; height: 20px; margin-right: 4px; }
+.item-icon.empty { display: inline-block; opacity: 0; }
+.shop-row > div > .item-icon, .inv-main > .item-icon { float: left; margin: 0 10px 2px 0; }
+.equip-row .item-icon.small { margin-right: 0; }
+#action-menu button span { display: inline-flex; align-items: center; gap: 6px; }
+#action-menu button span .item-icon.small { margin: 0; }
+.res-loot .item-icon.small { margin: 0 2px 0 4px; }
 .shop-row.unfit { opacity: 0.5; }
 .shop-row .fits { color: var(--muted); font-size: 12px; }
 #btn-shop-back { margin-top: 12px; align-self: flex-start; }

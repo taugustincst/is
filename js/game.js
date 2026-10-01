@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.9.0';
+const GAME_VERSION = '1.10.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -872,6 +872,7 @@ class Game {
       </div>`;
     $('form-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.formTab = b.dataset.form; this.renderFormationDetail(); });
     paintUnitSprite($('form-portrait'), u, 3);
+    paintIcons($('form-detail'));
     $('sel-job').onchange = (e) => {
       u.job = e.target.value;
       if (u.secondary === u.job) u.secondary = null;
@@ -956,6 +957,7 @@ class Game {
       </div>`;
     $('form-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.formTab = b.dataset.form; this.renderFormationDetail(); });
     paintUnitSprite($('form-portrait'), u, 3);
+    paintIcons($('form-detail'));
     $('form-detail').querySelectorAll('select[data-slot]').forEach(sel => sel.onchange = (e) => {
       this.equip(u, sel.dataset.slot, e.target.value || null);
       this.renderFormationDetail();
@@ -1081,7 +1083,7 @@ class Game {
     const forgeTab = FORGE_TABS.some(([id]) => id === this.forgeTab) ? this.forgeTab : 'improve';
     const kennelFull = s.party.filter(u => u.pet).length >= PET_MAX || s.party.length >= PARTY_MAX;
     const pets = (city.pets || []).map(j => `<button data-pet-at="${j}" ${s.gil < PETS[j].price || kennelFull ? 'disabled' : ''}>${JOBS[j].name} · ${PETS[j].price} gil</button>`).join('');
-    const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
+    const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
     el.innerHTML = `
       <div class="city-head"><b>${city.name}</b><span class="muted">${city.open}</span><button id="btn-city-back" class="mini">Back to the road</button></div>
       <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max ${PARTY_MAX})</small></h4>
@@ -1093,6 +1095,7 @@ class Game {
       <h4>Forge <small>betters what you carry to +3, makes arms sold nowhere, and breaks spare gear down</small></h4>
       <div class="tabs forge-tabs">${FORGE_TABS.map(([id, label]) => `<button data-forge="${id}" class="${id === forgeTab ? 'sel' : ''}">${tr(label)}</button>`).join('')}</div>
       <div class="city-stock forge-body">${this.forgeRows(city, forgeTab)}</div>`;
+    paintIcons(el);
     $('btn-city-back').onclick = () => { this.cityView = null; this.renderCities(); };
     el.querySelectorAll('button[data-hire-at]').forEach(b => b.onclick = () => this.hireAt(city, b.dataset.hireAt));
     el.querySelectorAll('button[data-pet-at]').forEach(b => b.onclick = () => this.buyPetAt(city, b.dataset.petAt));
@@ -1128,7 +1131,7 @@ class Game {
       if (!rows.length) return '<p class="muted">Nothing the company carries can be bettered further.</p>';
       return rows.map(r => {
         const it = ITEMS[r.id], to = ITEMS[r.cost.to], ok = this.canPay(r.cost.mats, r.cost.gil);
-        return `<div class="shop-row ${ok ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(r.id)}</small>
+        return `<div class="shop-row ${ok ? '' : 'unfit'}"><div>${iconHtml(r.id)}<b>${it.name}</b> <small>${this.itemSummary(r.id)}</small>
           <div class="fits">${r.who} · becomes <b>${to.name}</b>: ${this.itemSummary(r.cost.to)}</div>
           <div class="fits cost">${this.costText(r.cost.mats, r.cost.gil)}</div></div>
           <button data-improve="${r.key}" ${ok ? '' : 'disabled'}>Improve to +${r.cost.plus}</button></div>`;
@@ -1137,7 +1140,7 @@ class Game {
     if (tab === 'craft') {
       return Object.keys(FORGE_ITEMS).filter(id => FORGE_ITEMS[id].forge === city.id).map(id => {
         const it = ITEMS[id], fits = this.fitsList(id), gil = this.craftGil(id), ok = this.canPay(it.cost, gil);
-        return `<div class="shop-row ${fits && ok ? '' : 'unfit'}"><div><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
+        return `<div class="shop-row ${fits && ok ? '' : 'unfit'}"><div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small>
           <div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div>
           <div class="fits cost">${this.costText(it.cost, gil)}</div></div>
           <button data-craft="${id}" ${ok ? '' : 'disabled'}>Craft</button></div>`;
@@ -1148,7 +1151,7 @@ class Game {
       if (!ids.length) return '<p class="muted">Nothing spare to break down. Spare weapons, shields, helms and armour from the field and the shop can be salvaged here.</p>';
       return ids.map(id => {
         const it = ITEMS[id], give = salvageYield(id);
-        return `<div class="shop-row"><div><b>${it.name}</b> <small>×${this.invCount(id)} · ${this.itemSummary(id)}</small>
+        return `<div class="shop-row"><div>${iconHtml(id)}<b>${it.name}</b> <small>×${this.invCount(id)} · ${this.itemSummary(id)}</small>
           <div class="fits">Breaks down into ${mats(give)}${it.price ? ` · would sell for ${Math.floor(it.price / 2)} gil` : ''}</div></div>
           <button data-salvage="${id}">Salvage</button></div>`;
       }).join('');
@@ -1157,7 +1160,7 @@ class Game {
     const rows = Object.keys(MATERIALS).map(m => {
       const it = ITEMS[m], here = it.tier <= tier, have = this.invCount(m);
       if (!here && !have) return '';
-      return `<div class="shop-row"><div><b>${it.name}</b> <small>×${have} in the baggage</small><div class="fits">${it.desc}${here ? '' : ' · not sold here'}</div></div>
+      return `<div class="shop-row"><div>${iconHtml(m)}<b>${it.name}</b> <small>×${have} in the baggage</small><div class="fits">${it.desc}${here ? '' : ' · not sold here'}</div></div>
         ${here ? `<button data-mat="${m}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button>` : ''}</div>`;
     }).join('');
     return rows || '<p class="muted">This forge sells nothing.</p>';
@@ -1413,7 +1416,7 @@ class Game {
     return Object.entries(SLOT_NAMES).filter(([slot]) => !only || only.includes(slot)).map(([slot, label]) => {
       const cur = u.gear[slot] || '';
       const opts = this.slotOptions(u, slot);
-      if (!opts.length && !cur) return `<label class="equip-row"><span>${label}</span><em class="none">nothing available</em></label>`;
+      if (!opts.length && !cur) return `<label class="equip-row"><span>${label}</span><span class="item-icon small empty"></span><em class="none">nothing available</em></label>`;
       const groups = {};
       for (const id of opts.sort((a, b) => (TYPE_ORDER.indexOf(itemType(a)) - TYPE_ORDER.indexOf(itemType(b))) || (ITEMS[a].tier - ITEMS[b].tier))) (groups[itemType(id)] = groups[itemType(id)] || []).push(id);
       const list = Object.entries(groups).map(([t, ids]) => `<optgroup label="${TYPE_NAMES[t] || t}">${ids.map(id => {
@@ -1422,7 +1425,7 @@ class Game {
       }).join('')}</optgroup>`).join('');
       // Free starter kit is not kept in the baggage, so it can be replaced but not taken off.
       const canEmpty = !cur || ITEMS[cur].price > 0;
-      return `<label class="equip-row"><span>${label}</span><select data-slot="${slot}">${canEmpty ? '<option value="">— empty —</option>' : ''}${list}</select></label>`;
+      return `<label class="equip-row"><span>${label}</span>${cur ? iconHtml(cur, 'small') : '<span class="item-icon small empty"></span>'}<select data-slot="${slot}">${canEmpty ? '<option value="">— empty —</option>' : ''}${list}</select></label>`;
     }).join('');
   }
 
@@ -1446,6 +1449,7 @@ class Game {
     $('shop-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openShop(b.dataset.tab));
     const rows = tab === 'buy' ? this.shopBuyRows() : this.shopSellRows();
     $('shop-list').innerHTML = rows || `<p class="muted">${tab === 'buy' ? 'Nothing in stock.' : 'You have no spare equipment to sell.'}</p>`;
+    paintIcons($('shop-list'));
     $('shop-list').querySelectorAll('button[data-buy]').forEach(b => b.onclick = () => this.buy(b.dataset.buy));
     $('shop-list').querySelectorAll('button[data-sell]').forEach(b => b.onclick = () => this.sell(b.dataset.sell));
     this.showScreen('shop');
@@ -1471,7 +1475,7 @@ class Game {
         if (slot !== 'acc' && t !== lastType) { items += `<h4>${TYPE_NAMES[t] || t}</h4>`; lastType = t; }
         const afford = this.state.gil >= it.price;
         items += `<div class="shop-row ${fits ? '' : 'unfit'}">
-          <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
+          <div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small>
             <div class="fits">${fits ? tr('Fits: {who}', { who: fits }) : tr('No one in your party can use this yet')}${this.invCount(id) ? ` · ${tr('in stock: {n}', { n: this.invCount(id) })}` : ''}</div></div>
           <button data-buy="${id}" ${afford ? '' : 'disabled'}>${tr('{n} gil', { n: it.price })}</button></div>`;
       }
@@ -1487,7 +1491,7 @@ class Game {
       const it = ITEMS[id], value = Math.floor(it.price / 2), t = itemType(id);
       if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
       html += `<div class="shop-row">
-        <div><b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${tr('Spare: {n}', { n: this.invCount(id) })}</div></div>
+        <div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${tr('Spare: {n}', { n: this.invCount(id) })}</div></div>
         <button data-sell="${id}">${tr('Sell {n} gil', { n: value })}</button></div>`;
     }
     return html;
@@ -1542,7 +1546,7 @@ class Game {
       const wearers = it.slot === 'material' ? [] : s.party.filter(u => u.canEquipItem(id, slot));
       const opts = wearers.map(u => `<option value="${u.id}">${u.name} · ${u.gear[slot] ? ITEMS[u.gear[slot]].name : tr('empty')}</option>`).join('');
       html += `<div class="shop-row inv-row ${wearers.length || it.slot === 'material' ? '' : 'unfit'}" data-item="${id}">
-        <div class="inv-main"><b>${it.name}</b> <small>${this.itemSummary(id)}</small>
+        <div class="inv-main">${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small>
           <div class="fits">${it.slot === 'material' ? `x${this.invCount(id)} · for the forge · ${it.desc}` : `x${this.invCount(id)} · tier ${it.tier}${it.plus ? ` · improved +${it.plus}` : ''}${it.late ? ' · legendary' : ''}${it.city ? ' · ' + CITIES.find(c => c.id === it.city).name : ''}${it.forge ? ' · forged at ' + CITIES.find(c => c.id === it.forge).name : ''} · ${wearers.length ? 'fits ' + [...new Set(wearers.map(u => u.jobData.name))].join(', ') : 'no one in your party can use this yet'}`}</div></div>
         <div class="inv-actions">${wearers.length ? `<select data-wearer="${id}" aria-label="Who to equip ${it.name}">${opts}</select><button data-equip="${id}">${tr('Equip')}</button>` : ''}${it.price ? `<button data-sell="${id}" class="mini">${tr('Sell {n}', { n: Math.floor(it.price / 2) })}</button>` : ''}</div>
       </div>`;
@@ -1559,8 +1563,9 @@ class Game {
     $('bag-worn').innerHTML = `<table class="worn"><thead><tr><th>Unit</th>${Object.values(SLOT_NAMES).map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
       s.party.map(u => `<tr><td><b>${u.name}</b><br><small>${u.jobData.name}</small></td>${Object.keys(SLOT_NAMES).map(slot => {
         const id = u.gear[slot];
-        return `<td>${id ? `<span title="${this.itemSummary(id)}">${ITEMS[id].name}</span>${ITEMS[id].price ? ` <button class="mini" data-unequip="${u.id}:${slot}" title="Back to the baggage">×</button>` : ' <small class="none" title="Starter kit: replace it from the baggage">kit</small>'}` : '<span class="none">—</span>'}</td>`;
+        return `<td>${id ? `${iconHtml(id, 'small')}<span title="${this.itemSummary(id)}">${ITEMS[id].name}</span>${ITEMS[id].price ? ` <button class="mini" data-unequip="${u.id}:${slot}" title="Back to the baggage">×</button>` : ' <small class="none" title="Starter kit: replace it from the baggage">kit</small>'}` : '<span class="none">—</span>'}</td>`;
       }).join('')}</tr>`).join('')}</tbody></table>`;
+    paintIcons($('bag-list')); paintIcons($('bag-worn'));
     $('bag-worn').querySelectorAll('button[data-unequip]').forEach(b => b.onclick = () => {
       const [uid, slot] = b.dataset.unequip.split(':'); const u = s.party.find(x => x.id === uid); if (!u) return;
       this.equip(u, slot, null); audio.sfx('cancel'); this.openBaggage(cat, type);
@@ -1576,7 +1581,7 @@ class Game {
     if (!pool.length) return null;
     const id = pool[Math.floor(Math.random() * pool.length)];
     this.invAdd(id);
-    return ITEMS[id].name;
+    return id;
   }
 
   // ---- story screen ----------------------------------------------------------------------------
@@ -2035,11 +2040,12 @@ class Game {
         ${battleEndReason ? `<p class="res-reason">${battleEndReason}</p>` : ''}
         <div class="res-line">${tr('Experience earned:')} <b>${r.exp}</b></div>
         <div class="res-line">${result === 'victory' ? tr('Gil earned:') : tr('Gil kept:')} <b>${result === 'victory' ? r.gil : 0}</b></div>
-        ${r.loot ? `<div class="res-line res-loot">${tr('Recovered:')} <b>${r.loot}</b></div>` : ''}
-        ${r.materials && Object.keys(r.materials).length ? `<div class="res-line res-loot">${tr('For the forge:')} <b>${Object.entries(r.materials).map(([m, n]) => `${n}× ${ITEMS[m].name}`).join(', ')}</b></div>` : ''}
+        ${r.loot ? `<div class="res-line res-loot">${tr('Recovered:')} <b>${iconHtml(r.loot, 'small')}${ITEMS[r.loot] ? ITEMS[r.loot].name : r.loot}</b></div>` : ''}
+        ${r.materials && Object.keys(r.materials).length ? `<div class="res-line res-loot">${tr('For the forge:')} <b>${Object.entries(r.materials).map(([m, n]) => `${iconHtml(m, 'small')}${n}× ${ITEMS[m].name}`).join(', ')}</b></div>` : ''}
         <div class="res-party"></div>
         ${r.events.length ? `<ul class="res-events">${r.events.map(e => `<li>${e}</li>`).join('')}</ul>` : ''}
         ${result === 'defeat' ? `<p class="res-note">${tr('Your party regroups. Train, learn new abilities, and try again.')}</p>` : ''}`;
+      paintIcons($('results-body'));
       // Everyone who fought, with a mark on those who came out of it stronger.
       const roll = $('results-body').querySelector('.res-party');
       for (const u of fought) {

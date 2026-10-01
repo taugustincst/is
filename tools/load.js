@@ -20,6 +20,7 @@ const NAMES = [
   'itemsForSlot', 'bestGearFor', 'gearScore', 'enemyGearFor', 'passivesOfJob',
   'passiveEquipBonus', 'jobLevelFromJP', 'computeDeployZone', 'facingFromDelta',
   'ELEMENTS', 'AFFINITY', 'affinityOf', 'affinityLabel',
+  'ICON_GLYPHS', 'ICON_SIZE', 'iconKind', 'iconPalette',
   'PETS', 'PET_MAX', 'petNameFor', 'petSkillBond', 'MATERIALS', 'FORGE_ITEMS', 'FORGE_MAX', 'upgradeable', 'forgeMaterial', 'forgeCost', 'salvageYield', 'fieldMaterials', 'sellable', 'itemType',
 ];
 

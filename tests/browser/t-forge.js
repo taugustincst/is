@@ -71,7 +71,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   const shelves = await page.evaluate(() => {
     game.openShop('buy'); const wagon = [...document.querySelectorAll('#shop-list button[data-buy]')].map(b => b.dataset.buy); game.showWorld();
     const stray = wagon.filter(id => ITEMS[id].base || ITEMS[id].forge || ITEMS[id].slot === 'material');
-    const finds = []; for (let i = 0; i < 60; i++) { const n = game.rollLoot(true); const id = Object.keys(ITEMS).find(k => ITEMS[k].name === n); if (ITEMS[id].base || ITEMS[id].forge || ITEMS[id].slot === 'material') finds.push(id); }
+    const finds = []; for (let i = 0; i < 60; i++) { const id = game.rollLoot(true); if (ITEMS[id].base || ITEMS[id].forge || ITEMS[id].slot === 'material') finds.push(id); }
     const foes = []; for (const job of ['knight', 'gunner', 'archer', 'corsair']) for (const id of Object.values(enemyGearFor(job, 24, 1))) if (ITEMS[id].base || ITEMS[id].forge) foes.push(id);
     return { wagon: wagon.length, stray, finds, foes };
   });
