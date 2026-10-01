@@ -469,8 +469,9 @@ class BattleUI {
           const ok = usable && this.battle.canAfford(u, ab);
           const why = !usable ? (u.hasStatus('berserk') ? tr('raging') : tr('silenced')) : ok ? '' : tr('no MP');
           const cost = ab.mp ? `${this.battle.mpCost(u, ab)} MP` : '';
-          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${tr(ab.name)}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
+          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.kind === 'item' ? iconHtml('ab:' + id, 'small') : ''}${tr(ab.name)}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
         }).join('') + `<button data-a="cancel">${tr('Back')}</button>`;
+      paintIcons(this.el.menu);
       this.el.menu.querySelectorAll('button').forEach(b => {
         b.onclick = () => b.dataset.a === 'cancel' ? this.setMode('act') : this.chooseAbility(b.dataset.id);
         b.onmouseenter = () => { if (b.dataset.id) this.showAbilityInfo(ABILITIES[b.dataset.id]); };

@@ -452,6 +452,12 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.10.0**
+
+    An icon for every item: weapons, shields, hats, helms, armour, accessories, the forge's
+    materials and the chemist's potions, shown in the shop, the baggage, the cities, the gear
+    page, the results and the battle menu.
+
 **1.9.0**
 
     Beasts: tame a wild creature below half its health with an Archer's Tame and it fights for

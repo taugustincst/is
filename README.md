@@ -54,6 +54,13 @@ a browser, or serve the folder with any static file server.
   anyone whose system asks for reduced motion — the flourishes, the shake,
   the knockback and the camera pans alike, while the information they carry
   stays.
+- **Every item has a face.** A pixel icon for each kind of thing: fourteen
+  weapon types, shields, hats, helms, crowns, armour, robes, cloaks, rings,
+  boots, gloves, charms and the rest, the forge's materials, and the chemist's
+  potions. Metal ages with the tier, elemental pieces take their tint, a
+  gem shows what a piece is best at, and a forge's +1 to +3 shows as pips.
+  They appear in the shop, the baggage, every city's market and forge, the
+  gear page, the results and the battle's Items menu.
 - **Units wear what you give them.** Weapons, shields, helms, hats and armour
   are drawn on the sprite from the unit's actual equipment. Material shows its
   age through colour — iron, steel, mythril, gold — and elemental gear takes

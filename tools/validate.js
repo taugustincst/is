@@ -55,6 +55,28 @@ for (const [id, it] of Object.entries(g.ITEMS)) {
   if (it.slot === 'weapon' && (!it.wtype || !it.power || !it.range)) bad(`weapon ${id} is missing wtype, power or range`);
   if (it.tier === undefined || it.price === undefined) bad(`item ${id} is missing tier or price`);
 }
+// ---- item icons: every item and every one of the chemist's items draws one ----
+{
+  const gi = load(['data', 'color', 'icons']);
+  for (const [kind, rows] of Object.entries(gi.ICON_GLYPHS)) {
+    if (rows.length > gi.ICON_SIZE) bad(`icon glyph ${kind} has ${rows.length} rows, more than ${gi.ICON_SIZE}`);
+    rows.forEach((r, y) => {
+      if (r.length > gi.ICON_SIZE) bad(`icon glyph ${kind} row ${y} is ${r.length} wide, more than ${gi.ICON_SIZE}`);
+      for (const ch of r) if (!'.xmMhwWlLcCgGyYbsfF'.includes(ch)) bad(`icon glyph ${kind} row ${y} uses unknown letter '${ch}'`);
+    });
+    if (!rows.some(r => /[^.]/.test(r))) bad(`icon glyph ${kind} is blank`);
+  }
+  for (const id of Object.keys(g.ITEMS)) {
+    const kind = gi.iconKind(id);
+    if (!kind || !gi.ICON_GLYPHS[kind]) bad(`item ${id} has no icon (kind ${kind})`);
+  }
+  for (const [id, ab] of Object.entries(g.ABILITIES)) {
+    if (ab.kind !== 'item') continue;
+    const kind = gi.iconKind('ab:' + id);
+    if (!kind || !gi.ICON_GLYPHS[kind]) bad(`the chemist's ${id} has no icon`);
+  }
+}
+
 // ---- beasts ----
 for (const [id, p] of Object.entries(g.PETS)) {
   if (!g.JOBS[id] || g.JOBS[id].kind !== 'monster') bad(`beast ${id} is not a monster job`);
