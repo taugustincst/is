@@ -4,7 +4,7 @@
    Squire's skillset spelled right, the fallen marked on the results screen,
    volume levels that stick, and credits. No native dialog is used anywhere:
    they are refused inside a sandboxed frame, which is how Retreat went dead. */
-const { BASE, chromePath } = require('./lib');
+const { BASE, chromePath, OUT: S } = require('./lib');
 const { chromium } = require('playwright-core');
 let fails = 0;
 const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [${d}]` : '')); if (!c) fails++; };
@@ -152,7 +152,8 @@ async function toBattle(page) {
   await page.click('#btn-retreat');
   ok('QA-001: the phone\'s Back answers no', await page.evaluate(() => handleBack() && $('ask').hidden && game.battle && !game.battle.over));
   // QA-009: someone falls; Retreat, and the defeat screen shows them fallen.
-  const fallen = await page.evaluate(() => { const b = game.battle; const u = b.units.find(x => x.team === 'player' && x.alive && x !== game.ui.turn.unit); u.hp = 0; b.onUnitKO(u); return u.name; });
+  // One falls and is carried from the field, so the results have both a fallen pose and a crystal to show.
+  const fallen = await page.evaluate(() => { const b = game.battle; const u = b.units.find(x => x.team === 'player' && x.alive && x !== game.ui.turn.unit); u.hp = 0; b.onUnitKO(u); u.carriedOff = true; return u.name; });
   await page.click('#btn-retreat'); await page.click('#ask-yes');
   await page.waitForSelector('#screen-results.active', { timeout: 20000 });
   const res = await page.evaluate((name) => {
@@ -162,6 +163,15 @@ async function toBattle(page) {
   }, fallen);
   ok('QA-001: "Retreat" leaves the battle as a defeat', res.title === 'Defeat...', res.title);
   ok('QA-009: a unit that fell is shown fallen on the results screen', res.mine === true && res.down.length === 1 && / · fell$/.test(res.down[0]), JSON.stringify(res));
+  // The fallen figure lies flat at the foot of its tile, drained of colour, with a crystal where it was carried off; the standing ones stand.
+  const pose = await page.evaluate((name) => {
+    const rows = [...document.querySelectorAll('.res-unit')];
+    const read = (r) => { const cv = r.querySelector('canvas'), c = cv.getContext('2d'), d = c.getImageData(0, 0, cv.width, cv.height).data; let top = 0, bottom = 0, cyan = 0, colour = 0; for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) { const i = (y * cv.width + x) * 4; if (!d[i + 3]) continue; if (y < cv.height * 0.3) top++; else bottom++; if (d[i] < 180 && d[i + 1] > 200 && d[i + 2] > 200) cyan++; if (Math.abs(d[i] - d[i + 1]) > 24 || Math.abs(d[i + 1] - d[i + 2]) > 24) colour++; } return { top, bottom, cyan, colour }; };
+    const down = rows.find(r => r.classList.contains('down')), up = rows.find(r => !r.classList.contains('down'));
+    return { down: read(down), gone: down.classList.contains('gone'), up: read(up) };
+  }, fallen);
+  ok('QA-009: the fallen lie flat and grey with a crystal, and the standing stand in colour', pose.down.top === 0 && pose.down.bottom > 40 && pose.down.cyan > 10 && pose.gone && pose.up.top > 20 && pose.up.colour > 50, JSON.stringify(pose));
+  await page.screenshot({ path: `${S}/qa-results-fallen.png` });
   // QA-005: nothing about battle speed follows the party out of the battle.
   const after = await page.evaluate(() => ({ toast: $('toast').textContent, speedShown: $('btn-speed').offsetParent !== null }));
   ok('QA-005: no battle-speed message or control is left on the results screen', !/speed/i.test(after.toast) && !after.speedShown, JSON.stringify(after));
@@ -182,7 +192,7 @@ async function toBattle(page) {
     return { caps, note, a: a.name, b: b.name, from, to: a.level };
   });
   ok('N3: a level-up reads as from and to, with no stray mark', named.caps[0] === `${named.a} · Lv${named.from}→${named.to}` && named.caps[1] === `${named.b} · Lv${(await page.evaluate(() => game.state.party[1].level))}` && !named.caps.some(c => / !|↑/.test(c)), JSON.stringify(named.caps));
-  ok('N2: the JP note names who has JP to spend', named.note.includes(`✦ ${named.a} and ${named.b} have JP enough`), named.note);
+  ok('N2: the JP note names who has JP to spend', named.note.includes(`✦ ${named.a} and ${named.b} have enough JP`), named.note);
   await page.click('#btn-results');
 
   ok('no native dialog was raised anywhere', native === 0, `${native} raised`);

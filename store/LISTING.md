@@ -452,6 +452,12 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.11.1**
+
+    The results screen shows the fallen as they lay, with a crystal for anyone carried from the
+    field; a waiting update is taken at once at the title screen when no game is open; and the
+    JP note reads as it should.
+
 **1.11.0**
 
     Every job learns more: two or three new skills for each of the thirty-five trades, from a

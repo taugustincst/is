@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.11.0';
+const GAME_VERSION = '1.11.1';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -86,6 +86,14 @@ class Game {
     const w = window.__updateWaiting;
     if (!w || this._updateAsked || (this.screen !== 'world' && this.screen !== 'title')) return;
     this._updateAsked = true;
+    // At the title with no game open there is nothing to lose, so the new
+    // build is taken at once rather than left waiting behind a question a
+    // player may put off for weeks, running a build with bugs since fixed.
+    if (this.screen === 'title' && !this.state) {
+      window.__reloadOnControl = true;
+      w.postMessage('skipWaiting');
+      return;
+    }
     if (await this.ask(tr('A new version of the game is ready. Reload into it now? Your progress is saved first.'), { yes: tr('Reload now'), no: tr('Later') })) {
       if (this.state) this.saveGame();
       window.__reloadOnControl = true;
@@ -1964,6 +1972,8 @@ class Game {
     // Who ended it on the ground, taken now: everyone is revived below, before
     // the results screen draws them.
     const fell = new Set(fought.filter(u => !u.alive || u.carriedOff));
+    // And who was carried from the field, leaving a crystal: taken now too.
+    const gone = new Set(fought.filter(u => u.carriedOff));
     for (const u of fought) { u.record.battles++; if (result === 'victory') u.record.wins++; }
     this.battle = null;
     const r0 = battle.rewards;
@@ -1997,7 +2007,7 @@ class Game {
     } else if (battle.tamed.length) {
       r.events.push(`${battle.tamed.map(t => t.name).join(', ')} slip${battle.tamed.length === 1 ? 's' : ''} away in the confusion.`);
     }
-    const again = await this.results(result, r, battle.endReason, fought, fell);
+    const again = await this.results(result, r, battle.endReason, fought, fell, gone);
     return again === 'retry' ? 'retry' : result;
   }
 
@@ -2031,7 +2041,7 @@ class Game {
     this.ui.abort();
   }
 
-  results(result, r, battleEndReason, fought = [], fell = new Set()) {
+  results(result, r, battleEndReason, fought = [], fell = new Set(), gone = new Set()) {
     return new Promise(resolve => {
       audio.sfx(result === 'victory' ? 'victory' : 'defeat');
       $('results-title').textContent = result === 'victory' ? tr('Victory!') : tr('Defeat...');
@@ -2051,11 +2061,11 @@ class Game {
       for (const u of fought) {
         const up = r.events.some(ev => ev.startsWith(u.name + ' ') && /level/i.test(ev));
         const item = document.createElement('div');
-        const down = fell.has(u);
-        item.className = 'res-unit' + (up ? ' up' : '') + (down ? ' down' : '');
-        if (down) item.title = `${u.name} fell in this battle.`;
+        const down = fell.has(u), carried = gone.has(u);
+        item.className = 'res-unit' + (up ? ' up' : '') + (down ? ' down' : '') + (carried ? ' gone' : '');
+        if (down) item.title = carried ? `${u.name} fell and was carried from the field. A crystal remained.` : `${u.name} fell in this battle.`;
         const cv = document.createElement('canvas');
-        paintUnitSprite(cv, u, 2);
+        paintUnitSprite(cv, u, 2, down, carried);
         item.appendChild(cv);
         const cap = document.createElement('span');
         const from = r.levelFrom ? r.levelFrom.get(u) : null;
@@ -2076,7 +2086,7 @@ class Game {
         note.className = 'res-note';
         const who = learners.length === 1 ? learners[0]
           : tr('{a} and {b}', { a: learners.slice(0, -1).join(', '), b: learners[learners.length - 1] });
-        note.textContent = `✦ ${learners.length === 1 ? tr('{who} has JP enough for something new. Spend it in Formation.', { who }) : tr('{who} have JP enough for something new. Spend it in Formation.', { who })}`;
+        note.textContent = `✦ ${learners.length === 1 ? tr('{who} has enough JP for something new. Spend it in Formation.', { who }) : tr('{who} have enough JP for something new. Spend it in Formation.', { who })}`;
         roll.after(note);
       }
       $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };
