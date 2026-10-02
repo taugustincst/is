@@ -51,7 +51,7 @@ const CAMPAIGN = [
     outro: [
       'In the mill, a young woman hides among the sacks with a satchel of potions and a look of pure defiance.',
       '"Lysa," she says. "I was the village apothecary. There is no village any more, so I suppose I am yours."',
-      'Lysa the Chemist joins the party!',
+      'Lysa the Apothecary joins the party!',
     ],
   },
   {
@@ -130,7 +130,7 @@ const CAMPAIGN = [
     outro: [
       'The garrison priest lowers her staff. "Brannoc rode for Thornwall at dawn. He fears you, Aldric. He fears what your father knew."',
       '"Then I will heal your wounded on the way. I am done taking his orders."',
-      'Tamsin the White Mage joins the party!',
+      'Tamsin the Cleric joins the party!',
     ],
   },
   {

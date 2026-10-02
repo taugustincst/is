@@ -66,7 +66,7 @@ const mk = (n, job, lvl, opts = {}) => { const u = new g.Unit(Object.assign({ na
   healer.x = 1; healer.y = 1; sick.x = 1; sick.y = 2;
   b.units = [healer, sick, foe];
   await b.applyAbility(healer, g.ABILITIES.esuna, sick.x, sick.y);
-  ok('Esuna lifts every affliction', Object.keys(sick.statuses).length === 0, JSON.stringify(Object.keys(sick.statuses)));
+  ok('Cleanse lifts every affliction', Object.keys(sick.statuses).length === 0, JSON.stringify(Object.keys(sick.statuses)));
 
   // The AI should reach for Silence against a caster
   const enemyMage = mk('Foe', 'blackMage', 8, { team: 'enemy' });

@@ -1,6 +1,6 @@
 const { BASE, ALT } = require('./lib');
 /* This round through the real screens: errands from camp, crystals on the
-   field, JP on the results roll-call, and the field's ambience. */
+   field, SP on the results roll-call, and the field's ambience. */
 const { chromePath } = require('./lib');
 const { chromium } = require('playwright-core');
 const S = require('./lib').OUT;
@@ -73,17 +73,17 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.waitForTimeout(300);
   await page.evaluate(() => { const b = game.battle; if (!b.crystals.length) { const u = b.units.find(x => x.team === 'enemy' && x.alive); b.crystals.push({ x: u.x, y: u.y + 1, from: 'Test', team: 'enemy', t0: 0 }); } });
   await page.screenshot({ path: `${S}/crystal.png` });
-  // ---- finish on Auto at speed; results carry JP
+  // ---- finish on Auto at speed; results carry SP
   await page.evaluate(() => { game.setPace(3); game.ui.setAuto(true); });
   await page.waitForSelector('#screen-results.active', { timeout: 600000 });
   const res = await page.evaluate(() => ({ jp: [...document.querySelectorAll('.res-jp')].map(e => e.textContent), note: !!document.querySelector('#results-body .res-note'), amb: audio.ambient }));
-  ok('the roll-call shows JP earned per unit', res.jp.length === 3 && res.jp.some(t => /\+\d+ JP/.test(t)), res.jp.join(' | '));
+  ok('the roll-call shows SP earned per unit', res.jp.length === 3 && res.jp.some(t => /\+\d+ SP/.test(t)), res.jp.join(' | '));
   ok('the ambience stops with the battle', res.amb == null);
   await page.screenshot({ path: `${S}/results-jp.png` });
   await page.click('#btn-results'); await page.waitForSelector('#screen-world.active');
   const back = await page.evaluate(() => ({ active: game.state.errands.active.length, reports: game.state.errands.reports, gil: game.state.gil, jp: Object.values(game.state.party.find(x => x.name === 'Mira').jpTotal).reduce((a, b) => a + b, 0), shown: !!document.querySelector('.errand.report') }));
   ok('the errand comes due after the battle and the report waits at camp', back.active === 0 && back.reports.length === 1 && back.shown && /Mira returns/.test(back.reports[0]), back.reports[0]);
-  ok('the errand pays gil and JP', back.jp > mira.jp, `JP ${mira.jp} -> ${back.jp}, gil ${gil0} -> ${back.gil}`);
+  ok('the errand pays marks and SP', back.jp > mira.jp, `SP ${mira.jp} -> ${back.jp}, marks ${gil0} -> ${back.gil}`);
   await page.screenshot({ path: `${S}/errands-report.png`, fullPage: true });
   // ---- every ambience renders at a sane level, and stops clean
   const levels = await page.evaluate(async () => {

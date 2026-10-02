@@ -1,6 +1,6 @@
 /* ==========================================================================
    Item icons: a small pixel glyph for every piece of gear, every material
-   and every one of the chemist's items, drawn on a canvas at paint time.
+   and every one of the apothecary's items, drawn on a canvas at paint time.
 
    A glyph is a 16×16 grid of letters, one per kind of thing (a sword, a
    bow, a hat with a feather, a ring, an ingot, a potion), and a palette
@@ -10,7 +10,7 @@
    So two swords read as swords, and the better one looks it.
 
    paintIcon(canvas, key, scale) draws one. A key is an item id, or
-   'ab:<ability id>' for the chemist's items. iconHtml(key) gives a canvas
+   'ab:<ability id>' for the apothecary's items. iconHtml(key) gives a canvas
    tag to drop into a row; paintIcons(root) paints every unpainted one
    under root. iconKind(key) names the glyph a key draws, so a check can
    prove every item has one. Nothing here touches the document until a
@@ -647,7 +647,7 @@ const ICON_GLYPHS = {
     '...xMMMMMMMx....',
     '....xxxxxxx.....',
   ],
-  // ---- the chemist's items ----
+  // ---- the apothecary's items ----
   potion: [
     '......xxxx......',
     '......xssx......',
@@ -796,7 +796,7 @@ const ICON_STAT_ACCENT = { pa: '#e05a4a', ma: '#b07cf0', spd: '#f0d060', hp: '#7
 // Cloth deepens with the tier: homespun, then dyed, then the fine stuff.
 const ICON_CLOTHS = ['#8a6a48', '#4a6a9a', '#6a4a8a', '#9a3a3a', '#3a7a6a', '#c8b060', '#e8e0d0', '#d8c8f0'];
 const ICON_FIXED = { x: '#1a1a24', w: '#8a5a32', W: '#5a3a1e', l: '#9a6a3a', L: '#6a4424', s: '#e8e4d8', b: '#c89a3a', y: '#d8b040', Y: '#9a7a20' };
-// The chemist's items, each its own colour of liquid.
+// The apothecary's items, each its own colour of liquid.
 const ICON_LIQUIDS = { potion: '#4a8ae8', hipotion: '#3a6ae0', xpotion: '#2a4ad0', ether: '#9a6ae8', antidote: '#5ac85a', remedy: '#e8c040', phoenix: '#f08a3a', herbs: '#5ac85a' };
 const ICON_MATERIAL_KIND = { ironIngot: 'ingot', steelIngot: 'ingot', oakHeartwood: 'wood', silkBolt: 'silk', brassFitting: 'brass', emberGlass: 'glass', starIron: 'star' };
 const ICON_ABILITY_KIND = { potion: 'potion', hiPotion: 'hipotion', xPotion: 'xpotion', ether: 'ether', antidote: 'antidote', remedy: 'remedy', phoenixDown: 'phoenix', echoHerbs: 'herbs' };
@@ -833,7 +833,7 @@ function iconAccessoryKind(it) {
   return 'charm'; // stones, pearls, charms and anything else that is held
 }
 
-// The glyph a key draws: an item id, or 'ab:<ability>' for the chemist's
+// The glyph a key draws: an item id, or 'ab:<ability>' for the apothecary's
 // items. Null when there is nothing to draw, which the validator forbids.
 function iconKind(key) {
   if (typeof key !== 'string') return null;

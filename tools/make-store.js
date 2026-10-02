@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-/* Renders the Google Play listing assets into store/: the feature graphic,
-   phone and tablet screenshots taken from the running game, and the icon.
+/* Renders the store assets into store/: the Google Play feature graphic,
+   phone and tablet screenshots taken from the running game, Steam's capsules
+   at every size the store asks for, and the icon.
 
    This is the one tool in the project with a dependency: it drives a headless
    Chromium through playwright-core, because the screenshots have to be of the
@@ -84,7 +85,7 @@ async function toMenu(page) {
 }
 // A company that has fought its way to `chapter`: levelled, in advanced
 // jobs, wearing what the wagon sells there. The screenshots show the game
-// as it is a few hours in, not the first field with four squires on it.
+// as it is a few hours in, not the first field with four footmen on it.
 async function midCampaign(page, chapter) {
   await page.evaluate((ch) => {
     const s = game.state;
@@ -238,7 +239,34 @@ async function attackPreview(page) {
     await ctx.close();
   }
 
-  // 4. The 512x512 icon is the one the web app already uses.
+  // 4. Steam's capsules, from tools/store/capsule.html at each size the
+  //    store asks for, and the library logo on a transparent ground. The
+  //    client icon (.ico) and the community icon are cut from the 512 icon.
+  {
+    const page = await browser.newPage({ viewport: { width: 920, height: 430 }, deviceScaleFactor: 1 });
+    const capsules = [
+      ['steam-header-920x430.jpg', 920, 430, 'header', 'jpeg'],
+      ['steam-small-462x174.jpg', 462, 174, 'header', 'jpeg'],
+      ['steam-main-1232x706.jpg', 1232, 706, 'header', 'jpeg'],
+      ['steam-vertical-748x896.jpg', 748, 896, 'vertical', 'jpeg'],
+      ['steam-library-600x900.jpg', 600, 900, 'vertical', 'jpeg'],
+      ['steam-library-header-920x430.jpg', 920, 430, 'header', 'jpeg'],
+      ['steam-hero-3840x1240.jpg', 3840, 1240, 'hero', 'jpeg'],
+      ['steam-logo-1280x720.png', 1280, 720, 'logo', 'png'],
+      ['steam-community-184x184.jpg', 184, 184, 'icon', 'jpeg'],
+    ];
+    for (const [name, w, h, kind, type] of capsules) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto(`${base}/tools/store/capsule.html?w=${w}&h=${h}&kind=${kind}`);
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(350);
+      await page.screenshot({ path: path.join(OUT, name), type, ...(type === 'png' ? { omitBackground: true } : { quality: 92 }) });
+      written.push(name);
+    }
+    await page.close();
+  }
+
+  // 5. The 512x512 icon is the one the web app already uses.
   fs.copyFileSync(path.join(ROOT, 'icons/icon-512.png'), path.join(OUT, 'icon-512.png'));
   written.push('icon-512.png');
 

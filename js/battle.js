@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Battle engine: Charge Time ticks, turns, actions, damage resolution,
+   Battle engine: Tempo ticks, turns, actions, damage resolution,
    statuses, experience and enemy AI. Presentation hooks are injected via
    `hooks` so the engine stays independent from the renderer.
    ========================================================================== */
@@ -125,7 +125,7 @@ class Battle {
       b.objective.leader = playerUnits.find(u => u.leader) || playerUnits[0];
       b.requiredUnit = b.objective.leader; // the deployment phase insists on this one
     }
-    // Random initial CT so the opening order isn't purely by speed.
+    // Random initial Tempo so the opening order isn't purely by speed.
     for (const u of b.units) u.ct = Math.floor(Math.random() * 30);
     b.crystals = []; // left where the fallen were carried off; taken by whoever stands there
     return b;
@@ -311,9 +311,9 @@ class Battle {
         else if (eff.type === 'status') p.notes.push(t.wardsOff(eff.status) ? `warded ${STATUSES[eff.status].name}` : `${STATUSES[eff.status].name} ${eff.hit}%`);
         else if (eff.type === 'statmod') p.notes.push(`${eff.stat.toUpperCase()} ${eff.amount > 0 ? '+' : ''}${eff.amount}`);
         else if (eff.type === 'cure') p.notes.push('cure');
-        else if (eff.type === 'gil') p.notes.push(`steal ${t.level * (user.hasPassive('freebooter') ? 40 : 20)} gil`);
-        else if (eff.type === 'ctmod') p.notes.push(`CT ${eff.amount}`);
-        else if (eff.type === 'ctset') p.notes.push(`CT = ${eff.amount}`);
+        else if (eff.type === 'gil') p.notes.push(`steal ${t.level * (user.hasPassive('freebooter') ? 40 : 20)} marks`);
+        else if (eff.type === 'ctmod') p.notes.push(`Tempo ${eff.amount}`);
+        else if (eff.type === 'ctset') p.notes.push(`Tempo = ${eff.amount}`);
         else if (eff.type === 'tame') {
           const c = this.tameChance(user, t);
           p.notes.push(c > 0 ? `tame ${c}%` : !PETS[t.job] || t.boss || t.pet ? 'untameable' : 'too strong yet');
@@ -563,19 +563,19 @@ class Battle {
         if (v <= 0) { this.log(`${t.name} has nothing left to steal.`, 'miss'); if (this.hooks.showFloat) this.hooks.showFloat(t, 'Empty', '#ddd'); return false; }
         t.gilStolen = (t.gilStolen || 0) + v;
         this.rewards.gil += user.team === 'player' ? v : 0;
-        this.log(`${user.name} steals ${v} gil from ${t.name}!`, 'heal');
-        if (this.hooks.showFloat) this.hooks.showFloat(t, `-${v} gil`, '#ffe97c');
+        this.log(`${user.name} steals ${v} marks from ${t.name}!`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(t, `-${v} marks`, '#ffe97c');
         return true;
       }
       case 'ctmod': {
         t.ct = Math.max(0, t.ct + eff.amount);
-        if (this.hooks.showFloat) this.hooks.showFloat(t, `CT ${eff.amount}`, '#c2c2c2');
+        if (this.hooks.showFloat) this.hooks.showFloat(t, `Tempo ${eff.amount}`, '#c2c2c2');
         return true;
       }
       case 'ctset': {
         t.ct = eff.amount;
-        this.log(`${t.name}'s Charge Time is set to ${eff.amount}!`, 'heal');
-        if (this.hooks.showFloat) this.hooks.showFloat(t, 'Quick!', '#ffe97c');
+        this.log(`${t.name}'s Tempo is set to ${eff.amount}!`, 'heal');
+        if (this.hooks.showFloat) this.hooks.showFloat(t, 'Spur!', '#ffe97c');
         return true;
       }
       case 'tame': {
@@ -647,7 +647,7 @@ class Battle {
     }
     if (target.hasPassive('lastStand') && target.hp < target.maxHp / 3 && !(target.hasStatus('protect') && target.hasStatus('shell'))) {
       target.addStatus('protect'); target.addStatus('shell');
-      this.log(`${target.name} makes a last stand: Protect and Shell.`, 'heal');
+      this.log(`${target.name} makes a last stand: Protect and Barrier.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(target, 'Last Stand', '#9ef0ff');
     }
     if (target.hasPassive('overcharge') && this.addMod(target, 'spd', 1)) {
@@ -791,14 +791,14 @@ class Battle {
     if (user.team !== 'player') return;
     const exp = 28 + Math.max(0, (t.level - user.level) * 4);
     for (const ev of user.gainExp(exp)) { this.log(ev, 'lvl'); this.rewards.events.push(ev); }
-    // A job level, or a beast's bond, can turn on the JP of a kill as well.
+    // A job level, or a beast's bond, can turn on the SP of a kill as well.
     const jpEv = user.gainJP(12);
     if (jpEv) { this.log(jpEv, 'lvl'); this.rewards.events.push(jpEv); }
     this.rewards.exp += exp;
     this.rewards.gil += 30 + t.level * 14;
   }
 
-  // ---- charge-time loop -------------------------------------------------------
+  // ---- tempo loop -------------------------------------------------------
   // A one-line statement of what the player has to do, with live progress.
   objectiveText() {
     const o = this.objective;
@@ -850,7 +850,7 @@ class Battle {
 
   // Simulates upcoming turns for the turn-order display.
   forecast(n = 8) {
-    // The acting unit's CT resets after its turn, so forecast it from zero.
+    // The acting unit's Tempo resets after its turn, so forecast it from zero.
     const sim = this.units.filter(u => this.onField(u) && !u.airborne)
       .map(u => ({ u, ct: u === this.active ? 0 : u.ct, spd: u.alive ? u.ctSpeed() : Math.max(1, u.baseStats().spd) }));
     const pend = this.pending.map(p => ({ p, ct: p.ct }));
@@ -902,7 +902,7 @@ class Battle {
         await this.applyAbility(p.unit, p.ability, p.tx, p.ty);
         if (this.checkEnd()) return this.result;
       }
-      // Units gain CT; tick down statuses. The fallen keep a slot in the order
+      // Units gain Tempo; tick down statuses. The fallen keep a slot in the order
       // so their countdown runs.
       for (const u of this.units) {
         if (!this.onField(u)) continue;
@@ -914,7 +914,7 @@ class Battle {
         .sort((a, b) => b.ct - a.ct || b.spd - a.spd);
       for (const u of acting) {
         if (this.over || !this.onField(u)) continue;
-        // A unit felled earlier this same tick had its CT zeroed by the fall;
+        // A unit felled earlier this same tick had its Tempo zeroed by the fall;
         // its countdown starts on its next due turn, not this one.
         if (!u.alive) { if (u.ct >= 100) await this.tickDown(u); continue; }
         // Re-check now rather than trusting the snapshot: a unit revived or
@@ -962,7 +962,7 @@ class Battle {
     if (unit.hasStatus('berserk')) await this.berserkTurn(unit);
     else if (unit.team === 'player') await this.hooks.awaitPlayerTurn(unit);
     else await this.aiTurn(unit);
-    // End of turn: CT reset with a bonus for skipped actions.
+    // End of turn: Tempo reset with a bonus for skipped actions.
     unit.ct = 0;
     if (!unit.turnFlags.moved) unit.ct += 20;
     if (!unit.turnFlags.acted) unit.ct += 20;
@@ -994,8 +994,8 @@ class Battle {
       // A field holds only so much loose coin: eight finds a battle.
       unit.gilFound = (unit.gilFound || 0) + 1;
       if (unit.team === 'player') this.rewards.gil += 25;
-      this.log(`${unit.name} turns up 25 gil.`, 'heal');
-      if (this.hooks.showFloat) this.hooks.showFloat(unit, '+25 gil', '#ffe97c');
+      this.log(`${unit.name} turns up 25 marks.`, 'heal');
+      if (this.hooks.showFloat) this.hooks.showFloat(unit, '+25 marks', '#ffe97c');
     }
     if (this.hooks.animateMove) await this.hooks.animateMove(unit, path);
     const last = path[path.length - 1], prev = path[path.length - 2];
@@ -1089,6 +1089,7 @@ class Battle {
       const t = p.unit;
       if (ab.suicide && t === unit) continue;
       const enemy = t.team !== unit.team;
+      let good;
       const hitF = p.hit / 100;
       if (p.dmg) {
         const dmg = Math.min(p.dmg, t.hp);
@@ -1110,7 +1111,7 @@ class Battle {
           const bonus = id === 'silence' ? (casterly ? 20 : -10) : id === 'blind' ? (casterly ? -5 : 15) : 0;
           score += (enemy ? 25 + bonus : -25);
         }
-        else if (/Haste|Protect|Shell|Regen|Reraise/.test(n)) { if (!t.hasStatus(n.split(' ')[0].toLowerCase())) score += (enemy ? -1 : 1) * (n.startsWith('Reraise') ? 14 : 20); }
+        else if ((good = ['haste', 'protect', 'shell', 'regen', 'reraise'].find(id => n.startsWith(STATUSES[id].name)))) { if (!t.hasStatus(good)) score += (enemy ? -1 : 1) * (good === 'reraise' ? 14 : 20); }
         else if (/^(PA|MA|SPD) \+/.test(n)) {
           // Worth more the bigger the rise, and less the more of it the unit already carries.
           const [stat, amt] = n.split(' '); const v = +amt.slice(1);
@@ -1125,7 +1126,7 @@ class Battle {
         else if (n.startsWith('slay')) score += enemy ? Math.min(45, t.hp * 0.35) : -60;
         else if (/EVADE \+|MOVE \+/.test(n)) score += enemy ? -6 : 6;
         else if (n.startsWith('drain')) score += enemy ? 5 : 0;
-        else if (n.startsWith('CT =')) score += !enemy ? 30 : 0;
+        else if (n.startsWith('Tempo =')) score += !enemy ? 30 : 0;
         else if (n === 'no effect') score -= 30;
         else if (n === 'absorbs') score += enemy ? -50 : 20;
         else if (n === 'immune') score += enemy ? -25 : 0;

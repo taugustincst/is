@@ -62,7 +62,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
     const steal = b.predict(co, ABILITIES.plunder, dk.x, dk.y).map(p => p.notes.join(',')).join(';');
     return { water: affinityOf(dk, 'water'), thunder: affinityOf(dk, 'thunder'), plain, base, hunted, steal, level: dk.level };
   });
-  ok('the drowned drink water and burn in thunder; Monster Hunter and Freebooter tell', rules.water < 0 && rules.thunder > 1 && rules.plain > 0 && rules.hunted >= Math.floor(rules.base * 1.4) && rules.steal.includes(`steal ${rules.level * 40} gil`), JSON.stringify(rules));
+  ok('the drowned drink water and burn in thunder; Monster Hunter and Freebooter tell', rules.water < 0 && rules.thunder > 1 && rules.plain > 0 && rules.hunted >= Math.floor(rules.base * 1.4) && rules.steal.includes(`steal ${rules.level * 40} marks`), JSON.stringify(rules));
   // A water spell draws its wave and plays its sound.
   const wave = await page.evaluate(async () => { const tc = game.battle.units.find(u => u.job === 'tidecaller' && u.team === 'player'); const t = game.battle.units.find(u => u.team === 'enemy'); const before = game.renderer.fx.length; game.renderer.landFx(ABILITIES.brine, [{ x: t.x, y: t.y }]); await new Promise(r => setTimeout(r, 120)); return { spawned: game.renderer.fx.length > before, kinds: game.renderer.fx.map(f => f.kind).join(','), sound: !!COMBAT_SFX['el-water'] }; });
   ok('water arrives as a wave with its own sound', wave.spawned && /wave/.test(wave.kinds) && wave.sound, JSON.stringify(wave));

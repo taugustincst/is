@@ -4,12 +4,12 @@ const S = require('./lib').OUT;
   const { browser, page, errors } = await open();
   await page.click('#btn-new');
   await page.waitForSelector('#screen-world.active');
-  // Give JP so passives can be learned through the real UI.
+  // Give SP so passives can be learned through the real UI.
   await page.evaluate(() => { const u = game.state.party[0]; u.jp.squire = 900; u.jpTotal.squire = 900; });
   await page.click('#btn-formation');
   await page.waitForSelector('#screen-formation.active');
   const rows = await page.evaluate(() => [...document.querySelectorAll('button[data-learn]')].map(b => b.dataset.learn));
-  console.log('learnable in Squire:', rows.join(','));
+  console.log('learnable in Footman:', rows.join(','));
   await page.evaluate(() => document.querySelector('button[data-learn="defend"]').click());
   await page.waitForTimeout(150);
   console.log('learned defend:', await page.evaluate(() => !!game.state.party[0].learned.defend), '| jp left', await page.evaluate(() => game.state.party[0].jp.squire));

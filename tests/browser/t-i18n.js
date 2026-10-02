@@ -13,7 +13,7 @@ const skipStory = async (page) => { for (let i = 0; i < 12; i++) { const t = awa
   ok('an English browser gets English', en.lang === 'en' && en.btn === 'New Game' && en.sel === 'en', JSON.stringify(en));
 
   // A Japanese phone: the title is Japanese before anything is chosen.
-  const jaCtx = await browser.newContext({ locale: 'ja-JP', viewport: { width: 390, height: 844 } });
+  const jaCtx = await browser.newContext({ locale: 'ja-SP', viewport: { width: 390, height: 844 } });
   const ja = await jaCtx.newPage();
   await ja.goto(BASE + '/index.html'); await ja.waitForSelector('#screen-title.active');
   const jaT = await ja.evaluate(() => ({ lang: document.documentElement.lang, btn: $('btn-new').textContent, sub: document.querySelector('.title-sub').textContent, sel: $('title-lang').value }));
@@ -36,7 +36,7 @@ const skipStory = async (page) => { for (let i = 0; i < 12; i++) { const t = awa
   ok('Options offers every language, with the current one marked', picker.n === 6 && picker.sel === 'de' && !picker.hidden, JSON.stringify(picker));
   await page.click('#world-lang button[data-lang="fr"]');
   const fr = await page.evaluate(() => ({ battle: $('btn-battle').textContent, tabs: [...document.querySelectorAll('#camp-tabs button')].map(b => b.textContent), title: $('title-lang').value, diff: [...document.querySelectorAll('#world-difficulty button')].map(b => b.textContent), stored: localStorage.getItem('elderon.lang') }));
-  ok('French from Options, at once', fr.battle === 'Marcher au combat' && fr.tabs.join() === 'Route,Compagnie,Villes,Options' && fr.title === 'fr' && fr.diff.join() === 'Écuyer,Chevalier,Paladin' && fr.stored === 'fr', JSON.stringify(fr));
+  ok('French from Options, at once', fr.battle === 'Marcher au combat' && fr.tabs.join() === 'Route,Compagnie,Villes,Options' && fr.title === 'fr' && fr.diff.join() === 'Fantassin,Chevalier,Paladin' && fr.stored === 'fr', JSON.stringify(fr));
   const shop = await page.evaluate(() => { game.openShop('buy'); return { tabs: [...document.querySelectorAll('#shop-tabs button')].map(b => b.textContent), h2: document.querySelector('#screen-shop h2').textContent, h3: document.querySelector('#shop-list h3').textContent, item: document.querySelector('#shop-list .shop-row b').textContent }; });
   ok('the shop is French but the wares keep their names', shop.tabs.join() === 'Acheter,Vendre' && shop.h2 === 'Chariot du marchand' && shop.h3 === 'Armes' && /^[A-Za-z' ]+$/.test(shop.item), JSON.stringify(shop));
   await page.click('#btn-shop-back'); await page.waitForSelector('#screen-world.active');
@@ -70,15 +70,15 @@ const skipStory = async (page) => { for (let i = 0; i < 12; i++) { const t = awa
   await page.evaluate(() => { game.battle.over = true; game.battle.result = 'defeat'; game.ui.abort(); });
   await page.waitForSelector('#screen-results.active', { timeout: 20000 });
   const res = await page.evaluate(() => ({ title: $('results-title').textContent, body: $('results-body').textContent, btn: $('btn-results').textContent }));
-  ok('the results screen is Spanish', res.title === 'Derrota...' && /Experiencia obtenida:/.test(res.body) && /Gil conservado:/.test(res.body) && res.btn === 'Continuar', JSON.stringify(res));
+  ok('the results screen is Spanish', res.title === 'Derrota...' && /Experiencia obtenida:/.test(res.body) && /Marcos conservados:/.test(res.body) && res.btn === 'Continuar', JSON.stringify(res));
   await page.click('#btn-results'); await page.waitForSelector('#screen-world.active', { timeout: 20000 });
   await page.click('#btn-save');
   ok('the save toast is Spanish', /Partida guardada/.test(await page.evaluate(() => $('toast').textContent)));
   await page.evaluate(() => { game.showScreen('title'); game.openSlots('load'); });
   const slot = await page.evaluate(() => ({ title: $('slots-title').textContent, first: document.querySelector('#slots-list .slot').textContent, empty: document.querySelector('#slots-list .slot.empty').textContent, buttons: [...document.querySelectorAll('#slots-list .slot:not(.empty) button')].map(b => b.textContent) }));
-  ok('the slot list is Spanish, chapter and all', slot.title === 'Cargar una partida' && /Ranura 1/.test(slot.first) && /Acto 1 · Capítulo 1/.test(slot.first) && /soldados · Nv \d+ · \d+ gil/.test(slot.first) && /Ranura 2vacía/.test(slot.empty) && slot.buttons.join() === 'Cargar,Exportar,Borrar', JSON.stringify(slot));
+  ok('the slot list is Spanish, chapter and all', slot.title === 'Cargar una partida' && /Ranura 1/.test(slot.first) && /Acto 1 · Capítulo 1/.test(slot.first) && /soldados · Nv \d+ · \d+ marcos/.test(slot.first) && /Ranura 2vacía/.test(slot.empty) && slot.buttons.join() === 'Cargar,Exportar,Borrar', JSON.stringify(slot));
   const help = await page.evaluate(() => { setLang('pt'); return [...document.querySelectorAll('#help li b')].slice(0, 3).map(b => b.textContent); });
-  ok('the help headings follow, the help itself stays English', help.join() === 'Posicionamento:,Tempo de carga (CT):,Turno:' && await page.evaluate(() => /before each battle/.test(document.querySelector('#help li').textContent)), help.join());
+  ok('the help headings follow, the help itself stays English', help.join() === 'Posicionamento:,Tempo:,Turno:' && await page.evaluate(() => /before each battle/.test(document.querySelector('#help li').textContent)), help.join());
 
   ok('no page errors', errors.length === 0, errors.join(' | '));
   await browser.close();

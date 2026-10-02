@@ -26,8 +26,8 @@ class Unit {
     this.boss = !!opts.boss;
     // A beast: a creature on the company's side. Only a monster job can be one.
     this.pet = !!opts.pet && JOBS[this.job].kind === 'monster';
-    this.jp = opts.jp || {};            // spendable JP per job
-    this.jpTotal = opts.jpTotal || {};  // lifetime JP per job (job level)
+    this.jp = opts.jp || {};            // spendable SP per job
+    this.jpTotal = opts.jpTotal || {};  // lifetime SP per job (job level)
     // Learned things this build no longer has are dropped, so nothing downstream
     // has to guard against an ability or passive that cannot be looked up.
     this.learned = {};
@@ -185,7 +185,7 @@ class Unit {
   }
   get dualWielding() { return !!this.offhandWeapon && !this.hasPassive('twoHands'); }
 
-  // Effective CT gain per tick.
+  // Effective Tempo gain per tick.
   ctSpeed() {
     if (this.hasStatus('stop')) return 0;
     let s = this.spd;
@@ -247,7 +247,7 @@ class Unit {
 
   // ---- beasts -------------------------------------------------------------
   // A beast's bond is the job level of its kind: it grows with every action,
-  // like JP, and is never spent. Each level opens the next of its skills.
+  // like SP, and is never spent. Each level opens the next of its skills.
   bondLevel() { return this.jobLevel(this.job); }
 
   // The skills of its kind the bond has opened, marked learned. Returns the

@@ -42,8 +42,7 @@ async function toBattle(page, opts = {}) {
         let hidden = false;
         for (const u of game.battle.units) {
           if (!u.alive || u.x < 0 || (u.x === t.x && u.y === t.y)) continue;
-          const q = r.unitScreenPos(u);
-          if (s.sx >= q.sx - 13 && s.sx <= q.sx + 13 && s.sy >= q.sy - 32 && s.sy <= q.sy + 8) { hidden = true; break; }
+          if (r.unitCovers(u, s.sx, s.sy)) { hidden = true; break; }
         }
         if (hidden) { covered++; continue; }
         total++;

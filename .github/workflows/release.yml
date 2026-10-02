@@ -1,8 +1,10 @@
 name: Release
 
-# Builds the Android APK and the single-file web build, and attaches both
-# to a GitHub Release. Run it from the Actions tab with a version number,
-# or push a tag such as v1.6.0.
+# Builds the Android APK, the single-file web build, the itch.io zip and the
+# desktop packages (Windows, macOS, Linux), and attaches them all to a
+# GitHub Release. Run it from the Actions tab with a version number, or push
+# a tag such as v1.6.0. With a BUTLER_API_KEY secret and an ITCH_TARGET
+# variable (user/game) set, the itch.io page is updated as well.
 #
 # The APK is signed with the debug key (android/app/build.gradle falls back
 # to it when no keystore.properties exists on the builder), so it installs
@@ -22,10 +24,17 @@ on:
 permissions:
   contents: write
 
+env:
+  BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+  ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+
 jobs:
   release:
     name: Build and publish
     runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.ver.outputs.name }}
+      tag: ${{ steps.ver.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,6 +63,16 @@ jobs:
           node tools/regress.js
           node tools/bundle.js
           cp dist/elderon.html "chronicles-of-elderon-${{ steps.ver.outputs.name }}.html"
+          node tools/itch.js
+          cp dist/chronicles-of-elderon-itch.zip "chronicles-of-elderon-${{ steps.ver.outputs.name }}-itch.zip"
+
+      # The itch.io page, when the repository holds the key for it.
+      - name: Push the web build to itch.io
+        if: env.BUTLER_API_KEY != '' && env.ITCH_TARGET != ''
+        run: |
+          curl -sSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip butler && chmod +x butler
+          ./butler push dist/chronicles-of-elderon-itch.zip "$ITCH_TARGET:html5" --userversion "${{ steps.ver.outputs.name }}"
 
       # The Android build, on a runner that has the SDK (see ci.yml for why
       # sdkmanager is found by hand).
@@ -85,9 +104,48 @@ jobs:
           files: |
             chronicles-of-elderon-${{ steps.ver.outputs.name }}.apk
             chronicles-of-elderon-${{ steps.ver.outputs.name }}.html
+            chronicles-of-elderon-${{ steps.ver.outputs.name }}-itch.zip
           body: |
             **Android:** download the `.apk` and open it on the phone to install (Android will ask once to allow installs from this source). It is signed with a debug key for sideloading, not a Google Play upload.
 
             **Play in a browser:** the `.html` file is the whole game in one file. Open it in Chrome, Firefox or Safari; nothing else is fetched, and it works offline once opened.
 
             **Or just play online:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+            **On a computer:** the `-win32-x64`, `-darwin-arm64` (Apple silicon), `-darwin-x64` (Intel Mac) and `-linux-x64` zips are the game as a program, one window and no browser. They are not code-signed, so Windows and macOS ask once before the first launch. The `-itch.zip` is the web build packed for itch.io.
+
+  # The desktop packages: the single-file build in an Electron window, one
+  # zip per platform, attached to the same release once it exists.
+  desktop:
+    name: Desktop packages
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the wrapper's tools
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+      - name: Package for every platform
+        working-directory: desktop
+        run: |
+          npm run prepare-game
+          for target in win32:x64 darwin:x64 darwin:arm64 linux:x64; do
+            platform="${target%%:*}"; arch="${target##*:}"
+            npx electron-packager . "Chronicles of Elderon" --platform="$platform" --arch="$arch" --out=out --overwrite --asar \
+              --app-version="${{ needs.release.outputs.name }}" --app-copyright="taugustincst" \
+              --ignore="^/out" --ignore="^/node_modules/\.cache"
+            (cd out && zip -qry "../../chronicles-of-elderon-${{ needs.release.outputs.name }}-$platform-$arch.zip" "Chronicles of Elderon-$platform-$arch")
+          done
+          ls -la ..
+      - name: Attach to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release.outputs.tag }}
+          files: |
+            chronicles-of-elderon-${{ needs.release.outputs.name }}-win32-x64.zip
+            chronicles-of-elderon-${{ needs.release.outputs.name }}-darwin-x64.zip
+            chronicles-of-elderon-${{ needs.release.outputs.name }}-darwin-arm64.zip
+            chronicles-of-elderon-${{ needs.release.outputs.name }}-linux-x64.zip

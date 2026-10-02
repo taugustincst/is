@@ -74,7 +74,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   ok('a move can be taken back before acting', undo.moved.btn && (undo.moved.x !== undo.from.x || undo.moved.y !== undo.from.y) && undo.back.x === undo.from.x && undo.back.y === undo.from.y && undo.back.flag === false && !undo.back.btn, JSON.stringify(undo));
   // Status tooltip on the card.
   const tip = await page.evaluate(() => { const u = game.ui.turn.unit; u.addStatus('haste'); game.ui.renderCard(u); const s = document.querySelector('#unit-card .status'); u.removeStatus('haste'); return s && s.title; });
-  ok('a status on the card says what it does', /Charge Time fills 50% faster/.test(tip || ''), tip);
+  ok('a status on the card says what it does', /Tempo fills 50% faster/.test(tip || ''), tip);
   // Try again: lose (retreat), then fight again without the story.
   await page.evaluate(() => { game.battle.over = true; game.battle.result = 'defeat'; game.ui.abort(); });
   await page.waitForSelector('#screen-results.active', { timeout: 20000 });

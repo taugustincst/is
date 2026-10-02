@@ -110,6 +110,66 @@ function tileTexture(kind, variant) {
   return cv;
 }
 
+/* A cliff face. The walls had been two flat colours with a strata line per
+   level; each is now drawn once per terrain, side and height into a strip
+   that the tile skews into place: earth with its stones and roots, stone in
+   courses of blocks, snow and ice in pale bands, planks on a bridge. The
+   face darkens toward its foot, as a wall does under the lip above it, and
+   the lip itself takes the light. */
+const wallTexCache = new Map();
+function wallTexture(kind, side, wh) {
+  const key = `${kind}|${side}|${wh}`;
+  let cv = wallTexCache.get(key);
+  if (cv) return cv;
+  cv = document.createElement('canvas'); cv.width = 32; cv.height = wh;
+  const c = cv.getContext('2d');
+  const col = TERRAIN[kind] || TERRAIN.g;
+  const base = side === 'l' ? col.l : col.r;
+  const rnd = seeded(kind.charCodeAt(0) * 53 + (side === 'l' ? 7 : 11) + wh * 3);
+  c.fillStyle = base; c.fillRect(0, 0, 32, wh);
+  const px = (x, y, w, h, fill) => { c.fillStyle = fill; c.fillRect(Math.round(x), Math.round(y), w, h); };
+  if (kind === 's' || kind === 'b') {
+    // Courses of dressed stone, each a level high, the joints staggered.
+    for (let k = 0; k < wh; k += HZ) {
+      const off = ((k / HZ) % 2) * 8;
+      for (let x = off - 16; x < 32; x += 16) px(x, k, 1, HZ, 'rgba(0,0,0,0.22)');
+      px(0, k, 32, 1, 'rgba(0,0,0,0.28)');
+      px(0, k + 1, 32, 1, 'rgba(255,255,255,0.07)');
+    }
+    for (let i = 0; i < wh / 4; i++) px(rnd() * 32, rnd() * wh, 1, 1, rnd() < 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.18)');
+  } else if (kind === 'n' || kind === 'i') {
+    // Packed snow and river ice: pale bands, a blue shadow under each.
+    for (let k = 0; k < wh; k += HZ) {
+      px(0, k, 32, 1, 'rgba(255,255,255,0.18)');
+      px(0, k + HZ - 2, 32, 2, 'rgba(40,60,100,0.16)');
+    }
+    for (let i = 0; i < wh / 3; i++) px(rnd() * 32, rnd() * wh, 2, 1, 'rgba(255,255,255,0.14)');
+  } else if (kind === 'w' || kind === 'r') {
+    for (let k = 0; k < wh; k += HZ) px(0, k, 32, 1, 'rgba(255,255,255,0.10)');
+  } else {
+    // Earth: strata of soil, stones set in it, and a root or two.
+    for (let k = 0; k < wh; k += HZ) {
+      px(0, k, 32, 1, 'rgba(0,0,0,0.20)');
+      px(0, k + 1, 32, 1, 'rgba(255,230,190,0.06)');
+    }
+    for (let i = 0; i < wh / 3; i++) { const x = rnd() * 32, y = rnd() * wh; px(x, y, 2 + rnd() * 2, 2, 'rgba(0,0,0,0.22)'); px(x, y, 2, 1, 'rgba(255,240,210,0.12)'); }
+    for (let i = 0; i < wh / 14; i++) { let x = rnd() * 32, y = rnd() * wh * 0.5; for (let k = 0; k < 6 + rnd() * 6; k++) { px(x, y, 1, 1, 'rgba(40,20,5,0.45)'); x += rnd() < 0.5 ? -1 : 1; y += 1; } }
+  }
+  // Under the lip the face is in its own shadow, and at the foot in the
+  // ground's: the strip darkens both ways, more at the bottom.
+  const g = c.createLinearGradient(0, 0, 0, wh);
+  g.addColorStop(0, 'rgba(0,0,0,0.16)'); g.addColorStop(0.18, 'rgba(0,0,0,0)'); g.addColorStop(0.6, 'rgba(0,0,0,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0.34)');
+  c.fillStyle = g; c.fillRect(0, 0, 32, wh);
+  // The right-hand face is turned from the light.
+  if (side === 'r') { c.fillStyle = 'rgba(0,0,20,0.14)'; c.fillRect(0, 0, 32, wh); }
+  // The lip: the top of the wall catches the light.
+  const lipCol = col.lip || shiftHex(col.top, -10);
+  c.fillStyle = lipCol; c.globalAlpha = side === 'l' ? 0.9 : 0.7; c.fillRect(0, 0, 32, Math.min(3, wh)); c.globalAlpha = 1;
+  c.fillStyle = 'rgba(255,255,240,0.22)'; c.fillRect(0, 0, 32, 1);
+  wallTexCache.set(key, cv);
+  return cv;
+}
+
 function tileVariant(x, y) {
   // Two coordinates in, one of a few variants out, with no visible rows.
   let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >>> 13)) >>> 0;
@@ -373,7 +433,7 @@ class Renderer {
     for (const t of tiles) {
       const { sx, sy } = this.toScreen(t.x, t.y, g.height(t.x, t.y));
       minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
-      minY = Math.min(minY, sy - 40); maxY = Math.max(maxY, sy + 20);
+      minY = Math.min(minY, sy + SPRITE_HEAD_Y - 11); maxY = Math.max(maxY, sy + 20);
     }
     const view = this.viewCentre(), z = this.zoom || 1;
     const halfW = view.w / (2 * z), halfH = view.h / (2 * z);
@@ -423,7 +483,7 @@ class Renderer {
       if (t.t === 'x') continue;
       const { sx, sy } = this.toScreen(t.x, t.y, t.h);
       minX = Math.min(minX, sx - 32); maxX = Math.max(maxX, sx + 32);
-      minY = Math.min(minY, sy - 56); maxY = Math.max(maxY, sy + 16 + t.h * HZ);
+      minY = Math.min(minY, sy + SPRITE_HEAD_Y - 27); maxY = Math.max(maxY, sy + 16 + t.h * HZ);
     }
     // Keep a slice of the board inside the view. These are world coordinates,
     // so the visible span is the canvas divided by the zoom, centred on the
@@ -562,6 +622,14 @@ class Renderer {
     return null;
   }
 
+  /* Whether a world point lies on a figure: the box its sprite fills, from
+     the top of the head to its feet, as wide as the body. The tests ask the
+     same question of the same box. */
+  unitCovers(u, wx, wy) {
+    const { sx, sy } = this.unitScreenPos(u);
+    return wx >= sx - 16 && wx <= sx + 16 && wy >= sy + SPRITE_HEAD_Y - 3 && wy <= sy + 8;
+  }
+
   pickTile(px, py) {
     if (!this.battle) return null;
     const { x: mx, y: my } = this.toWorld(px, py);
@@ -571,8 +639,7 @@ class Renderer {
     let onUnit = null;
     const units = this.battle.units.filter(u => u.alive && !u.airborne && u.x >= 0).sort((a, b) => this.depthOf(b.x, b.y) - this.depthOf(a.x, a.y));
     for (const u of units) {
-      const { sx, sy } = this.unitScreenPos(u);
-      if (mx >= sx - 13 && mx <= sx + 13 && my >= sy - 32 && my <= sy + 8) { onUnit = g.tile(u.x, u.y); break; }
+      if (this.unitCovers(u, mx, my)) { onUnit = g.tile(u.x, u.y); break; }
     }
     const onGround = this.pickGround(px, py);
     /* While the game is offering a choice, whichever of the two is on offer
@@ -658,7 +725,8 @@ class Renderer {
     const st = BASE_RING[team] || BASE_RING.neutral;
     c.save();
     c.globalAlpha = alpha;
-    this.ringPath(sx, sy, 15, 7, st.teeth);
+    // Wide enough to show past the feet of a figure three cells to the pixel.
+    this.ringPath(sx, sy, 20, 9, st.teeth);
     c.fillStyle = st.fill; c.fill();
     c.lineJoin = 'round';
     c.strokeStyle = 'rgba(0,0,0,0.65)'; c.lineWidth = 3.5; c.stroke();
@@ -666,7 +734,7 @@ class Renderer {
     if (seen) {
       // A wedge on the rim, pointing the way the figure is looking.
       const a = { E: 0.25, S: 0.75, W: 1.25, N: 1.75 }[seen] * Math.PI;
-      const px = sx + Math.cos(a) * 15, py = sy + Math.sin(a) * 7;
+      const px = sx + Math.cos(a) * 20, py = sy + Math.sin(a) * 9;
       c.beginPath(); c.ellipse(px, py, 4.5, 3.5, 0, 0, Math.PI * 2);
       c.fillStyle = st.line; c.fill();
       c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 1.4; c.stroke();
@@ -758,31 +826,36 @@ class Renderer {
     const { sx, sy } = this.toScreen(t.x, t.y, t.h);
     const col = TERRAIN[t.t] || TERRAIN.g;
     const wh = t.h * HZ;
-    // Walls
+    // Walls: a textured strip each, skewed onto the face. A rectangle 32 wide
+    // and `wh` tall, drawn with the shear [1, 1/2], lands exactly on the
+    // left face's parallelogram; the mirror shear lands on the right.
     if (wh > 0) {
-      c.fillStyle = col.l;
-      c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + wh); c.lineTo(sx - 32, sy + wh); c.closePath(); c.fill();
-      c.fillStyle = col.r;
-      c.beginPath(); c.moveTo(sx + 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + wh); c.lineTo(sx + 32, sy + wh); c.closePath(); c.fill();
-      if (col.lip) {
-        const lip = Math.min(5, wh);
-        c.fillStyle = col.lip;
-        c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + lip); c.lineTo(sx - 32, sy + lip); c.closePath(); c.fill();
-        c.fillStyle = shiftHex(col.lip, -16);
-        c.beginPath(); c.moveTo(sx + 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx, sy + 16 + lip); c.lineTo(sx + 32, sy + lip); c.closePath(); c.fill();
-      }
-      // Strata lines
-      c.strokeStyle = 'rgba(0,0,0,0.18)';
-      for (let k = 1; k < t.h; k++) {
-        c.beginPath(); c.moveTo(sx - 32, sy + k * HZ); c.lineTo(sx, sy + 16 + k * HZ); c.lineTo(sx + 32, sy + k * HZ); c.stroke();
-      }
+      c.save();
+      c.setTransform(c.getTransform().multiply(new DOMMatrix([1, 0.5, 0, 1, sx - 32, sy])));
+      c.drawImage(wallTexture(t.t, 'l', wh), 0, 0);
+      c.restore();
+      c.save();
+      c.setTransform(c.getTransform().multiply(new DOMMatrix([1, -0.5, 0, 1, sx, sy + 16])));
+      c.drawImage(wallTexture(t.t, 'r', wh), 0, 0);
+      c.restore();
+      // The seam where the two faces meet.
+      c.strokeStyle = 'rgba(0,0,0,0.22)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(sx, sy + 16); c.lineTo(sx, sy + 16 + wh); c.stroke();
     }
     // Top
     c.drawImage(tileTexture(t.t, tileVariant(t.x, t.y)), sx - 32, sy - 16);
     this.diamond(sx, sy);
     // Subtle height tint
     c.fillStyle = `rgba(255,255,230,${Math.min(0.25, t.h * 0.035)})`; c.fill();
-    c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 1; c.stroke();
+    // A higher neighbour behind this tile throws its shadow onto it.
+    this.drawContactShadows(t, sx, sy);
+    // The light is high and in front: the far edges catch it, the near edges
+    // fall into line with the walls below them.
+    c.lineWidth = 1;
+    c.strokeStyle = 'rgba(255,255,240,0.20)';
+    c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy - 16); c.lineTo(sx + 32, sy); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,0.42)';
+    c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx + 32, sy); c.stroke();
     if (t.t === 'w') {
       c.strokeStyle = 'rgba(255,255,255,0.35)';
       const ph = Math.sin(this.time / 500 + t.x + t.y) * 3;
@@ -828,8 +901,33 @@ class Renderer {
     // Tree
     if (t.t === 't') {
       c.fillStyle = 'rgba(0,0,0,0.30)';
-      c.beginPath(); c.ellipse(sx, sy + 3, 14, 6, 0, 0, Math.PI * 2); c.fill();
-      c.drawImage(treeSprite(tileVariant(t.x, t.y)), sx - 24, sy - 58);
+      c.beginPath(); c.ellipse(sx, sy + 3, 18, 7, 0, 0, Math.PI * 2); c.fill();
+      // Drawn half again its size, so a tree stands over a figure as it should.
+      c.drawImage(treeSprite(tileVariant(t.x, t.y)), sx - 34, sy - 84, 68, 90);
+    }
+  }
+
+  /* The shadow a higher neighbour casts. Only the two tiles behind this one
+     matter: a higher tile in front covers this tile with its own walls, but
+     one behind leaves this tile's top in the open, and a wall standing over a
+     floor darkens the floor at its foot. The shade runs in from the shared
+     edge and fades by the middle of the tile. */
+  drawContactShadows(t, sx, sy) {
+    const g = this.battle.grid, c = this.ctx;
+    for (const [nx, ny] of [[t.x - 1, t.y], [t.x + 1, t.y], [t.x, t.y - 1], [t.x, t.y + 1]]) {
+      const n = g.tile(nx, ny);
+      if (!n || n.t === 'x' || n.h <= t.h) continue;
+      const ns = this.toScreen(nx, ny, t.h);
+      const dy = ns.sy - sy;
+      if (dy >= 0) continue; // in front: its walls already lie over this tile
+      const dx = ns.sx - sx;
+      const mx = sx + dx / 2, my = sy + dy / 2;
+      const a = Math.min(0.42, 0.16 + 0.08 * (n.h - t.h));
+      const grad = c.createLinearGradient(mx, my, sx, sy);
+      grad.addColorStop(0, `rgba(0,0,10,${a.toFixed(2)})`); grad.addColorStop(1, 'rgba(0,0,10,0)');
+      c.save(); this.diamond(sx, sy); c.clip();
+      c.fillStyle = grad; c.fillRect(sx - 32, sy - 16, 64, 32);
+      c.restore();
     }
   }
 
@@ -863,11 +961,13 @@ class Renderer {
     const seen = apparentFacing(u.facing, this.rot);
     const view = (seen === 'N' || seen === 'W') ? 'back' : 'front';
     const flip = (seen === 'S' || seen === 'W');
-    const spr = getSprite(job, u.team, view, flip, spriteGear(u), spriteLook(u));
+    // A walking figure strides: standing, left foot, standing, right foot.
+    const frame = u.anim && u.anim.walk && !reducedMotion() ? [0, 1, 0, 2][Math.floor(this.time / 95) % 4] : 0;
+    const spr = getSprite(job, u.team, view, flip, spriteGear(u), spriteLook(u), frame);
     // Shadow
     c.fillStyle = 'rgba(0,0,0,0.35)';
     const groundY = u.airborne ? this.toScreen(u.x, u.y, this.battle.grid.height(u.x, u.y)).sy : sy;
-    c.beginPath(); c.ellipse(sx, groundY + 6, 12, 5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(sx, groundY + 6, 16, 6, 0, 0, Math.PI * 2); c.fill();
     // Team base. A downed figure keeps a faint one, so you can still see whose
     // body you are running to revive.
     this.drawBase(sx, groundY + 6, u.team, u.alive ? seen : null, u.alive ? 1 : 0.45);
@@ -909,19 +1009,19 @@ class Renderer {
     // one part of a figure that stays visible when a wall or a neighbour eats
     // the rest of it.
     if (this.cover) return; // the title's picture: figures without their bars
-    const w = 24, hpk = u.hp / u.maxHp;
-    c.fillStyle = 'rgba(0,0,0,0.8)'; c.fillRect(sx - w / 2 - 3, sy - 38, w + 6, 8);
-    c.fillStyle = TEAM_COLORS[u.team]; c.fillRect(sx - w / 2 - 2, sy - 37, w + 4, 6);
-    c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(sx - w / 2, sy - 35, w, 2);
+    const w = 24, hpk = u.hp / u.maxHp, top = sy + SPRITE_HEAD_Y;
+    c.fillStyle = 'rgba(0,0,0,0.8)'; c.fillRect(sx - w / 2 - 3, top - 9, w + 6, 8);
+    c.fillStyle = TEAM_COLORS[u.team]; c.fillRect(sx - w / 2 - 2, top - 8, w + 4, 6);
+    c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(sx - w / 2, top - 6, w, 2);
     c.fillStyle = hpk > 0.5 ? '#5ad35a' : hpk > 0.25 ? '#e8c840' : '#e85040';
-    c.fillRect(sx - w / 2, sy - 35, Math.max(0, Math.round(w * hpk)), 2);
+    c.fillRect(sx - w / 2, top - 6, Math.max(0, Math.round(w * hpk)), 2);
     // Status dots
     let i = 0;
     for (const s of Object.keys(u.statuses)) {
-      c.fillStyle = STATUSES[s].color; c.fillRect(sx - w / 2 + i * 5, sy - 44, 4, 4); i++;
+      c.fillStyle = STATUSES[s].color; c.fillRect(sx - w / 2 + i * 5, top - 15, 4, 4); i++;
     }
-    if (u.airborne) { c.fillStyle = '#fff'; c.font = '10px monospace'; c.textAlign = 'center'; c.fillText('JUMP', sx, sy - 47); }
-    if (u.boss) { c.fillStyle = '#ffd040'; c.font = 'bold 10px monospace'; c.textAlign = 'center'; c.fillText('★', sx, sy - 47); }
+    if (u.airborne) { c.fillStyle = '#fff'; c.font = '10px monospace'; c.textAlign = 'center'; c.fillText('JUMP', sx, top - 18); }
+    if (u.boss) { c.fillStyle = '#ffd040'; c.font = 'bold 10px monospace'; c.textAlign = 'center'; c.fillText('★', sx, top - 18); }
   }
 
   drawBursts() {
@@ -946,7 +1046,7 @@ class Renderer {
     for (const f of this.floats) {
       const k = (now - f.t0) / life;
       const { sx, sy } = this.toScreen(f.x, f.y, f.h);
-      const y = sy - 46 - k * 34 - f.slot * 14;
+      const y = sy + SPRITE_HEAD_Y - 17 - k * 34 - f.slot * 14;
       c.save(); c.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
       c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.strokeText(f.text, sx, y);
       c.fillStyle = f.color; c.fillText(f.text, sx, y);
@@ -1043,7 +1143,7 @@ class Renderer {
         const { sx, sy } = this.unitScreenPos(p.unit);
         c.strokeStyle = rgba(col, 0.35 + pulse * 0.5);
         c.lineWidth = 2;
-        c.beginPath(); c.ellipse(sx, sy + 5, 15, 7, 0, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.ellipse(sx, sy + 5, 20, 9, 0, 0, Math.PI * 2); c.stroke();
       }
       for (const t of g.areaTiles(p.tx, p.ty, p.ability.aoe)) {
         const { sx, sy } = this.toScreen(t.x, t.y, t.h);
@@ -1063,7 +1163,7 @@ class Renderer {
       const h0 = g.height(a.x, a.y), h1 = g.height(b.x, b.y);
       u.facing = facingFromDelta(b.x - a.x, b.y - a.y);
       await tween(150, k => {
-        u.anim = { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), h: lerp(h0, h1, k), z: Math.sin(k * Math.PI) * (4 + Math.abs(h1 - h0) * 5) };
+        u.anim = { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), h: lerp(h0, h1, k), z: Math.sin(k * Math.PI) * (4 + Math.abs(h1 - h0) * 5), walk: true };
       });
     }
     u.anim = null;

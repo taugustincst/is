@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="A tactical role-playing game of charge-time turns, jobs and height maps.">
+<meta name="description" content="A tactical role-playing game of tempo turns, jobs and height maps.">
 <title>Chronicles of Elderon — Tactics</title>
 <link rel="icon" href="icons/icon-64.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -32,7 +32,7 @@
     <button id="btn-credits" class="link title-credits" data-i18n>Credits</button>
     <small id="title-version" class="title-version"></small>
     <select id="title-lang" class="title-lang" aria-label="Language" data-i18n-aria="Language"></select>
-    <div class="title-foot" data-i18n="Isometric tactics · Charge Time turns · Jobs & abilities · Height and facing matter">Isometric tactics · Charge Time turns · Jobs &amp; abilities · Height and facing matter</div>
+    <div class="title-foot" data-i18n="Isometric tactics · Tempo turns · Jobs & abilities · Height and facing matter">Isometric tactics · Tempo turns · Jobs &amp; abilities · Height and facing matter</div>
   </div>
 </section>
 
@@ -45,7 +45,8 @@
       <dt>Created by</dt><dd>taugustincst</dd>
       <dt>Design, story, code, art and music</dt><dd>Written for this game, with Claude Code</dd>
       <dt>Sprites and portraits</dt><dd>Drawn in code at run time; no image packs</dd>
-      <dt>Music and sound</dt><dd>Synthesized in the browser with the Web Audio API; no recordings</dd>
+      <dt>Music and sound</dt><dd>Composed for this game and synthesized in the browser with the Web Audio API; no recordings</dd>
+      <dt>Typeface</dt><dd>Cinzel by Natanael Gama, under the SIL Open Font License 1.1</dd>
       <dt>Testing</dt><dd>Playwright and Chromium, and a QA pass that found the Retreat button dead</dd>
       <dt>Inspired by</dt><dd>The tactics RPGs of the late 1990s</dd>
     </dl>
@@ -104,11 +105,11 @@
       <div class="card tavern" data-camp-tab="company">
         <h3 data-i18n>Tavern</h3>
         <div id="hire-info"></div>
-        <button id="btn-hire-squire" data-i18n>Hire Squire</button>
-        <button id="btn-hire-chemist" data-i18n>Hire Chemist</button>
+        <button id="btn-hire-squire" data-i18n>Hire Footman</button>
+        <button id="btn-hire-chemist" data-i18n>Hire Apothecary</button>
       </div>
       <div class="card errands-card" data-camp-tab="company">
-        <h3><span data-i18n>Errands</span> <small data-i18n>work away from the line, for pay and JP</small></h3>
+        <h3><span data-i18n>Errands</span> <small data-i18n>work away from the line, for pay and SP</small></h3>
         <div id="errands"></div>
       </div>
       <div class="card cities-card" data-camp-tab="cities">
@@ -143,7 +144,7 @@
     <div class="form-left">
       <div class="form-head"><h2 data-i18n>Formation</h2><span id="form-gil"></span></div>
       <div id="form-list"></div>
-      <p class="muted" data-i18n>Units 1–5 deploy in battle. Use ▲▼ to reorder. Change jobs freely; abilities are learned with JP earned in that job.</p>
+      <p class="muted" data-i18n>Units 1–5 deploy in battle. Use ▲▼ to reorder. Change jobs freely; abilities are learned with SP earned in that job.</p>
       <button id="btn-formation-back" data-i18n>Back to Camp</button>
     </div>
     <div class="form-right" id="form-detail"></div>
@@ -231,8 +232,8 @@
       <h3 data-i18n>How to play</h3>
       <ul>
         <li><b data-i18n>Deployment:</b> before each battle, pick who fights and where they stand. Units left in reserve take no part. The opposition is listed on the left.</li>
-        <li><b data-i18n>Charge Time (CT):</b> every unit gains CT equal to its Speed each tick. At 100 CT it takes a turn. The Turn Order panel forecasts who acts next.</li>
-        <li><b data-i18n>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 CT toward your next turn. A move can be taken back until the unit acts, unless something happened on the way.</li>
+        <li><b data-i18n>Tempo:</b> every unit gains Tempo equal to its Speed each tick. At 100 Tempo it takes a turn. The Turn Order panel forecasts who acts next.</li>
+        <li><b data-i18n>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 Tempo toward your next turn. A move can be taken back until the unit acts, unless something happened on the way.</li>
         <li><b data-i18n>Facing:</b> a physical attack from the side halves the target's evasion and deals a tenth more; from behind it cannot be evaded and deals a quarter more. Face your enemies when you Wait, and get behind theirs.</li>
         <li><b data-i18n>Friend or foe:</b> your side stands on smooth blue rings and wears blue; the enemy stands on jagged red rings and wears red. The bar over every head is framed in the same colour, so a figure hidden behind a wall still tells you whose it is. The wedge on the ring points the way that unit is facing.</li>
         <li><b data-i18n>Height:</b> every level of ground above the target adds 5% to a physical blow, up to 25%; every level below takes 5% off. Jump limits how high you can climb.</li>
@@ -246,10 +247,10 @@
         <li><b data-i18n>Saves:</b> three slots. New Game takes an empty one, or asks which to write over; Continue takes the latest; Load Game lists them all. A lost battle offers Try again from the results, without the story before it, and any flagged stop on the map can be fought again for half the pay.</li>
         <li><b data-i18n>Camp tabs:</b> the camp is four pages: Road (the night before), Company (tavern and errands), Cities, and Options. The unit page in Formation is three: Unit, Gear and Skills.</li>
         <li><b data-i18n>Cities:</b> towns on the map are held by someone until you fight them open. An open city stays open: its tavern hires recruits already trained in an advanced trade, and its market sells arms the wagon never carries. Tap a city on the map, or use the Cities card at camp.</li>
-        <li><b data-i18n>Forges:</b> every open city has one. It betters any weapon, shield, helm or armour to +1, +2 and +3 for materials and gil, makes arms sold nowhere else (the best guns among them), and breaks spare gear down into materials. Every won field leaves a few materials behind, and the baggage keeps them.</li>
-        <li><b data-i18n>Errands:</b> at camp, send a unit who is not the leader away on an errand. They miss the next battle or two and come back with gil, JP in the job they left in, and sometimes something found.</li>
+        <li><b data-i18n>Forges:</b> every open city has one. It betters any weapon, shield, helm or armour to +1, +2 and +3 for materials and marks, makes arms sold nowhere else (the best guns among them), and breaks spare gear down into materials. Every won field leaves a few materials behind, and the baggage keeps them.</li>
+        <li><b data-i18n>Errands:</b> at camp, send a unit who is not the leader away on an errand. They miss the next battle or two and come back with marks, SP in the job they left in, and sometimes something found.</li>
         <li><b data-i18n>Objective:</b> shown in the bar above. Some battles end when the enemy commander falls, or when you have held out long enough.</li>
-        <li><b data-i18n>Jobs:</b> earn JP by acting. Spend it in Formation on abilities and passives. Reach job levels to unlock advanced jobs, and equip a second skillset from any job you have studied.</li>
+        <li><b data-i18n>Jobs:</b> earn SP by acting. Spend it in Formation on abilities and passives. Reach job levels to unlock advanced jobs, and equip a second skillset from any job you have studied.</li>
         <li><b data-i18n>Passives:</b> one reaction, one support and one movement ability at a time. Learn them in one job and wear them in any.</li>
         <li><b data-i18n>Equipment:</b> buy gear at the shop and fit it in Formation, or press Optimize. Weapons set your power and reach; armour, shields and accessories do the rest.</li>
         <li><b data-i18n>Baggage:</b> everything spare, shelved by category and kind: swords with swords, robes with robes. Hand a piece to anyone who can wear it from the shelf, sell it there, or take a piece off someone in the table below.</li>

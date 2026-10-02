@@ -165,7 +165,7 @@ class BattleUI {
       <div class="card-head ${u.team}"><canvas class="card-face"></canvas><b>${u.name}</b><span>Lv ${u.level} ${u.jobData.name}${u.boss ? ' ★' : ''}</span></div>
       <div class="bar hp"><i style="width:${(u.hp / u.maxHp) * 100}%"></i><span>HP ${u.hp}/${u.maxHp}</span></div>
       <div class="bar mp"><i style="width:${u.maxMp ? (u.mp / u.maxMp) * 100 : 0}%"></i><span>MP ${u.mp}/${u.maxMp}</span></div>
-      <div class="bar ct"><i style="width:${Math.min(100, u.ct)}%"></i><span>CT ${u.ct}</span></div>
+      <div class="bar ct"><i style="width:${Math.min(100, u.ct)}%"></i><span>Tempo ${u.ct}</span></div>
       <div class="stats">
         <span>PA ${u.pa}</span><span>MA ${u.ma}</span><span>SPD ${u.spd}</span>
         <span>${tr('Move')} ${u.move}</span><span>${tr('Jump')} ${u.jump}</span><span>${tr('Evade')} ${u.evade}%</span>
@@ -469,7 +469,7 @@ class BattleUI {
           const ok = usable && this.battle.canAfford(u, ab);
           const why = !usable ? (u.hasStatus('berserk') ? tr('raging') : tr('silenced')) : ok ? '' : tr('no MP');
           const cost = ab.mp ? `${this.battle.mpCost(u, ab)} MP` : '';
-          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.kind === 'item' ? iconHtml('ab:' + id, 'small') : ''}${tr(ab.name)}</span><small>${why || cost}${ab.ct ? ' · CT ' + ab.ct : ''}</small></button>`;
+          return `<button data-id="${id}" ${ok ? '' : 'disabled'}><span>${ab.kind === 'item' ? iconHtml('ab:' + id, 'small') : ''}${tr(ab.name)}</span><small>${why || cost}${ab.ct ? ' · Tempo ' + ab.ct : ''}</small></button>`;
         }).join('') + `<button data-a="cancel">${tr('Back')}</button>`;
       paintIcons(this.el.menu);
       this.el.menu.querySelectorAll('button').forEach(b => {

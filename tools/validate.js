@@ -55,7 +55,7 @@ for (const [id, it] of Object.entries(g.ITEMS)) {
   if (it.slot === 'weapon' && (!it.wtype || !it.power || !it.range)) bad(`weapon ${id} is missing wtype, power or range`);
   if (it.tier === undefined || it.price === undefined) bad(`item ${id} is missing tier or price`);
 }
-// ---- item icons: every item and every one of the chemist's items draws one ----
+// ---- item icons: every item and every one of the apothecary's items draws one ----
 {
   const gi = load(['data', 'color', 'icons']);
   for (const [kind, rows] of Object.entries(gi.ICON_GLYPHS)) {
@@ -73,7 +73,7 @@ for (const [id, it] of Object.entries(g.ITEMS)) {
   for (const [id, ab] of Object.entries(g.ABILITIES)) {
     if (ab.kind !== 'item') continue;
     const kind = gi.iconKind('ab:' + id);
-    if (!kind || !gi.ICON_GLYPHS[kind]) bad(`the chemist's ${id} has no icon`);
+    if (!kind || !gi.ICON_GLYPHS[kind]) bad(`the apothecary's ${id} has no icon`);
   }
 }
 
@@ -106,7 +106,7 @@ for (const [job, kit] of Object.entries(g.STARTER_GEAR)) {
   for (const [slot, id] of Object.entries(kit)) {
     if (!g.ITEMS[id]) bad(`starter kit for ${job} names unknown item '${id}'`);
     else if (!g.canEquipInSlot(job, id, slot)) bad(`${job} cannot equip its own starter ${id}`);
-    else if (g.ITEMS[id].price !== 0) bad(`starter item ${id} has a sell value, which would mint gil`);
+    else if (g.ITEMS[id].price !== 0) bad(`starter item ${id} has a sell value, which would mint marks`);
   }
 }
 

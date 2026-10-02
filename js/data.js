@@ -3,8 +3,8 @@
    Jobs, abilities, statuses, maps and the campaign script.
    ========================================================================== */
 
-// ---------------------------------------------------------------- JP tiers
-// Total JP earned in a job determines its job level (used for unlocks).
+// ---------------------------------------------------------------- SP tiers
+// Total SP earned in a job determines its job level (used for unlocks).
 const JOB_LEVEL_JP = [0, 100, 250, 450, 700, 1000, 1400, 1900];
 
 function jobLevelFromJP(total) {
@@ -17,11 +17,11 @@ function jobLevelFromJP(total) {
 const STATUSES = {
   poison:  { name: 'Poison',  dur: 60, bad: true,  color: '#a05fd6', desc: 'Loses 1/8 max HP each turn.' },
   regen:   { name: 'Regen',   dur: 48, bad: false, color: '#6fd66f', desc: 'Recovers 1/8 max HP each turn.' },
-  haste:   { name: 'Haste',   dur: 48, bad: false, color: '#ffd84a', desc: 'Charge Time fills 50% faster.' },
-  slow:    { name: 'Slow',    dur: 48, bad: true,  color: '#7f8fb5', desc: 'Charge Time fills 50% slower.' },
-  stop:    { name: 'Stop',    dur: 24, bad: true,  color: '#c2c2c2', desc: 'Cannot act or gain Charge Time.' },
+  haste:   { name: 'Haste',   dur: 48, bad: false, color: '#ffd84a', desc: 'Tempo fills 50% faster.' },
+  slow:    { name: 'Slow',    dur: 48, bad: true,  color: '#7f8fb5', desc: 'Tempo fills 50% slower.' },
+  stop:    { name: 'Stop',    dur: 24, bad: true,  color: '#c2c2c2', desc: 'Cannot act or gain Tempo.' },
   protect: { name: 'Protect', dur: 60, bad: false, color: '#f0a050', desc: 'Physical damage reduced by 1/3.' },
-  shell:   { name: 'Shell',   dur: 60, bad: false, color: '#50b0f0', desc: 'Magical damage reduced by 1/3.' },
+  shell:   { name: 'Barrier',   dur: 60, bad: false, color: '#50b0f0', desc: 'Magical damage reduced by 1/3.' },
   silence: { name: 'Silence', dur: 48, bad: true,  color: '#8f8fa8', desc: 'Cannot use anything that costs MP.' },
   blind:   { name: 'Blind',   dur: 48, bad: true,  color: '#4a4a5a', desc: 'Physical attacks are half as likely to land.' },
   berserk: { name: 'Berserk', dur: 36, bad: true,  color: '#e05a3a', desc: 'Attacks the nearest foe unbidden, for half again the damage.' },
@@ -57,7 +57,7 @@ function affinityLabel(mult) {
 // Stat multipliers are applied to a level-based baseline (see unit.js).
 const JOBS = {
   squire: {
-    name: 'Squire', skillset: 'Fundamentals', kind: 'human', sprite: 'warrior',
+    name: 'Footman', skillset: 'Fundamentals', kind: 'human', sprite: 'warrior',
     palette: { h: '#5a3a1e', c: '#8a7a55', p: '#4b3d2c', b: '#3a2a1a' },
     hp: 1.0, mp: 1.0, pa: 1.0, ma: 1.0, spd: 1.0, move: 4, jump: 3, evade: 8,
     weapon: { name: 'Short Sword', power: 5, range: 1, vert: 2 },
@@ -65,7 +65,7 @@ const JOBS = {
     req: {}, desc: 'A well-rounded recruit. The root of the warrior path.',
   },
   chemist: {
-    name: 'Chemist', skillset: 'Items', kind: 'human', sprite: 'warrior',
+    name: 'Apothecary', skillset: 'Items', kind: 'human', sprite: 'warrior',
     palette: { h: '#2a2a2a', c: '#e8e0c8', p: '#6b5b40', b: '#3a2a1a' },
     hp: 0.85, mp: 1.1, pa: 0.9, ma: 1.05, spd: 1.05, move: 3, jump: 3, evade: 6,
     weapon: { name: 'Knife', power: 4, range: 1, vert: 2 },
@@ -105,7 +105,7 @@ const JOBS = {
     req: { archer: 2 }, desc: 'Swift and slippery. Robs enemies blind.',
   },
   whiteMage: {
-    name: 'White Mage', skillset: 'White Magick', kind: 'human', sprite: 'mage',
+    name: 'Cleric', skillset: 'White Magic', kind: 'human', sprite: 'mage',
     palette: { h: '#e8e8f0', c: '#f4f0e8', p: '#c84040', b: '#6a4a3a' },
     hp: 0.8, mp: 1.3, pa: 0.75, ma: 1.25, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Staff', power: 3, range: 1, vert: 2 },
@@ -113,7 +113,7 @@ const JOBS = {
     req: { chemist: 2 }, desc: 'Mends wounds and shields allies with holy magick.',
   },
   blackMage: {
-    name: 'Black Mage', skillset: 'Black Magick', kind: 'human', sprite: 'mage',
+    name: 'Sorcerer', skillset: 'Black Magic', kind: 'human', sprite: 'mage',
     palette: { h: '#2a2a4a', c: '#3a3a6a', p: '#c8a040', b: '#3a2a1a' },
     hp: 0.75, mp: 1.4, pa: 0.7, ma: 1.35, spd: 1.0, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Rod', power: 3, range: 1, vert: 2 },
@@ -121,12 +121,12 @@ const JOBS = {
     req: { chemist: 2 }, desc: 'Rains elemental ruin upon whole groups of foes.',
   },
   timeMage: {
-    name: 'Time Mage', skillset: 'Time Magick', kind: 'human', sprite: 'mage',
+    name: 'Chronomancer', skillset: 'Time Magic', kind: 'human', sprite: 'mage',
     palette: { h: '#6a4a2a', c: '#4a6a8a', p: '#e8d060', b: '#3a2a1a' },
     hp: 0.75, mp: 1.4, pa: 0.7, ma: 1.25, spd: 0.95, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Hourglass Staff', power: 3, range: 1, vert: 2 },
     abilities: ['haste', 'slowSpell', 'stopSpell', 'quick', 'rewind', 'timeTheft'],
-    req: { whiteMage: 2 }, desc: 'Bends the flow of Charge Time itself.',
+    req: { whiteMage: 2 }, desc: 'Bends the flow of Tempo itself.',
   },
   ninja: {
     name: 'Ninja', skillset: 'Throw', kind: 'human', sprite: 'rogue',
@@ -160,7 +160,7 @@ const JOBS = {
     hp: 0.7, mp: 1.6, pa: 0.65, ma: 1.45, spd: 0.95, move: 3, jump: 3, evade: 5,
     weapon: { name: 'Summoner\'s Rod', power: 3, range: 1, vert: 2 },
     abilities: ['ifrit', 'shiva', 'ramuh', 'titan', 'moogle', 'carbuncle', 'sylph', 'undine'],
-    req: { blackMage: 3, timeMage: 2 }, desc: 'Calls down the espers. Wide, slow, and the spirits know friend from foe.',
+    req: { blackMage: 3, timeMage: 2 }, desc: 'Calls down the spirits. Wide, slow, and the spirits know friend from foe.',
   },
   geomancer: {
     name: 'Geomancer', skillset: 'Geomancy', kind: 'human', sprite: 'rogue',
@@ -628,14 +628,14 @@ const JOBS = {
 // range: max manhattan distance (string 'weapon' uses weapon range)
 // aoe:   0 = single tile, 1 = plus-shape (r1), 2 = diamond r2
 // vert:  max height difference between user and target tile
-// ct:    0 = instant; otherwise charge speed (ability resolves at 100 CT)
+// ct:    0 = instant; otherwise charge speed (ability resolves at 100 Tempo)
 // affects: 'enemy' | 'ally' | 'all' — who in the area the effects apply to
 // effects: list of {type,...}
 const ABILITIES = {
   attack: { name: 'Attack', job: null, jp: 0, mp: 0, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }], desc: 'Strike with your weapon.' },
 
-  // Squire
+  // Footman
   throwStone: { name: 'Sling Stone', job: 'squire', jp: 50, mp: 0, range: 4, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 2 }], desc: 'Hurl a stone. Weak, but reaches far.' },
   accumulate: { name: 'Brace', job: 'squire', jp: 100, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
@@ -645,19 +645,19 @@ const ABILITIES = {
   firstAid: { name: 'First Aid', job: 'squire', jp: 80, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
     effects: [{ type: 'heal', flat: 25 }, { type: 'cure', statuses: ['poison'] }], desc: 'Restore 25 HP and cure Poison.' },
 
-  // Chemist
+  // Apothecary
   potion: { name: 'Potion', job: 'chemist', jp: 30, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'heal', flat: 35 }], desc: 'Restore 35 HP.' },
-  hiPotion: { name: 'Hi-Potion', job: 'chemist', jp: 120, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+  hiPotion: { name: 'Greater Potion', job: 'chemist', jp: 120, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'heal', flat: 80 }], desc: 'Restore 80 HP.' },
   antidote: { name: 'Antidote', job: 'chemist', jp: 40, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop'] }], desc: 'Cure Poison, Slow and Stop.' },
   remedy: { name: 'Remedy', job: 'chemist', jp: 220, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }],
     desc: 'Cure every affliction at once.' },
-  ether: { name: 'Ether', job: 'chemist', jp: 80, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+  ether: { name: 'Mana Draught', job: 'chemist', jp: 80, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'mpheal', flat: 25 }], desc: 'Restore 25 MP.' },
-  phoenixDown: { name: 'Phoenix Down', job: 'chemist', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', deadOnly: true,
+  phoenixDown: { name: 'Dawn Feather', job: 'chemist', jp: 100, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', deadOnly: true,
     effects: [{ type: 'revive', pct: 0.25 }], desc: 'Revive a fallen ally with 25% HP.' },
 
   // Knight
@@ -665,10 +665,10 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'pa', amount: -2 }], desc: 'Strike and lower target PA by 2.' },
   speedBreak: { name: 'Hamstring', job: 'knight', jp: 200, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'spd', amount: -2 }], desc: 'Strike and lower target Speed by 2.' },
-  magicBreak: { name: 'Magick Break', job: 'knight', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
+  magicBreak: { name: 'Spell Break', job: 'knight', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'statmod', stat: 'ma', amount: -3 }], desc: 'Strike and lower target MA by 3.' },
   shieldBash: { name: 'Shield Bash', job: 'knight', jp: 250, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
-    effects: [{ type: 'damage', formula: 'pa', power: 5 }, { type: 'ctmod', amount: -30 }], desc: 'Bash the target and knock 30 off its Charge Time.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 5 }, { type: 'ctmod', amount: -30 }], desc: 'Bash the target and knock 30 off its Tempo.' },
 
   // Archer
   aim1: { name: 'Aim +1', job: 'archer', jp: 50, mp: 0, range: 'weapon', aoe: 0, vert: 'weapon', ct: 40, kind: 'physical', affects: 'all',
@@ -695,38 +695,38 @@ const ABILITIES = {
     effects: [{ type: 'revive', pct: 0.3 }], desc: 'Revive an adjacent fallen ally with 30% HP.' },
 
   // Thief
-  stealGil: { name: 'Steal Gil', job: 'thief', jp: 60, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'gil' }], desc: 'Steal gil equal to 20 x the target\'s level.' },
+  stealGil: { name: 'Steal Marks', job: 'thief', jp: 60, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
+    effects: [{ type: 'gil' }], desc: 'Steal marks equal to 20 x the target\'s level.' },
   poisonBlade: { name: 'Poison Blade', job: 'thief', jp: 120, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'poison', hit: 90 }], desc: 'A weapon strike that inflicts Poison.' },
   mug: { name: 'Mug', job: 'thief', jp: 200, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'gil' }], desc: 'Strike and steal gil in the same motion.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'gil' }], desc: 'Strike and steal marks in the same motion.' },
 
-  // White Mage
+  // Cleric
   holyBolt: { name: 'Holy Bolt', job: 'whiteMage', jp: 260, mp: 14, range: 4, aoe: 0, vert: 3, ct: 18, kind: 'magic', affects: 'all', element: 'holy',
     effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Searing light. Undead and fell things burn.' },
-  cure: { name: 'Cure', job: 'whiteMage', jp: 50, mp: 6, range: 4, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
+  cure: { name: 'Mend', job: 'whiteMage', jp: 50, mp: 6, range: 4, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'heal', formula: 'ma', power: 4 }], desc: 'Restore HP to all in the area.' },
-  cura: { name: 'Cura', job: 'whiteMage', jp: 180, mp: 12, range: 4, aoe: 1, vert: 3, ct: 18, kind: 'magic', affects: 'all', allowSelf: true,
+  cura: { name: 'Restore', job: 'whiteMage', jp: 180, mp: 12, range: 4, aoe: 1, vert: 3, ct: 18, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'heal', formula: 'ma', power: 8 }], desc: 'Restore a great deal of HP to all in the area.' },
   raise: { name: 'Raise', job: 'whiteMage', jp: 200, mp: 10, range: 4, aoe: 0, vert: 3, ct: 20, kind: 'magic', affects: 'ally', deadOnly: true,
     effects: [{ type: 'revive', pct: 0.4 }], desc: 'Revive a fallen ally with 40% HP.' },
   protect: { name: 'Protect', job: 'whiteMage', jp: 80, mp: 6, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }], desc: 'Grant Protect (physical damage -1/3).' },
-  shell: { name: 'Shell', job: 'whiteMage', jp: 80, mp: 6, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
-    effects: [{ type: 'status', status: 'shell', hit: 100 }], desc: 'Grant Shell (magical damage -1/3).' },
-  esuna: { name: 'Esuna', job: 'whiteMage', jp: 200, mp: 10, range: 3, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'ally', allowSelf: true,
+  shell: { name: 'Barrier', job: 'whiteMage', jp: 80, mp: 6, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
+    effects: [{ type: 'status', status: 'shell', hit: 100 }], desc: 'Grant Barrier (magical damage -1/3).' },
+  esuna: { name: 'Cleanse', job: 'whiteMage', jp: 200, mp: 10, range: 3, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'ally', allowSelf: true,
     effects: [{ type: 'cure', statuses: ['poison', 'slow', 'stop', 'silence', 'blind', 'berserk'] }],
     desc: 'Lift every affliction from all allies in the area.' },
   regen: { name: 'Regen', job: 'whiteMage', jp: 120, mp: 8, range: 3, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'regen', hit: 100 }], desc: 'Grant Regen (recover HP each turn).' },
 
-  // Black Mage
+  // Sorcerer
   fire: { name: 'Fire', job: 'blackMage', jp: 50, mp: 6, range: 4, aoe: 1, vert: 3, ct: 25, kind: 'magic', affects: 'all', element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 5 }], desc: 'Burn all in the area.' },
   thunder: { name: 'Thunder', job: 'blackMage', jp: 80, mp: 8, range: 4, aoe: 0, vert: 8, ct: 22, kind: 'magic', affects: 'all', element: 'thunder',
     effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Strike a single target with lightning. Ignores height.' },
-  blizzard: { name: 'Blizzard', job: 'blackMage', jp: 90, mp: 7, range: 4, aoe: 1, vert: 3, ct: 24, kind: 'magic', affects: 'all', element: 'ice',
+  blizzard: { name: 'Frost', job: 'blackMage', jp: 90, mp: 7, range: 4, aoe: 1, vert: 3, ct: 24, kind: 'magic', affects: 'all', element: 'ice',
     effects: [{ type: 'damage', formula: 'ma', power: 6 }], desc: 'Freeze all in the area.' },
   stone: { name: 'Stone', job: 'blackMage', jp: 140, mp: 9, range: 3, aoe: 1, vert: 1, ct: 20, kind: 'magic', affects: 'all', element: 'earth',
     effects: [{ type: 'damage', formula: 'ma', power: 7 }], desc: 'Tear up the ground beneath them. Cannot reach a different level.' },
@@ -734,20 +734,20 @@ const ABILITIES = {
     effects: [{ type: 'status', status: 'poison', hit: 85 }], desc: 'Inflict Poison on all in the area.' },
   silenceSpell: { name: 'Silence', job: 'blackMage', jp: 160, mp: 8, range: 4, aoe: 1, vert: 3, ct: 22, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'silence', hit: 80 }], desc: 'Seal the voices of all in the area.' },
-  fira: { name: 'Fira', job: 'blackMage', jp: 220, mp: 12, range: 4, aoe: 1, vert: 3, ct: 15, kind: 'magic', affects: 'all', element: 'fire',
+  fira: { name: 'Blaze', job: 'blackMage', jp: 220, mp: 12, range: 4, aoe: 1, vert: 3, ct: 15, kind: 'magic', affects: 'all', element: 'fire',
     effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'A greater fire spell.' },
-  flare: { name: 'Flare', job: 'blackMage', jp: 450, mp: 26, range: 4, aoe: 0, vert: 3, ct: 10, kind: 'magic', affects: 'all', element: null,
+  flare: { name: 'Sunburst', job: 'blackMage', jp: 450, mp: 26, range: 4, aoe: 0, vert: 3, ct: 10, kind: 'magic', affects: 'all', element: null,
     effects: [{ type: 'damage', formula: 'ma', power: 15 }], desc: 'Annihilate a single target.' },
 
-  // Time Mage
+  // Chronomancer
   haste: { name: 'Haste', job: 'timeMage', jp: 100, mp: 8, range: 4, aoe: 1, vert: 3, ct: 20, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'status', status: 'haste', hit: 100 }], desc: 'Grant Haste to all in the area.' },
   slowSpell: { name: 'Slow', job: 'timeMage', jp: 100, mp: 8, range: 4, aoe: 1, vert: 3, ct: 20, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'slow', hit: 85 }], desc: 'Inflict Slow on all in the area.' },
   stopSpell: { name: 'Stop', job: 'timeMage', jp: 250, mp: 12, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'stop', hit: 70 }], desc: 'Freeze a target in time.' },
-  quick: { name: 'Quick', job: 'timeMage', jp: 400, mp: 20, range: 4, aoe: 0, vert: 3, ct: 25, kind: 'magic', affects: 'ally', allowSelf: false,
-    effects: [{ type: 'ctset', amount: 100 }], desc: 'Set an ally\'s Charge Time to 100 for an immediate turn.' },
+  quick: { name: 'Spur', job: 'timeMage', jp: 400, mp: 20, range: 4, aoe: 0, vert: 3, ct: 25, kind: 'magic', affects: 'ally', allowSelf: false,
+    effects: [{ type: 'ctset', amount: 100 }], desc: 'Set an ally\'s Tempo to 100 for an immediate turn.' },
 
   // Ninja
   shuriken: { name: 'Shuriken', job: 'ninja', jp: 60, mp: 0, range: 4, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'all',
@@ -760,7 +760,7 @@ const ABILITIES = {
   // Dragoon
   jump: { name: 'Jump', job: 'dragoon', jp: 100, mp: 0, range: 4, aoe: 0, vert: 9, ct: 30, kind: 'physical', affects: 'all', airborne: true,
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.5 }], desc: 'Leap skyward; crash down for 1.5x weapon damage. Untargetable while airborne.' },
-  lancet: { name: 'Lancet', job: 'dragoon', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
+  lancet: { name: 'Leech Lance', job: 'dragoon', jp: 150, mp: 0, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'drain', formula: 'pa', power: 3 }], desc: 'Drain HP from the target.' },
   dragonRoar: { name: 'Dragon Roar', job: 'dragoon', jp: 250, mp: 0, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }], desc: 'A roar that grants Protect to nearby allies.' },
@@ -773,26 +773,26 @@ const ABILITIES = {
     effects: [{ type: 'mpdamage', formula: 'ma', power: 4 }], desc: 'A cut that bleeds MP rather than blood. Silences casters the slow way.' },
   kiyomori: { name: 'Sakura Ward', job: 'samurai', jp: 200, mp: 10, range: 0, aoe: 2, vert: 3, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }],
-    desc: 'The blade\'s spirit wards you and every ally nearby with Protect and Shell.' },
+    desc: 'The blade\'s spirit wards you and every ally nearby with Protect and Barrier.' },
   muramasa: { name: 'Muramasa', job: 'samurai', jp: 350, mp: 14, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'magic', affects: 'all', element: 'dark',
     effects: [{ type: 'damage', formula: 'ma', power: 8 }, { type: 'status', status: 'blind', hit: 45 }],
     desc: 'The cursed blade. Heavy dark damage over an area, and some are left blinded by it.' },
 
-  // Summoner. Espers are wide and slow, and they know friend from foe.
-  ifrit: { name: 'Ifrit', job: 'summoner', jp: 120, mp: 16, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'enemy', element: 'fire',
-    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the fire esper. Burns every enemy in a wide area; allies are spared.' },
-  shiva: { name: 'Shiva', job: 'summoner', jp: 120, mp: 16, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'enemy', element: 'ice',
-    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the ice esper. Freezes every enemy in a wide area.' },
-  ramuh: { name: 'Ramuh', job: 'summoner', jp: 160, mp: 18, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'enemy', element: 'thunder',
-    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the thunder esper. Strikes from above; height is no shelter.' },
+  // Summoner. Spirits are wide and slow, and they know friend from foe.
+  ifrit: { name: 'Cinder Djinn', job: 'summoner', jp: 120, mp: 16, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'enemy', element: 'fire',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the fire spirit. Burns every enemy in a wide area; allies are spared.' },
+  shiva: { name: 'Frost Maiden', job: 'summoner', jp: 120, mp: 16, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'enemy', element: 'ice',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the ice spirit. Freezes every enemy in a wide area.' },
+  ramuh: { name: 'Thunder Hermit', job: 'summoner', jp: 160, mp: 18, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'enemy', element: 'thunder',
+    effects: [{ type: 'damage', formula: 'ma', power: 8 }], desc: 'Call the thunder spirit. Strikes from above; height is no shelter.' },
   titan: { name: 'Titan', job: 'summoner', jp: 220, mp: 20, range: 4, aoe: 2, vert: 1, ct: 10, kind: 'magic', affects: 'enemy', element: 'earth',
     effects: [{ type: 'damage', formula: 'ma', power: 10 }, { type: 'status', status: 'slow', hit: 35 }],
-    desc: 'Call the earth esper. The ground heaves under every enemy on the same level.' },
-  moogle: { name: 'Moogle', job: 'summoner', jp: 100, mp: 12, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
-    effects: [{ type: 'heal', formula: 'ma', power: 6 }], desc: 'Call the little esper. Mends every ally in a wide area.' },
+    desc: 'Call the earth spirit. The ground heaves under every enemy on the same level.' },
+  moogle: { name: 'Hearth Spirit', job: 'summoner', jp: 100, mp: 12, range: 4, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
+    effects: [{ type: 'heal', formula: 'ma', power: 6 }], desc: 'Call the little spirit. Mends every ally in a wide area.' },
   carbuncle: { name: 'Carbuncle', job: 'summoner', jp: 200, mp: 14, range: 4, aoe: 2, vert: 4, ct: 12, kind: 'magic', affects: 'ally', allowSelf: true,
     effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }],
-    desc: 'Call the gem esper. Shell and Regen for every ally in a wide area.' },
+    desc: 'Call the gem spirit. Barrier and Regen for every ally in a wide area.' },
 
   // Geomancer. The land answers at once and asks no MP.
   tremor: { name: 'Tremor', job: 'geomancer', jp: 80, mp: 4, range: 4, aoe: 1, vert: 1, ct: 4, kind: 'magic', affects: 'all', element: 'earth',
@@ -856,7 +856,7 @@ const ABILITIES = {
   // Sage
   holy: { name: 'Holy', job: 'sage', jp: 350, mp: 24, range: 4, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all', element: 'holy',
     effects: [{ type: 'damage', formula: 'ma', power: 12 }], desc: 'The white spell. Holy ruin over an area.' },
-  fullLife: { name: 'Full-Life', job: 'sage', jp: 300, mp: 20, range: 4, aoe: 0, vert: 4, ct: 14, kind: 'magic', affects: 'ally', deadOnly: true,
+  fullLife: { name: 'Resurrection', job: 'sage', jp: 300, mp: 20, range: 4, aoe: 0, vert: 4, ct: 14, kind: 'magic', affects: 'ally', deadOnly: true,
     effects: [{ type: 'revive', pct: 1.0 }], desc: 'Bring a fallen ally back with every point of HP.' },
   reraise: { name: 'Second Breath', job: 'sage', jp: 400, mp: 18, range: 3, aoe: 0, vert: 4, ct: 16, kind: 'magic', affects: 'ally', allowSelf: true,
     effects: [{ type: 'status', status: 'reraise', hit: 100 }], desc: 'A life held in reserve. The first time the target falls, it rises with a quarter of its HP.' },
@@ -870,7 +870,7 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.8 }], desc: 'Leap beyond sight and fall on an area for 1.8x weapon damage. Untargetable while airborne.' },
   scaleWard: { name: 'Scale Ward', job: 'dragonlord', jp: 300, mp: 12, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }],
-    desc: 'Scales over skin. Protect, Shell and Regen on yourself at once.' },
+    desc: 'Scales over skin. Protect, Barrier and Regen on yourself at once.' },
   roarOfKings: { name: 'Roar of Kings', job: 'dragonlord', jp: 500, mp: 16, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'statmod', stat: 'pa', amount: 2 }, { type: 'statmod', stat: 'spd', amount: 1 }],
     desc: 'A roar the whole field hears. PA +2 and Speed +1 for every ally within two tiles, for the battle.' },
@@ -882,7 +882,7 @@ const ABILITIES = {
     effects: [{ type: 'revive', pct: 0.5 }], desc: 'Every fallen ally within the area rises with half their HP.' },
   aegis: { name: 'Aegis', job: 'hierophant', jp: 450, mp: 26, range: 3, aoe: 2, vert: 4, ct: 14, kind: 'magic', affects: 'ally', allowSelf: true,
     effects: [{ type: 'status', status: 'reraise', hit: 100 }, { type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }],
-    desc: 'Second Breath, Protect and Shell on every ally in a wide area. Nothing in it dies today.' },
+    desc: 'Second Breath, Protect and Barrier on every ally in a wide area. Nothing in it dies today.' },
   timeStop: { name: 'Time Stop', job: 'hierophant', jp: 400, mp: 20, range: 4, aoe: 1, vert: 4, ct: 12, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'stop', hit: 80 }], desc: 'Tell time to wait. Most of those in the area are Stopped.' },
 
@@ -916,7 +916,7 @@ const ABILITIES = {
   brine: { name: 'Brine', job: 'tidecaller', jp: 200, mp: 12, range: 3, aoe: 0, vert: 4, ct: 4, kind: 'magic', affects: 'enemy', element: 'water',
     effects: [{ type: 'damage', formula: 'ma', power: 8 }, { type: 'status', status: 'poison', hit: 70 }], desc: 'Salt water where it does the most harm. Water damage, and likely Poison.' },
   saltWard: { name: 'Salt Ward', job: 'tidecaller', jp: 250, mp: 12, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
-    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'A line of salt around allies in the area: Shell and Regen.' },
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'A line of salt around allies in the area: Barrier and Regen.' },
 
   // Harpooner
   harpoon: { name: 'Harpoon', job: 'harpooner', jp: 120, mp: 4, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
@@ -926,7 +926,7 @@ const ABILITIES = {
   barb: { name: 'Barb', job: 'harpooner', jp: 200, mp: 6, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'damage', formula: 'pa', power: 4 }, { type: 'status', status: 'poison', hit: 80 }], desc: 'A barbed head that stays in. Damage, and the wound keeps bleeding: Poison.' },
   reel: { name: 'Reel', job: 'harpooner', jp: 260, mp: 6, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'ctmod', amount: -30 }], desc: 'Haul on the line. A little damage, and the target loses 30 CT fighting it.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'ctmod', amount: -30 }], desc: 'Haul on the line. A little damage, and the target loses 30 Tempo fighting it.' },
 
   // The sea's dead
   brineCut: { name: 'Brine Cut', job: 'drownedKnight', jp: 0, mp: 6, range: 'weapon', aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', element: 'water',
@@ -946,7 +946,7 @@ const ABILITIES = {
   pincer: { name: 'Pincer', job: 'reefCrab', jp: 0, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'damage', formula: 'pa', power: 8 }, { type: 'status', status: 'stop', hit: 35 }], desc: 'Caught, and held. Damage, and a fair chance of Stop.' },
   shellUp: { name: 'Shell Up', job: 'reefCrab', jp: 0, mp: 4, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Down under the shell. Protect and Shell.' },
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Down under the shell. Protect and Barrier.' },
   maelstrom: { name: 'Maelstrom', job: 'leviathan', jp: 0, mp: 20, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'all', element: 'water',
     effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'The sea turned in a circle over a wide area, and everything in it.' },
   crush: { name: 'Crush', job: 'leviathan', jp: 0, mp: 0, range: 1, aoe: 0, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
@@ -954,7 +954,7 @@ const ABILITIES = {
 
   // Marshal
   orders: { name: 'Orders', job: 'marshal', jp: 200, mp: 8, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'ctmod', amount: 15 }, { type: 'statmod', stat: 'pa', amount: 1 }], desc: 'A word to everyone within two tiles: 15 CT and PA +1.' },
+    effects: [{ type: 'ctmod', amount: 15 }, { type: 'statmod', stat: 'pa', amount: 1 }], desc: 'A word to everyone within two tiles: 15 Tempo and PA +1.' },
   holdTheLine: { name: 'Hold the Line', job: 'marshal', jp: 250, mp: 10, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }], desc: 'Protect on every ally within two tiles, yourself included.' },
   charge: { name: 'Charge', job: 'marshal', jp: 150, mp: 4, range: 2, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
@@ -1000,7 +1000,7 @@ const ABILITIES = {
   slam: { name: 'Slam', job: 'golem', jp: 0, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'enemy', self: true,
     effects: [{ type: 'damage', formula: 'pa', power: 10 }], desc: 'Both fists on the ground. Damage to every foe adjacent.' },
   stoneskin: { name: 'Stoneskin', job: 'golem', jp: 0, mp: 4, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Protect and Shell. It was a statue once.' },
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Protect and Barrier. It was a statue once.' },
   quake: { name: 'Quake', job: 'golem', jp: 0, mp: 12, range: 3, aoe: 2, vert: 2, ct: 8, kind: 'magic', affects: 'all', element: 'earth',
     effects: [{ type: 'damage', formula: 'ma', power: 10 }], desc: 'The ground heaves over a wide area, friend and foe alike.' },
   verdict: { name: 'Verdict', job: 'chancellor', jp: 0, mp: 16, range: 3, aoe: 1, vert: 4, ct: 6, kind: 'magic', affects: 'enemy', element: 'dark',
@@ -1013,7 +1013,7 @@ const ABILITIES = {
   glaciate: { name: 'Glaciate', job: 'frostweaver', jp: 250, mp: 14, range: 3, aoe: 0, vert: 4, ct: 10, kind: 'magic', affects: 'all', element: 'ice',
     effects: [{ type: 'damage', formula: 'ma', power: 9 }, { type: 'status', status: 'stop', hit: 50 }], desc: 'Ice damage, and an even chance the target is Stopped in it.' },
   hoarfrost: { name: 'Hoarfrost', job: 'frostweaver', jp: 200, mp: 12, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
-    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 5 }], desc: 'A skin of frost over allies in the area: Shell, and Evade +5.' },
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 5 }], desc: 'A skin of frost over allies in the area: Barrier, and Evade +5.' },
   whiteout: { name: 'Whiteout', job: 'frostweaver', jp: 400, mp: 18, range: 4, aoe: 2, vert: 9, ct: 12, kind: 'magic', affects: 'all',
     effects: [{ type: 'status', status: 'blind', hit: 70 }, { type: 'status', status: 'slow', hit: 50 }], desc: 'Snow so thick nobody sees or hurries. Blind and Slow over a wide area.' },
 
@@ -1023,7 +1023,7 @@ const ABILITIES = {
   wardPost: { name: 'Ward Post', job: 'warden', jp: 150, mp: 6, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'statmod', stat: 'evade', amount: 10 }], desc: 'Take a post and hold it. Protect, and Evade +10.' },
   rally: { name: 'Rally', job: 'warden', jp: 300, mp: 10, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'ctmod', amount: 20 }], desc: 'A voice the line can hear. Every ally within two tiles gains 20 CT.' },
+    effects: [{ type: 'ctmod', amount: 20 }], desc: 'A voice the line can hear. Every ally within two tiles gains 20 Tempo.' },
   volley: { name: 'Volley', job: 'warden', jp: 350, mp: 0, range: 4, aoe: 1, vert: 9, ct: 14, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.9 }], desc: 'Spears in the air, down on an area, after a charge.' },
 
@@ -1049,7 +1049,7 @@ const ABILITIES = {
   frostBreath: { name: 'Frost Breath', job: 'iceDrake', jp: 0, mp: 10, range: 3, aoe: 1, vert: 4, ct: 8, kind: 'magic', affects: 'all', element: 'ice',
     effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Breath that freezes an area.' },
   wingBuffet: { name: 'Wing Buffet', job: 'iceDrake', jp: 0, mp: 0, range: 0, aoe: 1, vert: 3, ct: 0, kind: 'physical', affects: 'enemy', self: true,
-    effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'ctmod', amount: -20 }], desc: 'Wings on everything close: damage, and 20 CT lost.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'ctmod', amount: -20 }], desc: 'Wings on everything close: damage, and 20 Tempo lost.' },
   tailSweep: { name: 'Tail Sweep', job: 'iceDrake', jp: 0, mp: 0, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 9 }], desc: 'A tail the length of a bridge.' },
   absoluteZero: { name: 'Absolute Zero', job: 'winterRegent', jp: 0, mp: 30, range: 4, aoe: 2, vert: 9, ct: 14, kind: 'magic', affects: 'all', element: 'ice',
@@ -1078,7 +1078,7 @@ const ABILITIES = {
   legShot: { name: 'Leg Shot', job: 'gunner', jp: 250, mp: 4, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon' }, { type: 'status', status: 'slow', hit: 60 }], desc: 'Weapon damage, and a fair chance the target is Slowed.' },
   suppress: { name: 'Suppressing Fire', job: 'gunner', jp: 350, mp: 6, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.6 }, { type: 'ctmod', amount: -30 }], desc: 'Keep their head down. Light damage, and the target loses 30 CT.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.6 }, { type: 'ctmod', amount: -30 }], desc: 'Keep their head down. Light damage, and the target loses 30 Tempo.' },
 
   // Aeronaut
   bombingRun: { name: 'Bombing Run', job: 'aeronaut', jp: 200, mp: 10, range: 5, aoe: 1, vert: 9, ct: 20, kind: 'magic', affects: 'all', airborne: true, element: 'fire',
@@ -1094,7 +1094,7 @@ const ABILITIES = {
   teslaCoil: { name: 'Tesla Coil', job: 'artificer', jp: 300, mp: 20, range: 3, aoe: 2, vert: 4, ct: 10, kind: 'magic', affects: 'all', element: 'thunder',
     effects: [{ type: 'damage', formula: 'ma', power: 10 }], desc: 'Lightning over a wide area. Brass conducts.' },
   aetherShield: { name: 'Aether Shield', job: 'artificer', jp: 350, mp: 16, range: 3, aoe: 1, vert: 4, ct: 8, kind: 'magic', affects: 'ally', allowSelf: true,
-    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'A humming field over the area: Protect and Shell on every ally in it.' },
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'A humming field over the area: Protect and Barrier on every ally in it.' },
   gearstorm: { name: 'Gearstorm', job: 'artificer', jp: 450, mp: 12, range: 3, aoe: 2, vert: 3, ct: 14, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.2 }], desc: 'A cloud of spinning gears over a wide area. 1.2x weapon damage to all in it.' },
   overdrive: { name: 'Overdrive', job: 'artificer', jp: 500, mp: 24, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
@@ -1104,13 +1104,13 @@ const ABILITIES = {
   // ---- The second studies: two more skills for every trade, learned last ----
   // Each job's kit ends with these, so an enemy who knows only the first few
   // things of a trade never has them, and a boss, who knows everything, does.
-  // Squire
+  // Footman
   dustKick: { name: 'Dust Kick', job: 'squire', jp: 120, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'status', status: 'blind', hit: 55 }], desc: 'Grit in the eyes. A little damage, and an even chance of Blind.' },
   holdGround: { name: 'Hold Ground', job: 'squire', jp: 180, mp: 0, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
     effects: [{ type: 'statmod', stat: 'evade', amount: 8 }], desc: 'Feet set, weight low. Evade +8 for the rest of the battle.' },
-  // Chemist
-  xPotion: { name: 'X-Potion', job: 'chemist', jp: 320, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
+  // Apothecary
+  xPotion: { name: 'Grand Potion', job: 'chemist', jp: 320, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'heal', flat: 150 }], desc: 'Restore 150 HP.' },
   echoHerbs: { name: 'Echo Herbs', job: 'chemist', jp: 90, mp: 0, range: 3, aoe: 0, vert: 3, ct: 0, kind: 'item', affects: 'ally', allowSelf: true,
     effects: [{ type: 'cure', statuses: ['silence', 'blind'] }], desc: 'Cure Silence and Blind.' },
@@ -1128,29 +1128,29 @@ const ABILITIES = {
   pressurePoint: { name: 'Pressure Point', job: 'monk', jp: 220, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'status', status: 'silence', hit: 65 }], desc: 'Two fingers at the throat. Damage, and likely Silence.' },
   whirlwindKick: { name: 'Whirlwind Kick', job: 'monk', jp: 300, mp: 0, range: 0, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'enemy', self: true,
-    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'ctmod', amount: -10 }], desc: 'A spinning kick at everyone close. Damage, and 10 CT knocked off each.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'ctmod', amount: -10 }], desc: 'A spinning kick at everyone close. Damage, and 10 Tempo knocked off each.' },
   // Thief
   sneakAttack: { name: 'Sneak Attack', job: 'thief', jp: 260, mp: 0, range: 1, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.4 }], desc: 'Where they are not looking. 1.4x weapon damage; get behind them first and it cannot be evaded.' },
   caltrops: { name: 'Caltrops', job: 'thief', jp: 180, mp: 0, range: 3, aoe: 1, vert: 2, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 1 }, { type: 'status', status: 'slow', hit: 70 }], desc: 'A handful of iron spikes over an area. A scratch, and most in it are Slowed.' },
   tripWire: { name: 'Trip Wire', job: 'thief', jp: 140, mp: 0, range: 2, aoe: 0, vert: 2, ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'ctmod', amount: -20 }], desc: 'A cord at ankle height. A little damage, and 20 CT lost getting up.' },
-  // White Mage
+    effects: [{ type: 'damage', formula: 'pa', power: 2 }, { type: 'ctmod', amount: -20 }], desc: 'A cord at ankle height. A little damage, and 20 Tempo lost getting up.' },
+  // Cleric
   dispel: { name: 'Dispel', job: 'whiteMage', jp: 220, mp: 10, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'enemy',
-    effects: [{ type: 'cure', statuses: ['haste', 'protect', 'shell', 'regen', 'reraise'] }], desc: 'Strip Haste, Protect, Shell, Regen and Second Breath from a foe.' },
-  curaga: { name: 'Curaga', job: 'whiteMage', jp: 340, mp: 20, range: 4, aoe: 1, vert: 3, ct: 12, kind: 'magic', affects: 'all', allowSelf: true,
+    effects: [{ type: 'cure', statuses: ['haste', 'protect', 'shell', 'regen', 'reraise'] }], desc: 'Strip Haste, Protect, Barrier, Regen and Second Breath from a foe.' },
+  curaga: { name: 'Renew', job: 'whiteMage', jp: 340, mp: 20, range: 4, aoe: 1, vert: 3, ct: 12, kind: 'magic', affects: 'all', allowSelf: true,
     effects: [{ type: 'heal', formula: 'ma', power: 12 }], desc: 'The greatest mending. A flood of HP to all in the area.' },
-  // Black Mage
-  thundara: { name: 'Thundara', job: 'blackMage', jp: 240, mp: 14, range: 4, aoe: 0, vert: 8, ct: 14, kind: 'magic', affects: 'all', element: 'thunder',
+  // Sorcerer
+  thundara: { name: 'Lightning', job: 'blackMage', jp: 240, mp: 14, range: 4, aoe: 0, vert: 8, ct: 14, kind: 'magic', affects: 'all', element: 'thunder',
     effects: [{ type: 'damage', formula: 'ma', power: 11 }], desc: 'A greater bolt on a single target. Ignores height.' },
   drain: { name: 'Drain', job: 'blackMage', jp: 200, mp: 10, range: 3, aoe: 0, vert: 3, ct: 16, kind: 'magic', affects: 'enemy', element: 'dark',
     effects: [{ type: 'drain', formula: 'ma', power: 6 }], desc: 'Pull the target\'s life into your own. Dark.' },
-  // Time Mage
+  // Chronomancer
   rewind: { name: 'Rewind', job: 'timeMage', jp: 180, mp: 10, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'ally', allowSelf: false,
-    effects: [{ type: 'ctmod', amount: 40 }], desc: 'Give an ally back a little of the time it took. CT +40.' },
+    effects: [{ type: 'ctmod', amount: 40 }], desc: 'Give an ally back a little of the time it took. Tempo +40.' },
   timeTheft: { name: 'Time Theft', job: 'timeMage', jp: 200, mp: 10, range: 4, aoe: 0, vert: 3, ct: 15, kind: 'magic', affects: 'enemy',
-    effects: [{ type: 'ctmod', amount: -40 }], desc: 'Take a foe\'s turn away from it. CT -40.' },
+    effects: [{ type: 'ctmod', amount: -40 }], desc: 'Take a foe\'s turn away from it. Tempo -40.' },
   // Ninja
   kunaiStorm: { name: 'Kunai Storm', job: 'ninja', jp: 220, mp: 0, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }], desc: 'A fistful of blades over an area. Nobody in it is spared.' },
@@ -1172,19 +1172,19 @@ const ABILITIES = {
     effects: [{ type: 'heal', formula: 'ma', power: 4 }, { type: 'cure', statuses: ['silence', 'berserk'] }], desc: 'A breath before the draw. Heals yourself and adjacent allies, and lifts Silence and Berserk.' },
   // Summoner
   sylph: { name: 'Sylph', job: 'summoner', jp: 180, mp: 16, range: 4, aoe: 2, vert: 6, ct: 12, kind: 'magic', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'ma', power: 5 }, { type: 'status', status: 'silence', hit: 55 }], desc: 'Call the wind esper. Light damage over a wide area, and the voices of most in it are taken.' },
+    effects: [{ type: 'damage', formula: 'ma', power: 5 }, { type: 'status', status: 'silence', hit: 55 }], desc: 'Call the wind spirit. Light damage over a wide area, and the voices of most in it are taken.' },
   undine: { name: 'Undine', job: 'summoner', jp: 240, mp: 20, range: 4, aoe: 2, vert: 4, ct: 12, kind: 'magic', affects: 'enemy', element: 'water',
-    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Call the water esper. The sea over every enemy in a wide area.' },
+    effects: [{ type: 'damage', formula: 'ma', power: 9 }], desc: 'Call the water spirit. The sea over every enemy in a wide area.' },
   // Geomancer
   gust: { name: 'Gust', job: 'geomancer', jp: 160, mp: 4, range: 4, aoe: 1, vert: 9, ct: 4, kind: 'magic', affects: 'all',
-    effects: [{ type: 'damage', formula: 'ma', power: 4 }, { type: 'ctmod', amount: -15 }], desc: 'Wind from nowhere, from any height. Light damage, and 15 CT lost to staying upright.' },
+    effects: [{ type: 'damage', formula: 'ma', power: 4 }, { type: 'ctmod', amount: -15 }], desc: 'Wind from nowhere, from any height. Light damage, and 15 Tempo lost to staying upright.' },
   brambles: { name: 'Brambles', job: 'geomancer', jp: 220, mp: 4, range: 3, aoe: 1, vert: 2, ct: 4, kind: 'magic', affects: 'all', element: 'earth',
     effects: [{ type: 'damage', formula: 'ma', power: 3 }, { type: 'status', status: 'poison', hit: 55 }], desc: 'Thorns out of the ground. Light damage, and the scratches turn: Poison.' },
   // Bard
   dirge: { name: 'Dirge of Dust', job: 'bard', jp: 200, mp: 8, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'enemy', self: true,
     effects: [{ type: 'statmod', stat: 'pa', amount: -1 }], desc: 'A song for the losing side. PA -1 for every foe within three tiles, for the battle.' },
   cadence: { name: 'Marching Cadence', job: 'bard', jp: 240, mp: 10, range: 0, aoe: 3, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'ctmod', amount: 15 }], desc: 'Left, right. Every ally within three tiles gains 15 CT.' },
+    effects: [{ type: 'ctmod', amount: 15 }], desc: 'Left, right. Every ally within three tiles gains 15 Tempo.' },
   // Paladin
   shieldOfFaith: { name: 'Shield of Faith', job: 'paladin', jp: 280, mp: 12, range: 3, aoe: 1, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
     effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'Protect and Regen on every ally in the area.' },
@@ -1207,7 +1207,7 @@ const ABILITIES = {
     effects: [{ type: 'damage', formula: 'ma', power: 10 }, { type: 'status', status: 'poison', hit: 60 }], desc: 'The black spell. Dark damage over an area, and most who survive it are Poisoned.' },
   // Dragonlord
   wingStorm: { name: 'Wing Storm', job: 'dragonlord', jp: 350, mp: 10, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'physical', affects: 'enemy', self: true,
-    effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'ctmod', amount: -20 }], desc: 'Wings on everything within two tiles. Damage, and 20 CT lost to the wind.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 6 }, { type: 'ctmod', amount: -20 }], desc: 'Wings on everything within two tiles. Damage, and 20 Tempo lost to the wind.' },
   dragonsBlood: { name: 'Dragon\'s Blood', job: 'dragonlord', jp: 400, mp: 14, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
     effects: [{ type: 'heal', formula: 'ma', power: 8 }, { type: 'status', status: 'regen', hit: 100 }], desc: 'A cup of it. Heals an ally and leaves Regen behind.' },
   // Hierophant
@@ -1229,12 +1229,12 @@ const ABILITIES = {
   doubleTap: { name: 'Double Tap', job: 'gunner', jp: 300, mp: 4, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 0.7 }, { type: 'damage', formula: 'pa', power: 'weapon', mult: 0.7 }], desc: 'Two shots, close together, each a little lighter than one.' },
   flashPowder: { name: 'Flash Powder', job: 'gunner', jp: 220, mp: 4, range: 2, aoe: 1, vert: 3, ct: 0, kind: 'physical', affects: 'all',
-    effects: [{ type: 'status', status: 'blind', hit: 75 }, { type: 'ctmod', amount: -10 }], desc: 'A pan of powder in the face. Most in the area are Blinded, and all lose 10 CT.' },
+    effects: [{ type: 'status', status: 'blind', hit: 75 }, { type: 'ctmod', amount: -10 }], desc: 'A pan of powder in the face. Most in the area are Blinded, and all lose 10 Tempo.' },
   // Aeronaut
   strafe: { name: 'Strafe', job: 'aeronaut', jp: 250, mp: 6, range: 4, aoe: 1, vert: 9, ct: 8, kind: 'physical', affects: 'all',
     effects: [{ type: 'damage', formula: 'pa', power: 4 }], desc: 'A pass over the area with everything that fires. Damage from any height.' },
   skyhook: { name: 'Skyhook', job: 'aeronaut', jp: 280, mp: 6, range: 3, aoe: 0, vert: 9, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
-    effects: [{ type: 'statmod', stat: 'jump', amount: 3 }, { type: 'ctmod', amount: 15 }], desc: 'A line from above. Jump +3 for the battle, and 15 CT now.' },
+    effects: [{ type: 'statmod', stat: 'jump', amount: 3 }, { type: 'ctmod', amount: 15 }], desc: 'A line from above. Jump +3 for the battle, and 15 Tempo now.' },
   // Artificer
   galvanize: { name: 'Galvanize', job: 'artificer', jp: 350, mp: 14, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
     effects: [{ type: 'statmod', stat: 'spd', amount: 1 }, { type: 'mpheal', formula: 'ma', power: 2 }], desc: 'A current through the line. Speed +1 and a little MP for every ally in the area.' },
@@ -1252,9 +1252,9 @@ const ABILITIES = {
     effects: [{ type: 'cure', statuses: ['slow', 'stop'] }, { type: 'status', status: 'protect', hit: 100 }], desc: 'Slow and Stop lifted from allies in the area, and Protect on all of them.' },
   // Runeblade
   runeShield: { name: 'Rune Shield', job: 'runeblade', jp: 300, mp: 12, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'support', affects: 'ally', allowSelf: true,
-    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'ma', amount: 2 }], desc: 'The runes read outward. Shell, and MA +2, on an ally.' },
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'ma', amount: 2 }], desc: 'The runes read outward. Barrier, and MA +2, on an ally.' },
   starStrike: { name: 'Star Strike', job: 'runeblade', jp: 450, mp: 10, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.2 }, { type: 'ctmod', amount: -15 }], desc: 'The star-iron falls on them again. 1.2x weapon damage, and 15 CT lost.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', mult: 1.2 }, { type: 'ctmod', amount: -15 }], desc: 'The star-iron falls on them again. 1.2x weapon damage, and 15 Tempo lost.' },
   // Corsair
   powderKeg: { name: 'Powder Keg', job: 'corsair', jp: 300, mp: 8, range: 3, aoe: 1, vert: 3, ct: 8, kind: 'physical', affects: 'enemy', element: 'fire',
     effects: [{ type: 'damage', formula: 'pa', power: 6 }], desc: 'Lit, rolled, and the enemy stands too close to it. Fire damage over an area.' },
@@ -1269,7 +1269,7 @@ const ABILITIES = {
   netThrow: { name: 'Net Throw', job: 'harpooner', jp: 240, mp: 6, range: 3, aoe: 1, vert: 4, ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'status', status: 'slow', hit: 70 }, { type: 'status', status: 'stop', hit: 25 }], desc: 'Weighted cord over an area. Most in it are Slowed, and some are held fast.' },
   gaffHook: { name: 'Gaff Hook', job: 'harpooner', jp: 300, mp: 6, range: 2, aoe: 0, vert: 3, ct: 0, kind: 'physical', affects: 'enemy',
-    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }, { type: 'ctmod', amount: -20 }], desc: 'In, and pulled. Weapon damage at two tiles, and 20 CT lost.' },
+    effects: [{ type: 'damage', formula: 'pa', power: 'weapon', bonus: 2 }, { type: 'ctmod', amount: -20 }], desc: 'In, and pulled. Weapon damage at two tiles, and 20 Tempo lost.' },
   // Marshal
   flankingOrder: { name: 'Flanking Order', job: 'marshal', jp: 220, mp: 8, range: 3, aoe: 0, vert: 4, ct: 0, kind: 'support', affects: 'ally',
     effects: [{ type: 'statmod', stat: 'move', amount: 1 }, { type: 'statmod', stat: 'spd', amount: 1 }], desc: 'Round the side. Move +1 and Speed +1 for an ally, for the battle.' },
@@ -1279,7 +1279,7 @@ const ABILITIES = {
   excommunication: { name: 'Excommunication', job: 'inquisitor', jp: 300, mp: 14, range: 3, aoe: 0, vert: 4, ct: 4, kind: 'magic', affects: 'enemy',
     effects: [{ type: 'cure', statuses: ['haste', 'protect', 'shell', 'regen', 'reraise'] }, { type: 'mpdamage', formula: 'ma', power: 5 }], desc: 'Every blessing stripped from a foe, and MP burned away with them.' },
   litany: { name: 'Litany', job: 'inquisitor', jp: 350, mp: 14, range: 0, aoe: 2, vert: 4, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'ma', amount: 1 }], desc: 'The words said over the line. Shell and MA +1 for every ally within two tiles.' },
+    effects: [{ type: 'status', status: 'shell', hit: 100 }, { type: 'statmod', stat: 'ma', amount: 1 }], desc: 'The words said over the line. Barrier and MA +1 for every ally within two tiles.' },
   // Duelist
   flurry: { name: 'Flurry', job: 'duelist', jp: 300, mp: 8, range: 'weapon', aoe: 0, vert: 'weapon', ct: 0, kind: 'physical', affects: 'enemy',
     effects: [{ type: 'damage', formula: 'pa', power: 3 }, { type: 'damage', formula: 'pa', power: 3 }, { type: 'damage', formula: 'pa', power: 3 }], desc: 'Three cuts before they have answered the first.' },
@@ -1335,7 +1335,7 @@ const ABILITIES = {
     effects: [{ type: 'status', status: 'silence', hit: 75 }, { type: 'status', status: 'blind', hit: 75 }],
     desc: 'Takes the voice and the sight from all in the area.' },
   darkProtect: { name: 'Umbral Ward', job: 'darkKnight', jp: 0, mp: 10, range: 0, aoe: 0, vert: 0, ct: 0, kind: 'support', affects: 'ally', self: true,
-    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Shroud self in Protect and Shell.' },
+    effects: [{ type: 'status', status: 'protect', hit: 100 }, { type: 'status', status: 'shell', hit: 100 }], desc: 'Shroud self in Protect and Barrier.' },
 };
 
 // Party at the start of a new game.
@@ -1349,7 +1349,7 @@ const STARTING_PARTY = [
 // Difficulty scales the opposition rather than the party, so a player's own
 // numbers always mean the same thing.
 const DIFFICULTIES = {
-  squire:  { name: 'Squire', levelShift: -1, gearShift: -1, gilMult: 1.25,
+  squire:  { name: 'Footman', levelShift: -1, gearShift: -1, gilMult: 1.25,
              desc: 'Foes are a level below and less well equipped. Purses stretch further.' },
   knight:  { name: 'Knight', levelShift: 0, gearShift: 0, gilMult: 1,
              desc: 'The campaign as written.' },
@@ -1543,7 +1543,7 @@ const ITEMS = {
   wingedBoots: { name: 'Winged Boots', slot: 'acc', jump: 2, price: 500, tier: 2 },
   sprintShoes: { name: 'Sprint Shoes', slot: 'acc', move: 1, spd: 1, price: 1200, tier: 4 },
   powerGlove:  { name: 'Power Glove', slot: 'acc', pa: 2, price: 900, tier: 3 },
-  magickRing:  { name: 'Magick Ring', slot: 'acc', ma: 2, price: 900, tier: 3 },
+  magickRing:  { name: 'Magic Ring', slot: 'acc', ma: 2, price: 900, tier: 3 },
   guardianRing:{ name: 'Guardian Ring', slot: 'acc', hp: 30, price: 700, tier: 2 },
   reflexBracer:{ name: 'Reflex Bracer', slot: 'acc', evade: 12, price: 800, tier: 3 },
   chronoAmulet:{ name: 'Chrono Amulet', slot: 'acc', spd: 2, price: 2000, tier: 5 },
@@ -1729,7 +1729,7 @@ const TYPE_ORDER = Object.keys(TYPE_NAMES);
 const GEAR_STATS = ['hp', 'mp', 'pa', 'ma', 'spd', 'move', 'jump', 'evade'];
 
 // Can `job` equip item `id` at all? `extra` adds permissions granted elsewhere,
-// such as the Equip Armor support ability.
+// such as the Armour Training support ability.
 function canEquip(job, id, extra) {
   const it = ITEMS[id], eq = JOB_EQUIP[job];
   // A beast has no hands for arms or armour, but it will wear a collar.
@@ -1867,7 +1867,7 @@ const MATERIALS = {
   starIron:     { name: 'Star-Iron', slot: 'material', price: 1800, tier: 7, desc: 'Iron that fell from the sky. The Hollow Market sells it by weight.' },
 };
 
-/* What a city's smiths can make and nobody sells: materials and gil in, one
+/* What a city's smiths can make and nobody sells: materials and marks in, one
    piece out. `forge` names the city; `cost` is what it asks. The guns among
    them are the only guns past the wagon's, so a company that shoots has a
    reason to open the workshop towns. */
@@ -1993,7 +1993,7 @@ function sellable(id) {
 // ============================================================================
 // Passive abilities: reaction, support and movement
 // ============================================================================
-// Learned with JP inside a job, but once learned they can be equipped no matter
+// Learned with SP inside a job, but once learned they can be equipped no matter
 // which job the unit is currently wearing. One of each kind at a time.
 
 // ============================================================================
@@ -2001,9 +2001,9 @@ function sellable(id) {
 // ============================================================================
 // Creatures that will fight for the company. A beast is a unit whose job is one
 // of the monster jobs above, on the player's side: its stats come from that job,
-// and its skills are the job's, learned not with JP spent but with a bond that
+// and its skills are the job's, learned not with SP spent but with a bond that
 // deepens as it fights. The first skill it knows at once; each further one opens
-// at the next bond level (the job-level table: level 2 at 100 JP, 3 at 250).
+// at the next bond level (the job-level table: level 2 at 100 SP, 3 at 250).
 //
 // A beast is won two ways: Tame, an Archer's ability, on a wild creature below
 // half its health, or bought from a city's kennel. Only the species here can be
@@ -2071,7 +2071,7 @@ const PASSIVES = {
     desc: 'Recover a tenth of your HP every time you are damaged and left standing.' },
   coldBlood: { name: 'Cold Blood', kind: 'support', job: 'frostweaver', jp: 350, desc: 'Ice damage you deal is a quarter greater.' },
   ironFooting: { name: 'Iron Footing', kind: 'movement', job: 'warden', jp: 300, desc: 'Slow and Stop do not take on you.' },
-  lastStand: { name: 'Last Stand', kind: 'reaction', job: 'runeblade', jp: 400, desc: 'A hit that leaves you under a third of your HP grants Protect and Shell.' },
+  lastStand: { name: 'Last Stand', kind: 'reaction', job: 'runeblade', jp: 400, desc: 'A hit that leaves you under a third of your HP grants Protect and Barrier.' },
   deadeye: { name: 'Deadeye', kind: 'support', job: 'gunner', jp: 300, desc: 'Anything used at weapon range reaches one tile further.' },
   jumpPlus3: { name: 'Balloon Pack', kind: 'movement', job: 'aeronaut', jp: 350, desc: 'Jump +3. Walls are a suggestion.' },
   fieldRepair: { name: 'Field Repair', kind: 'support', job: 'engineer', jp: 300, desc: 'Every heal you give restores 30% more.' },
@@ -2082,17 +2082,17 @@ const PASSIVES = {
   // ---- support: always-on modifiers ----
   attackUp: { name: 'Might', kind: 'support', job: 'knight', jp: 300,
     desc: 'Physical damage you deal rises by 25%.' },
-  magickUp: { name: 'Magick Up', kind: 'support', job: 'blackMage', jp: 300,
-    desc: 'Magickal damage you deal rises by 25%.' },
+  magickUp: { name: 'Arcane Might', kind: 'support', job: 'blackMage', jp: 300,
+    desc: 'Magical damage you deal rises by 25%.' },
   defend: { name: 'Defend', kind: 'support', job: 'squire', jp: 250,
     desc: 'Physical damage you take falls by 20%.' },
-  halfMp: { name: 'Halve MP', kind: 'support', job: 'timeMage', jp: 320,
+  halfMp: { name: 'Thrift', kind: 'support', job: 'timeMage', jp: 320,
     desc: 'Spells cost half as much MP.' },
-  twoHands: { name: 'Both Hands', kind: 'support', job: 'knight', jp: 350,
+  twoHands: { name: 'Two-Handed', kind: 'support', job: 'knight', jp: 350,
     desc: 'Grip your weapon with both hands for 50% more weapon power. The offhand must be empty.' },
   concentrate: { name: 'Unerring', kind: 'support', job: 'archer', jp: 320,
     desc: 'Your physical attacks ignore evasion entirely.' },
-  equipArmor: { name: 'Equip Armor', kind: 'support', job: 'whiteMage', jp: 280,
+  equipArmor: { name: 'Armour Training', kind: 'support', job: 'whiteMage', jp: 280,
     desc: 'Wear light and heavy armor whatever your job.' },
   martialArts: { name: 'Iron Fists', kind: 'support', job: 'monk', jp: 260,
     desc: 'Fist weapons strike for 50% more power.' },
@@ -2110,7 +2110,7 @@ const PASSIVES = {
     desc: 'Spells cost half their MP and charge twice as fast.' },
   lifesteal: { name: 'Fell Hunger', kind: 'support', job: 'fellKnight', jp: 550,
     desc: 'A fifth of every physical wound you deal comes back to you as HP.' },
-  freebooter: { name: 'Freebooter', kind: 'support', job: 'corsair', jp: 320, desc: 'Every steal takes twice the gil.' },
+  freebooter: { name: 'Freebooter', kind: 'support', job: 'corsair', jp: 320, desc: 'Every steal takes twice the marks.' },
   saltBlood: { name: 'Salt Blood', kind: 'support', job: 'tidecaller', jp: 350, desc: 'Water damage you deal is a quarter greater.' },
   monsterHunter: { name: 'Monster Hunter', kind: 'support', job: 'harpooner', jp: 380, desc: 'Physical damage against creatures rises by half.' },
   ironWill: { name: 'Iron Will', kind: 'movement', job: 'marshal', jp: 350, desc: 'Silence and Stop do not take on you.' },
@@ -2126,11 +2126,11 @@ const PASSIVES = {
     desc: 'Climb two levels higher.' },
   sureFooting: { name: 'Sure Footing', kind: 'movement', job: 'ninja', jp: 320,
     desc: 'Height no longer limits where you can step.' },
-  moveHpUp: { name: 'Move-HP-Up', kind: 'movement', job: 'monk', jp: 240,
+  moveHpUp: { name: 'Walking Mend', kind: 'movement', job: 'monk', jp: 240,
     desc: 'Recover a tenth of your HP whenever you move.' },
   moveFindItem: { name: 'Treasure Hunter', kind: 'movement', job: 'thief', jp: 300,
-    desc: 'Turn up 25 gil each time you move.' },
-  moveMpUp: { name: 'Move-MP-Up', kind: 'movement', job: 'bard', jp: 240,
+    desc: 'Turn up 25 marks each time you move.' },
+  moveMpUp: { name: 'Walking Focus', kind: 'movement', job: 'bard', jp: 240,
     desc: 'Recover a tenth of your MP whenever you move.' },
 };
 
@@ -2147,7 +2147,7 @@ function jobTier(id, seen = {}) {
   return seen[id];
 }
 // Work for a soldier away from the line: gone for a battle or two, back with
-// pay, a little JP in whatever job they went in, and sometimes something found.
+// pay, a little SP in whatever job they went in, and sometimes something found.
 const ERRANDS = [
   { id: 'tithe', title: 'Escort the tithe wagon', days: 1, gil: 1.0, jp: 1.0, item: 0.2, text: 'The abbey pays for a blade beside its silver on the road to Millbrook.' },
   { id: 'wolves', title: 'Clear wolves from the high pasture', days: 1, gil: 0.9, jp: 1.3, item: 0.1, text: 'A shepherd has lost four ewes. He offers what he has, and it is honest.' },
@@ -2168,7 +2168,7 @@ const ERRANDS = [
 const TIER_NAMES = ['The roots', 'First rank', 'Second rank', 'Third rank', 'Fourth rank', 'Fifth rank', 'The summit'];
 
 
-// The passives taught by a given job, in JP order.
+// The passives taught by a given job, in SP order.
 function passivesOfJob(job) {
   return Object.keys(PASSIVES).filter(id => PASSIVES[id].job === job).sort((a, b) => PASSIVES[a].jp - PASSIVES[b].jp);
 }

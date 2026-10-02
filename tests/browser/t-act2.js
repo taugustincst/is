@@ -29,7 +29,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.click('#btn-formation'); await page.waitForSelector('#screen-formation.active');
   await page.click('#btn-tree'); await page.waitForTimeout(150);
   const open = await page.evaluate(() => Object.fromEntries(['engineer', 'gunner', 'aeronaut', 'artificer'].map(j => [j, document.querySelector(`.job-card[data-job="${j}"]`).className.includes('open')])));
-  ok('Engineer and Gunner open from Chemist and Archer; the rest wait', open.engineer && open.gunner && !open.aeronaut && !open.artificer, JSON.stringify(open));
+  ok('Engineer and Gunner open from Apothecary and Archer; the rest wait', open.engineer && open.gunner && !open.aeronaut && !open.artificer, JSON.stringify(open));
   await page.click('.job-card[data-job="gunner"]'); await page.click('#btn-tree-become'); await page.waitForTimeout(150);
   const gunner = await page.evaluate(() => ({ job: game.state.party[0].job, weapon: game.state.party[0].weapon.name, wtype: game.state.party[0].weapon.wtype, range: game.state.party[0].weapon.range }));
   ok('a new Gunner is handed a flintlock that reaches four tiles', gunner.job === 'gunner' && gunner.wtype === 'gun' && gunner.range === 4, JSON.stringify(gunner));
