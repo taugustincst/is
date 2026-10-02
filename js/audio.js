@@ -6,78 +6,138 @@
 const AUDIO_KEY = 'elderon-audio';
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
-// Eighth-note patterns. `null` holds the previous note's silence.
-// Written around A minor so the three pieces sit together.
+/* ==========================================================================
+   Music.
+
+   Every piece is a few voices over a drum line, written in eighth notes.
+   A voice is a wave, a gain and a line: a MIDI note starts a tone, '.' is
+   a rest, and '-' holds the note before it, so a melody can breathe and a
+   chord can lie under it for a bar. The drum line is a string, one glyph a
+   step: k kick, s snare, h hat, H open hat, t tom, . nothing. Voices may be
+   shorter than the piece and loop inside it: a four-bar bass under an
+   eight-bar tune. `once` plays a piece through and stops: a fanfare, a dirge.
+
+   The pieces sit together in A minor and its neighbours, so a battle theme
+   gives way to the camp without a lurch.
+   ========================================================================== */
+const seq = (s) => s.replace(/\|/g, ' ').trim().split(/\s+/).map(t => (t === '.' ? null : t === '-' ? '-' : +t));
+
 const TRACKS = {
-  town: {
-    bpm: 92, wave: 'triangle', gain: 0.16,
-    lead: [69, null, 72, null, 76, null, 74, 72, 71, null, 69, null, 67, null, null, null,
-           69, null, 71, null, 72, null, 74, null, 76, null, 74, 72, 69, null, null, null],
-    bass: [45, null, 52, null, 45, null, 52, null, 41, null, 48, null, 41, null, 48, null,
-           43, null, 50, null, 43, null, 50, null, 40, null, 47, null, 40, null, 47, null],
+  // The title: a hymn for the crown, slow and sure, the melody carried by a
+  // second voice a third below and a held chord under both.
+  title: {
+    bpm: 76, gain: 1,
+    voices: [
+      { wave: 'triangle', gain: 0.14, vib: true, notes: seq(
+        '69 - 72 - 76 - 74 72 | 71 - 69 - 65 - - - | 72 - 76 - 79 - 77 76 | 74 - 71 - 67 - - - |' +
+        '69 - 72 - 76 - 81 - | 77 - 81 - 77 - 76 74 | 76 - 74 - 71 - 68 - | 69 - - - - - - -') },
+      { wave: 'sine', gain: 0.09, notes: seq(
+        '64 - 69 - 72 - 71 69 | 67 - 65 - 60 - - - | 67 - 72 - 76 - 74 72 | 71 - 67 - 62 - - - |' +
+        '64 - 69 - 72 - 76 - | 72 - 77 - 72 - 72 71 | 71 - 71 - 68 - 64 - | 64 - - - - - - -') },
+      { wave: 'sine', gain: 0.05, notes: seq('57 - - - - - - - | 53 - - - - - - - | 60 - - - - - - - | 55 - - - - - - - | 57 - - - - - - - | 53 - - - - - - - | 52 - - - - - - - | 57 - - - - - - -') },
+      { wave: 'sine', gain: 0.045, notes: seq('64 - - - - - - - | 60 - - - - - - - | 67 - - - - - - - | 62 - - - - - - - | 64 - - - - - - - | 60 - - - - - - - | 59 - - - - - - - | 64 - - - - - - -') },
+      { wave: 'triangle', gain: 0.13, notes: seq('45 - - - 52 - - - | 41 - - - 48 - - - | 48 - - - 55 - - - | 43 - - - 50 - - - | 45 - - - 52 - - - | 41 - - - 48 - - - | 40 - - - 47 - - - | 45 - - - - - - -') },
+    ],
+  },
+  // The camp: the old road song with a second voice and a brush on the drum.
+  camp: {
+    bpm: 92, gain: 1, drums: 'k...h...',
+    voices: [
+      { wave: 'triangle', gain: 0.15, notes: seq(
+        '69 . 72 . 76 . 74 72 | 71 . 69 . 67 . . . | 69 . 71 . 72 . 74 . | 76 . 74 72 69 . . . |' +
+        '76 - 74 72 71 - 72 74 | 76 - - - 74 - 72 - | 71 - 72 74 76 - 74 72 | 69 - - - - - - -') },
+      { wave: 'sine', gain: 0.07, notes: seq(
+        '64 . 69 . 72 . 71 67 | 67 . 65 . 64 . . . | 64 . 67 . 69 . 71 . | 72 . 71 67 64 . . . |' +
+        '72 - 71 67 67 - 69 71 | 72 - - - 71 - 69 - | 67 - 69 71 72 - 71 67 | 64 - - - - - - -') },
+      { wave: 'triangle', gain: 0.15, notes: seq('45 . 52 . 45 . 52 . | 41 . 48 . 41 . 48 . | 43 . 50 . 43 . 50 . | 40 . 47 . 40 . 47 .') },
+    ],
   },
   battle: {
-    bpm: 138, wave: 'square', gain: 0.13,
-    lead: [69, 69, 76, 69, 72, 69, 74, 69, 71, 71, 78, 71, 74, 71, 76, 71,
-           69, 69, 76, 69, 72, 76, 79, 76, 77, null, 76, null, 74, null, 72, 71],
-    bass: [33, 33, 40, 33, 33, 33, 40, 33, 35, 35, 42, 35, 35, 35, 42, 35,
-           33, 33, 40, 33, 36, 36, 43, 36, 38, 38, 45, 38, 40, 40, 40, 40],
+    bpm: 138, gain: 1, drums: 'k.h.s.h.k.h.s.hh',
+    voices: [
+      { wave: 'square', gain: 0.12, notes: seq('69 69 76 69 72 69 74 69 | 71 71 78 71 74 71 76 71 | 69 69 76 69 72 76 79 76 | 77 . 76 . 74 . 72 71') },
+      { wave: 'triangle', gain: 0.08, notes: seq('64 . 72 . 69 . 71 . | 67 . 74 . 71 . 72 . | 64 . 72 . 69 72 76 72 | 74 . 72 . 71 . 69 67') },
+      { wave: 'triangle', gain: 0.14, notes: seq('33 33 40 33 33 33 40 33 | 35 35 42 35 35 35 42 35 | 33 33 40 33 36 36 43 36 | 38 38 45 38 40 40 40 40') },
+    ],
   },
   // Slow and low, for the marsh, the mist and the rain: a battle you would
-  // rather not be having.
+  // rather not be having. A tom on the bar, like something walking.
   dread: {
-    bpm: 92, wave: 'triangle', gain: 0.15,
-    lead: [57, null, null, 60, null, null, 59, null, 57, null, null, null, 55, null, null, null,
-           57, null, null, 60, null, null, 62, null, 60, null, 59, null, 57, null, null, null],
-    bass: [45, null, null, null, 45, null, null, null, 41, null, null, null, 43, null, null, null,
-           45, null, null, null, 45, null, null, null, 46, null, null, null, 43, null, null, null],
+    bpm: 92, gain: 1, drums: 't.......',
+    voices: [
+      { wave: 'triangle', gain: 0.15, vib: true, notes: seq('57 . . 60 . . 59 . | 57 . . . 55 . . . | 57 . . 60 . . 62 . | 60 . 59 . 57 . . .') },
+      { wave: 'sine', gain: 0.05, notes: seq('45 - - - - - - - | 41 - - - - - - - | 45 - - - - - - - | 46 - - - 43 - - -') },
+      { wave: 'triangle', gain: 0.16, notes: seq('45 . . . 45 . . . | 41 . . . 43 . . . | 45 . . . 45 . . . | 46 . . . 43 . . .') },
+    ],
   },
   // Fast and bright-edged, for the cathedral: the last of it.
   finale: {
-    bpm: 152, wave: 'sawtooth', gain: 0.10,
-    lead: [74, 74, 81, 74, 77, 74, 79, 74, 76, 76, 83, 76, 79, 76, 81, 76,
-           74, 74, 81, 74, 77, 81, 84, 81, 82, null, 81, null, 79, null, 77, 76],
-    bass: [38, 38, 45, 38, 38, 38, 45, 38, 40, 40, 47, 40, 40, 40, 47, 40,
-           38, 38, 45, 38, 41, 41, 48, 41, 43, 43, 50, 43, 45, 45, 45, 45],
+    bpm: 152, gain: 1, drums: 'k.h.s.h.k.h.s.h.',
+    voices: [
+      { wave: 'sawtooth', gain: 0.09, notes: seq('74 74 81 74 77 74 79 74 | 76 76 83 76 79 76 81 76 | 74 74 81 74 77 81 84 81 | 82 . 81 . 79 . 77 76') },
+      { wave: 'triangle', gain: 0.11, notes: seq('38 38 45 38 38 38 45 38 | 40 40 47 40 40 40 47 40 | 38 38 45 38 41 41 48 41 | 43 43 50 43 45 45 45 45') },
+    ],
   },
   // Slow, high and thin, for the ice: the same key, with the warmth gone out of it.
   frost: {
-    bpm: 84, wave: 'triangle', gain: 0.14,
-    lead: [76, null, null, 81, null, null, 79, null, 76, null, null, null, 74, null, null, null,
-           72, null, null, 76, null, null, 74, null, 72, null, 71, null, 69, null, null, null],
-    bass: [45, null, null, null, 52, null, null, null, 41, null, null, null, 48, null, null, null,
-           40, null, null, null, 47, null, null, null, 43, null, null, null, 45, null, null, null],
+    bpm: 84, gain: 1,
+    voices: [
+      { wave: 'triangle', gain: 0.13, vib: true, notes: seq('76 . . 81 . . 79 . | 76 . . . 74 . . . | 72 . . 76 . . 74 . | 72 . 71 . 69 . . .') },
+      { wave: 'sine', gain: 0.04, notes: seq('57 - - - - - - - | 53 - - - - - - - | 52 - - - - - - - | 55 - - - - - - -') },
+      { wave: 'triangle', gain: 0.15, notes: seq('45 . . . 52 . . . | 41 . . . 48 . . . | 40 . . . 47 . . . | 43 . . . 45 . . .') },
+    ],
   },
   // Rolling, for the coast: a swell that never quite settles.
   tide: {
-    bpm: 104, wave: 'triangle', gain: 0.14,
-    lead: [57, 60, 64, null, 60, 64, 67, null, 55, 59, 62, null, 59, 62, 67, null,
-           57, 60, 64, null, 64, 67, 72, null, 65, 64, 62, null, 60, null, 59, null],
-    bass: [45, null, null, 45, null, null, 45, null, 43, null, null, 43, null, null, 43, null,
-           45, null, null, 45, null, null, 45, null, 41, null, null, 41, null, 43, null, null],
+    bpm: 104, gain: 1, drums: 'k..k..h.',
+    voices: [
+      { wave: 'triangle', gain: 0.13, notes: seq('57 60 64 . 60 64 67 . | 55 59 62 . 59 62 67 . | 57 60 64 . 64 67 72 . | 65 64 62 . 60 . 59 .') },
+      { wave: 'triangle', gain: 0.15, notes: seq('45 . . 45 . . 45 . | 43 . . 43 . . 43 . | 45 . . 45 . . 45 . | 41 . . 41 . 43 . .') },
+    ],
   },
   // Slow and far down, for the sea floor: pressure more than melody.
   deep: {
-    bpm: 72, wave: 'sine', gain: 0.16,
-    lead: [52, null, null, null, 55, null, null, null, 53, null, null, null, 50, null, null, null,
-           52, null, null, null, 57, null, null, null, 55, null, 53, null, 52, null, null, null],
-    bass: [40, null, null, null, null, null, null, null, 37, null, null, null, null, null, null, null,
-           40, null, null, null, null, null, null, null, 38, null, null, null, 36, null, null, null],
+    bpm: 72, gain: 1,
+    voices: [
+      { wave: 'sine', gain: 0.15, vib: true, notes: seq('52 . . . 55 . . . | 53 . . . 50 . . . | 52 . . . 57 . . . | 55 . 53 . 52 . . .') },
+      { wave: 'sine', gain: 0.17, notes: seq('40 - - - - - - - | 37 - - - - - - - | 40 - - - - - - - | 38 - - - 36 - - -') },
+    ],
   },
   // A march for the capital: square and certain, with the bass on the beat.
   crown: {
-    bpm: 112, wave: 'square', gain: 0.11,
-    lead: [67, null, 67, 69, 71, null, 74, null, 71, null, 69, 67, 69, null, null, null,
-           67, null, 67, 69, 71, null, 74, null, 76, null, 74, 71, 74, null, null, null],
-    bass: [43, null, 43, null, 43, null, 43, null, 38, null, 38, null, 43, null, 43, null,
-           43, null, 43, null, 43, null, 43, null, 40, null, 40, null, 43, null, 43, null],
+    bpm: 112, gain: 1, drums: 'k.s.k.s.',
+    voices: [
+      { wave: 'square', gain: 0.10, notes: seq('67 . 67 69 71 . 74 . | 71 . 69 67 69 . . . | 67 . 67 69 71 . 74 . | 76 . 74 71 74 . . .') },
+      { wave: 'triangle', gain: 0.07, notes: seq('62 . 62 65 67 . 67 . | 67 . 65 62 65 . . . | 62 . 62 65 67 . 67 . | 71 . 67 67 67 . . .') },
+      { wave: 'triangle', gain: 0.12, notes: seq('43 . 43 . 43 . 43 . | 38 . 38 . 43 . 43 . | 43 . 43 . 43 . 43 . | 40 . 40 . 43 . 43 .') },
+    ],
   },
+  // The story: a slow line over a held low chord.
   ruin: {
-    bpm: 76, wave: 'sine', gain: 0.15,
-    lead: [64, null, null, 67, null, null, 69, null, 68, null, null, 64, null, null, null, null,
-           62, null, null, 65, null, null, 67, null, 64, null, null, null, null, null, null, null],
-    bass: [40, null, null, null, 47, null, null, null, 38, null, null, null, 45, null, null, null,
-           36, null, null, null, 43, null, null, null, 40, null, null, null, 47, null, null, null],
+    bpm: 76, gain: 1,
+    voices: [
+      { wave: 'sine', gain: 0.14, vib: true, notes: seq('64 . . 67 . . 69 . | 68 . . 64 . . . . | 62 . . 65 . . 67 . | 64 . . . . . . .') },
+      { wave: 'sine', gain: 0.05, notes: seq('52 - - - - - - - | 50 - - - - - - - | 48 - - - - - - - | 52 - - - - - - -') },
+      { wave: 'triangle', gain: 0.15, notes: seq('40 . . . 47 . . . | 38 . . . 45 . . . | 36 . . . 43 . . . | 40 . . . 47 . . .') },
+    ],
+  },
+  // A fanfare for a field won: once through, and quiet.
+  victory: {
+    bpm: 140, gain: 1, once: true, drums: 'k.s.k.s.k...s.s.k.......',
+    voices: [
+      { wave: 'square', gain: 0.15, notes: seq('72 72 72 - 76 - 74 76 | 79 - - - 77 76 74 72 | 76 - - - - - - -') },
+      { wave: 'triangle', gain: 0.10, notes: seq('67 67 67 - 72 - 71 72 | 76 - - - 74 72 71 67 | 72 - - - - - - -') },
+      { wave: 'triangle', gain: 0.14, notes: seq('48 . 48 . 55 . 55 . | 48 . . . 53 . 55 . | 48 - - - - - - -') },
+    ],
+  },
+  // And a dirge for one lost.
+  defeat: {
+    bpm: 66, gain: 1, once: true,
+    voices: [
+      { wave: 'triangle', gain: 0.15, vib: true, notes: seq('69 - - 67 - - 65 - | - - 64 - - - - - | 62 - - - - - - -') },
+      { wave: 'sine', gain: 0.08, notes: seq('65 - - 64 - - 62 - | - - 60 - - - - - | 59 - - - - - - -') },
+      { wave: 'triangle', gain: 0.13, notes: seq('45 - - - - - - - | 41 - - - 40 - - - | 38 - - - - - - -') },
+    ],
   },
 };
 
@@ -477,6 +537,7 @@ class GameAudio {
     if (!track) return;
     this.trackName = name;
     this.track = track;
+    this.trackLength = Math.max(...track.voices.map(v => v.notes.length), track.drums ? track.drums.length : 0);
     this.step = 0;
     this.nextTime = this.ctx.currentTime + 0.1;
     // Schedule a little ahead of the clock so timing survives a busy main thread.
@@ -491,27 +552,82 @@ class GameAudio {
 
   schedule() {
     if (!this.track || !this.ctx) return;
-    const spb = 60 / this.track.bpm / 2; // eighth notes
+    const tr = this.track;
+    const spb = 60 / tr.bpm / 2; // eighth notes
     while (this.nextTime < this.ctx.currentTime + 0.25) {
-      const i = this.step % this.track.lead.length;
-      this.voice(this.track.lead[i], this.nextTime, spb * 0.9, this.track.wave, this.track.gain);
-      this.voice(this.track.bass[i], this.nextTime, spb * 1.6, 'triangle', this.track.gain * 1.1);
+      if (tr.once && this.step >= this.trackLength) { this.stopMusic(); return; }
+      const i = this.step % this.trackLength;
+      for (const v of tr.voices) {
+        const n = v.notes[i % v.notes.length];
+        if (typeof n !== 'number') continue;
+        // A note lasts until the next note or rest in its line: holds extend it.
+        let d = 1;
+        while (d < v.notes.length && v.notes[(i + d) % v.notes.length] === '-') d++;
+        this.voice(n, this.nextTime, spb * (d - 0.1), v.wave, v.gain * tr.gain, v);
+      }
+      if (tr.drums) this.drum(tr.drums[i % tr.drums.length], this.nextTime, tr.gain);
       this.nextTime += spb;
       this.step++;
     }
   }
 
-  voice(note, t, dur, type, vol) {
+  voice(note, t, dur, type, vol, v = {}) {
     if (note === null || note === undefined) return;
     const osc = this.ctx.createOscillator();
     const g = this.ctx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(midi(note), t);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(vol, t + (type === 'sine' ? 0.03 : 0.015));
+    // A long note settles to two thirds and fades out at the end, so a held
+    // chord does not sit at full weight under the melody.
+    if (dur > 0.5) g.gain.exponentialRampToValueAtTime(vol * 0.66, t + 0.4);
+    g.gain.setValueAtTime(dur > 0.5 ? vol * 0.66 : vol, t + Math.max(0.02, dur - 0.08));
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(g); g.connect(this.musicGain);
+    let node = osc;
+    // A sawtooth is softened through a low-pass; a bare one is a buzz.
+    if (type === 'sawtooth') { const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1800; osc.connect(f); node = f; }
+    node.connect(g); g.connect(this.musicGain);
+    // A singing voice has a little vibrato on any note it holds.
+    if (v.vib && dur > 0.35) {
+      const lfo = this.ctx.createOscillator(), lg = this.ctx.createGain();
+      lfo.frequency.value = 5.5; lg.gain.value = midi(note) * 0.006;
+      lfo.connect(lg); lg.connect(osc.frequency); lfo.start(t + 0.15); lfo.stop(t + dur + 0.02);
+    }
     osc.start(t); osc.stop(t + dur + 0.02);
+  }
+
+  // One drum hit at a time: a kick is a falling sine, a snare a burst of
+  // noise with a knock in it, a hat a tick of filtered noise, a tom a lower
+  // kick. They go through the music bus, so the music fader carries them.
+  drum(glyph, t, gain = 1) {
+    if (!glyph || glyph === '.') return;
+    const now = this.ctx.currentTime, delay = Math.max(0, t - now);
+    const bus = this.musicGain;
+    const thump = (f0, f1, dur, vol) => {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(vol * gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.02);
+    };
+    const hiss = (dur, vol, freq, filter, q = 0.8) => {
+      const frames = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
+      const buf = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < frames; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const f = this.ctx.createBiquadFilter(); f.type = filter; f.frequency.value = freq; f.Q.value = q;
+      const g = this.ctx.createGain(); g.gain.setValueAtTime(vol * gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(bus); src.start(t); src.stop(t + dur + 0.02);
+    };
+    switch (glyph) {
+      case 'k': thump(150, 42, 0.14, 0.32); break;
+      case 't': thump(110, 70, 0.22, 0.26); break;
+      case 's': hiss(0.12, 0.16, 1800, 'bandpass', 0.6); thump(190, 120, 0.08, 0.12); break;
+      case 'h': hiss(0.035, 0.07, 7000, 'highpass'); break;
+      case 'H': hiss(0.12, 0.06, 6000, 'highpass'); break;
+    }
+    void delay;
   }
 }
 

@@ -695,12 +695,16 @@ const SPRITE_TEMPLATES = {
   },
 };
 
-const SPRITE_W = 12, SPRITE_H = 18, SPRITE_SCALE = 2;
+const SPRITE_W = 12, SPRITE_H = 18, SPRITE_SCALE = 3;
 const GRID_W = 20, GRID_H = 21, BODY_OX = 4, BODY_OY = 3;
-// Where to draw the finished canvas, relative to a unit's screen position, so
-// that the body lands on the same pixels it always has.
-const SPRITE_DX = -(1 + BODY_OX * SPRITE_SCALE) - 12;
-const SPRITE_DY = -(1 + BODY_OY * SPRITE_SCALE) - 29;
+// Where to draw the finished canvas, relative to a unit's screen position: the
+// figure stands with its feet seven pixels below the tile's centre, whatever
+// the scale, so a taller figure grows upward and keeps its footing.
+const SPRITE_DX = -(1 + BODY_OX * SPRITE_SCALE) - (SPRITE_W * SPRITE_SCALE) / 2;
+const SPRITE_DY = -(1 + BODY_OY * SPRITE_SCALE) - (SPRITE_H * SPRITE_SCALE - 7);
+// The top of the head, relative to the unit's screen position: the bars and
+// marks over a figure hang from here.
+const SPRITE_HEAD_Y = SPRITE_DY + 1 + BODY_OY * SPRITE_SCALE;
 
 const TEAM_COLORS = { player: '#3b7bd8', enemy: '#d8483b', neutral: '#4caf50' };
 // toRgb, shift, shiftHex, darken and tint are defined in js/color.js, loaded first.
@@ -944,17 +948,30 @@ function shadeCells(cells) {
   return out;
 }
 
+/* A stride: one leg lifted a cell, the other planted. The legs are the last
+   four rows of the grid; frame 1 lifts the left half, frame 2 the right, and
+   the field alternates them with the standing frame as a figure walks. */
+function strideCells(cells, frame) {
+  const top = GRID_H - 4, half = GRID_W / 2;
+  const x0 = frame === 1 ? 0 : half, x1 = frame === 1 ? half : GRID_W;
+  for (let y = top; y < GRID_H; y++) {
+    for (let x = x0; x < x1; x++) cells[y][x] = y + 1 < GRID_H ? cells[y + 1][x] : null;
+  }
+}
+
 // Cache of rendered sprite canvases. The key carries the gear, so changing a
 // sword redraws the sprite but re-uses it for every unit carrying that sword.
 const spriteCache = new Map();
 
 /* `gear` is { weapon, offhand, head, body }, each an item or null. Monsters
-   pass none. */
-function getSprite(job, team, view, flip, gear, look) {
+   pass none. `frame` is 0 standing, 1 and 2 the two halves of a stride, each
+   with one leg lifted; `px` is the size of a cell in pixels, the field's
+   scale unless a menu asks for its own. */
+function getSprite(job, team, view, flip, gear, look, frame = 0, px = SPRITE_SCALE) {
   const g = gear || {};
   const sig = ['weapon', 'offhand', 'head', 'body']
     .map(s => (g[s] ? `${g[s].name}:${g[s].tier || 0}` : '-')).join(',');
-  const key = `${job.name}|${team}|${view}|${flip}|${sig}|${look || '-'}`;
+  const key = `${job.name}|${team}|${view}|${flip}|${sig}|${look || '-'}|${frame}|${px}`;
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const tpl = SPRITE_TEMPLATES[job.sprite][view];
@@ -1002,11 +1019,12 @@ function getSprite(job, team, view, flip, gear, look) {
   if (job.kind === 'human' && (g.body || g.head)) stampAccent(cells, tpl, pal);
   for (const l of layers) if (!l.behind) stamp(cells, l.glyph, l.pal);
 
+  if (frame) strideCells(cells, frame);
   const shaded = shadeCells(cells);
   const cv = document.createElement('canvas');
-  cv.width = GRID_W * SPRITE_SCALE + 2; cv.height = GRID_H * SPRITE_SCALE + 2;
+  cv.width = GRID_W * px + 2; cv.height = GRID_H * px + 2;
   const ctx = cv.getContext('2d');
-  const px = (x) => (flip ? GRID_W - 1 - x : x) * SPRITE_SCALE + 1;
+  const pxOf = (x) => (flip ? GRID_W - 1 - x : x) * px + 1;
   // Outline pass: a dark halo around the silhouette, so the figure reads
   // against grass, stone and water alike.
   const filled = (x, y) => y >= 0 && y < GRID_H && x >= 0 && x < GRID_W && !!shaded[y][x];
@@ -1014,13 +1032,13 @@ function getSprite(job, team, view, flip, gear, look) {
   for (let y = -1; y <= GRID_H; y++) for (let x = -1; x <= GRID_W; x++) {
     if (filled(x, y)) continue;
     if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) {
-      ctx.fillRect(px(x), y * SPRITE_SCALE + 1, SPRITE_SCALE, SPRITE_SCALE);
+      ctx.fillRect(pxOf(x), y * px + 1, px, px);
     }
   }
   for (let y = 0; y < GRID_H; y++) for (let x = 0; x < GRID_W; x++) {
     if (!shaded[y][x]) continue;
     ctx.fillStyle = shaded[y][x];
-    ctx.fillRect(px(x), y * SPRITE_SCALE + 1, SPRITE_SCALE, SPRITE_SCALE);
+    ctx.fillRect(pxOf(x), y * px + 1, px, px);
   }
   spriteCache.set(key, cv);
   // Enemies get fresh ids every battle, so the cache is bounded: the oldest
@@ -1051,7 +1069,10 @@ function spriteGear(u) {
    Equipment shows here too, so a purchase can be seen taking effect on the
    screen where it is made rather than only once the battle starts. */
 function paintUnitSprite(cv, u, scale, fallen, crystal) {
-  const spr = getSprite(u.jobData, u.team || 'player', 'front', false, spriteGear(u), spriteLook(u));
+  // Drawn from one-pixel cells, so a menu's figure is `scale` times the art's
+  // own size whatever the field draws it at.
+  const spr = getSprite(u.jobData, u.team || 'player', 'front', false, spriteGear(u), spriteLook(u), 0, 1);
+  scale *= 2;
   cv.width = spr.width * scale;
   cv.height = spr.height * scale;
   const c = cv.getContext('2d');
@@ -1066,7 +1087,7 @@ function paintUnitSprite(cv, u, scale, fallen, crystal) {
   c.drawImage(spr, 0, 0, cv.width, cv.height);
   c.restore();
   // Carried from the field: the crystal that was left where they lay.
-  if (crystal) paintCrystal(c, cv.width * 0.5, cv.height * 0.5, Math.max(5, scale * 4));
+  if (crystal) paintCrystal(c, cv.width * 0.5, cv.height * 0.5, Math.max(5, scale * 2));
 }
 
 // A crystal of the fallen: a pale blue gem with a highlight, as the field shows it.

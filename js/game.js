@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.11.1';
+const GAME_VERSION = '1.12.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -74,7 +74,7 @@ class Game {
     // A touch pointerdown is not a user activation, only its release or the
     // click is, so the audio is armed on every gesture that counts and stays
     // armed once one of them has been seen.
-    const arm = () => { audio.init(); if (audio.ctx && audio.ctx.state === 'running') { if (this.screen === 'world') audio.playMusic('town'); for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.removeEventListener(ev, arm); } };
+    const arm = () => { audio.init(); if (audio.ctx && audio.ctx.state === 'running') { if (this.screen === 'title') audio.playMusic('title'); else if (this.screen === 'world') audio.playMusic('camp'); for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.removeEventListener(ev, arm); } };
     for (const ev of ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend']) window.addEventListener(ev, arm);
     this.showScreen('title');
     this.syncTitleButtons();
@@ -111,9 +111,9 @@ class Game {
     // Each part of the game keeps its own theme.
     if (name === 'battle') { audio.playMusic(this.battleMusic || 'battle'); audio.startAmbient(AMBIENCE[this.renderer.mood] || null); }
     else if (name === 'story') { audio.playMusic('ruin'); audio.stopAmbient(); }
-    else if (name === 'results') { audio.stopMusic(); audio.stopAmbient(); }
-    else if (name !== 'title') { audio.playMusic('town'); audio.stopAmbient(); }
-    else { audio.stopMusic(); audio.stopAmbient(); }
+    else if (name === 'results') { audio.stopAmbient(); } // the results play their own piece
+    else if (name !== 'title') { audio.playMusic('camp'); audio.stopAmbient(); }
+    else { audio.playMusic('title'); audio.stopAmbient(); }
   }
 
   // ---- the title's diorama ---------------------------------------------------------------
@@ -1087,11 +1087,11 @@ class Game {
   renderCityPanel(city) {
     const el = $('cities'), s = this.state;
     const lvl = Math.max(1, this.avgLevel() - 1);
-    const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= PARTY_MAX ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} gil</button>`).join('');
+    const hires = city.hires.map(j => `<button data-hire-at="${j}" ${s.gil < city.hireCost || s.party.length >= PARTY_MAX ? 'disabled' : ''}>Hire ${JOBS[j].name} · ${city.hireCost} marks</button>`).join('');
     const forgeTab = FORGE_TABS.some(([id]) => id === this.forgeTab) ? this.forgeTab : 'improve';
     const kennelFull = s.party.filter(u => u.pet).length >= PET_MAX || s.party.length >= PARTY_MAX;
-    const pets = (city.pets || []).map(j => `<button data-pet-at="${j}" ${s.gil < PETS[j].price || kennelFull ? 'disabled' : ''}>${JOBS[j].name} · ${PETS[j].price} gil</button>`).join('');
-    const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button></div>`; }).join('');
+    const pets = (city.pets || []).map(j => `<button data-pet-at="${j}" ${s.gil < PETS[j].price || kennelFull ? 'disabled' : ''}>${JOBS[j].name} · ${PETS[j].price} marks</button>`).join('');
+    const stock = city.stock.map(id => { const it = ITEMS[id], fits = this.fitsList(id); return `<div class="shop-row ${fits ? '' : 'unfit'}"><div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${fits ? 'Fits: ' + fits : 'No one in your party can use this yet'}${this.invCount(id) ? ` · in stock: ${this.invCount(id)}` : ''}</div></div><button data-buy-at="${id}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} marks</button></div>`; }).join('');
     el.innerHTML = `
       <div class="city-head"><b>${city.name}</b><span class="muted">${city.open}</span><button id="btn-city-back" class="mini">Back to the road</button></div>
       <h4>Tavern <small>level ${lvl} recruits, trained in their trade (party max ${PARTY_MAX})</small></h4>
@@ -1169,7 +1169,7 @@ class Game {
       const it = ITEMS[m], here = it.tier <= tier, have = this.invCount(m);
       if (!here && !have) return '';
       return `<div class="shop-row"><div>${iconHtml(m)}<b>${it.name}</b> <small>×${have} in the baggage</small><div class="fits">${it.desc}${here ? '' : ' · not sold here'}</div></div>
-        ${here ? `<button data-mat="${m}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} gil</button>` : ''}</div>`;
+        ${here ? `<button data-mat="${m}" ${s.gil >= it.price ? '' : 'disabled'}>${it.price} marks</button>` : ''}</div>`;
     }).join('');
     return rows || '<p class="muted">This forge sells nothing.</p>';
   }
@@ -2043,7 +2043,7 @@ class Game {
 
   results(result, r, battleEndReason, fought = [], fell = new Set(), gone = new Set()) {
     return new Promise(resolve => {
-      audio.sfx(result === 'victory' ? 'victory' : 'defeat');
+      audio.playMusic(result === 'victory' ? 'victory' : 'defeat');
       $('results-title').textContent = result === 'victory' ? tr('Victory!') : tr('Defeat...');
       $('results-title').className = result;
       $('results-body').innerHTML = `

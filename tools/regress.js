@@ -600,15 +600,21 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('every mood plays a theme that exists', noTrack.length === 0, noTrack.join(',') || Object.keys(MOODS).join(','));
     const badTrack = [];
     for (const [k, t] of Object.entries(TRACKS)) {
-      for (const part of ['lead', 'bass']) {
-        if (!Array.isArray(t[part]) || t[part].length !== 32) badTrack.push(`${k}.${part} length`);
-        else if (t[part].some(n => n !== null && (n < 24 || n > 96))) badTrack.push(`${k}.${part} range`);
-        else if (t[part].every(n => n === null)) badTrack.push(`${k}.${part} silent`);
-      }
-      if (!(t.bpm > 40 && t.bpm < 240) || !(t.gain > 0 && t.gain < 0.5)) badTrack.push(`${k} tempo/gain`);
-      if (!['sine', 'square', 'triangle', 'sawtooth'].includes(t.wave)) badTrack.push(`${k} wave`);
+      if (!Array.isArray(t.voices) || !t.voices.length) { badTrack.push(`${k} voices`); continue; }
+      const len = Math.max(...t.voices.map(v => v.notes.length), t.drums ? t.drums.length : 0);
+      if (len % 8) badTrack.push(`${k} length ${len}`);
+      t.voices.forEach((v, i) => {
+        if (!Array.isArray(v.notes) || len % v.notes.length) badTrack.push(`${k}.${i} length`);
+        else if (v.notes.some(n => n !== null && n !== '-' && !(n >= 24 && n <= 96))) badTrack.push(`${k}.${i} range`);
+        else if (!v.notes.some(n => typeof n === 'number')) badTrack.push(`${k}.${i} silent`);
+        if (!['sine', 'square', 'triangle', 'sawtooth'].includes(v.wave)) badTrack.push(`${k}.${i} wave`);
+        if (!(v.gain > 0 && v.gain < 0.5)) badTrack.push(`${k}.${i} gain`);
+      });
+      if (t.drums && (/[^kshHt.]/.test(t.drums) || len % t.drums.length)) badTrack.push(`${k} drums`);
+      if (!(t.bpm > 40 && t.bpm < 240) || !(t.gain > 0 && t.gain <= 1)) badTrack.push(`${k} tempo/gain`);
     }
-    ok('every theme is thirty-two playable steps', badTrack.length === 0, badTrack.join(',') || `${Object.keys(TRACKS).length} themes`);
+    for (const name of ['title', 'camp', 'battle', 'victory', 'defeat', 'ruin']) if (!TRACKS[name]) badTrack.push(`no ${name}`);
+    ok('every piece is whole bars of playable voices over a drum line it can read', badTrack.length === 0, badTrack.join(',') || `${Object.keys(TRACKS).length} pieces`);
     const badSky = Object.entries(MOODS).filter(([, m]) => !m.sky || m.sky.length !== 2 || m.sky.some(c => !/^#[0-9a-f]{6}$/i.test(c))).map(([k]) => k);
     ok('every mood paints a sky', badSky.length === 0, badSky.join(',') || 'all skies');
     const used = new Set(Object.values(g.MAPS).map(m => m.mood));

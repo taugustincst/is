@@ -1,0 +1,18 @@
+{
+  "name": "chronicles-of-elderon-desktop",
+  "productName": "Chronicles of Elderon",
+  "version": "1.12.0",
+  "description": "A tactical role-playing game of tempo turns, jobs and height maps.",
+  "main": "main.js",
+  "private": true,
+  "license": "SEE LICENSE IN ../README.md",
+  "scripts": {
+    "prepare-game": "node ../tools/bundle.js && node -e \"require('fs').mkdirSync('app',{recursive:true});require('fs').copyFileSync('../dist/elderon.html','app/index.html');require('fs').copyFileSync('../icons/icon-512.png','icon.png')\"",
+    "start": "npm run prepare-game && electron .",
+    "package": "npm run prepare-game && electron-packager . \"Chronicles of Elderon\" --out=out --overwrite --asar --ignore=\"^/out\" --ignore=\"^/node_modules/\\.cache\""
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "@electron/packager": "^18.3.0"
+  }
+}

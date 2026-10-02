@@ -15,6 +15,14 @@ a browser, or serve the folder with any static file server.
   writes the site to the `gh-pages` branch; GitHub Pages serves that branch
   (if the site ever needs switching on by hand: Settings → Pages → Source →
   Deploy from a branch → `gh-pages`).
+- **On a computer:** the same release carries the game as a program for
+  Windows, macOS and Linux (the `-win32-x64`, `-darwin-arm64`, `-darwin-x64`
+  and `-linux-x64` zips): one window, no browser, made from the single-file
+  build by the wrapper in `desktop/`. This is the build Steam sells;
+  `store/STEAM.md` is the path through Steamworks and the store page's copy.
+- **On itch.io:** the release's `-itch.zip` is the web build packed the way
+  itch's uploader wants it; `store/ITCH.md` has the page settings and copy,
+  and the release workflow pushes it with butler once the key is set.
 - **On Android:** the [latest release](https://github.com/taugustincst/fftremake/releases/latest)
   carries an `.apk` to sideload (signed with a debug key, so it installs on
   any phone; it is not the Google Play bundle, which needs the upload key
@@ -24,6 +32,13 @@ a browser, or serve the folder with any static file server.
   number, or push a tag such as `v1.8.1`.
 
 ## The game
+
+**Names of this world.** The game stands in a tradition and borrows none of
+its words: the jobs are footmen, apothecaries, clerics, sorcerers and
+chronomancers; turns come by tempo, learning costs skill points, the coin
+is the mark, and every spell, item, passive and spirit has a name of its
+own. The ids under them are unchanged, so an old save loads as it was.
+
 
 **Battle system**
 
@@ -38,6 +53,22 @@ a browser, or serve the folder with any static file server.
   unit's own id, so a party of five footmen is five people and stays the same
   five across a reload. The team colour and the job's cloth never vary, because
   those are what a player has to read at a glance.
+- **A score of its own.** Twelve pieces, composed for the game and played by
+  a small synthesised band: a hymn for the title, the road song at camp, a
+  theme for each kind of field from the marsh to the capital, a fanfare for a
+  field won and a dirge for one lost. Every voice is a wave with a line to
+  sing, over a drum line, all of it written as notes in `js/audio.js` and
+  sounded by the Web Audio API with nothing recorded.
+- **Cliffs with faces.** Every wall of the board is drawn as what it is:
+  courses of dressed stone, strata of earth with stones set in it and roots
+  through it, pale bands of packed snow and river ice, planks. A face darkens
+  under its lip and at its foot, a higher tile throws its shadow onto the
+  floor behind it, and the far edges of every tile catch the light.
+- **Figures half again as tall,** at three pixels to the cell rather than two,
+  with a stride as they walk: one foot lifted, then the other.
+- **A frame on every panel** and a display face, Cinzel, carried inside the
+  stylesheet, so the camp, the shop, the turn order and a dialog read as one
+  object with the title.
 - **Every blow has a voice.** Nine weapon swings and five impacts, so a knife
   is heard as a knife and an axe as an axe, and seven elements that sound as
   different as they look. A bowstring twangs, an arrow thuds, a thrown stone
@@ -316,13 +347,16 @@ tools/soak.js     randomised battles checked against the engine's invariants
 tools/test-*.js   feature tests for elements, statuses and the boss
 tools/simulate.js campaign balance simulator
 tools/bundle.js   packs the whole game into one self-contained HTML file
+tools/itch.js     packs that file as the zip itch.io's uploader takes
+tools/make-video.js records the thirty-second trailer from the running game
+desktop/          the Electron wrapper: the game as a program, for Steam
 tools/make-icons.js draws the app icons from the game's own sprites
 manifest.webmanifest  install metadata for the web app
 sw.js             offline cache for the installed web app
 icons/            generated app icons
 android/          Gradle project wrapping the game in an Android WebView
-store/            Google Play listing: graphics, copy and policy answers
-tools/make-store.js renders the listing graphics from the running game
+store/            the store pages: Google Play, itch.io and Steam copy, graphics and policy answers
+tools/make-store.js renders the listing graphics and Steam's capsules from the running game
 PRIVACY.md        the privacy policy Play asks for (privacy.html is the same, as a page)
 ```
 

@@ -29,3 +29,13 @@ tests/out/
 
 # The promo video is rendered by tools/make-video.js and uploaded to YouTube, not kept here.
 store/promo.*
+
+# The desktop wrapper's dependencies, the game it copies in, and its packages
+desktop/node_modules/
+desktop/app/
+desktop/out/
+desktop/icon.png
+desktop/package-lock.json
+
+# The trailer is rendered by tools/make-video.js and uploaded, not kept here.
+store/trailer.*

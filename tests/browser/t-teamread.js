@@ -15,7 +15,7 @@ const SAMPLE = `(() => {
     // The ring's left and right extremes, in canvas pixels after the zoom.
     const z = r.zoom, W = cv.width, H = cv.height;
     const hits = [];
-    for (const dx of [-15, -11, 11, 15]) {
+    for (const dx of [-20, -17, 17, 20]) {
       const px = Math.round((p.sx + dx - W / 2) * z + W / 2);
       const py = Math.round((p.sy + 6 - H / 2) * z + H / 2);
       if (px < 0 || py < 0 || px >= W || py >= H) continue;
@@ -26,7 +26,8 @@ const SAMPLE = `(() => {
        across the whole bar: grass behind an unframed bar is red-dominant too,
        and a check a bare background can satisfy proves nothing. */
     const band = [];
-    for (const [dx, dy] of [[0, -36.5], [0, -31.5], [-13.5, -34], [13.5, -34]]) {
+    const top = SPRITE_HEAD_Y; // the bar hangs from the top of the head
+    for (const [dx, dy] of [[0, top - 7], [0, top - 3], [-13.5, top - 5], [13.5, top - 5]]) {
       const px = Math.round((p.sx + dx - W / 2) * z + W / 2);
       const py = Math.round((p.sy + dy - H / 2) * z + H / 2);
       if (px < 0 || py < 0 || px >= W || py >= H) continue;

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Capsule</title>
+<!-- The game's own stylesheet, for the display face it carries inside it. -->
+<link rel="stylesheet" href="../../css/style.css">
+<style>
+  /* Steam's capsules and the logo, one page at every size: tools/make-store.js
+     opens it as capsule.html?w=920&h=430&kind=header and screenshots the
+     viewport. Open it in a browser from the repository root to preview one.
+       kind=header    the wide capsule: crest left, the company right
+       kind=vertical  the tall one: crest above, the company below
+       kind=hero      the store's backdrop: the field alone, no crest
+       kind=logo      the crest alone on nothing, for over the hero
+       kind=icon      the crest's monogram on a square */
+  html, body { margin: 0; overflow: hidden; background: #0f1020; }
+  body.logo, body.icon { background: transparent; }
+  #art { position: absolute; inset: 0; }
+  .copy { position: absolute; display: flex; flex-direction: column; color: #e6e6f0; font-family: var(--display); }
+  .sub { letter-spacing: 0.4em; text-transform: uppercase; color: #b4b2cc; font-size: 15px; margin-bottom: 8px; text-shadow: 0 1px 4px #000; }
+  h1 { margin: 0; font-size: 74px; line-height: 1.02; font-weight: 700; letter-spacing: 0.01em;
+       background: linear-gradient(180deg, #fff3c0 0%, #f0cf66 45%, #c9992a 75%, #f2d374 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+       filter: drop-shadow(0 3px 0 rgba(70, 45, 0, 0.9)) drop-shadow(0 10px 28px rgba(0, 0, 0, 0.7)); }
+  .tag { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #e0dcf0; font-size: 20px; margin-top: 14px; text-shadow: 0 1px 6px #000; }
+  .chips { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+  .chip { border: 1px solid #4a4f88; background: rgba(20,22,40,0.85); color: #c3d9ff; border-radius: 3px; padding: 5px 13px; font-size: 13px; font-family: "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.3px; }
+</style>
+</head>
+<body>
+<canvas id="art"></canvas>
+<div class="copy" id="copy">
+  <div class="sub">A tactical role-playing game</div>
+  <h1>Chronicles<br>of Elderon</h1>
+  <div class="tag">Two princes. One crown. A squire who knows too much.</div>
+  <div class="chips"><span class="chip">Tempo turns</span><span class="chip">Height &amp; facing</span><span class="chip">35 jobs · 5 endings</span><span class="chip">No ads · offline</span></div>
+</div>
+<script src="../../js/data.js"></script>
+<script src="../../js/color.js"></script>
+<script src="../../js/sprites.js"></script>
+<script>
+  const q = new URLSearchParams(location.search);
+  const W = +q.get('w') || 920, H = +q.get('h') || 430, kind = q.get('kind') || 'header';
+  document.body.classList.add(kind);
+  document.documentElement.style.width = document.body.style.width = W + 'px';
+  document.documentElement.style.height = document.body.style.height = H + 'px';
+  const cv = document.getElementById('art'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const copy = document.getElementById('copy');
+  // Scale the type with the capsule: the header is the measure.
+  const k = Math.min(W / 920, H / 430) * (kind === 'vertical' ? 1.35 : 1);
+  copy.style.transform = `scale(${k})`; copy.style.transformOrigin = 'left top';
+
+  if (kind !== 'logo' && kind !== 'icon') {
+    const bg = c.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#1d2033'); bg.addColorStop(1, '#0c0d17');
+    c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    for (let i = 0; i < W * H / 7000; i++) { const x = (i * 127.3) % W, y = (i * 61.7) % (H * 0.6); c.fillRect(x, y, i % 3 ? 1 : 2, i % 3 ? 1 : 2); }
+    const mx = W * 0.88, my = H * 0.16, mr = Math.min(W, H) * 0.06;
+    c.fillStyle = '#e8e4c8'; c.beginPath(); c.arc(mx, my, mr, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1d2033'; c.beginPath(); c.arc(mx + mr * 0.45, my - mr * 0.25, mr * 0.9, 0, Math.PI * 2); c.fill();
+  }
+
+  // The field: the game's own tiles and figures, at a scale that suits the frame.
+  const S = kind === 'hero' ? 4 : kind === 'vertical' ? 3 : 3;
+  const TW = 32 * S, TH = 16 * S, HZ = 5 * S;
+  const ox = kind === 'header' ? W * 0.72 : kind === 'vertical' ? W * 0.5 : W * 0.5;
+  const oy = kind === 'header' ? H * 0.62 : kind === 'vertical' ? H * 0.68 : H * 0.55;
+  const diamond = (sx, sy) => { c.beginPath(); c.moveTo(sx, sy - TH / 2); c.lineTo(sx + TW / 2, sy); c.lineTo(sx, sy + TH / 2); c.lineTo(sx - TW / 2, sy); c.closePath(); };
+  const tile = (gx, gy, h, kind) => {
+    const sx = ox + (gx - gy) * TW / 2, sy = oy + (gx + gy) * TH / 2 - h * HZ;
+    const col = { g: ['#5f9e4a', '#4a7d3a', '#3c6630'], s: ['#9a9aa8', '#7a7a88', '#606070'], d: ['#a9825a', '#8a6a48', '#6f5439'] }[kind];
+    const wh = h * HZ + 8 * S;
+    const face = (x0, dir, fill) => {
+      c.fillStyle = fill; c.beginPath(); c.moveTo(x0, sy); c.lineTo(sx, sy + TH / 2); c.lineTo(sx, sy + TH / 2 + wh); c.lineTo(x0, sy + wh); c.closePath(); c.fill();
+      // courses of stone, strata of earth
+      c.strokeStyle = 'rgba(0,0,0,0.2)';
+      for (let y = HZ; y < wh; y += HZ) { c.beginPath(); c.moveTo(x0, sy + y); c.lineTo(sx, sy + TH / 2 + y); c.stroke(); }
+      void dir;
+    };
+    face(sx - TW / 2, 1, col[1]); face(sx + TW / 2, -1, col[2]);
+    diamond(sx, sy); c.fillStyle = col[0]; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.25)'; c.stroke();
+    c.strokeStyle = 'rgba(255,255,240,0.18)'; c.beginPath(); c.moveTo(sx - TW / 2, sy); c.lineTo(sx, sy - TH / 2); c.lineTo(sx + TW / 2, sy); c.stroke();
+    return { sx, sy };
+  };
+  const map = [
+    [0, 0, 1, 'g'], [1, 0, 1, 'g'], [2, 0, 2, 's'], [3, 0, 2, 's'],
+    [-1, 1, 0, 'd'], [0, 1, 0, 'g'], [1, 1, 0, 'g'], [2, 1, 1, 'g'], [3, 1, 1, 'g'],
+    [-1, 2, 0, 'd'], [0, 2, 0, 'd'], [1, 2, 0, 'g'], [2, 2, 0, 'g'], [3, 2, 0, 'g'],
+    [-2, 3, 0, 'd'], [-1, 3, 0, 'g'], [0, 3, 0, 'g'], [1, 3, 0, 'g'],
+  ];
+  const spots = {};
+  if (kind !== 'logo' && kind !== 'icon') for (const [x, y, h, kd] of map) spots[`${x},${y}`] = tile(x, y, h, kd);
+  const ring = (sx, sy, team) => {
+    const line = team === 'player' ? '#6fb2ff' : '#ff6a52';
+    c.beginPath(); c.ellipse(sx, sy + 3 * S, 7 * S, 3.4 * S, 0, 0, Math.PI * 2);
+    c.fillStyle = team === 'player' ? 'rgba(70,150,255,0.34)' : 'rgba(255,70,50,0.34)'; c.fill();
+    c.strokeStyle = 'rgba(0,0,0,0.65)'; c.lineWidth = S; c.stroke();
+    c.strokeStyle = line; c.lineWidth = S * 0.6; c.stroke();
+  };
+  c.imageSmoothingEnabled = false;
+  const cast = [
+    ['knight', 'player', '2,2', { weapon: 'longsword', offhand: 'kiteShield', head: 'ironHelm', body: 'plateMail' }],
+    ['blackMage', 'player', '1,2', { weapon: 'sageStaff', head: 'wizardHat', body: 'wizardRobe' }],
+    ['archer', 'player', '0,2', { weapon: 'yoichiBow', head: 'featherHat', body: 'leatherArmor' }],
+    ['whiteMage', 'player', '0,3', { weapon: 'healingStaff', body: 'wizardRobe' }],
+    ['squire', 'enemy', '3,0', { weapon: 'broadsword', body: 'leatherArmor' }],
+    ['wolf', 'enemy', '2,0', null],
+    ['goblin', 'enemy', '3,1', null],
+  ];
+  const order = cast.slice().sort((a, b) => { const [ax, ay] = a[2].split(','), [bx, by] = b[2].split(','); return (+ax + +ay) - (+bx + +by); });
+  if (kind !== 'logo' && kind !== 'icon') for (const [job, team, at, kit] of order) {
+    const j = JOBS[job]; if (!j) continue;
+    const p = spots[at]; if (!p) continue;
+    const gear = kit ? Object.fromEntries(Object.entries(kit).map(([s, id]) => [s, ITEMS[id] || null])) : null;
+    ring(p.sx, p.sy, team);
+    const spr = getSprite(j, team, 'front', team === 'enemy', gear, job + team, 0, 1);
+    c.drawImage(spr, p.sx - spr.width * S / 2 + S, p.sy - spr.height * S + 9 * S, spr.width * S, spr.height * S);
+  }
+
+  // Where the words go.
+  if (kind === 'header') {
+    copy.style.left = (W * 0.06) + 'px'; copy.style.top = '0'; copy.style.height = (H / k) + 'px'; copy.style.justifyContent = 'center';
+    const fade = c.createLinearGradient(W * 0.36, 0, W * 0.6, 0);
+    fade.addColorStop(0, 'rgba(15,16,32,1)'); fade.addColorStop(1, 'rgba(15,16,32,0)');
+    c.fillStyle = fade; c.fillRect(W * 0.36, 0, W * 0.24, H);
+  } else if (kind === 'vertical') {
+    copy.style.left = '0'; copy.style.top = (H * 0.07) + 'px'; copy.style.width = (W / k) + 'px'; copy.style.alignItems = 'center'; copy.style.textAlign = 'center';
+    const fade = c.createLinearGradient(0, H * 0.3, 0, H * 0.52);
+    fade.addColorStop(0, 'rgba(15,16,32,1)'); fade.addColorStop(1, 'rgba(15,16,32,0)');
+    c.fillStyle = fade; c.fillRect(0, 0, W, H * 0.52);
+    copy.querySelector('.chips').style.justifyContent = 'center';
+  } else if (kind === 'hero') {
+    copy.style.display = 'none';
+    const veil = c.createLinearGradient(0, 0, 0, H);
+    veil.addColorStop(0, 'rgba(10,8,22,0.55)'); veil.addColorStop(0.5, 'rgba(10,8,22,0.1)'); veil.addColorStop(1, 'rgba(10,8,22,0.7)');
+    c.fillStyle = veil; c.fillRect(0, 0, W, H);
+  } else if (kind === 'logo') {
+    copy.style.left = '0'; copy.style.top = '0'; copy.style.width = (W / k) + 'px'; copy.style.height = (H / k) + 'px'; copy.style.alignItems = 'center'; copy.style.justifyContent = 'center'; copy.style.textAlign = 'center';
+    copy.querySelector('.chips').style.display = 'none';
+    copy.querySelector('h1').style.fontSize = '120px';
+  } else if (kind === 'icon') {
+    copy.style.display = 'none';
+    // A monogram: the crest's gold E on the game's night.
+    c.fillStyle = '#0f1020'; c.beginPath(); c.roundRect(0, 0, W, H, W * 0.18); c.fill();
+    c.fillStyle = '#e6c35a'; c.font = `700 ${Math.round(H * 0.72)}px Cinzel, Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    document.fonts.ready.then(() => { c.font = `700 ${Math.round(H * 0.72)}px Cinzel, Georgia, serif`; c.fillText('E', W / 2, H * 0.55); });
+  }
+</script>
+</body>
+</html>

@@ -108,8 +108,7 @@ async function toBattle(page) {
         const w = r.toWorld(px, py);
         for (const o of b.units) {
           if (!o.alive || o.x < 0 || (o.x === t.x && o.y === t.y)) continue;
-          const q = r.unitScreenPos(o);
-          if (w.x >= q.sx - 13 && w.x <= q.sx + 13 && w.y >= q.sy - 32 && w.y <= q.sy + 8) { behindSomeone++; break; }
+          if (r.unitCovers(o, w.x, w.y)) { behindSomeone++; break; }
         }
       }
       return { total, answered, behindSomeone, hiddenByGround, misses };

@@ -410,7 +410,7 @@ Play's 80 characters.
 | Phone screenshots (2–8) | `phone-1-title.jpg` … `phone-8-jobs.jpg`: the title, a spell landing, a move with its path, an attack forecast, the realm, a forge, the five roads, the job tree | 1200×2400, each side 320–3840 px, long side at most twice the short |
 | 7-inch tablet (up to 8) | `tablet-1-battle.jpg`, `tablet-2-realm.jpg` | 2560×1600 |
 | 10-inch tablet (up to 8) | the same two files | 2560×1600 |
-| Promo video (optional) | `promo.webm` from `node tools/make-video.js`, uploaded to YouTube; the console takes the link | 30 s, 1280×720; no sound, since a headless browser records none. Not kept in the repository. |
+| Promo video (optional) | `trailer.webm` from `node tools/make-video.js`, uploaded to YouTube; the console takes the link | 30 s, 1280×720; no sound, since a headless browser records none. Not kept in the repository. |
 
 The tablet screenshots are optional unless you want the app promoted on
 tablets; the same two files satisfy both slots.
@@ -451,6 +451,15 @@ health features. **News**: not a news app.
 **Advertising ID**: the app does not use the advertising ID.
 
 ## Release notes
+
+**1.12.0**
+
+    The launch pass. Names of this world: footmen, apothecaries, clerics, sorcerers and
+    chronomancers; tempo, skill points and marks; spells and spirits with names of their own. A new
+    look: cliffs with faces, shadows at the foot of every wall, figures half again as tall that
+    stride as they walk, and a frame and a face for every panel. A composed score of twelve pieces,
+    with a theme for the title, a fanfare and a dirge. The game packed for itch.io and for the
+    desktop, and the store pages for both written.
 
 **1.11.1**
 
