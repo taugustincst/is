@@ -30,7 +30,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.click('#form-tabs button[data-form="skills"]'); await page.waitForTimeout(100);
   await page.evaluate(() => { const u = game.state.party[game.formSel]; u.jp[u.job] = 500; game.renderFormationDetail(); });
   const skills = await page.evaluate(() => ({ shown: !document.querySelector('[data-form-tab="skills"]').classList.contains('tab-hidden'), badge: !!document.querySelector('#form-tabs button[data-form="skills"] .badge'), learn: document.querySelectorAll('button[data-learn]:not([disabled])').length }));
-  ok('Skills stays selected across a redraw and is marked when JP can be spent', skills.shown && skills.badge && skills.learn > 0, JSON.stringify(skills));
+  ok('Skills stays selected across a redraw and is marked when SP can be spent', skills.shown && skills.badge && skills.learn > 0, JSON.stringify(skills));
   await page.click('button[data-learn]:not([disabled])'); await page.waitForTimeout(100);
   ok('learning keeps you on Skills', await page.evaluate(() => !document.querySelector('[data-form-tab="skills"]').classList.contains('tab-hidden')));
   await page.click('#form-tabs button[data-form="gear"]'); await page.waitForTimeout(100);

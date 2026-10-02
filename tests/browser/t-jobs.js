@@ -14,7 +14,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.goto(BASE + '/index.html');
   await page.waitForSelector('#screen-title.active');
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
-  // Grant the JP that unlocks the second tier, and the gil to shop for it.
+  // Grant the SP that unlocks the second tier, and the marks to shop for it.
   await page.evaluate(() => {
     const [a, b, c, d] = game.state.party;
     for (const u of game.state.party) for (const j of ['knight', 'dragoon', 'blackMage', 'timeMage', 'monk', 'whiteMage', 'archer', 'samurai', 'summoner', 'geomancer', 'bard', 'ninja', 'paladin', 'arcanist', 'assassin', 'sage']) { u.jpTotal[j] = 1000; u.jp[j] = 1000; }

@@ -13,7 +13,7 @@ below is maintained by hand. Character limits are Play's.
 
 **Short description** (80 max, 78 used)
 
-    Tactical RPG: charge-time turns, jobs, height and facing. Offline, no ads.
+    Tactical RPG: tempo turns, jobs, height and facing. Offline, no ads.
 
 **Full description** (4000 max)
 
@@ -38,14 +38,14 @@ below is maintained by hand. Character limits are Play's.
     field to see what a wall is hiding.
 
     THIRTY-FIVE JOBS
-    Squires become knights, archers, monks, thieves, mages, ninja and
+    Footmen become knights, archers, monks, thieves, mages, ninja and
     dragoons; then samurai, summoners, geomancers and bards; then paladins,
     arcanists, assassins and sages; the Brass Concord's engineers, gunners,
     aeronauts and artificers; the Winter Court's frostweavers, wardens and
     runeblades; the Sunder Sea's corsairs, tidecallers and harpooners; and
     the crown's marshals, inquisitors and duelists — with the legendary
     Dragonlord, Hierophant and Fell Knight above them all.
-    Earn job points in battle, learn abilities, equip a second skillset from
+    Earn skill points in battle, learn abilities, equip a second skillset from
     any job you have studied, and pick your reaction, support and movement
     passives.
 
@@ -100,7 +100,7 @@ Play's 80 characters.
 
 **Kurzbeschreibung** (78)
 
-    Taktik-RPG: Ladezeit-Züge, Jobs, Höhe und Blickrichtung. Offline, ohne Werbung.
+    Taktik-RPG: Tempo-Züge, Jobs, Höhe und Blickrichtung. Offline, ohne Werbung.
 
 **Vollständige Beschreibung**
 
@@ -113,7 +113,7 @@ Play's 80 characters.
     bis zu einer Krone, die fünf verschiedene Enden wert ist. Wo du stehst und
     wohin du blickst, zählt so viel wie das, womit du zuschlägst.
 
-    LADEZEIT-ZÜGE
+    TEMPO-ZÜGE
     Jede Einheit sammelt in jedem Tick Ladung und handelt bei hundert. Schnelle
     Einheiten handeln oft; ein langsamer Zauber trifft vielleicht erst, wenn
     das Schlachtfeld weitergezogen ist. Die Zugreihenfolge ist immer sichtbar.
@@ -125,7 +125,7 @@ Play's 80 characters.
     Klettere, springe und drehe das Feld, um zu sehen, was eine Mauer verbirgt.
 
     FÜNFUNDDREISSIG JOBS
-    Aus Knappen werden Ritter, Bogenschützen, Mönche, Diebe, Magier, Ninja und
+    Aus Fußsoldaten werden Ritter, Bogenschützen, Mönche, Diebe, Magier, Ninja und
     Dragoner; dann Samurai, Beschwörer, Geomanten und Barden; dann Paladine,
     Arkanisten, Assassinen und Weise; dazu die Ingenieure, Schützen, Aeronauten
     und Artificer des Messingbunds, die Frostweber, Wächter und Runenklingen
@@ -163,7 +163,7 @@ Play's 80 characters.
 
 **Description courte** (77)
 
-    RPG tactique : tours à temps de charge, métiers, hauteur, orientation. Hors ligne.
+    RPG tactique : tours au tempo, métiers, hauteur, orientation. Hors ligne.
 
 **Description complète**
 
@@ -176,7 +176,7 @@ Play's 80 characters.
     couronne qui vaut cinq fins différentes. Où vous vous tenez et vers où vous
     regardez comptent autant que ce que vous brandissez.
 
-    TOURS À TEMPS DE CHARGE
+    TOURS AU TEMPO
     Chaque unité gagne de la charge à chaque tic et agit à cent. Les unités
     rapides agissent souvent ; un sort lent peut tomber quand le champ de
     bataille a déjà bougé. L’ordre des tours est toujours affiché.
@@ -188,7 +188,7 @@ Play's 80 characters.
     Grimpez, sautez et faites tourner le champ pour voir ce qu’un mur cache.
 
     TRENTE-CINQ MÉTIERS
-    Les écuyers deviennent chevaliers, archers, moines, voleurs, mages, ninjas
+    Les fantassins deviennent chevaliers, archers, moines, voleurs, mages, ninjas
     et dragons ; puis samouraïs, invocateurs, géomanciens et bardes ; puis
     paladins, arcanistes, assassins et sages ; les ingénieurs, tireurs,
     aéronautes et artificiers du Concorde de Laiton ; les tisse-givre, gardiens
@@ -239,7 +239,7 @@ Play's 80 characters.
     corona que vale cinco finales distintos. Dónde te colocas y hacia dónde
     miras importa tanto como lo que empuñas.
 
-    TURNOS POR TIEMPO DE CARGA
+    TURNOS POR TEMPO
     Cada unidad gana carga en cada tic y actúa al llegar a cien. Las unidades
     rápidas actúan a menudo; un hechizo lento puede caer cuando el campo ya se
     ha movido. El orden de turnos siempre está a la vista.
@@ -251,7 +251,7 @@ Play's 80 characters.
     gira el campo para ver lo que esconde un muro.
 
     TREINTA Y CINCO OFICIOS
-    Los escuderos se vuelven caballeros, arqueros, monjes, ladrones, magos,
+    Los infantes se vuelven caballeros, arqueros, monjes, ladrones, magos,
     ninjas y dragontinos; luego samuráis, invocadores, geomantes y bardos;
     luego paladines, arcanistas, asesinos y sabios; los ingenieros, tiradores,
     aeronautas y artífices del Concordato de Latón; los tejehielos, guardianes
@@ -302,7 +302,7 @@ Play's 80 characters.
     vale cinco finais diferentes. Onde você fica e para onde olha importam
     tanto quanto o que você empunha.
 
-    TURNOS POR TEMPO DE CARGA
+    TURNOS POR TEMPO
     Cada unidade ganha carga a cada tique e age ao chegar a cem. Unidades
     rápidas agem com frequência; um feitiço lento pode cair quando o campo já
     mudou. A ordem de turnos fica sempre à vista.
@@ -314,7 +314,7 @@ Play's 80 characters.
     Suba, salte e gire o campo para ver o que um muro esconde.
 
     TRINTA E CINCO CLASSES
-    Escudeiros viram cavaleiros, arqueiros, monges, ladrões, magos, ninjas e
+    Soldados viram cavaleiros, arqueiros, monges, ladrões, magos, ninjas e
     dragões; depois samurais, invocadores, geomantes e bardos; depois
     paladinos, arcanistas, assassinos e sábios; os engenheiros, atiradores,
     aeronautas e artífices do Concórdia de Latão; os tecelões de gelo,
@@ -348,11 +348,11 @@ Play's 80 characters.
     Menus, dicas e botões em português; nomes, história e textos de itens
     continuam em inglês.
 
-### 日本語 (ja-JP)
+### 日本語 (ja-SP)
 
 **簡単な説明** (40)
 
-    タクティカルRPG。チャージタイム制、ジョブ、高低差と向き。オフライン、広告なし。
+    タクティカルRPG。テンポ制、ジョブ、高低差と向き。オフライン、広告なし。
 
 **詳細な説明**
 
@@ -363,7 +363,7 @@ Play's 80 characters.
     冬の宮廷へ、難破船の海を越えて、五つの異なる結末を持つ王冠へ。どこに立ち、
     どちらを向くかが、何を振るうかと同じくらい勝敗を左右します。
 
-    チャージタイム制
+    テンポ制
     ユニットは毎ティックにチャージを蓄え、100で行動します。速いユニットは
     何度も動き、遅い魔法は戦況が変わった後に着弾するかもしれません。行動順は
     常に表示されます。
@@ -374,7 +374,7 @@ Play's 80 characters.
     跳び、視点を回して壁の裏を見ましょう。
 
     35のジョブ
-    見習いはナイト、アーチャー、モンク、シーフ、魔道士、忍者、竜騎士へ。さらに
+    歩兵はナイト、アーチャー、モンク、シーフ、魔道士、忍者、竜騎士へ。さらに
     侍、召喚士、風水士、吟遊詩人。パラディン、秘術師、暗殺者、賢者。真鍮同盟の
     技師、銃士、飛空士、細工師。冬の宮廷の霜織り、守り手、ルーンの剣。裂けた海の
     海賊、潮呼び、銛使い。王冠の元帥、審問官、決闘士。そしてその上に、伝説の
@@ -456,7 +456,7 @@ health features. **News**: not a news app.
 
     The results screen shows the fallen as they lay, with a crystal for anyone carried from the
     field; a waiting update is taken at once at the title screen when no game is open; and the
-    JP note reads as it should.
+    SP note reads as it should.
 
 **1.11.0**
 
@@ -466,7 +466,7 @@ health features. **News**: not a news app.
 **1.10.0**
 
     An icon for every item: weapons, shields, hats, helms, armour, accessories, the forge's
-    materials and the chemist's potions, shown in the shop, the baggage, the cities, the gear
+    materials and the apothecary's potions, shown in the shop, the baggage, the cities, the gear
     page, the results and the battle menu.
 
 **1.9.0**

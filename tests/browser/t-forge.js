@@ -29,7 +29,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.waitForTimeout(150);
   const after = await page.evaluate(() => { const u = game.state.party[0]; return { id: u.gear.weapon, power: u.weapon.power, name: ITEMS[u.gear.weapon].name, gil: game.state.gil, iron: game.invCount('ironIngot'), toast: $('toast').textContent }; });
   ok('a worn piece is bettered where it is worn', after.id === before.id + '+1' && after.name === 'Short Sword +1' && after.power === before.power + 1, JSON.stringify(after));
-  ok('the smith is paid in the piece\'s own material and gil', after.iron === before.iron - 1 && after.gil === before.gil - 120, `iron ${before.iron}->${after.iron}, gil ${before.gil}->${after.gil}`);
+  ok('the smith is paid in the piece\'s own material and marks', after.iron === before.iron - 1 && after.gil === before.gil - 120, `iron ${before.iron}->${after.iron}, marks ${before.gil}->${after.gil}`);
   ok('the toast says what it became', /Short Sword is now Short Sword \+1\./.test(after.toast), after.toast);
   // The third step wants ember glass, and is dimmed without it.
   const third = await page.evaluate(() => { const u = game.state.party[0]; u.gear.weapon = 'shortSword+2'; game.renderCities(); const b = document.querySelector(`button[data-improve="u:${u.id}:weapon"]`); const row = b.closest('.shop-row'); return { disabled: b.disabled, dim: row.classList.contains('unfit'), cost: row.querySelector('.cost').textContent }; });
@@ -48,7 +48,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   const purse = await page.evaluate(() => game.state.gil);
   await page.click('button[data-craft="reaverMail"]'); await page.waitForTimeout(150);
   const made = await page.evaluate(() => ({ have: game.invCount('reaverMail'), iron: game.invCount('ironIngot'), gil: game.state.gil, fits: game.fitsList('reaverMail') }));
-  ok('a recipe takes its materials and half its worth in gil, and the piece goes to the baggage', made.have === 1 && made.iron === 0 && made.gil === purse - 350 && made.fits.includes('Squire'), JSON.stringify(made));
+  ok('a recipe takes its materials and half its worth in gil, and the piece goes to the baggage', made.have === 1 && made.iron === 0 && made.gil === purse - 350 && made.fits.includes('Footman'), JSON.stringify(made));
   ok('a recipe cannot be made twice without the materials', await page.evaluate(() => document.querySelector('button[data-craft="reaverMail"]').disabled));
 
   // Salvage: the spare broadsword comes apart into iron.

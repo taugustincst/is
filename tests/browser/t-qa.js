@@ -1,7 +1,7 @@
 /* The QA report of 24 September 2026, finding by finding, through the real
    screens: a Retreat that answers, toasts that go, a click on a tile that
    moves the unit or says why not, Continue and Load Game in step, the
-   Squire's skillset spelled right, the fallen marked on the results screen,
+   Footman's skillset spelled right, the fallen marked on the results screen,
    volume levels that stick, and credits. No native dialog is used anywhere:
    they are refused inside a sandboxed frame, which is how Retreat went dead. */
 const { BASE, chromePath, OUT: S } = require('./lib');
@@ -57,13 +57,13 @@ async function toBattle(page) {
   ok('QA-011: a credits screen names the version and the makers', /^Version \d+\.\d+\.\d+$/.test(credits.version) && credits.entries >= 4, JSON.stringify(credits));
   ok('QA-011: Back leaves the credits for the title', await page.evaluate(() => handleBack() && game.screen === 'title'));
 
-  // QA-004 and QA-002: the Squire's skillset, and the toast from learning.
+  // QA-004 and QA-002: the Footman's skillset, and the toast from learning.
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
   await page.click('#btn-save');
   const saved = await page.evaluate(() => ({ cont: $('btn-continue').disabled, load: $('btn-load').disabled }));
   ok('QA-007: once a game is saved, both title buttons open it', !saved.cont && !saved.load, JSON.stringify(saved));
   await page.click('#btn-formation'); await page.waitForSelector('#screen-formation.active');
-  ok('QA-004: the Squire skillset reads "Fundamentals"', await page.evaluate(() => JOBS.squire.skillset === 'Fundamentals' && !document.body.innerText.includes('Fundaments')));
+  ok('QA-004: the Footman skillset reads "Fundamentals"', await page.evaluate(() => JOBS.squire.skillset === 'Fundamentals' && !document.body.innerText.includes('Fundaments')));
   await page.evaluate(() => { const u = game.state.party[0]; u.jp[u.job] = 999; game.formTab = 'skills'; game.renderFormationDetail(); });
   await page.waitForTimeout(1900); // let the save toast fade first
   await page.click('#form-detail button[data-learn]');
@@ -180,7 +180,7 @@ async function toBattle(page) {
   const camp = await page.evaluate(() => ({ text: document.body.innerText.includes('Battle speed'), toast: $('toast').textContent }));
   ok('QA-005: nor on the camp screen after it', !camp.text && camp.toast === '', JSON.stringify(camp));
 
-  // N2 and N3: a results screen with a level-up and JP to spend names who,
+  // N2 and N3: a results screen with a level-up and SP to spend names who,
   // and gives the level as from and to rather than a lone mark.
   const named = await page.evaluate(() => {
     const [a, b] = game.state.party;
@@ -192,7 +192,7 @@ async function toBattle(page) {
     return { caps, note, a: a.name, b: b.name, from, to: a.level };
   });
   ok('N3: a level-up reads as from and to, with no stray mark', named.caps[0] === `${named.a} · Lv${named.from}→${named.to}` && named.caps[1] === `${named.b} · Lv${(await page.evaluate(() => game.state.party[1].level))}` && !named.caps.some(c => / !|↑/.test(c)), JSON.stringify(named.caps));
-  ok('N2: the JP note names who has JP to spend', named.note.includes(`✦ ${named.a} and ${named.b} have enough JP`), named.note);
+  ok('N2: the SP note names who has SP to spend', named.note.includes(`✦ ${named.a} and ${named.b} have enough SP`), named.note);
   await page.click('#btn-results');
 
   ok('no native dialog was raised anywhere', native === 0, `${native} raised`);

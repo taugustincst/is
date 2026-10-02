@@ -10,20 +10,20 @@ const S = require('./lib').OUT;
   const stock = await page.evaluate(() => document.querySelectorAll('#shop-list button[data-buy]').length);
   console.log('shop stock entries:', stock);
   await page.screenshot({ path: `${S}/shot-shop.png` });
-  // Buy the first affordable item, then check gil and inventory.
+  // Buy the first affordable item, then check marks and inventory.
   const bought = await page.evaluate(() => {
     const b = [...document.querySelectorAll('#shop-list button[data-buy]')].find(x => !x.disabled);
     const id = b.dataset.buy; b.click(); return id;
   });
   await page.waitForTimeout(150);
-  console.log('bought', bought, '| gil now', await page.evaluate(() => game.state.gil), '| inv', await page.evaluate(() => JSON.stringify(game.state.inventory)));
+  console.log('bought', bought, '| marks now', await page.evaluate(() => game.state.gil), '| inv', await page.evaluate(() => JSON.stringify(game.state.inventory)));
   // Sell tab
   await page.click('#shop-tabs button[data-tab="sell"]');
   await page.waitForTimeout(100);
   console.log('sell rows:', await page.evaluate(() => document.querySelectorAll('#shop-list button[data-sell]').length));
   await page.evaluate(() => document.querySelector('#shop-list button[data-sell]').click());
   await page.waitForTimeout(120);
-  console.log('after sell: gil', await page.evaluate(() => game.state.gil), 'inv', await page.evaluate(() => JSON.stringify(game.state.inventory)));
+  console.log('after sell: marks', await page.evaluate(() => game.state.gil), 'inv', await page.evaluate(() => JSON.stringify(game.state.inventory)));
   // Buy a set, then equip in formation
   await page.evaluate(() => { game.state.gil = 5000; ['broadsword','buckler','ironHelm','leatherArmor','leatherBoots'].forEach(i => game.invAdd(i)); });
   await page.click('#btn-shop-back');

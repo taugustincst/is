@@ -708,7 +708,7 @@ const TEAM_COLORS = { player: '#3b7bd8', enemy: '#d8483b', neutral: '#4caf50' };
 /* Fill in the shaded uppercase tone for every colour in a palette. Shared with
    tools/make-icons.js, which draws the app icon from this same art. */
 /* Everyone in a party was the same job template in the same colours, so five
-   squires were five copies of one person. A unit's own look is derived from
+   footmen were five copies of one person. A unit's own look is derived from
    its id, which is stable and saved, so a character keeps their face across a
    reload and between battles.
 

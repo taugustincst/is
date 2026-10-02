@@ -360,7 +360,7 @@ class Game {
     const mins = Math.round((d.playtime || 0) / 60000), time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
     const ago = d.savedAt ? (() => { const m = Math.round((Date.now() - d.savedAt) / 60000); return m < 2 ? tr('just now') : m < 60 ? tr('{n} min ago', { n: m }) : m < 2880 ? tr('{n} h ago', { n: Math.round(m / 60) }) : tr('{n} days ago', { n: Math.round(m / 1440) }); })() : tr('an older save');
     const lead = d.party.find(u => u.leader) || d.party[0];
-    return { where, line: `${d.party.length === 1 ? tr('1 soldier') : tr('{n} soldiers', { n: d.party.length })} · ${tr('Lv {n}', { n: lv })} · ${tr('{n} gil', { n: d.gil || 0 })} · ${tr('{time} played', { time })} · ${ago}`, leader: lead ? tr('{name} the {job}', { name: lead.name, job: JOBS[lead.job] ? JOBS[lead.job].name : 'Squire' }) : '' };
+    return { where, line: `${d.party.length === 1 ? tr('1 soldier') : tr('{n} soldiers', { n: d.party.length })} · ${tr('Lv {n}', { n: lv })} · ${tr('{n} marks', { n: d.gil || 0 })} · ${tr('{time} played', { time })} · ${ago}`, leader: lead ? tr('{name} the {job}', { name: lead.name, job: JOBS[lead.job] ? JOBS[lead.job].name : 'Footman' }) : '' };
   }
 
   // The slots screen: to load, or to choose where a new game goes.
@@ -611,11 +611,11 @@ class Game {
   showWorld() {
     const s = this.state;
     const ch = this.chapterAt(s.chapter);
-    $('world-gil').textContent = `${s.gil} gil`;
+    $('world-gil').textContent = `${s.gil} marks`;
     $('world-party').innerHTML = s.party.map((u, i) => {
       const away = this.errandOf(u);
       const learn = !away && this.canLearnSomething(u);
-      return `<div class="party-chip ${i < 5 ? '' : 'reserve'} ${away ? 'away' : ''}" title="${away ? `Away: ${ERRANDS.find(x => x.id === away.id).title}` : learn ? 'Has JP to spend in Formation' : ''}">${u.name}${learn ? ' <span class="learn-mark">✦</span>' : ''} <small>${away ? 'on an errand' : `Lv${u.level} ${u.jobData.name}`}</small></div>`;
+      return `<div class="party-chip ${i < 5 ? '' : 'reserve'} ${away ? 'away' : ''}" title="${away ? `Away: ${ERRANDS.find(x => x.id === away.id).title}` : learn ? 'Has SP to spend in Formation' : ''}">${u.name}${learn ? ' <span class="learn-mark">✦</span>' : ''} <small>${away ? 'on an errand' : `Lv${u.level} ${u.jobData.name}`}</small></div>`;
     }).join('');
     this.renderErrands();
     if (ch) {
@@ -659,7 +659,7 @@ class Game {
         <div class="chapter-num">${road ? road.ending.title : tr('After the war')} · ${tr('Trial {n}', { n })}</div>
         <div class="chapter-title">${t.title}</div>
         <div class="chapter-map">${MAPS[t.map].name} · ${tr('{n} enemies · Lv {lv}', { n: t.enemies.length, lv: t.level })}</div>
-        <div class="chapter-goal">${tr('Objective: {goal}', { goal: tr('Defeat every enemy') })} · ${tr('{n} gil', { n: t.gil })}</div>
+        <div class="chapter-goal">${tr('Objective: {goal}', { goal: tr('Defeat every enemy') })} · ${tr('{n} marks', { n: t.gil })}</div>
         <div class="chapter-map">Each trial is harder than the last, and nothing is lost by failing one. The wagon carries legendary arms, and a trial won may turn one up.</div>
         <div class="chapter-goal act-after">${road ? road.ending.after : AFTER_THE_WAR}</div>
         <div class="chapter-map revisit-row">Endings seen: ${seen.map(k => ROADS[k].title).join(', ') || 'none'} (${seen.length} of ${ROAD_ORDER.length}).${left.length ? ` <button id="btn-another" class="mini">Another road</button>` : ' Every road has been walked.'}</div>`;
@@ -685,7 +685,7 @@ class Game {
     const mats = inv.filter(([id]) => ITEMS[id].slot === 'material').reduce((a, [, n]) => a + n, 0);
     $('world-stock').textContent = `Baggage: ${spare ? `${spare} spare item${spare === 1 ? '' : 's'}` : 'nothing spare'}${mats ? ` · ${mats} material${mats === 1 ? '' : 's'}` : ''} · open`;
     const hireLvl = Math.max(1, this.avgLevel() - 1);
-    $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 gil (party max ${PARTY_MAX}).`;
+    $('hire-info').textContent = `Hire a level ${hireLvl} recruit for 300 marks (party max ${PARTY_MAX}).`;
     $('btn-hire-squire').disabled = $('btn-hire-chemist').disabled = s.gil < 300 || s.party.length >= PARTY_MAX;
     this.showScreen('world');
     // Drawn once the screen is showing, so the canvas has a width to fit.
@@ -788,13 +788,13 @@ class Game {
   openFormation(selIdx = 0) {
     const s = this.state;
     this.formSel = Math.min(selIdx, s.party.length - 1);
-    $('form-gil').textContent = `${s.gil} gil`;
+    $('form-gil').textContent = `${s.gil} marks`;
     $('form-list').innerHTML = s.party.map((u, i) => `
       <div class="form-row ${i === this.formSel ? 'sel' : ''} ${i >= 5 ? 'reserve' : ''}" data-i="${i}" tabindex="0" role="button">
         <span class="slot">${i < 5 ? i + 1 : 'R'}</span>
         <canvas class="row-portrait" data-portrait="${i}"></canvas>
         <span class="name">${u.name}${u.leader ? ' ♛' : ''}</span>
-        <span class="job">Lv${u.level} ${u.jobData.name}${u.pet ? ' · beast' : ''}${this.errandOf(u) ? ' · away' : ''}${this.canLearnSomething(u) ? ' <span class="learn-mark" title="JP to spend">✦</span>' : ''}</span>
+        <span class="job">Lv${u.level} ${u.jobData.name}${u.pet ? ' · beast' : ''}${this.errandOf(u) ? ' · away' : ''}${this.canLearnSomething(u) ? ' <span class="learn-mark" title="SP to spend">✦</span>' : ''}</span>
         <span class="btns"><button data-up="${i}" ${i === 0 ? 'disabled' : ''}>▲</button><button data-down="${i}" ${i === s.party.length - 1 ? 'disabled' : ''}>▼</button></span>
       </div>`).join('');
     $('form-list').querySelectorAll('canvas[data-portrait]').forEach(cv => paintUnitSprite(cv, s.party[+cv.dataset.portrait], 1));
@@ -826,7 +826,7 @@ class Game {
       const learned = !!u.learned[id];
       return `<div class="ab-row ${learned ? 'learned' : ''}">
         <div><b>${ab.name}</b> <small>${ab.mp ? ab.mp + ' MP · ' : ''}Range ${ab.range === 'weapon' ? 'weapon' : ab.range}${ab.aoe ? ' · Area' : ''}${ab.ct ? ' · Charge ' + ab.ct : ''}</small><div class="ab-desc">${ab.desc}</div></div>
-        <div>${learned ? '<span class="tag">Learned</span>' : `<button data-learn="${id}" ${jp >= ab.jp ? '' : 'disabled'}>${ab.jp} JP</button>`}</div>
+        <div>${learned ? '<span class="tag">Learned</span>' : `<button data-learn="${id}" ${jp >= ab.jp ? '' : 'disabled'}>${ab.jp} SP</button>`}</div>
       </div>`;
     }).join('');
     const jobLevels = Object.keys(JOBS).filter(j => u.jpTotal[j]).map(j => `${JOBS[j].name} Lv${u.jobLevel(j)}`).join(' · ') || 'none yet';
@@ -836,7 +836,7 @@ class Game {
       const p = PASSIVES[id], learned = !!u.learned[id];
       return `<div class="ab-row ${learned ? 'learned' : ''}">
         <div><b>${p.name}</b> <small>${PASSIVE_KINDS[p.kind]}</small><div class="ab-desc">${p.desc}</div></div>
-        <div>${learned ? '<span class="tag">Learned</span>' : `<button data-learn="${id}" ${jp >= p.jp ? '' : 'disabled'}>${p.jp} JP</button>`}</div>
+        <div>${learned ? '<span class="tag">Learned</span>' : `<button data-learn="${id}" ${jp >= p.jp ? '' : 'disabled'}>${p.jp} SP</button>`}</div>
       </div>`;
     }).join('');
     const tab = this.formTab || 'unit';
@@ -874,7 +874,7 @@ class Game {
         <div class="equip-grid">${this.passiveRows(u)}</div>
       </div>
       <div data-form-tab="skills" class="${tab === 'skills' ? '' : 'tab-hidden'}">
-        <h3>${u.jobData.skillset} <small>${jp} JP available · ${u.jobData.name} Lv${u.jobLevel(u.job)}</small></h3>
+        <h3>${u.jobData.skillset} <small>${jp} SP available · ${u.jobData.name} Lv${u.jobLevel(u.job)}</small></h3>
         <div class="ab-list">${abilities}</div>
         ${passiveLearn ? `<h3>${u.jobData.name} Passives</h3><div class="ab-list">${passiveLearn}</div>` : ''}
       </div>`;
@@ -1024,7 +1024,7 @@ class Game {
     if (!selJob || !JOBS[selJob]) return;
     const j = JOBS[selJob], st = stateOf(selJob);
     const eq = JOB_EQUIP[selJob] || { w: [] };
-    const abilities = j.abilities.map(id => `<span class="tree-ab ${u.learned[id] ? 'learned' : ''}">${ABILITIES[id].name} <small>${ABILITIES[id].jp} JP</small></span>`).join('');
+    const abilities = j.abilities.map(id => `<span class="tree-ab ${u.learned[id] ? 'learned' : ''}">${ABILITIES[id].name} <small>${ABILITIES[id].jp} SP</small></span>`).join('');
     const passives = passivesOfJob(selJob).map(id => `<span class="tree-ab ${u.learned[id] ? 'learned' : ''}">${PASSIVES[id].name} <small>${PASSIVE_KINDS[PASSIVES[id].kind]}</small></span>`).join('');
     const mult = (v) => `×${v}`;
     $('tree-detail').innerHTML = `
@@ -1036,7 +1036,7 @@ class Game {
       <div class="tree-abs">${abilities}${passives}</div>
       ${st === 'current' ? `<span class="tag">${u.name}'s current job</span>`
         : st === 'open' ? `<button id="btn-tree-become" class="primary">Make ${u.name} a ${j.name}</button>`
-        : `<span class="muted">Earn the job levels above to open it. Job levels come from JP earned while in that job.</span>`}`;
+        : `<span class="muted">Earn the job levels above to open it. Job levels come from SP earned while in that job.</span>`}`;
     const become = $('tree-detail').querySelector('#btn-tree-become');
     if (become) become.onclick = () => {
       u.job = selJob;
@@ -1160,7 +1160,7 @@ class Game {
       return ids.map(id => {
         const it = ITEMS[id], give = salvageYield(id);
         return `<div class="shop-row"><div>${iconHtml(id)}<b>${it.name}</b> <small>×${this.invCount(id)} · ${this.itemSummary(id)}</small>
-          <div class="fits">Breaks down into ${mats(give)}${it.price ? ` · would sell for ${Math.floor(it.price / 2)} gil` : ''}</div></div>
+          <div class="fits">Breaks down into ${mats(give)}${it.price ? ` · would sell for ${Math.floor(it.price / 2)} marks` : ''}</div></div>
           <button data-salvage="${id}">Salvage</button></div>`;
       }).join('');
     }
@@ -1174,14 +1174,14 @@ class Game {
     return rows || '<p class="muted">This forge sells nothing.</p>';
   }
 
-  // Half the piece's worth in gil on top of the materials: the smith's labour.
+  // Half the piece's worth in marks on top of the materials: the smith's labour.
   craftGil(id) { return Math.round(ITEMS[id].price / 2); }
   canPay(mats, gil) { return this.state.gil >= (gil || 0) && Object.entries(mats).every(([m, n]) => this.invCount(m) >= n); }
   pay(mats, gil) { this.state.gil -= gil || 0; for (const [m, n] of Object.entries(mats)) this.invRemove(m, n); }
-  // "2× Steel Ingot (have 1) · 1× Ember Glass · 360 gil", the shortfalls marked.
+  // "2× Steel Ingot (have 1) · 1× Ember Glass · 360 marks", the shortfalls marked.
   costText(mats, gil) {
     const parts = Object.entries(mats).map(([m, n]) => { const have = this.invCount(m); return `${n}× ${ITEMS[m].name}${have < n ? ` <em class="short">(have ${have})</em>` : ''}`; });
-    if (gil) parts.push(`${gil} gil${this.state.gil < gil ? ` <em class="short">(have ${this.state.gil})</em>` : ''}`);
+    if (gil) parts.push(`${gil} marks${this.state.gil < gil ? ` <em class="short">(have ${this.state.gil})</em>` : ''}`);
     return parts.join(' · ');
   }
 
@@ -1246,7 +1246,7 @@ class Game {
     const pool = HIRE_NAMES.filter(n => !used.has(n));
     const name = pool[Math.floor(Math.random() * pool.length)] || `Recruit ${s.party.length}`;
     const u = new Unit({ name, job, level: Math.max(1, this.avgLevel() - 1), team: 'player' });
-    // Trained in their trade: enough JP for the first thing on the list, and the job levels the trade needs.
+    // Trained in their trade: enough SP for the first thing on the list, and the job levels the trade needs.
     u.jp[job] = 120; u.jpTotal[job] = 120;
     for (const [rj, lv] of Object.entries(JOBS[job].req || {})) u.jpTotal[rj] = Math.max(u.jpTotal[rj] || 0, JOB_LEVEL_JP[lv] || 0);
     s.party.push(u);
@@ -1372,7 +1372,7 @@ class Game {
         const pool = Object.keys(ITEMS).filter(id => sellable(id) && ITEMS[id].tier <= this.shopTier() && ITEMS[id].tier >= Math.max(0, this.shopTier() - 2));
         if (pool.length) { found = pool[Math.floor(Math.random() * pool.length)]; this.invAdd(found); }
       }
-      e.reports.push(`${u.name} returns from "${spec.title}": ${pay.gil} gil and ${pay.jp} JP as a ${u.jobData.name}${found ? `, and brings back a ${ITEMS[found].name}` : ''}.`);
+      e.reports.push(`${u.name} returns from "${spec.title}": ${pay.gil} marks and ${pay.jp} SP as a ${u.jobData.name}${found ? `, and brings back a ${ITEMS[found].name}` : ''}.`);
     }
     e.active = still;
   }
@@ -1391,7 +1391,7 @@ class Game {
       const pay = this.errandPay(spec);
       const opts = eligible.map(u => `<option value="${u.id}">${u.name} (Lv${u.level} ${u.jobData.name})</option>`).join('');
       return `<div class="errand offer" data-errand="${spec.id}">
-        <div class="errand-text"><b>${spec.title}</b> <small>${spec.days} battle${spec.days === 1 ? '' : 's'} · ${pay.gil} gil · ${pay.jp} JP${spec.item >= 0.4 ? ' · likely something found' : spec.item >= 0.2 ? ' · maybe something found' : ''}</small><div class="errand-flavour">${spec.text}</div></div>
+        <div class="errand-text"><b>${spec.title}</b> <small>${spec.days} battle${spec.days === 1 ? '' : 's'} · ${pay.gil} marks · ${pay.jp} SP${spec.item >= 0.4 ? ' · likely something found' : spec.item >= 0.2 ? ' · maybe something found' : ''}</small><div class="errand-flavour">${spec.text}</div></div>
         <div class="errand-send">${eligible.length ? `<select data-unit aria-label="Who to send on ${spec.title}">${opts}</select><button data-send="${spec.id}">Send</button>` : '<small class="muted">No one free to send.</small>'}</div>
       </div>`;
     }).join('');
@@ -1451,7 +1451,7 @@ class Game {
   openShop(tab = 'buy') {
     this.shopTab = tab;
     const s = this.state;
-    $('shop-gil').textContent = `${s.gil} gil`;
+    $('shop-gil').textContent = `${s.gil} marks`;
     $('shop-tabs').innerHTML = ['buy', 'sell'].map(t =>
       `<button data-tab="${t}" class="${t === tab ? 'sel' : ''}">${t === 'buy' ? tr('Buy') : tr('Sell')}</button>`).join('');
     $('shop-tabs').querySelectorAll('button').forEach(b => b.onclick = () => this.openShop(b.dataset.tab));
@@ -1485,7 +1485,7 @@ class Game {
         items += `<div class="shop-row ${fits ? '' : 'unfit'}">
           <div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small>
             <div class="fits">${fits ? tr('Fits: {who}', { who: fits }) : tr('No one in your party can use this yet')}${this.invCount(id) ? ` · ${tr('in stock: {n}', { n: this.invCount(id) })}` : ''}</div></div>
-          <button data-buy="${id}" ${afford ? '' : 'disabled'}>${tr('{n} gil', { n: it.price })}</button></div>`;
+          <button data-buy="${id}" ${afford ? '' : 'disabled'}>${tr('{n} marks', { n: it.price })}</button></div>`;
       }
       return `<h3>${tr(label)}</h3>${items}`;
     }).join('');
@@ -1500,7 +1500,7 @@ class Game {
       if (t !== lastType) { html += `<h3>${TYPE_NAMES[t] || t}</h3>`; lastType = t; }
       html += `<div class="shop-row">
         <div>${iconHtml(id)}<b>${it.name}</b> <small>${this.itemSummary(id)}</small><div class="fits">${tr('Spare: {n}', { n: this.invCount(id) })}</div></div>
-        <button data-sell="${id}">${tr('Sell {n} gil', { n: value })}</button></div>`;
+        <button data-sell="${id}">${tr('Sell {n} marks', { n: value })}</button></div>`;
     }
     return html;
   }
@@ -1534,7 +1534,7 @@ class Game {
     const ids = Object.keys(s.inventory).filter(id => this.invCount(id) > 0 && ITEMS[id]);
     const count = (test) => ids.filter(id => test(ITEMS[id])).reduce((n, id) => n + this.invCount(id), 0);
     const spare = count(it => it.slot !== 'material'), matN = count(it => it.slot === 'material');
-    $('bag-gil').textContent = `${s.gil} gil`;
+    $('bag-gil').textContent = `${s.gil} marks`;
     $('bag-count').textContent = [spare ? `${spare} spare piece${spare === 1 ? '' : 's'}` : 'nothing spare', matN ? `${matN} material${matN === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
     const cats = ['all', ...Object.keys(CATEGORY_NAMES).filter(c => ids.some(id => ITEMS[id].slot === c))];
     $('bag-tabs').innerHTML = cats.map(c => `<button data-cat="${c}" class="${c === cat ? 'sel' : ''}">${c === 'all' ? tr('All') : tr(CATEGORY_NAMES[c])}</button>`).join('');
@@ -1828,7 +1828,7 @@ class Game {
     const ch = this.chapterAt(this.state.chapter);
     if (!ch) return this.startTrial();
     await this.story(ch.title, ch.intro);
-    // Experience and JP are earned even in a losing battle, so the run is
+    // Experience and SP are earned even in a losing battle, so the run is
     // saved either way rather than letting a defeat quietly discard it.
     await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, kind: 'chapter' }, async (result) => {
       if (result !== 'victory') return;
@@ -1836,7 +1836,7 @@ class Game {
       this.state.victories++;
       if (ch.recruit) {
         const r = new Unit({ name: ch.recruit.name, job: ch.recruit.job, level: ch.recruit.level, team: 'player' });
-        // Recruits arrive with a little JP invested in their trade.
+        // Recruits arrive with a little SP invested in their trade.
         r.jp[r.job] = 60; r.jpTotal[r.job] = 60;
         this.state.party.push(r);
       }
@@ -2049,7 +2049,7 @@ class Game {
       $('results-body').innerHTML = `
         ${battleEndReason ? `<p class="res-reason">${battleEndReason}</p>` : ''}
         <div class="res-line">${tr('Experience earned:')} <b>${r.exp}</b></div>
-        <div class="res-line">${result === 'victory' ? tr('Gil earned:') : tr('Gil kept:')} <b>${result === 'victory' ? r.gil : 0}</b></div>
+        <div class="res-line">${result === 'victory' ? tr('Marks earned:') : tr('Marks kept:')} <b>${result === 'victory' ? r.gil : 0}</b></div>
         ${r.loot ? `<div class="res-line res-loot">${tr('Recovered:')} <b>${iconHtml(r.loot, 'small')}${ITEMS[r.loot] ? ITEMS[r.loot].name : r.loot}</b></div>` : ''}
         ${r.materials && Object.keys(r.materials).length ? `<div class="res-line res-loot">${tr('For the forge:')} <b>${Object.entries(r.materials).map(([m, n]) => `${iconHtml(m, 'small')}${n}× ${ITEMS[m].name}`).join(', ')}</b></div>` : ''}
         <div class="res-party"></div>
@@ -2075,7 +2075,7 @@ class Game {
         const learn = this.canLearnSomething(u);
         const sub = document.createElement('small');
         sub.className = 'res-jp' + (learn ? ' learn' : '');
-        sub.textContent = `${jp ? `+${jp} ${u.pet ? tr('bond') : 'JP'}` : tr('no JP')}${learn ? ' ✦' : ''}`;
+        sub.textContent = `${jp ? `+${jp} ${u.pet ? tr('bond') : 'SP'}` : tr('no SP')}${learn ? ' ✦' : ''}`;
         item.appendChild(sub);
         if (learn) item.classList.add('learn');
         roll.appendChild(item);
@@ -2086,7 +2086,7 @@ class Game {
         note.className = 'res-note';
         const who = learners.length === 1 ? learners[0]
           : tr('{a} and {b}', { a: learners.slice(0, -1).join(', '), b: learners[learners.length - 1] });
-        note.textContent = `✦ ${learners.length === 1 ? tr('{who} has enough JP for something new. Spend it in Formation.', { who }) : tr('{who} have enough JP for something new. Spend it in Formation.', { who })}`;
+        note.textContent = `✦ ${learners.length === 1 ? tr('{who} has enough SP for something new. Spend it in Formation.', { who }) : tr('{who} have enough SP for something new. Spend it in Formation.', { who })}`;
         roll.after(note);
       }
       $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };

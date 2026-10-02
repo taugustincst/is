@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /* Plays the campaign end to end with the game's own AI driving both sides,
-   carrying levels, JP, gil and purchases forward between chapters. This is how
+   carrying levels, SP, marks and purchases forward between chapters. This is how
    the difficulty curve in the README was measured; re-run it after changing any
    stat, price or reward.
 
    A lost battle costs only time here as in the game: the party keeps the
-   experience and JP it earned, so the simulated player trains and tries again.
+   experience and SP it earned, so the simulated player trains and tries again.
    The report gives both the first-attempt win rate and how often the campaign
    is finished at all.
 
@@ -42,7 +42,7 @@ function shop(party, state, chapter) {
       const cur = u.gear[slot];
       const curScore = cur ? g.gearScore(u.job, cur) : 0;
       // Buy on value, not on the biggest number: a player with a party to
-      // equip does not spend 1900 gil for a point of improvement.
+      // equip does not spend 1900 marks for a point of improvement.
       let best = null, bestValue = 0;
       for (const id of Object.keys(g.ITEMS)) {
         const it = g.ITEMS[id];
@@ -152,7 +152,7 @@ async function runCampaign(run) {
     }
   }
   console.log(`${RUNS} runs, ${TRAININGS} training battle(s) per chapter, up to ${RETRIES} retries\n`);
-  console.log('chapter        reached   1st try   cleared   tries   turns   party Lv   gil left');
+  console.log('chapter        reached   1st try   cleared   tries   turns   party Lv   marks left');
   const rows = [...g.CAMPAIGN, ...ROAD_ORDER.flatMap(id => ROADS[id].chapters.map(ch => ({ id: `${id}:${ch.id}` })))];
   for (const ch of rows) {
     const t = tally[ch.id];

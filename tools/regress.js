@@ -308,7 +308,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const unresolved = [...keys].filter(k => !pal[k]);
     ok('every body palette key resolves to a colour', unresolved.length === 0, unresolved.join(',') || [...keys].sort().join(''));
 
-    // A party of five squires used to be five copies of one person. A look is
+    // A party of five footmen used to be five copies of one person. A look is
     // derived from a unit's id, and two things must survive it: the team
     // accent, which says whose side this is, and the job's cloth, which says
     // what it does.
@@ -618,7 +618,7 @@ const mk = (n, job, lvl, opts = {}) => {
   /* 28. A new job is a bundle: a starter kit it can wear, an equipment row,
      gear in the shop for its weapon type, a swing for that type, and every
      passive it teaches actually consulted by the engine. A passive the
-     engine never asks about is a JP sink that does nothing, which is the
+     engine never asks about is a SP sink that does nothing, which is the
      kind of thing that ships by accident. */
   {
     const fs = require('fs'), path = require('path');
@@ -704,7 +704,7 @@ const mk = (n, job, lvl, opts = {}) => {
     const strayCity = Object.entries(g.ITEMS).filter(([, it]) => it.city && !cities.some(c => c.id === it.city && c.stock.includes(Object.keys(g.ITEMS).find(k => g.ITEMS[k] === it)))).map(([k]) => k);
     ok('every city-only item is sold by exactly the city that claims it', strayCity.length === 0, strayCity.join(',') || `${Object.values(g.ITEMS).filter(i => i.city).length} city items`);
     const errands = g.run('ERRANDS');
-    ok('every errand is a day or two with pay, JP and a chance of a find', errands.length >= 8 && errands.every(e => [1, 2].includes(e.days) && e.gil > 0 && e.jp > 0 && e.item >= 0 && e.item <= 1 && e.title && e.text) && new Set(errands.map(e => e.id)).size === errands.length, `${errands.length} errands`);
+    ok('every errand is a day or two with pay, SP and a chance of a find', errands.length >= 8 && errands.every(e => [1, 2].includes(e.days) && e.gil > 0 && e.jp > 0 && e.item >= 0 && e.item <= 1 && e.title && e.text) && new Set(errands.map(e => e.id)).size === errands.length, `${errands.length} errands`);
     const rvm = require('vm'), rctx = { document: { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {}, clearRect() {} }), width: 0, height: 0 }) }, PACE: { scale: 1 } };
     rvm.createContext(rctx); rvm.runInContext(fs.readFileSync(path.join(ROOT, 'js/color.js'), 'utf8'), rctx); rvm.runInContext(fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8'), rctx);
     const audioSrc = fs.readFileSync(path.join(ROOT, 'js', 'audio.js'), 'utf8');
@@ -903,10 +903,10 @@ const mk = (n, job, lvl, opts = {}) => {
       for (const p of ready) if (p.unit.hasStatus('stop')) b.log(`${p.unit.name} is Stopped; ${p.ability.name} is lost.`, 'miss');
       ok('a charge lost to Stop is said in the log', lines.some(l => /is Stopped; Fire is lost/.test(l)), lines.join('|'));
     }
-    // The forecast resets CT to zero after a turn, as the engine does.
+    // The forecast resets Tempo to zero after a turn, as the engine does.
     {
       const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'battle.js'), 'utf8');
-      ok('the forecast and the engine agree that a turn resets CT to zero', /r\.ct = 0;/.test(src) && !/r\.ct -= 100/.test(src));
+      ok('the forecast and the engine agree that a turn resets Tempo to zero', /r\.ct = 0;/.test(src) && !/r\.ct -= 100/.test(src));
     }
     // A warded status is refused out loud and does not strip its opposite.
     {
@@ -976,7 +976,7 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('the battle goes on while a foe stands', !b.checkEnd() && !b.over);
     goblin.hp = 0; goblin.x = -1;
     ok('a field with only beasts on it is won', b.checkEnd() && b.result === 'victory');
-    // The bond: JP opens the next skill of its kind at each level.
+    // The bond: SP opens the next skill of its kind at each level.
     wolf.learned = {}; wolf.jp = {}; wolf.jpTotal = {};
     wolf.openBondSkills();
     ok('a beast knows the first skill of its kind at once', wolf.learned.bite && !wolf.learned.howl);

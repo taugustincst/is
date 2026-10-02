@@ -84,7 +84,7 @@ async function toMenu(page) {
 }
 // A company that has fought its way to `chapter`: levelled, in advanced
 // jobs, wearing what the wagon sells there. The screenshots show the game
-// as it is a few hours in, not the first field with four squires on it.
+// as it is a few hours in, not the first field with four footmen on it.
 async function midCampaign(page, chapter) {
   await page.evaluate((ch) => {
     const s = game.state;

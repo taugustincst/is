@@ -21,7 +21,7 @@ const S = require('./lib').OUT;
       ['monk', {}, 'Monk fists'],
       ['thief', { weapon: 'assassinDagger', offhand: 'flameShield', body: 'leatherArmor' }, 'Thief flame'],
       ['ninja', { weapon: 'ninjaBlade', offhand: 'iceShield', body: 'wardingCloak' }, 'Ninja ice'],
-      ['squire', { weapon: 'warAxe', head: 'ironHelm', body: 'chainMail' }, 'Squire axe'],
+      ['squire', { weapon: 'warAxe', head: 'ironHelm', body: 'chainMail' }, 'Footman axe'],
     ];
     const Z = 5, cw = 20 * 2 * Z + 16, ch = 21 * 2 * Z + 34;
     const cols = 6, rows = Math.ceil(picks.length * 2 / cols);

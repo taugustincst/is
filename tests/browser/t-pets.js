@@ -63,7 +63,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.screenshot({ path: `${S}/pets-formation.png` });
   await page.click('#form-tabs button[data-form="skills"]');
   const skills = await page.evaluate(() => [...document.querySelectorAll('[data-form-tab="skills"] .ab-row')].map(r => r.querySelector('b').textContent + ':' + r.querySelector('.tag').textContent));
-  ok('skills open by bond level, not for JP', skills.join(',') === 'Bite:Learned,Howl:Bond 2', skills.join(','));
+  ok('skills open by bond level, not for SP', skills.join(',') === 'Bite:Learned,Howl:Bond 2', skills.join(','));
   await page.click('#form-tabs button[data-form="gear"]');
   const gearSlots = await page.evaluate(() => [...document.querySelectorAll('[data-form-tab="gear"] select[data-slot], [data-form-tab="gear"] .equip-row > span:not(.item-icon)')].map(e => e.dataset.slot || e.textContent));
   ok('the beast wears a collar and nothing else', gearSlots.join(',') === 'Accessory', gearSlots.join(','));

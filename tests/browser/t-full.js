@@ -30,7 +30,7 @@ const S = require('./lib').OUT;
       if (t === 'Onward') break;
     }
   };
-  // Spend JP and gil the way a player would, through the real screens.
+  // Spend SP and marks the way a player would, through the real screens.
   const develop = async () => {
     await page.click('#btn-shop');
     await page.waitForSelector('#screen-shop.active');
@@ -105,7 +105,7 @@ const S = require('./lib').OUT;
     await page.click('#btn-battle');
     const res = await fight('chapter');
     const now = await page.evaluate(() => ({ ch: game.state.chapter, lv: Math.round(game.state.party.reduce((a,u)=>a+u.level,0)/game.state.party.length), gil: game.state.gil, party: game.state.party.length }));
-    log.push(`ch${chapter + 1}: ${res} (training ${tr}) -> chapter ${now.ch}, party ${now.party} @Lv${now.lv}, ${now.gil} gil`);
+    log.push(`ch${chapter + 1}: ${res} (training ${tr}) -> chapter ${now.ch}, party ${now.party} @Lv${now.lv}, ${now.gil} marks`);
     console.log(log[log.length - 1]);
     attempts++;
     if (now.ch > chapter) chapter = now.ch;

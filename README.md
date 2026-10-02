@@ -35,7 +35,7 @@ a browser, or serve the folder with any static file server.
   a shot you could not see. A figure keeps its facing; what moves is the side
   of it you are looking at.
 - **Nobody is a copy of anybody.** Hair, skin and a shade of dye come from a
-  unit's own id, so a party of five squires is five people and stays the same
+  unit's own id, so a party of five footmen is five people and stays the same
   five across a reload. The team colour and the job's cloth never vary, because
   those are what a player has to read at a glance.
 - **Every blow has a voice.** Nine weapon swings and five impacts, so a knife
@@ -56,7 +56,7 @@ a browser, or serve the folder with any static file server.
   stays.
 - **Every item has a face.** A pixel icon for each kind of thing: fourteen
   weapon types, shields, hats, helms, crowns, armour, robes, cloaks, rings,
-  boots, gloves, charms and the rest, the forge's materials, and the chemist's
+  boots, gloves, charms and the rest, the forge's materials, and the apothecary's
   potions. Metal ages with the tier, elemental pieces take their tint, a
   gem shows what a piece is best at, and a forge's +1 to +3 shows as pips.
   They appear in the shop, the baggage, every city's market and forge, the
@@ -66,10 +66,10 @@ a browser, or serve the folder with any static file server.
   age through colour — iron, steel, mythril, gold — and elemental gear takes
   its element's tint, so a party's progress is legible across the field. The
   same sprite appears in Formation beside the dropdowns that dress it.
-- **Charge Time turns.** Every unit gains CT equal to its Speed each tick and
+- **Tempo turns.** Every unit gains Tempo equal to its Speed each tick and
   acts at 100. The turn order panel forecasts who is next, including spells
   still charging and fallen units counting down.
-- **Move, Act, then face.** Skipping either refunds CT toward your next turn.
+- **Move, Act, then face.** Skipping either refunds Tempo toward your next turn.
 - **Facing and height matter.** A side attack halves evasion and hits a tenth
   harder; a back attack cannot be dodged and hits a quarter harder; every
   level of high ground adds a twentieth, to a quarter, and every level of low
@@ -86,12 +86,12 @@ a browser, or serve the folder with any static file server.
 
 - **Every trade has a second study.** Each of the thirty-five player jobs
   teaches six or more skills, the last two or three learned late and dearly:
-  a Knight's Cleave and Sunder Armour, a White Mage's Dispel and Curaga, a
-  Time Mage's Rewind and Time Theft, a Gunner's Double Tap, a Duelist's
+  a Knight's Cleave and Sunder Armour, a Cleric's Dispel and Renew, a
+  Chronomancer's Rewind and Time Theft, a Gunner's Double Tap, a Duelist's
   Flurry, a Hierophant's Benediction. 221 skills across the player jobs, and
   every one of the game's 281 abilities is proven to do something when used.
-- **Thirty-five jobs** on an unlock tree — Squire, Chemist, Knight, Archer,
-  Monk, Thief, White Mage, Black Mage, Time Mage, Ninja, Dragoon; a second
+- **Thirty-five jobs** on an unlock tree — Footman, Apothecary, Knight, Archer,
+  Monk, Thief, Cleric, Sorcerer, Chronomancer, Ninja, Dragoon; a second
   tier of Samurai, Summoner, Geomancer and Bard; a third of Paladin, Arcanist,
   Assassin and Sage; the Brass Concord's trades, Engineer, Gunner, Aeronaut
   and Artificer, with guns that ignore height, oil, steam, flares and lightning;
@@ -121,32 +121,32 @@ a browser, or serve the folder with any static file server.
   already trained in an advanced trade, and a market with two wares of its
   own the wagon never carries — twenty arms across all ten towns.
 - **A forge in every open city.** It betters any weapon, shield, helm or
-  armour to +1, +2 and +3 for materials and gil, each step its own item
+  armour to +1, +2 and +3 for materials and marks, each step its own item
   that the baggage counts and a save keeps; it makes twenty arms sold
   nowhere else, two to a town, the best guns among them; and it breaks
   spare gear down into materials. Seven materials, from bar iron to
   star-iron, and every won field leaves a few behind.
 - **Errands.** Send a unit who is not the leader away from camp for a battle
-  or two. They come back with gil, JP in the job they left in, and sometimes
+  or two. They come back with marks, SP in the job they left in, and sometimes
   something found. Fourteen errands, two on the board at a time.
-- **JP where you can see it**: the results roll-call shows what each unit
+- **SP where you can see it**: the results roll-call shows what each unit
   earned and marks anyone with enough for something new; the camp and
   Formation lists carry the same mark.
 - **A record for every soldier**: battles fought and won, enemies felled,
   and how often they have fallen, kept across saves.
-- **JP progression.** Acting earns JP in your current job. Spend it on that
+- **SP progression.** Acting earns SP in your current job. Spend it on that
   job's abilities, equip any studied job's skillset as your secondary, and
   reach job levels to unlock the advanced classes.
 - **Forty-four passive abilities** in three kinds: reaction (Counter, Parry,
   Stopgap Draught, Spellsiphon, Mending Blood, Vengeance, and others learned
-  further up each tree), support (Might, Magick Up, Defend, Unerring, Halve
-  MP, Both Hands, Iron Fists, Equip Armor, and the elemental and job-bred
+  further up each tree), support (Might, Arcane Might, Defend, Unerring, Halve
+  MP, Two-Handed, Iron Fists, Armour Training, and the elemental and job-bred
   passives the later acts add) and movement (Move +1/+2, Jump +2, Sure
-  Footing, Move-HP-Up, Treasure Hunter, among them). Learn them in one job,
+  Footing, Walking Mend, Treasure Hunter, among them). Learn them in one job,
   equip them in any.
 - **207 pieces of equipment** across weapon, offhand, head, body and accessory
   slots, gated by job equip classes. Gear drives weapon power and range,
-  evasion and every stat. Ninja can dual wield; Both Hands trades the offhand
+  evasion and every stat. Ninja can dual wield; Two-Handed trades the offhand
   for half again the weapon power.
 - **A baggage screen** with everything spare shelved by category and kind,
   swords with swords and robes with robes; hand a piece to anyone who can
@@ -167,7 +167,7 @@ a browser, or serve the folder with any static file server.
   they do.
 - **Camp and unit pages in tabs**: the camp is Road, Company, Cities and
   Options; the unit page in Formation is Unit, Gear and Skills, with a mark
-  on Skills when there is JP to spend. Nothing is more than a scroll away.
+  on Skills when there is SP to spend. Nothing is more than a scroll away.
 - **Deployment phase.** Choose who fights and where they stand before the first
   tick, with the enemy roster laid out in front of you.
 - **Objectives** beyond routing the field: defeat the commander, or hold out a
@@ -221,7 +221,7 @@ a browser, or serve the folder with any static file server.
   target, and the targeting preview tells you before you commit.
 - **Control statuses** alongside the buffs: Silence seals anything that costs
   MP, Blind halves physical accuracy, Berserk takes a unit out of its owner's
-  hands for half again the damage. Remedy, Esuna and the Ribbon answer them.
+  hands for half again the damage. Remedy, Cleanse and the Ribbon answer them.
 - **A two-shape final battle.** At about a third of his health the man goes
   down and something else stands up in his armour.
 - **Every field has a voice** under the music: rain on the marsh road, wind
@@ -303,7 +303,7 @@ js/maps.js        every battlefield: heights, terrain, deployment, mood
 js/story.js       the campaign's chapters and acts, the epilogue, the cities
 js/sprites.js     sprite compositing: body templates, equipment glyphs, lighting
 js/fx.js          battle effects: weapon swings, projectiles, elemental impacts, and what each sounds like
-js/unit.js        unit model, stats, equipment, leveling, JP
+js/unit.js        unit model, stats, equipment, leveling, SP
 js/map.js         grid, pathfinding, range and area queries
 js/battle.js      charge time loop, actions, damage, statuses, objectives, AI
 js/render.js      isometric canvas renderer and animations
@@ -350,13 +350,13 @@ placed on water or stranded where nothing can walk to it, an ability a job
 refers to but that does not exist, a starter item with a sell value.
 `regress.js` replays each engine bug an adversarial review once found, so a
 change that brings one back fails there rather than in a player's battle. `simulate.js` runs whole campaigns with the game's own
-AI on both sides, carrying levels, JP, gil and purchases forward, and prints the
+AI on both sides, carrying levels, SP, marks and purchases forward, and prints the
 win rate, length and party level per chapter.
 
 ## Notes on balance
 
 Difficulty was tuned against `tools/simulate.js`, which plays the campaign end
-to end with both sides driven by the game's own AI, carrying levels, JP, gil and
+to end with both sides driven by the game's own AI, carrying levels, SP, marks and
 purchases forward between chapters and retrying a chapter it loses, as a player
 would. On the middle setting with one training battle per chapter, every chapter
 is cleared, first-attempt win rates run 60–100%, and chapters three, five and
@@ -365,6 +365,6 @@ seven take about one retry.
 Equipment is the main lever: a party that shops well arrives ready, and one that
 does not will grind. Camp says so plainly when the party is behind on levels or
 on kit. A human will do better than the AI does with the same party, and losing
-costs only time: experience and JP earned in a lost battle are kept and saved,
-the chapter simply does not advance. If a chapter is still too steep, the Squire
+costs only time: experience and SP earned in a lost battle are kept and saved,
+the chapter simply does not advance. If a chapter is still too steep, the Footman
 setting drops the opposition a level and widens the purse.

@@ -1,5 +1,5 @@
 const { BASE } = require('./lib');
-/* Item icons: every item and every one of the chemist's items paints a
+/* Item icons: every item and every one of the apothecary's items paints a
    glyph, the kinds look different from one another, and the icons appear in
    the shop, the baggage, a city's market and forge, the unit's gear page,
    the results screen and the battle's Items menu. A contact sheet of every
@@ -84,7 +84,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   ok('the gear page shows the worn piece beside each slot', gear.n >= 2 && gear.done === gear.n, JSON.stringify(gear));
   await page.screenshot({ path: `${S}/icons-gear.png` });
 
-  // 4. The battle: the chemist's Items menu, and the results' finds.
+  // 4. The battle: the apothecary's Items menu, and the results' finds.
   await page.evaluate(() => {
     const mira = game.state.party.find(u => u.job === 'chemist');
     mira.learned.potion = true; mira.learned.ether = true; mira.learned.phoenixDown = true;
