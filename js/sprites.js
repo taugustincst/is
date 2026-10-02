@@ -1050,12 +1050,32 @@ function spriteGear(u) {
 /* Paint a unit's sprite into a canvas at whole-pixel scale, for the menus.
    Equipment shows here too, so a purchase can be seen taking effect on the
    screen where it is made rather than only once the battle starts. */
-function paintUnitSprite(cv, u, scale) {
+function paintUnitSprite(cv, u, scale, fallen, crystal) {
   const spr = getSprite(u.jobData, u.team || 'player', 'front', false, spriteGear(u), spriteLook(u));
   cv.width = spr.width * scale;
   cv.height = spr.height * scale;
   const c = cv.getContext('2d');
   c.imageSmoothingEnabled = false;
   c.clearRect(0, 0, cv.width, cv.height);
+  if (!fallen) { c.drawImage(spr, 0, 0, cv.width, cv.height); return; }
+  // Fallen: laid flat on the ground and drained of colour, as the field
+  // draws a downed figure, so the results tell the same story the battle did.
+  c.save();
+  c.globalAlpha = 0.6; c.filter = 'grayscale(1)';
+  c.translate(0, cv.height * 0.65); c.scale(1, 0.35);
   c.drawImage(spr, 0, 0, cv.width, cv.height);
+  c.restore();
+  // Carried from the field: the crystal that was left where they lay.
+  if (crystal) paintCrystal(c, cv.width * 0.5, cv.height * 0.5, Math.max(5, scale * 4));
+}
+
+// A crystal of the fallen: a pale blue gem with a highlight, as the field shows it.
+function paintCrystal(c, x, y, r) {
+  c.save();
+  c.beginPath(); c.moveTo(x, y - r * 1.4); c.lineTo(x + r, y); c.lineTo(x, y + r * 1.4); c.lineTo(x - r, y); c.closePath();
+  c.fillStyle = '#9ef0ff'; c.fill();
+  c.lineWidth = Math.max(1, r / 4); c.strokeStyle = '#2a6a8a'; c.stroke();
+  c.beginPath(); c.moveTo(x - r * 0.35, y - r * 0.2); c.lineTo(x - r * 0.1, y - r * 0.9); c.lineTo(x + r * 0.1, y - r * 0.3); c.closePath();
+  c.fillStyle = '#ffffff'; c.fill();
+  c.restore();
 }
