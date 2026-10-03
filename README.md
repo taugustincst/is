@@ -196,6 +196,11 @@ own. The ids under them are unchanged, so an old save loads as it was.
   before it, **Undo Move** until a unit acts, and any flagged stop on the map
   can be fought again for half the pay. Statuses on the unit card say what
   they do.
+- **The company, one swipe at a time.** On the unit page the arrows beside
+  the portrait, a swipe across the page on a phone, or the ← → keys step to
+  the next unit and the one before, keeping whichever tab is open, so gear
+  can be fitted and SP spent across the whole company without going back to
+  the list. The company is a ring: the last unit's next is the first.
 - **Camp and unit pages in tabs**: the camp is Road, Company, Cities and
   Options; the unit page in Formation is Unit, Gear and Skills, with a mark
   on Skills when there is SP to spend. Nothing is more than a scroll away.
