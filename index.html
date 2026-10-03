@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1020">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="A tactical role-playing game of tempo turns, jobs and height maps.">
+<title>Chronicles of Elderon — Tactics</title>
+<link rel="icon" href="icons/icon-64.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ================= Title ================= -->
+<section id="screen-title" class="screen active">
+  <canvas id="title-art" class="title-art" aria-hidden="true"></canvas>
+  <div class="title-veil" aria-hidden="true"></div>
+  <div class="title-box">
+    <div class="title-sub" data-i18n>A Tactical Role-Playing Game</div>
+    <h1>Chronicles of Elderon</h1>
+    <div class="title-tag" data-i18n>Two princes. One crown. A squire who knows too much.</div>
+    <div class="title-buttons">
+      <button id="btn-new" data-i18n>New Game</button>
+      <button id="btn-continue" data-i18n>Continue</button>
+      <button id="btn-load" data-i18n>Load Game</button>
+    </div>
+    <button id="btn-credits" class="link title-credits" data-i18n>Credits</button>
+    <small id="title-version" class="title-version"></small>
+    <select id="title-lang" class="title-lang" aria-label="Language" data-i18n-aria="Language"></select>
+    <div class="title-foot" data-i18n="Isometric tactics · Tempo turns · Jobs & abilities · Height and facing matter">Isometric tactics · Tempo turns · Jobs &amp; abilities · Height and facing matter</div>
+  </div>
+</section>
+
+<!-- ================= Credits ================= -->
+<section id="screen-credits" class="screen">
+  <div class="credits-box">
+    <h2>Chronicles of Elderon</h2>
+    <p class="credits-version" id="credits-version"></p>
+    <dl class="credits-list">
+      <dt>Created by</dt><dd>taugustincst</dd>
+      <dt>Design, story, code, art and music</dt><dd>Written for this game, with Claude Code</dd>
+      <dt>Sprites and portraits</dt><dd>Drawn in code at run time; no image packs</dd>
+      <dt>Music and sound</dt><dd>Composed for this game and synthesized in the browser with the Web Audio API; no recordings</dd>
+      <dt>Typeface</dt><dd>Cinzel by Natanael Gama, under the SIL Open Font License 1.1</dd>
+      <dt>Testing</dt><dd>Playwright and Chromium, and a QA pass that found the Retreat button dead</dd>
+      <dt>Inspired by</dt><dd>The tactics RPGs of the late 1990s</dd>
+    </dl>
+    <p class="credits-links"><a href="https://github.com/taugustincst/fftremake" target="_blank" rel="noopener">Source on GitHub</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+    <button id="btn-credits-back" data-i18n>Back</button>
+  </div>
+</section>
+
+<!-- ================= Save slots ================= -->
+<section id="screen-slots" class="screen">
+  <div class="slots-box">
+    <h2 id="slots-title" data-i18n>Load a game</h2>
+    <div id="slots-list"></div>
+    <div class="slots-transfer">
+      <button id="btn-slot-import" class="mini" data-i18n>Import a save code</button>
+      <div id="transfer" hidden>
+        <p id="transfer-note" class="muted"></p>
+        <textarea id="transfer-text" rows="4" spellcheck="false" aria-label="Save code"></textarea>
+        <div class="transfer-actions">
+          <button id="btn-transfer-copy" data-i18n>Copy</button>
+          <button id="btn-transfer-share" data-i18n>Share</button>
+          <button id="btn-transfer-file" data-i18n>Save as file</button>
+          <label class="transfer-into"><span data-i18n>Into</span> <select id="transfer-slot" aria-label="Which slot to import into"><option value="1" data-i18n="Slot {n}" data-i18n-vars='{"n":1}'>Slot 1</option><option value="2" data-i18n="Slot {n}" data-i18n-vars='{"n":2}'>Slot 2</option><option value="3" data-i18n="Slot {n}" data-i18n-vars='{"n":3}'>Slot 3</option></select></label>
+          <input id="transfer-pick" type="file" accept=".txt,.json,text/plain,application/json" hidden>
+          <button id="btn-transfer-open" data-i18n>Open a file</button>
+          <button id="btn-transfer-import" class="primary" data-i18n>Import</button>
+          <button id="btn-transfer-close" class="mini" data-i18n>Close</button>
+        </div>
+      </div>
+    </div>
+    <button id="btn-slots-back" data-i18n>Back</button>
+  </div>
+</section>
+
+<!-- ================= World / camp ================= -->
+<section id="screen-world" class="screen">
+  <div class="world-layout">
+    <div class="world-main">
+      <h2 data-i18n>Camp</h2>
+      <canvas id="world-map" width="800" height="400" title="The road ahead"></canvas>
+      <div id="world-next" class="card"></div>
+      <div class="world-actions">
+        <button id="btn-battle" class="primary">March to Battle</button>
+        <button id="btn-train" data-i18n>Training Battle</button>
+        <button id="btn-formation" data-i18n="Formation & Jobs">Formation &amp; Jobs</button>
+        <button id="btn-shop" data-i18n>Shop</button>
+        <button id="btn-baggage" data-i18n>Baggage</button>
+        <button id="btn-save" data-i18n>Save</button>
+        <button id="btn-title" data-i18n>Title</button>
+      </div>
+      <div id="camp-tabs" class="tabs camp-tabs"></div>
+      <div class="card campfire" data-camp-tab="road">
+        <h3><span data-i18n>Around the fire</span> <small data-i18n>the night before</small></h3>
+        <div id="campfire"></div>
+      </div>
+      <div class="card tavern" data-camp-tab="company">
+        <h3 data-i18n>Tavern</h3>
+        <div id="hire-info"></div>
+        <button id="btn-hire-squire" data-i18n>Hire Footman</button>
+        <button id="btn-hire-chemist" data-i18n>Hire Apothecary</button>
+      </div>
+      <div class="card errands-card" data-camp-tab="company">
+        <h3><span data-i18n>Errands</span> <small data-i18n>work away from the line, for pay and SP</small></h3>
+        <div id="errands"></div>
+      </div>
+      <div class="card cities-card" data-camp-tab="cities">
+        <h3><span data-i18n>Cities</span> <small data-i18n>held until you open them; open, they hire, they sell and they forge</small></h3>
+        <div id="cities"></div>
+      </div>
+      <div class="card difficulty" data-camp-tab="options">
+        <h3><span data-i18n>Difficulty</span> <small data-i18n>changeable at any time</small></h3>
+        <div id="world-difficulty" class="tabs"></div>
+      </div>
+      <div class="card language" data-camp-tab="options">
+        <h3><span data-i18n>Language</span> <small data-i18n>names, story and item text stay in English</small></h3>
+        <div id="world-lang" class="tabs"></div>
+      </div>
+    </div>
+    <aside class="world-side">
+      <div class="side-head">
+        <span class="gil" id="world-gil"></span>
+        <button id="btn-sound-world" class="icon" aria-label="Sound"></button>
+      </div>
+      <div class="audio-levels"></div>
+      <button id="world-stock" class="stock link"></button>
+      <h3><span data-i18n>Party</span> <small data-i18n>(first 5 deploy)</small></h3>
+      <div id="world-party"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= Formation ================= -->
+<section id="screen-formation" class="screen">
+  <div class="form-layout">
+    <div class="form-left">
+      <div class="form-head"><h2 data-i18n>Formation</h2><span id="form-gil"></span></div>
+      <div id="form-list"></div>
+      <p class="muted" data-i18n>Units 1–5 deploy in battle. Use ▲▼ to reorder. Change jobs freely; abilities are learned with SP earned in that job.</p>
+      <button id="btn-formation-back" data-i18n>Back to Camp</button>
+    </div>
+    <div class="form-right" id="form-detail"></div>
+  </div>
+</section>
+
+<!-- ================= Shop ================= -->
+<section id="screen-shop" class="screen">
+  <div class="shop-layout">
+    <div class="shop-head">
+      <h2 data-i18n>Merchant's Wagon</h2>
+      <span id="shop-gil"></span>
+    </div>
+    <div id="shop-tabs" class="tabs"></div>
+    <div id="shop-list"></div>
+    <button id="btn-shop-back" data-i18n>Back to Camp</button>
+  </div>
+</section>
+
+<!-- ================= Baggage ================= -->
+<section id="screen-inventory" class="screen">
+  <div class="shop-layout">
+    <div class="shop-head">
+      <h2><span data-i18n>Baggage</span> <small id="bag-count"></small></h2>
+      <span id="bag-gil" class="gil"></span>
+    </div>
+    <div id="bag-tabs" class="tabs"></div>
+    <div id="bag-types" class="chips"></div>
+    <div id="bag-list" class="list-panel"></div>
+    <h3 class="worn-title"><span data-i18n>Worn by the party</span> <small data-i18n>× returns a piece to the baggage</small></h3>
+    <div id="bag-worn" class="worn-panel"></div>
+    <div class="row-buttons"><button id="btn-bag-back" data-i18n>Back to Camp</button><button id="btn-bag-shop" data-i18n>Shop</button></div>
+  </div>
+</section>
+
+<!-- ================= Story ================= -->
+<section id="screen-story" class="screen">
+  <div class="story-box">
+    <h2 id="story-title"></h2>
+    <div id="story-text"></div>
+    <div class="story-buttons"><button id="btn-story-next" data-i18n>Continue</button><button id="btn-story-skip" class="mini" data-i18n>Skip</button></div>
+  </div>
+</section>
+
+<section id="screen-choice" class="screen">
+  <div class="choice-box">
+    <h2 id="choice-title"></h2>
+    <div id="choice-text"></div>
+    <div id="choice-list" class="choice-list"></div>
+    <div class="story-buttons"><button id="btn-choice-back" data-i18n>Back to Camp</button></div>
+  </div>
+</section>
+
+<!-- ================= Battle ================= -->
+<section id="screen-battle" class="screen">
+  <canvas id="battle-canvas" width="1100" height="680" role="img" aria-label="The battlefield"></canvas>
+  <div id="banner" class="banner" aria-live="polite"></div>
+  <div id="turn-order" class="panel"></div>
+  <div id="unit-card" class="panel"></div>
+  <div id="battle-top">
+    <span id="battle-name"></span>
+    <span id="objective"></span>
+    <span id="tile-info"></span>
+    <button id="btn-sound" class="icon" aria-label="Sound effects"></button>
+    <button id="btn-music" class="icon" aria-label="Music"></button>
+    <button id="btn-speed" class="icon" title="Battle speed (F)" aria-label="Battle speed" data-i18n-aria="Battle speed">1×</button>
+    <button id="btn-auto" class="icon" title="Auto-battle (A)" aria-pressed="false" data-i18n>Auto</button>
+    <button id="btn-rot-l" class="icon" title="Turn the field left (Q)" aria-label="Turn the field left">↺</button>
+    <button id="btn-rot-r" class="icon" title="Turn the field right (E)" aria-label="Turn the field right">↻</button>
+    <button id="btn-log" class="icon" title="Battle log" aria-label="Battle log" data-i18n-title="Battle log" data-i18n-aria="Battle log">☰</button>
+    <button id="btn-help" title="Help" aria-label="Help" data-i18n-title="Help" data-i18n-aria="Help">?</button>
+    <button id="btn-retreat" data-i18n>Retreat</button>
+  </div>
+  <div id="log" class="panel"></div>
+  <div id="hint" aria-live="polite"></div>
+  <div id="coach" hidden><p class="coach-text"></p><div class="coach-actions"><button id="btn-coach-ok" class="primary" data-i18n>Got it</button><button id="btn-coach-skip" class="mini" data-i18n>Skip the guide</button></div></div>
+  <div id="deploy-panel" class="panel"></div>
+  <div id="command" class="panel">
+    <div id="action-menu"></div>
+    <div id="prediction"></div>
+  </div>
+  <div id="help">
+    <div class="help-box">
+      <div class="audio-levels"></div>
+      <h3 data-i18n>How to play</h3>
+      <ul>
+        <li><b data-i18n>Deployment:</b> before each battle, pick who fights and where they stand. Units left in reserve take no part. The opposition is listed on the left.</li>
+        <li><b data-i18n>Tempo:</b> every unit gains Tempo equal to its Speed each tick. At 100 Tempo it takes a turn. The Turn Order panel forecasts who acts next.</li>
+        <li><b data-i18n>Turn:</b> Move, then Act (or Act, then Move), then choose a facing. Skipping Move or Act gives +20 Tempo toward your next turn. A move can be taken back until the unit acts, unless something happened on the way.</li>
+        <li><b data-i18n>Facing:</b> a physical attack from the side halves the target's evasion and deals a tenth more; from behind it cannot be evaded and deals a quarter more. Face your enemies when you Wait, and get behind theirs.</li>
+        <li><b data-i18n>Friend or foe:</b> your side stands on smooth blue rings and wears blue; the enemy stands on jagged red rings and wears red. The bar over every head is framed in the same colour, so a figure hidden behind a wall still tells you whose it is. The wedge on the ring points the way that unit is facing.</li>
+        <li><b data-i18n>Height:</b> every level of ground above the target adds 5% to a physical blow, up to 25%; every level below takes 5% off. Jump limits how high you can climb.</li>
+        <li><b data-i18n>Elements:</b> fire, ice, thunder, earth, holy, dark and water. Creatures and equipment answer them: a bomb drinks fire and burns in ice, a dire wolf fears fire, a fell knight feeds on dark and dreads holy, and the drowned drink water and burn in thunder. The targeting preview tells you before you commit.</li>
+        <li><b data-i18n>The north:</b> hollow knights, wights and the Court's weavers absorb ice and fear fire and holy light. Snow is walked like grass; river ice is walked like stone. Stop and Slow are the Court's favourite tricks: a Warden's Iron Footing or a Warmth Stone shrugs them off.</li>
+        <li><b data-i18n>Guns and machines:</b> a gun reaches four tiles or more and does not care about height, so the Concord's gunners will shoot down at you from anywhere. Their sentinels and hounds are brass: lightning gets through it, fire does not.</li>
+        <li><b data-i18n>Charged abilities:</b> spells and Aim shots resolve after their charge fills. Targets that move out of the area are missed. Friendly fire is real.</li>
+        <li><b data-i18n>Falling:</b> a downed unit counts down three turns before it is carried from the field. Revive it in time and it stays. Losing your leader loses the battle.</li>
+        <li><b data-i18n>Beasts:</b> a creature can fight for the company. An Archer's Tame, used on a wild creature below half its health, wins it over on the spot: it fights beside you at once and follows you off a field you win. City kennels sell them outright. A beast keeps its kind, wears only a collar, and learns the skills of its kind as its bond deepens with every action. The company keeps four at most.</li>
+        <li><b data-i18n>Crystals:</b> where a unit is carried off, a crystal remains. End a move on it and that unit is restored in full, HP and MP. The enemy will go for one when hurt; so should you.</li>
+        <li><b data-i18n>Saves:</b> three slots. New Game takes an empty one, or asks which to write over; Continue takes the latest; Load Game lists them all. A lost battle offers Try again from the results, without the story before it, and any flagged stop on the map can be fought again for half the pay.</li>
+        <li><b data-i18n>Camp tabs:</b> the camp is four pages: Road (the night before), Company (tavern and errands), Cities, and Options. The unit page in Formation is three: Unit, Gear and Skills. The arrows beside the portrait, a swipe across the page, or the ← → keys step to the next unit and keep the tab.</li>
+        <li><b data-i18n>Cities:</b> towns on the map are held by someone until you fight them open. An open city stays open: its tavern hires recruits already trained in an advanced trade, and its market sells arms the wagon never carries. Tap a city on the map, or use the Cities card at camp.</li>
+        <li><b data-i18n>Forges:</b> every open city has one. It betters any weapon, shield, helm or armour to +1, +2 and +3 for materials and marks, makes arms sold nowhere else (the best guns among them), and breaks spare gear down into materials. Every won field leaves a few materials behind, and the baggage keeps them.</li>
+        <li><b data-i18n>Errands:</b> at camp, send a unit who is not the leader away on an errand. They miss the next battle or two and come back with marks, SP in the job they left in, and sometimes something found.</li>
+        <li><b data-i18n>Objective:</b> shown in the bar above. Some battles end when the enemy commander falls, or when you have held out long enough.</li>
+        <li><b data-i18n>Jobs:</b> earn SP by acting. Spend it in Formation on abilities and passives. Reach job levels to unlock advanced jobs, and equip a second skillset from any job you have studied.</li>
+        <li><b data-i18n>Passives:</b> one reaction, one support and one movement ability at a time. Learn them in one job and wear them in any.</li>
+        <li><b data-i18n>Equipment:</b> buy gear at the shop and fit it in Formation, or press Optimize. Weapons set your power and reach; armour, shields and accessories do the rest.</li>
+        <li><b data-i18n>Baggage:</b> everything spare, shelved by category and kind: swords with swords, robes with robes. Hand a piece to anyone who can wear it from the shelf, sell it there, or take a piece off someone in the table below.</li>
+        <li><b data-i18n>Know your enemy:</b> point at or tap any enemy and its card lists the skills it can use.</li>
+        <li><b data-i18n>Threat:</b> tap an enemy while choosing an action, or during deployment, and the tiles it could strike on its next turn turn violet. Tap it again to clear.</li>
+        <li><b data-i18n>Auto:</b> the Auto button, or A, hands your turns to the computer until you press it again. It fights like the enemy does: fine for a training battle, no substitute for you in a hard one.</li>
+        <li><b data-i18n>Speed:</b> the 1× button, or F, runs battles at double or triple time. Nothing is skipped; it all just happens faster. Handy once you have watched enough enemy turns.</li>
+        <li><b data-i18n>Turning the field:</b> the board turns a quarter at a time with the ↺ and ↻ buttons, or Q and E. Height hides things; turn the field to see behind a wall, or to line up a shot you could not see.</li>
+        <li><b data-i18n>Controls:</b> click or tap tiles and buttons, keys 1-9 for menu entries. Right-click or Esc cancels. Drag or pinch to pan and zoom, arrows and +/- as well, 0 to reframe.</li>
+      </ul>
+      <button id="btn-help-close" data-i18n>Close</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Results ================= -->
+<section id="screen-results" class="screen">
+  <div class="results-box">
+    <h2 id="results-title"></h2>
+    <div id="results-body"></div>
+    <div class="results-buttons"><button id="btn-results" data-i18n>Continue</button><button id="btn-retry" hidden data-i18n>Try again</button></div>
+  </div>
+</section>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- The game's own yes-or-no question. The browser's confirm() is silently
+     refused inside a sandboxed frame and by some browser automation, which
+     left Retreat and every other question looking like a dead button. -->
+<div id="ask" role="alertdialog" aria-modal="true" aria-labelledby="ask-text" hidden>
+  <div class="ask-box">
+    <p id="ask-text"></p>
+    <div class="ask-actions"><button id="ask-no" data-i18n>Cancel</button><button id="ask-yes" class="primary" data-i18n>OK</button></div>
+  </div>
+</div>
+
+<script>
+  // Register the offline cache. It is optional: the game runs perfectly well
+  // without it, so a failure here is not worth interrupting anyone over.
+  // Inside the Android app the files are already on the device, so the worker
+  // has nothing to add and is not bundled; the origin says which case this is.
+  const inApp = location.hostname === 'appassets.androidplatform.net';
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !inApp) {
+    // The worker script itself is always checked against the server, never
+    // the HTTP cache, so a new build is noticed on the next launch.
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      reg.update().catch(() => {});
+      // A new build installs beside the running one and waits. The page asks
+      // before switching, and never in the middle of a battle.
+      const offer = () => {
+        const w = reg.waiting; if (!w) return;
+        window.__updateWaiting = w;
+        if (window.game && game.tryUpdatePrompt) game.tryUpdatePrompt();
+      };
+      // The update check that register() starts can find a new build before
+      // this handler runs, so a worker already installing is watched too;
+      // waiting on updatefound alone would miss it until the next launch.
+      const watch = (w) => {
+        if (!w) return;
+        w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offer(); });
+      };
+      if (reg.waiting) offer();
+      watch(reg.installing);
+      reg.addEventListener('updatefound', () => watch(reg.installing));
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (window.__reloadOnControl) location.reload(); });
+    }).catch(() => {}));
+  }
+</script>
+<script src="js/i18n.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/data.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/story.js"></script>
+<script src="js/color.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/unit.js"></script>
+<script src="js/map.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
