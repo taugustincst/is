@@ -452,6 +452,11 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.12.1**
+
+    On the unit page, the arrows beside the portrait, a swipe across the page or the arrow keys
+    step to the next unit and the one before, keeping the tab that is open.
+
 **1.12.0**
 
     The launch pass. Names of this world: footmen, apothecaries, clerics, sorcerers and

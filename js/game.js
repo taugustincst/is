@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.12.0';
+const GAME_VERSION = '1.12.1';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -185,6 +185,26 @@ class Game {
     $('btn-battle').onclick = () => this.startNextChapter();
     $('btn-train').onclick = () => this.startTraining();
     $('btn-formation').onclick = () => this.openFormation();
+    // A swipe across the unit page steps to the next unit (left) or the
+    // previous (right). A touch that starts on a control, or that is more
+    // up-and-down than across, is a tap or a scroll and is left alone.
+    const formScreen = $('screen-formation');
+    let swipe = null;
+    formScreen.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      swipe = (e.touches.length === 1 && !e.target.closest('button, select, input, textarea, a')) ? { x: t.clientX, y: t.clientY, at: Date.now() } : null;
+    }, { passive: true });
+    formScreen.addEventListener('touchend', (e) => {
+      if (!swipe) return;
+      const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y, ms = Date.now() - swipe.at;
+      swipe = null;
+      if (ms < 900 && Math.abs(dx) >= 56 && Math.abs(dx) > Math.abs(dy) * 2) this.stepFormUnit(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    document.addEventListener('keydown', (e) => {
+      if (this.screen !== 'formation' || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      if (e.target.closest('select, input, textarea') || !$('ask').hidden) return;
+      if (this.stepFormUnit(e.key === 'ArrowRight' ? 1 : -1)) e.preventDefault();
+    });
     $('btn-shop').onclick = () => this.openShop();
     $('btn-baggage').onclick = () => this.openBaggage();
     $('world-stock').onclick = () => this.openBaggage();
@@ -809,6 +829,41 @@ class Game {
     this.showScreen('formation');
   }
 
+  /* Moving between units on the unit page. The page keeps its tab, so a
+     player fitting gear or spending SP across the company steps from one
+     unit to the next without going back to the list: the arrows beside the
+     portrait, a swipe across the page on a phone, or the arrow keys. The
+     company is a ring, so the last unit's next is the first. */
+  stepFormUnit(delta) {
+    const n = this.state ? this.state.party.length : 0;
+    if (n < 2 || this.screen !== 'formation') return false;
+    this.formSlide = delta;
+    audio.sfx('menu');
+    this.openFormation((this.formSel + delta + n) % n);
+    return true;
+  }
+
+  unitNavButton(delta) {
+    const n = this.state.party.length;
+    return `<button class="unit-nav" data-unit-nav="${delta}" ${n < 2 ? 'disabled' : ''} aria-label="${delta < 0 ? 'Previous unit' : 'Next unit'}" title="${delta < 0 ? 'Previous unit (←, or swipe right)' : 'Next unit (→, or swipe left)'}">${delta < 0 ? '‹' : '›'}</button>`;
+  }
+
+  unitNavCount() {
+    return `<small class="unit-count">${this.formSel + 1} of ${this.state.party.length}</small>`;
+  }
+
+  bindUnitNav() {
+    const det = $('form-detail');
+    det.querySelectorAll('[data-unit-nav]').forEach(b => b.onclick = () => this.stepFormUnit(+b.dataset.unitNav));
+    // A short slide in from the side the new unit came from.
+    det.classList.remove('slide-from-right', 'slide-from-left');
+    if (this.formSlide) {
+      void det.offsetWidth; // restart the animation
+      det.classList.add(this.formSlide > 0 ? 'slide-from-right' : 'slide-from-left');
+      this.formSlide = 0;
+    }
+  }
+
   renderFormationDetail() {
     const u = this.state.party[this.formSel];
     if (u.pet) return this.renderPetDetail(u);
@@ -843,8 +898,10 @@ class Game {
     const learnable = this.canLearnSomething(u);
     $('form-detail').innerHTML = `
       <div class="detail-head">
+        ${this.unitNavButton(-1)}
         <canvas id="form-portrait" class="portrait"></canvas>
-        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP · ${u.jobData.name}</span></div>
+        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP · ${u.jobData.name}</span>${this.unitNavCount()}</div>
+        ${this.unitNavButton(1)}
       </div>
       <div id="form-tabs" class="tabs form-tabs">
         <button data-form="unit" class="${tab === 'unit' ? 'sel' : ''}">Unit</button>
@@ -881,6 +938,7 @@ class Game {
     $('form-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.formTab = b.dataset.form; this.renderFormationDetail(); });
     paintUnitSprite($('form-portrait'), u, 3);
     paintIcons($('form-detail'));
+    this.bindUnitNav();
     $('sel-job').onchange = (e) => {
       u.job = e.target.value;
       if (u.secondary === u.job) u.secondary = null;
@@ -935,8 +993,10 @@ class Game {
       .map(a => `<span style="color:${ELEMENTS[a.e].color}">${ELEMENTS[a.e].name} ${affinityLabel(a.m)}</span>`).join(' · ');
     $('form-detail').innerHTML = `
       <div class="detail-head">
+        ${this.unitNavButton(-1)}
         <canvas id="form-portrait" class="portrait"></canvas>
-        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP · ${u.jobData.name} · a beast of the company</span></div>
+        <div class="detail-id"><h2>${u.name}</h2><span>Level ${u.level} · ${u.exp}/100 EXP · ${u.jobData.name} · a beast of the company</span>${this.unitNavCount()}</div>
+        ${this.unitNavButton(1)}
       </div>
       <div id="form-tabs" class="tabs form-tabs">
         <button data-form="unit" class="${tab === 'unit' ? 'sel' : ''}">Beast</button>
@@ -966,6 +1026,7 @@ class Game {
     $('form-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.formTab = b.dataset.form; this.renderFormationDetail(); });
     paintUnitSprite($('form-portrait'), u, 3);
     paintIcons($('form-detail'));
+    this.bindUnitNav();
     $('form-detail').querySelectorAll('select[data-slot]').forEach(sel => sel.onchange = (e) => {
       this.equip(u, sel.dataset.slot, e.target.value || null);
       this.renderFormationDetail();
