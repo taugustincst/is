@@ -268,6 +268,11 @@ const STRINGS = {
   // ---- the help's headings ----
   'How to play': ['Spielanleitung', 'Comment jouer', 'Cómo jugar', 'Como jogar', '遊び方'],
   'Deployment:': ['Aufstellung:', 'Déploiement :', 'Despliegue:', 'Posicionamento:', '配置：'],
+  'See {name} to the mark': ['{name} zur Marke bringen', 'Escorter {name} jusqu’à la marque', 'Lleva a {name} hasta la marca', 'Leve {name} até a marca', '{name}を目印まで連れて行く'],
+  'Reach the mark with the leader': ['Die Marke mit dem Anführer erreichen', 'Atteindre la marque avec le chef', 'Alcanza la marca con el líder', 'Alcance a marca com o líder', 'リーダーで目印に到達する'],
+  'Hold the mark for {n} rounds': ['Die Marke {n} Runden halten', 'Tenir la marque pendant {n} tours', 'Mantén la marca durante {n} rondas', 'Segure a marca por {n} rodadas', '目印を{n}ラウンド守る'],
+  'the charge': ['den Schützling', 'le protégé', 'el protegido', 'o protegido', '護衛対象'],
+  'charge': ['Schützling', 'protégé', 'protegido', 'protegido', '護衛対象'],
   'Tempo:': ['Tempo:', 'Tempo :', 'Tempo:', 'Tempo:', 'テンポ：'],
   'Turn:': ['Zug:', 'Tour :', 'Turno:', 'Turno:', 'ターン：'],
   'Facing:': ['Blickrichtung:', 'Orientation :', 'Orientación:', 'Direção:', '向き：'],

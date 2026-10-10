@@ -28,7 +28,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'rout' },
+    objective: { type: 'hold', rounds: 4, goal: 'centre' },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
     camp: [
       'Mira: "The mill was still turning when I passed this way in spring. Someone should have shut it off."',
@@ -39,6 +39,7 @@ const CAMPAIGN = [
       'Goblins nest in the mill now, and their wolves have found the scent of travelers on the bridge.',
       '"Hold the bridge," Garret says. "Let them come to us one at a time."',
       'Mira counts her potions twice. "And nobody gets bitten. I have four of these, and I am not wasting one on Bram being brave."',
+          'The bridge is the mark. Stand on it, and keep standing on it: four rounds, and the pack will break.',
     ],
     enemies: [
       { job: 'goblin', level: 2, x: 2, y: 1 },
@@ -80,7 +81,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'reach', protectLeader: true, goal: 'far' },
     id: 'ch4', title: 'Sable Marsh', map: 'sable',
     camp: [
       'Bram: "A coven. Actual witches. Do they know we are coming?"  Lysa: "They were paid to know. That is the part I do not like."',
@@ -91,6 +92,7 @@ const CAMPAIGN = [
       'It is also where the Sable Coven trades curses for coin, and someone has paid them handsomely.',
       '"Mages," Lysa says. "Their spells take time to charge. Close the distance before they finish."',
       '"And mind the lights over the water, and whatever that is standing in the reeds. Neither is a tree."',
+          'The far bank is the mark. Rowan has to reach it; whatever is in the water can keep the water.',
     ],
     enemies: [
       { job: 'blackMage', level: 4, x: 4, y: 3, name: 'Coven Mage' },
@@ -134,7 +136,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Pell', job: 'chemist', level: 5 } },
     id: 'ch6', title: 'Ashen Ridge', map: 'ashen',
     camp: [
       'Tamsin: "The ridge breathes. When it breathes out, the bombs drift up. When it breathes in, they come down where you are standing."',
@@ -144,6 +146,7 @@ const CAMPAIGN = [
       'The road to Thornwall climbs the Ashen Ridge, where the old volcano still breathes.',
       'Bombs drift between the vents. Goblins have learned to herd them toward travelers.',
       '"Do not let the bombs get close," Kael warns. "When they are hurt, they explode."',
+          'Pell the carter knows the one path through the vents. He is not a fighter. He has to reach the far side of the ridge alive, and so must you.',
     ],
     enemies: [
       { job: 'bomb', level: 6, x: 3, y: 3 },
@@ -162,6 +165,7 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch7', title: 'Thornwall Cathedral', map: 'thornwall',
+    talk: [{ who: 'leader', text: 'Not today, Ser. Garret, the guards. Tamsin, stay behind the pillars. Everybody comes home.' }],
     camp: [
       'Nobody sleeps. Bram sharpens a blade that is already sharp. Lysa counts potions in the dark.',
       'Rowan: "Whatever he says at the altar, do not listen. He was always better at talking than I am."',
@@ -176,6 +180,7 @@ const CAMPAIGN = [
     ],
     enemies: [
       { job: 'darkKnight', level: 9, x: 6, y: 3, name: 'Ser Brannoc', boss: true,
+        lines: { open: 'Not today, you said. Boy, today is all there has ever been.', half: 'You fight like him. He died like that too.', fall: 'Cold. It is so cold, Rowan. Tell Tamsin to shut the door.' },
         passives: ['counter', 'attackUp', 'movePlus1'],
         phases: [{
           atPct: 0.35, job: 'darkKnightRisen', name: 'Brannoc Unbound', heal: 1,
@@ -203,7 +208,7 @@ const CAMPAIGN = [
 
   // ---- Act II: the Brass Concord ----
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Ottilie', job: 'engineer', level: 7 } },
     id: 'ch8', title: 'Smoke on the Coast Road', map: 'fordwater',
     camp: [
       'The letter lies open on the wagon boards. The cog inside the circle looks back at everyone.',
@@ -215,6 +220,7 @@ const CAMPAIGN = [
       'Their scouts wear no prince\'s colours. They wear goggles and brass, and the hounds that run with them were never born.',
       '"Those long guns reach further than my bow," Kael says. "And they do not care how high we stand."',
       '"Then we close on them," Garret says, "or find something to stand behind."',
+          'The engineer, Ottilie, is the one they are here to take. Get her to the far end of the road and the smoke can have the rest.',
     ],
     enemies: [
       { job: 'gunner', level: 8, x: 9, y: 2, name: 'Concord Scout' },
@@ -232,7 +238,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'hold', rounds: 5, protectLeader: true, goal: 'centre' },
     id: 'ch9', title: 'The Foundry at Ironhold', map: 'ironhold',
     camp: [
       'Ottilie draws a sentinel in the ash with a stick: the boiler, the pistons, the brass. "Here. And here. Lightning, or something heavy, and keep off the front of it."',
@@ -242,6 +248,7 @@ const CAMPAIGN = [
       'Ironhold was a mining town. The Concord bought it in a single afternoon and turned the smelter into a foundry that never cools.',
       '"The sentinels are slow," Ottilie says. "Slow and stupid and wrapped in an inch of brass. Lightning gets through it. So does patience."',
       '"Take the catwalks. Their guns cannot see up through the machinery."',
+          'The foundry floor is the mark. Hold it five rounds and the furnaces go cold, and the Concord with them.',
     ],
     enemies: [
       { job: 'sentinel', level: 8, x: 4, y: 2 },
@@ -299,7 +306,8 @@ const CAMPAIGN = [
       '"And the Director will be watching from the harbour. Whatever we do here, he will know it before we are done."',
     ],
     enemies: [
-      { job: 'gunner', level: 12, x: 6, y: 6, name: 'Marshal Vexley', boss: true, passives: ['counter', 'attackUp', 'movePlus1'] },
+      { job: 'gunner', level: 12, x: 6, y: 6, name: 'Marshal Vexley', boss: true,
+        lines: { open: 'Form up. I have an airship to catch and a lesson to teach.', half: 'A retreat is a lesson with the chairs moved. Watch closely.', fall: 'Then teach it yourselves. Crane will be watching the harbour.' }, passives: ['counter', 'attackUp', 'movePlus1'] },
       { job: 'aeronaut', level: 11, x: 4, y: 5, name: 'Yard Aeronaut' },
       { job: 'aeronaut', level: 11, x: 8, y: 7, name: 'Yard Aeronaut' },
       { job: 'sentinel', level: 11, x: 6, y: 9 },
@@ -315,6 +323,7 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch12', title: 'Brassgate', map: 'brassgate',
+    talk: [{ who: 'leader', text: 'This is the man who wrote the bill. Ottilie, the machine is yours. The rest of you: the Director.' }],
     camp: [
       'Rowan turns the letter over in his hands one last time. "He killed my father over a bill of lading."',
       'Garret: "And built a war to hide it. Men like Crane do not think of it as killing. They think of it as a cost."',
@@ -330,6 +339,7 @@ const CAMPAIGN = [
     ],
     enemies: [
       { job: 'artificer', level: 14, x: 6, y: 2, name: 'Director Crane', boss: true,
+        lines: { open: 'Arithmetic, Aldric. You are a column that does not add up.', half: 'The furnace is lit. You are already late.', fall: 'I built a war that runs on time. Time... runs out.' },
         passives: ['counter', 'magickUp', 'movePlus1'],
         phases: [{
           atPct: 0.4, job: 'colossus', name: 'The Colossus', heal: 1,
@@ -358,7 +368,7 @@ const CAMPAIGN = [
 
   // ---- Act III: the Winter Court ----
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'reach', protectLeader: true, goal: 'far' },
     id: 'ch13', title: 'The Frost Rider', map: 'rimewater',
     camp: [
       'Bram: "A frozen river. We are going to fight on a frozen river."  Ingrid: "You are going to fight on the parts that hold."',
@@ -370,6 +380,7 @@ const CAMPAIGN = [
       '"The Court took Frostholm in a night," she says. "No fire, no fight. In the morning the people were still there, and they had stopped being cold, and they had stopped being anything else."',
       'She leads the company onto Rimewater, where the river froze mid-current a hundred years ago and never thawed.',
       '"They will come out of the fog. The knights first. The wights after, up out of the ice itself. Do not stand still for long."',
+          'The far bank is the mark. The ice will not hold a line; it will hold a runner. Rowan goes through, and the rest keep the rider off him.',
     ],
     enemies: [
       { job: 'hollowKnight', level: 12, x: 10, y: 2 },
@@ -416,7 +427,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Eirik', job: 'frostweaver', level: 13 } },
     id: 'ch15', title: 'The Glacier Pass', map: 'glacierpass',
     camp: [
       'Ingrid draws the pass in the snow. "Narrow here. The drake keeps to the left, where the ice is thick. Go right, and go high."',
@@ -428,6 +439,7 @@ const CAMPAIGN = [
       '"An ice drake," Ingrid says. "The Court feeds it. It is the reason no one from Frostholm ever came back down."',
       'Bastian sights along his rifle at a shape moving under the ice. "That is not a drake. That is a river with teeth."',
       '"Then climb," Rowan says. "High ground, and keep the mages behind the shields."',
+          'Eirik knows the pass. He goes first, and the company sees him to the top of it alive, or nobody sees Starfall.',
     ],
     enemies: [
       { job: 'iceDrake', level: 13, x: 5, y: 2 },
@@ -446,7 +458,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'boss', protectLeader: true },
+    objective: { type: 'boss', protectLeader: true, reinforcements: [{ round: 3, text: 'The Court\'s thralls rise from the ice!', enemies: [{ job: 'rimeWight', level: 14, x: 1, y: 8, name: 'Risen Thrall' }, { job: 'rimeWight', level: 14, x: 11, y: 8, name: 'Risen Thrall' }] }] },
     id: 'ch16', title: 'The Hollow Court', map: 'hollowcourt',
     camp: [
       'Eirik: "The Chamberlain was the first the Cold took. Before there was a Court, there was him, and a crater, and a winter that did not end."',
@@ -460,7 +472,8 @@ const CAMPAIGN = [
       'The Chamberlain speaks without breath. "Southerners. The Regent will be glad of you. He has been hungry a long while."',
     ],
     enemies: [
-      { job: 'hollowKnight', level: 16, x: 6, y: 1, name: 'The Chamberlain', boss: true, passives: ['counter', 'attackUp', 'movePlus1'] },
+      { job: 'hollowKnight', level: 16, x: 6, y: 1, name: 'The Chamberlain', boss: true,
+        lines: { open: 'Come in. The Regent has been hungry a long while.', half: 'You think the cold has a door you can close?', fall: 'He will be so glad of you.' }, passives: ['counter', 'attackUp', 'movePlus1'] },
       { job: 'hollowKnight', level: 15, x: 4, y: 3 },
       { job: 'hollowKnight', level: 15, x: 8, y: 3 },
       { job: 'rimeWight', level: 15, x: 3, y: 5 },
@@ -477,6 +490,7 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch17', title: 'Starfall', map: 'starfall',
+    talk: [{ who: 'leader', text: 'Nothing is going to feed it. Keep the core behind you and the cold in front. Hold.' }],
     camp: [
       'Nobody sleeps. Bram sharpens a blade that is already sharp, which Lysa points out, which Bram already knows.',
       'Ingrid: "If it takes me, do not stop. Do not come back for me."  Rowan: "We came back for everyone. We are not starting a new policy on the last night."',
@@ -491,6 +505,7 @@ const CAMPAIGN = [
     ],
     enemies: [
       { job: 'winterRegent', level: 15, x: 6, y: 3, name: 'The Winter Regent', boss: true,
+        lines: { open: 'It will not be me that feeds it. Let it be you.', half: 'Warm. You are all so warm.', fall: 'Put it out, then. Put it out into the wind.' },
         passives: ['counter', 'magickUp', 'movePlus1'],
         phases: [{
           atPct: 0.4, job: 'namelessCold', name: 'The Nameless Cold', heal: 0.5,
@@ -518,7 +533,7 @@ const CAMPAIGN = [
 
   // ---- Act IV: the Sunder Sea ----
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'hold', rounds: 5, protectLeader: true, goal: 'centre' },
     id: 'ch18', title: 'The Salt Road', map: 'saltwick',
     camp: [
       'Garret reads Vexley\'s letter for the fourth time. "Warm, cheerful, and not themselves. He underlines cheerful."  Rowan: "He would."',
@@ -531,6 +546,7 @@ const CAMPAIGN = [
       '"Wreckers," says the woman at the pier with a cutlass across her knees. "They light false fires on the reef and take what runs aground. They used to. Now they do it for the Priory, and they do it smiling."',
       '"Wren Marrow. I had a ship and a crew. The Priory has both. Get me to it and you can have the town."',
       'The wreckers turn, all together, and are still smiling. "Company," one of them says, pleasantly. "We were told you would come."',
+          'The crossroads is the mark. Hold it five rounds and the salt road is the company\'s, and the chandlery with it.',
     ],
     enemies: [
       { job: 'corsair', level: 18, x: 9, y: 1, name: 'Wrecker' },
@@ -580,7 +596,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'boss', protectLeader: true },
+    objective: { type: 'boss', protectLeader: true, reinforcements: [{ round: 3, text: 'The crypt opens: the drowned come up singing.', enemies: [{ job: 'drownedKnight', level: 18, x: 1, y: 2, name: 'Crypt Knight' }, { job: 'drownedKnight', level: 18, x: 10, y: 2, name: 'Crypt Knight' }] }] },
     id: 'ch20', title: 'The Salt Priory', map: 'priory',
     camp: [
       'Wren: "The Priory sits on a rock a mile out. There is a causeway at low water. The Prior does not leave, and nobody who goes out to him comes back down it unsung."',
@@ -595,7 +611,8 @@ const CAMPAIGN = [
       '"Ysolde," she says, to nobody, to the company, "novice of the Priory, and I would like it noted that I never once liked the song."',
     ],
     enemies: [
-      { job: 'saltPriest', level: 24, x: 5, y: 2, name: 'The Prior', boss: true, passives: ['magickUp', 'absorbMp', 'movePlus1'] },
+      { job: 'saltPriest', level: 24, x: 5, y: 2, name: 'The Prior', boss: true,
+        lines: { open: 'Listen. It is not hungry any more. It is only glad.', half: 'The song does not stop for you.', fall: 'The sea will keep it. The sea keeps everything.' }, passives: ['magickUp', 'absorbMp', 'movePlus1'] },
       { job: 'saltPriest', level: 22, x: 4, y: 3, name: 'Cantor' },
       { job: 'drownedKnight', level: 23, x: 3, y: 4, name: 'Chapel Warden' },
       { job: 'drownedKnight', level: 23, x: 7, y: 4, name: 'Chapel Warden' },
@@ -612,7 +629,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'reach', protectLeader: true, goal: 'far' },
     id: 'ch21', title: 'The Drowned City', map: 'tessaly',
     camp: [
       'Ysolde: "Tessaly drowned in a night, four hundred years ago, with its queen at prayer. The Priory says the sea took it. The Priory does not say the queen asked it to."',
@@ -625,6 +642,7 @@ const CAMPAIGN = [
       '"The tide is out for an hour," Ysolde says. "The city knows it. Everything that lives in it is awake."',
       'Something with a spine the length of the square lifts its head over the chapel roof and looks at them with a yellow eye.',
       '"Leviathan," Wren says. "Well. I always wondered what one looked like."',
+          'The Tidestone gate is the mark, at the far end of the drowned street. Rowan has to reach it before the tide turns; the drowned can keep their city.',
     ],
     enemies: [
       { job: 'leviathan', level: 25, x: 6, y: 5 },
@@ -646,6 +664,7 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch22', title: 'The Drowned Queen', map: 'tidestone',
+    talk: [{ who: 'leader', text: 'She says there is no wind down here. Then we bring the bell to her. Form up on Ottilie.' }],
     camp: [
       'Nobody sleeps. The sea is a mile out and still going, and the sound of it leaving is the loudest thing any of them has heard.',
       'Wren: "If it takes me, I want it noted that I was owed money."  Rowan: "Noted. We came back for everyone at Starfall. That is still the policy."',
@@ -660,6 +679,7 @@ const CAMPAIGN = [
     ],
     enemies: [
       { job: 'drownedQueen', level: 25, x: 6, y: 5, name: 'The Drowned Queen', boss: true,
+        lines: { open: 'There is no wind down here. There is nothing to put me out into.', half: 'The sea does not end. Neither do I.', fall: 'A bell. Who told you about the bell?' },
         passives: ['counter', 'magickUp', 'movePlus1'],
         phases: [{
           atPct: 0.4, job: 'theDeep', name: 'The Deep', heal: 0.5,
@@ -689,7 +709,7 @@ const CAMPAIGN = [
 
   // ---- Act V: the Crown of Elderon ----
   {
-    objective: { type: 'rout', protectLeader: true },
+    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Envoy Marlowe', job: 'bard', level: 20 } },
     id: 'ch23', title: 'The Summons', map: 'kingsroad',
     camp: [
       'Garret reads the letter twice. "He asks for you by name. Not for the company. For you."  Rowan: "He is dying. Dying men ask for the one they wronged."',
@@ -702,6 +722,7 @@ const CAMPAIGN = [
       '"The Chancellor is very concerned for your safety," the captain says, in front of forty spears. "You will understand."',
       '"I understand," Rowan says. "Garret, the left. Ingrid, the high hedge. Wren, if there is a way round, find it."',
       'Something with wings the width of a wagon lifts off the milestone behind the captain, and screams.',
+          'The cities\' envoy, Marlowe, carries the charter and no sword. He reaches the capital gate alive, or the charter is paper.',
     ],
     enemies: [
       { job: 'royalGuard', level: 22, x: 8, y: 2, name: 'Captain of the Road' },
@@ -721,6 +742,7 @@ const CAMPAIGN = [
   {
     objective: { type: 'boss', protectLeader: true },
     id: 'ch24', title: 'The Low Quarter', map: 'capital',
+    talk: [{ who: 'leader', text: 'The bells are for the king. Hollis is ours. Wren, the left. Nobody reaches the square.' }],
     camp: [
       'Ysolde: "Every mercenary company from here to the Isles is inside those walls, and every one of them was paid this week."  Wren: "Black Hollis is in there. I know his colours. He owes me money too."',
       'Ottilie: "There is a forge under the palace. The oldest in Elderon. The star-iron that went to Brassgate went through it first."  Nobody asks how she knows. Eirik looks at the bell.',
@@ -734,7 +756,8 @@ const CAMPAIGN = [
       '"Then there is no one left to ask for us," Garret says, "and no one left to stop us. Hollis first."',
     ],
     enemies: [
-      { job: 'mercenary', level: 23, x: 6, y: 2, name: 'Black Hollis', boss: true, passives: ['counter', 'attackUp', 'movePlus1'] },
+      { job: 'mercenary', level: 23, x: 6, y: 2, name: 'Black Hollis', boss: true,
+        lines: { open: 'Nothing personal, Marrow. The crown pays better than the sea.', half: 'That one cost extra. Keep going.', fall: 'Paid in full, then. Tell the Chancellor I want a receipt.' }, passives: ['counter', 'attackUp', 'movePlus1'] },
       { job: 'mercenary', level: 22, x: 3, y: 3, name: 'Hollis\'s Man' },
       { job: 'mercenary', level: 22, x: 9, y: 3, name: 'Hollis\'s Man' },
       { job: 'courtMage', level: 22, x: 6, y: 0, name: 'Hired Mage' },
@@ -798,6 +821,7 @@ const ROADS = {
       {
         objective: { type: 'boss', protectLeader: true },
         id: 'crown2', title: 'The Throne Room', map: 'throne',
+        talk: [{ who: 'leader', text: 'The grain was counted in my father\'s blood. Take the box, and the man who opened it.' }],
         camp: [
           'Nobody sleeps in the gardens. Ingrid keeps the fire. "Tomorrow you sit down in a chair," she says, "and every one of us stands behind it. That is what a company is for."',
           'Ottilie: "If you are king, the forge under the palace is yours. I would like it sealed."  Rowan: "It is the first thing I will do."',
@@ -809,7 +833,8 @@ const ROADS = {
           '"Star-iron," Ottilie says quietly. "He had it forged. He was going to wear it."',
         ],
         enemies: [
-          { job: 'chancellor', level: 24, x: 6, y: 2, name: 'Chancellor Verain', boss: true, passives: ['magickUp', 'absorbMp', 'movePlus1'] },
+          { job: 'chancellor', level: 24, x: 6, y: 2, name: 'Chancellor Verain', boss: true,
+        lines: { open: 'Somebody has to count the grain. Let us see how you count.', half: 'Do you know what star-iron costs? Neither do you.', fall: 'Count it yourself, then. Every sack. Every winter.' }, passives: ['magickUp', 'absorbMp', 'movePlus1'] },
           { job: 'royalGuard', level: 23, x: 4, y: 3, name: 'Throne Guard' }, { job: 'royalGuard', level: 23, x: 8, y: 3, name: 'Throne Guard' },
           { job: 'courtMage', level: 23, x: 2, y: 4, name: 'Court Mage' }, { job: 'golem', level: 23, x: 10, y: 4 }, { job: 'griffon', level: 22, x: 6, y: 6 },
         ],
@@ -843,7 +868,7 @@ const ROADS = {
     asks: 'Two fights for the guildhall. Ends with a realm of cities and no king.',
     chapters: [
       {
-        objective: { type: 'rout', protectLeader: true },
+        objective: { type: 'hold', rounds: 5, protectLeader: true, goal: 'centre' },
         id: 'council1', title: 'The Guildhall', map: 'guildhall',
         camp: [
           'Bastian: "Redwater sent a smith. Dunmarch sent a priest. Saltwick sent Wren\'s old bosun. Tessaly sent a woman who has been dead for four hundred years."  Ysolde: "She is very well read."',
@@ -868,6 +893,7 @@ const ROADS = {
       {
         objective: { type: 'boss', protectLeader: true },
         id: 'council2', title: 'The Charter Steps', map: 'senate',
+        talk: [{ who: 'leader', text: 'From the bottom step, Marshal. Push them down one at a time. Ingrid, the flank.' }],
         camp: [
           'The charter is signed and sits in Lysa\'s satchel, and she has not let go of the satchel since. "It weighs nothing," she says. "That is the strangest thing I have ever carried."',
           'Ingrid: "The Chancellor has the Lord Marshal and the palace guard and nothing else. That is still a great deal."  Rowan: "It is less than us."',
@@ -878,7 +904,8 @@ const ROADS = {
           '"Then keep it," Rowan says. "From the bottom step."',
         ],
         enemies: [
-          { job: 'royalGuard', level: 24, x: 6, y: 1, name: 'Lord Marshal Corvane', boss: true, passives: ['counter', 'attackUp', 'parry'] },
+          { job: 'royalGuard', level: 24, x: 6, y: 1, name: 'Lord Marshal Corvane', boss: true,
+        lines: { open: 'There is an order of things. Stay off the steps.', half: 'Hold the line. The line is all a marshal is.', fall: 'Read it, then. From the bottom step, if you must.' }, passives: ['counter', 'attackUp', 'parry'] },
           { job: 'royalGuard', level: 23, x: 3, y: 2, name: 'Palace Guard' }, { job: 'royalGuard', level: 23, x: 9, y: 2, name: 'Palace Guard' },
           { job: 'courtMage', level: 23, x: 6, y: 0, name: 'Court Mage' }, { job: 'golem', level: 23, x: 1, y: 5 }, { job: 'golem', level: 23, x: 11, y: 5 },
         ],
@@ -937,6 +964,7 @@ const ROADS = {
       {
         objective: { type: 'boss', protectLeader: true },
         id: 'exile2', title: 'The Blockade', map: 'blockade',
+        talk: [{ who: 'leader', text: 'The sea goes out, and so do we. Ysolde, keep it out. Everybody else: the Admiral.' }],
         camp: [
           'The Debt rides at anchor with the fleet\'s lanterns across the whole horizon. Wren: "Admiral Sable. He taught me to sail. He will not enjoy this."',
           'Ysolde stands at the rail with her hands in the water. "The sea remembers us," she says. "Whether that is good depends on what we ask it for."',
@@ -948,7 +976,8 @@ const ROADS = {
           'The sea goes out. It goes out the way it did at the Tidestone, and the fleet settles onto the coral with a sound like a city sitting down.',
         ],
         enemies: [
-          { job: 'royalGuard', level: 24, x: 6, y: 2, name: 'Admiral Sable', boss: true, passives: ['counter', 'parry', 'movePlus1'] },
+          { job: 'royalGuard', level: 24, x: 6, y: 2, name: 'Admiral Sable', boss: true,
+        lines: { open: 'Last offer, Marrow. Bring them back and sail free.', half: 'A reef. He sank my fleet on a reef.', fall: 'The writ names Aldric. The sea names nobody.' }, passives: ['counter', 'parry', 'movePlus1'] },
           { job: 'royalGuard', level: 23, x: 3, y: 3, name: 'Marine' }, { job: 'royalGuard', level: 23, x: 9, y: 3, name: 'Marine' },
           { job: 'courtMage', level: 23, x: 6, y: 0, name: 'Fleet Mage' }, { job: 'leviathan', level: 23, x: 6, y: 6, name: 'The Reef Serpent' }, { job: 'griffon', level: 23, x: 11, y: 6 },
         ],
@@ -981,7 +1010,7 @@ const ROADS = {
     asks: 'Two fights on the road home. Ends with the company disbanded and Rowan at peace.',
     chapters: [
       {
-        objective: { type: 'rout', protectLeader: true },
+        objective: { type: 'reach', protectLeader: true, goal: 'far' },
         id: 'quiet1', title: 'The Old Road', map: 'verdant',
         camp: [
           'Rowan: "Four of us walked this road north. Thirteen walk it south. I do not intend to lose anyone on it."',
@@ -1007,6 +1036,7 @@ const ROADS = {
       {
         objective: { type: 'boss', protectLeader: true },
         id: 'quiet2', title: 'Hearthstead', map: 'homestead',
+        talk: [{ who: 'leader', text: 'This is a farmyard. Nobody dies in a farmyard. Put them down gently and send them home.' }],
         camp: [
           'The Aldric farm has a roof again. Ottilie put it on in a day. The bell hangs from the eave, and it is the first time it has hung from anything that was not moving.',
           'Ingrid: "They are coming tonight. A captain and two dozen. I can see their fires from the ridge."  Rowan: "Then we hold the yard. After that, nobody holds anything."',
@@ -1017,7 +1047,8 @@ const ROADS = {
           '"I have orders."  "So did everyone we ever fought. Last chance."',
         ],
         enemies: [
-          { job: 'royalGuard', level: 24, x: 6, y: 1, name: 'Captain Marrick', boss: true, passives: ['counter', 'attackUp', 'parry'] },
+          { job: 'royalGuard', level: 24, x: 6, y: 1, name: 'Captain Marrick', boss: true,
+        lines: { open: 'I have orders. I would rather not have them, but I have them.', half: 'Go home, he says. To me. In my own realm.', fall: 'That is the last of the orders. Go back to your field.' }, passives: ['counter', 'attackUp', 'parry'] },
           { job: 'royalGuard', level: 23, x: 3, y: 2, name: 'Palace Guard' }, { job: 'royalGuard', level: 23, x: 9, y: 2, name: 'Palace Guard' },
           { job: 'courtMage', level: 23, x: 6, y: 0, name: 'Court Mage' }, { job: 'mercenary', level: 23, x: 1, y: 4, name: 'Hired Blade' }, { job: 'golem', level: 23, x: 8, y: 5, name: 'Siege Golem' },
         ],
@@ -1078,6 +1109,7 @@ const ROADS = {
       {
         objective: { type: 'boss', protectLeader: true },
         id: 'iron2', title: 'The Iron Court', map: 'throne',
+        talk: [{ who: 'leader', text: 'He taught me everything I know. Not everything he knows. Careful, all of you.' }],
         camp: [
           'Nobody sits by the fire. The fire has gone out and nobody relights it. The cold coming off the crown puts frost on the wagon.',
           'Wren, quietly, to Bram: "We could go."  Bram: "We could."  Neither of them does, and neither of them will ever be sure why.',
@@ -1090,7 +1122,8 @@ const ROADS = {
           '"Not this chair." Garret draws. "Tamsin. Ingrid. I am sorry. He was a good boy."',
         ],
         enemies: [
-          { job: 'knight', level: 25, x: 6, y: 2, name: 'Garret', boss: true, passives: ['counter', 'attackUp', 'parry'] },
+          { job: 'knight', level: 25, x: 6, y: 2, name: 'Garret', boss: true,
+        lines: { open: 'I taught you which end goes in. Let us see if you remember.', half: 'Good. That is good. That is the boy I taught.', fall: 'Not this chair, Rowan. Never this chair. Tamsin, look after him.' }, passives: ['counter', 'attackUp', 'parry'] },
           { job: 'whiteMage', level: 24, x: 6, y: 1, name: 'Tamsin', passives: ['regenerator', 'magickUp'] },
           { job: 'warden', level: 24, x: 2, y: 3, name: 'Ingrid', passives: ['ironFooting', 'attackUp'] },
           { job: 'royalGuard', level: 23, x: 9, y: 3, name: 'Palace Guard' }, { job: 'royalGuard', level: 23, x: 10, y: 5, name: 'Palace Guard' }, { job: 'courtMage', level: 23, x: 3, y: 6, name: 'Court Mage' },
@@ -1291,3 +1324,21 @@ const CITIES = [
     open: 'The armouries are open. The guard drink in the same taverns as the company now, and are careful about it.' },
 ];
 
+/* What each of the company says over their first kill: the story recruits,
+   and the four who set out from the Verdant Road. Said once, in the battle
+   it happens in, and never again. */
+const FIRST_BLOOD = {
+  Rowan: 'That is one. I thought it would feel like more.',
+  Garret: 'Thirty years of this, and it still goes in the same end.',
+  Bram: 'From the wagon I could see him coming. Up close is different.',
+  Mira: 'I am meant to be the one who patches people. Well. Not this one.',
+  Lysa: 'I mixed that one myself. It worked. It... worked.',
+  Kael: 'Clean, through the gap in the plate. Father would have said nothing, which is praise.',
+  Tamsin: 'Forgive me. I will say the words for you later, when there is time.',
+  Ottilie: 'I built it to lift stone, you know. Not that. It does not seem to mind.',
+  Bastian: 'Vexley taught me that one. He would hate that it worked.',
+  Ingrid: 'The forest keeps a count. Add that one to mine.',
+  Eirik: 'The cold takes everyone in the end. I only hurried it.',
+  Wren: 'That is one for the Concord Star. There are a great many more to collect.',
+  Ysolde: 'I never liked the song. I liked that even less. It is done.',
+};

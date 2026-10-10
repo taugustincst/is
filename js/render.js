@@ -921,6 +921,21 @@ class Renderer {
     const c = this.ctx;
     const { sx, sy } = this.toScreen(t.x, t.y, t.h);
     if (t.t === 'w') this.drawWater(t);
+    // The mark: a gold ring on the tile and a pennant over it, so the goal
+    // of the battle is never in doubt.
+    const o = this.battle.objective;
+    if (o && o.goals && o.goals.some(gl => gl.x === t.x && gl.y === t.y)) {
+      const pulse = 0.5 + 0.3 * Math.sin(this.time / 260);
+      this.diamond(sx, sy); c.fillStyle = `rgba(255,214,90,${(0.18 + pulse * 0.14).toFixed(2)})`; c.fill();
+      c.strokeStyle = `rgba(255,224,120,${(0.5 + pulse * 0.4).toFixed(2)})`; c.lineWidth = 2; c.stroke(); c.lineWidth = 1;
+      if (!this.battle.occupantAt(t.x, t.y)) {
+        const bob = Math.sin(this.time / 400) * 2;
+        c.strokeStyle = '#3a2a10'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(sx, sy + 2); c.lineTo(sx, sy - 30 + bob); c.stroke(); c.lineWidth = 1;
+        c.fillStyle = '#e6c35a';
+        c.beginPath(); c.moveTo(sx + 1, sy - 30 + bob); c.lineTo(sx + 16, sy - 24 + bob); c.lineTo(sx + 1, sy - 17 + bob); c.closePath(); c.fill();
+      }
+    }
     // Highlights
     const key = `${t.x},${t.y}`;
     if (this.hl.move.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(70,130,255,0.45)'; c.fill(); }
@@ -1139,7 +1154,7 @@ class Renderer {
     c.beginPath(); c.ellipse(sx, groundY + 6, 16, 6, 0, 0, Math.PI * 2); c.fill();
     // Team base. A downed figure keeps a faint one, so you can still see whose
     // body you are running to revive.
-    this.drawBase(sx, groundY + 6, u.team, u.alive ? seen : null, u.alive ? 1 : 0.45);
+    this.drawBase(sx, groundY + 6, u.escort ? 'neutral' : u.team, u.alive ? seen : null, u.alive ? 1 : 0.45);
     if (!u.alive) {
       c.save(); c.globalAlpha = 0.6; c.translate(sx, sy + 8); c.scale(1, 0.35); c.filter = 'grayscale(1)';
       c.drawImage(spr, SPRITE_DX, SPRITE_DY - 8); c.restore();
@@ -1180,7 +1195,7 @@ class Renderer {
     if (this.cover) return; // the title's picture: figures without their bars
     const w = 24, hpk = u.hp / u.maxHp, top = sy + SPRITE_HEAD_Y;
     c.fillStyle = 'rgba(0,0,0,0.8)'; c.fillRect(sx - w / 2 - 3, top - 9, w + 6, 8);
-    c.fillStyle = TEAM_COLORS[u.team]; c.fillRect(sx - w / 2 - 2, top - 8, w + 4, 6);
+    c.fillStyle = TEAM_COLORS[u.escort ? 'neutral' : u.team]; c.fillRect(sx - w / 2 - 2, top - 8, w + 4, 6);
     c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(sx - w / 2, top - 6, w, 2);
     c.fillStyle = hpk > 0.5 ? '#5ad35a' : hpk > 0.25 ? '#e8c840' : '#e85040';
     c.fillRect(sx - w / 2, top - 6, Math.max(0, Math.round(w * hpk)), 2);

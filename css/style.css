@@ -253,6 +253,8 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .order-row .dot { width: 8px; height: 8px; border-radius: 50%; background: #888; }
 .order-row.player { color: #c3d9ff; border-left-color: var(--player); }
 .order-row.enemy { color: #ffc6bb; border-left-color: var(--enemy); }
+.order-row.neutral { color: #cdf5d6; border-left-color: #4caf50; }
+.order-row.neutral .dot { background: #4caf50; }
 .order-row.player .dot { background: var(--player); }
 .order-row.enemy .dot { background: var(--enemy); border-radius: 0;
   clip-path: polygon(50% 100%, 0 0, 100% 0); }
@@ -287,6 +289,7 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .log-line { padding: 1px 0; color: #c8c6e0; }
 .log-line.dmg { color: #ff9a8a; } .log-line.heal { color: #8affa0; } .log-line.miss { color: #aaa; }
 .log-line.ko { color: var(--red); font-weight: bold; } .log-line.lvl { color: var(--gold); } .log-line.act { color: #fff; }
+.log-line.talk { color: #e8d9a6; font-style: italic; }
 #command { bottom: 12px; right: 12px; width: 320px; min-height: 120px; }
 /* The hint sits above whichever bottom-right panel is open, so it stays
    readable during deployment when the command panel is hidden. */
@@ -309,6 +312,15 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 .ab-info b { color: var(--gold); } .ab-meta { color: var(--muted); margin-top: 3px; }
 .banner { position: absolute; top: 90px; left: 50%; transform: translateX(-50%) scale(0.9); font-family: var(--display); font-size: 30px; color: #fff; text-shadow: 0 2px 8px #000; opacity: 0; transition: all 0.2s; pointer-events: none; padding: 6px 30px; border-top: 2px solid #888; border-bottom: 2px solid #888; background: rgba(0,0,0,0.45); }
 .banner.show { opacity: 1; transform: translateX(-50%) scale(1); }
+/* A line spoken on the field, over the speaker's head. */
+.speech { position: absolute; z-index: 6; display: flex; gap: 10px; align-items: flex-start; box-sizing: border-box; padding: 9px 12px 10px; background: rgba(12, 12, 26, 0.95); border: 1px solid var(--gold); border-radius: 10px; box-shadow: var(--panel-shadow); color: #f1ead6; font-size: 14px; line-height: 1.35; cursor: pointer; opacity: 0; transform: translateY(6px); transition: opacity 0.15s, transform 0.15s; }
+.speech.show { opacity: 1; transform: none; }
+.speech::after { content: ''; position: absolute; left: var(--tail, 40px); bottom: -8px; width: 13px; height: 13px; background: rgba(12, 12, 26, 0.95); border-right: 1px solid var(--gold); border-bottom: 1px solid var(--gold); transform: rotate(45deg); }
+.speech canvas { width: 48px; height: 48px; flex: none; image-rendering: pixelated; }
+.speech b { display: block; font-family: var(--display); font-size: 13px; color: var(--gold); margin-bottom: 2px; }
+.speech.enemy { border-color: #b8503f; } .speech.enemy b { color: #ff9a86; } .speech.enemy::after { border-color: #b8503f; }
+.speech.neutral { border-color: #9a9ab8; } .speech.neutral b { color: #cfcfe6; } .speech.neutral::after { border-color: #9a9ab8; }
+@media (prefers-reduced-motion: reduce) { .speech { transition: none; } }
 .banner { z-index: 12; } /* over the unit card on a phone, where the two share the top of the screen */
 .banner.player { border-color: var(--player); } .banner.enemy { border-color: var(--enemy); }
 #help { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); z-index: 40; }

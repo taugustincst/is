@@ -642,6 +642,9 @@ class Game {
       const o = ch.objective || { type: 'rout' };
       const goal = o.type === 'survive' ? tr('Hold out for {n} rounds', { n: o.rounds })
         : o.type === 'boss' ? tr('Defeat {name}', { name: (ch.enemies.find(e => e.boss) || {}).name || tr('the commander') })
+        : o.type === 'escort' ? tr('See {name} to the mark', { name: o.escort ? o.escort.name : tr('the charge') })
+        : o.type === 'reach' ? tr('Reach the mark with the leader')
+        : o.type === 'hold' ? tr('Hold the mark for {n} rounds', { n: o.rounds })
         : tr('Defeat every enemy');
       const topLevel = Math.max(...ch.enemies.map(e => e.level));
       const ready = this.readiness(ch);
@@ -1891,7 +1894,7 @@ class Game {
     await this.story(ch.title, ch.intro);
     // Experience and SP are earned even in a losing battle, so the run is
     // saved either way rather than letting a defeat quietly discard it.
-    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, kind: 'chapter' }, async (result) => {
+    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, talk: ch.talk, kind: 'chapter' }, async (result) => {
       if (result !== 'victory') return;
       this.state.chapter++;
       this.state.victories++;
@@ -1992,7 +1995,7 @@ class Game {
     const roster = this.state.party.filter(u => !this.errandOf(u));
     const levelBefore = new Map(roster.map(u => [u, u.level]));
     const jpBefore = new Map(roster.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
-    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty);
+    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty, opts.talk);
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
     this.ui.showObjective();

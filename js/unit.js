@@ -24,6 +24,7 @@ class Unit {
     this.team = opts.team || 'player';
     this.leader = !!opts.leader;
     this.boss = !!opts.boss;
+    this.escort = !!opts.escort; // someone the company must see to a mark alive; not of the party
     // A beast: a creature on the company's side. Only a monster job can be one.
     this.pet = !!opts.pet && JOBS[this.job].kind === 'monster';
     this.jp = opts.jp || {};            // spendable SP per job
@@ -325,6 +326,8 @@ function makeEnemy(spec, difficulty) {
   });
   // A boss may have further shapes waiting behind the first.
   if (spec.phases) u.phases = spec.phases.map(p => Object.assign({}, p));
+  // And words for the field: at the start, at half health, and at the fall.
+  if (spec.lines) u.lines = Object.assign({}, spec.lines);
   // Enemies know more abilities at higher levels; bosses know everything. Early
   // foes stay simple so the opening chapters teach rather than punish.
   const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);

@@ -25,6 +25,7 @@ class BattleUI {
       tileInfo: document.getElementById('tile-info'),
       objective: document.getElementById('objective'),
       hint: document.getElementById('hint'),
+      speech: document.getElementById('speech'),
     };
     this.bindInput();
   }
@@ -68,6 +69,8 @@ class BattleUI {
       onDeath: (u) => this.r.onDeath(u),
       focus: (u) => this.r.focus(u),
       onTurnStart: async (u) => { await this.r.focus(u); this.banner(tr('{name}\'s turn', { name: u.name }), u.team); this.refresh(); },
+      announce: (text, team) => { this.banner(text, team || 'enemy'); audio.sfx('ko'); },
+      speak: (u, text) => this.speak(u, text),
       onTurnEnd: () => { this.r.clearHighlights(); this.refresh(); },
       awaitPlayerTurn: (u) => this.awaitPlayerTurn(u),
     };
@@ -86,6 +89,56 @@ class BattleUI {
     this.el.log.appendChild(d);
     while (this.el.log.children.length > 60) this.el.log.removeChild(this.el.log.firstChild);
     this.el.log.scrollTop = this.el.log.scrollHeight;
+  }
+
+  /* A line spoken on the field: a bubble with the speaker's face, over the
+     speaker's head where there is room for it, else at the top of the board.
+     The battle waits for it, long enough to be read, less at speed or on
+     auto; a tap on the bubble or a key sends it on. */
+  speak(u, text) {
+    const el = this.el.speech;
+    if (!el || !this.r.battle) return Promise.resolve();
+    el.innerHTML = '<canvas width="48" height="48"></canvas><div class="speech-body"><b></b><span></span></div>';
+    paintUnitSprite(el.querySelector('canvas'), u, 2);
+    el.querySelector('b').textContent = u.name;
+    el.querySelector('span').textContent = text;
+    el.className = `speech ${u.escort ? 'neutral' : u.team}`;
+    el.hidden = false;
+    this.placeSpeech(u);
+    requestAnimationFrame(() => el.classList.add('show'));
+    const dur = Math.max(this.auto ? 700 : 1400, (1600 + text.length * 28) / (PACE.scale || 1) / (this.auto ? 2 : 1));
+    return new Promise(resolve => {
+      let done = false;
+      const end = () => {
+        if (done) return; done = true;
+        clearTimeout(timer); document.removeEventListener('keydown', end); el.onclick = null;
+        el.classList.remove('show'); el.hidden = true;
+        resolve();
+      };
+      const timer = setTimeout(end, dur);
+      el.onclick = (e) => { e.stopPropagation(); end(); };
+      document.addEventListener('keydown', end);
+    });
+  }
+  placeSpeech(u) {
+    const el = this.el.speech, cv = this.cv, r = this.r;
+    const rect = cv.getBoundingClientRect(), host = cv.parentElement.getBoundingClientRect();
+    const W = r.W || cv.width, H = r.H || cv.height, z = r.zoom || 1;
+    const s = r.toScreen(u.x, u.y, r.battle.grid.height(u.x, u.y));
+    const px = ((s.sx - W / 2) * z + W / 2) * rect.width / W + rect.left - host.left;
+    const py = ((s.sy - 44 * z) - H / 2) * z / z * 1 + 0; // the head, in canvas units
+    const top = (((s.sy - H / 2) * z + H / 2) - 48 * z) * rect.height / H + rect.top - host.top;
+    const ins = r.insets || { top: 0, left: 0, right: 0, bottom: 0 };
+    const w = Math.min(340, host.width - 16);
+    el.style.width = `${w}px`;
+    let left = px - 60, y = top - el.offsetHeight - 10;
+    left = Math.max(8, Math.min(host.width - w - 8, left));
+    const minY = Math.min(ins.top + 8, host.height * 0.4);
+    if (y < minY) y = minY;
+    el.style.left = `${left}px`; el.style.top = `${y}px`;
+    const tail = Math.max(16, Math.min(w - 30, px - left - 7));
+    el.style.setProperty('--tail', `${tail}px`);
+    void py;
   }
 
   banner(text, team) {
@@ -145,7 +198,7 @@ class BattleUI {
     const list = this.battle.forecast(9);
     let html = `<div class="panel-title">${tr('Turn Order')}</div>`;
     for (const e of list) {
-      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? e.unit.jobData.name : 'fallen'}</span></div>`;
+      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.escort ? 'neutral' : e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? (e.unit.escort ? tr('charge') : e.unit.jobData.name) : 'fallen'}</span></div>`;
       else html += `<div class="order-row pending"><span class="dot"></span>${e.p.ability.name}<span class="sub">${e.p.unit.name}</span></div>`;
     }
     this.el.order.innerHTML = html;

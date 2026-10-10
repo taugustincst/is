@@ -8,7 +8,7 @@ const S = require('./lib').OUT;
   await page.evaluate(() => {
     BattleUI.prototype.awaitPlayerTurn = function (u) { return game.battle.aiTurn(u); };
     game.state.party.forEach(u => { u.level = 8; game.syncGear(u); });
-    game.runBattle(MAPS.dunmarch, CAMPAIGN[4].enemies, 0, { objective: { type: 'survive', turns: 8, protectLeader: true } });
+    game.runBattle(MAPS.dunmarch, CAMPAIGN[4].enemies, 0, { objective: { type: 'survive', rounds: 8, protectLeader: true } });
   });
   await beginBattle(page);
   console.log('objective bar:', await page.textContent('#objective'));

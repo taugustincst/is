@@ -1122,6 +1122,129 @@ const mk = (n, job, lvl, opts = {}) => {
     }
   }
 
+  /* Words on the field: the leader opens the finales, a boss opens, speaks
+     at half health and at its fall, each once; a first kill is remarked on
+     once; and every line goes through the speak hook, which the battle
+     waits for. */
+  {
+    const place = (b, u, x, y) => { u.x = x; u.y = y; };
+    const said = [];
+    const hooks = { log: () => {}, awaitPlayerTurn: async () => {}, speak: async (u, t) => { said.push(`${u.name}: ${t}`); } };
+    const party = [mk('Rowan', 'knight', 12, { leader: true }), mk('Tamsin', 'whiteMage', 12)];
+    const spec = { job: 'knight', level: 8, x: 5, y: 5, name: 'Ser Test', boss: true, lines: { open: 'Open.', half: 'Half.', fall: 'Fall.' } };
+    const b = g.Battle.setup(g.MAPS.verdant, party, [spec, { job: 'knight', level: 3, x: 7, y: 7, name: 'Guard' }], hooks, { type: 'boss', protectLeader: true }, 'knight', [{ who: 'leader', text: 'Forward.' }, { who: 'Nobody', text: 'Never said.' }]);
+    place(b, party[0], 2, 2); place(b, party[1], 3, 2);
+    for (const u of party) { u.learned = {}; u.record.kills = 0; }
+    await b.openingWords();
+    ok('the leader speaks first, then the boss; a line for someone absent is dropped', said.join(' | ') === 'Rowan: Forward. | Ser Test: Open.', said.join(' | '));
+    const boss = b.units.find(u => u.boss);
+    said.length = 0;
+    boss.hp = Math.floor(boss.maxHp / 2) + 1; b.checkTalk(boss); await b.flushTalk();
+    ok('a point above half health says nothing', said.length === 0, said.join(' | '));
+    boss.hp = Math.floor(boss.maxHp / 2); b.checkTalk(boss); b.checkTalk(boss); await b.flushTalk();
+    ok('half health is remarked on, once', said.join(' | ') === 'Ser Test: Half.', said.join(' | '));
+    said.length = 0;
+    boss.hp = 0; b.onUnitKO(boss); await b.flushTalk();
+    ok('the fall has its line', said.join(' | ') === 'Ser Test: Fall.', said.join(' | '));
+    ok('the log keeps the words as speech', b.spoken.length === 4 && b.spoken.every(x => x.name && x.text), JSON.stringify(b.spoken.slice(-1)));
+    // First blood: the first kill on the record, and only the first.
+    said.length = 0;
+    const guard = b.units.find(u => u.name === 'Guard');
+    b.creditKill(party[1], guard); await b.flushTalk();
+    ok('a first kill is remarked on by one with words for it', said.length === 1 && said[0].startsWith('Tamsin: ') && party[1].record.kills === 1, said.join(' | '));
+    b.creditKill(party[1], guard); await b.flushTalk();
+    ok('the second kill passes in silence', said.length === 1, `${said.length} lines`);
+    b.creditKill(mk('Hired', 'knight', 5), guard); await b.flushTalk();
+    ok('a hired sword has no line of their own', said.length === 1);
+    // Every finale opens with the leader; every boss has its three lines.
+    const finales = ['ch7', 'ch12', 'ch17', 'ch22', 'ch24'];
+    ok('each act finale opens with the leader\'s words', finales.every(id => { const c = g.CAMPAIGN.find(x => x.id === id); return c && c.talk && c.talk.some(t => t.who === 'leader'); }));
+    const bosses = g.CAMPAIGN.flatMap(c => c.enemies.filter(e => e.boss));
+    ok('every campaign boss has words to open, for half health and for its fall', bosses.length >= 8 && bosses.every(e => e.lines && e.lines.open && e.lines.half && e.lines.fall), `${bosses.length} bosses`);
+    ok('everyone who joins through the story has a first-blood line', g.CAMPAIGN.filter(c => c.recruit).every(c => g.FIRST_BLOOD[c.recruit.name]));
+  }
+
+  /* The objectives with a mark on the field: a charge to see to it, a
+     leader to reach it, a round count to hold it; and reinforcements that
+     take the field on their round. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const map = g.MAPS.verdant;
+    // Escort: the charge stands on the field before anyone is placed, is
+    // not counted among the deployed, and walking it to the mark wins.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true }), mk('Bow', 'archer', 6)];
+      const o = { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Pell', job: 'chemist', level: 5 } };
+      const b = g.Battle.setup(map, party, [{ job: 'squire', level: 1, x: 9, y: 9 }], quiet, o);
+      const charge = b.objective.charge;
+      ok('an escort objective places its charge on the field', !!charge && charge.escort && charge.x >= 0 && charge.team === 'player', charge ? `${charge.name} at ${charge.x},${charge.y}` : 'none');
+      ok('the charge is not counted among the deployed', !b.deployed().includes(charge), `${b.deployed().length} deployed`);
+      ok('the mark is placed away from the deployment and off foes', !!b.objective.goal && !b.deployKeys.has(`${b.objective.goal.x},${b.objective.goal.y}`), JSON.stringify(b.objective.goal && [b.objective.goal.x, b.objective.goal.y]));
+      ok('the objective reads as an escort', /Pell/.test(b.objectiveText()), b.objectiveText());
+      charge.x = b.objective.goal.x; charge.y = b.objective.goal.y;
+      ok('the charge on the mark wins the battle', b.checkEnd() && b.result === 'victory', b.endReason);
+      const b2 = g.Battle.setup(map, party.map(u => { u.x = -1; return u; }), [{ job: 'squire', level: 1, x: 9, y: 9 }], quiet, o);
+      b2.objective.charge.alive = false; b2.objective.charge.carriedOff = true; b2.objective.charge.x = -1;
+      ok('losing the charge loses the battle', b2.checkEnd() && b2.result === 'defeat', b2.endReason);
+    }
+    // Reach: the leader on the mark wins; anyone else there does not.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true }), mk('Bow', 'archer', 6)];
+      for (const u of party) { u.x = -1; u.y = -1; }
+      const b = g.Battle.setup(map, party, [{ job: 'squire', level: 1, x: 9, y: 9 }], quiet, { type: 'reach', protectLeader: true, goal: 'far' });
+      const goal = b.objective.goal;
+      party[1].x = goal.x; party[1].y = goal.y; party[0].x = 1; party[0].y = 1;
+      ok('reaching the mark with someone else is not enough', !b.checkEnd(), b.endReason || 'still fighting');
+      party[1].x = 2; party[1].y = 1; party[0].x = goal.x; party[0].y = goal.y;
+      ok('the leader on the mark wins', b.checkEnd() && b.result === 'victory', b.endReason);
+    }
+    // Hold: rounds standing on the mark count; a round the other side holds it resets them.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true })];
+      party[0].x = -1;
+      const foes = [{ job: 'squire', level: 1, x: 9, y: 9 }];
+      const b = g.Battle.setup(map, party, foes, quiet, { type: 'hold', rounds: 3, protectLeader: true, goal: 'centre' });
+      const goal = b.objective.goal, foe = b.units.find(u => u.team === 'enemy');
+      party[0].x = goal.x; party[0].y = goal.y;
+      b.round = 2; b.checkEnd(); b.round = 3; b.checkEnd();
+      ok('rounds on the mark are counted', b.objective.held === 2, `held ${b.objective.held}`);
+      party[0].x = 0; party[0].y = 0; foe.x = goal.x; foe.y = goal.y;
+      b.round = 4; b.checkEnd();
+      ok('a round the other side holds the mark costs what was held', b.objective.held === 0, `held ${b.objective.held}`);
+      foe.x = 9; foe.y = 9; party[0].x = goal.x; party[0].y = goal.y;
+      b.round = 5; b.checkEnd(); b.round = 6; b.checkEnd(); b.round = 7; const done = b.checkEnd();
+      ok('holding the mark for the count wins', done && b.result === 'victory', `${b.objective.held} held, ${b.endReason}`);
+      ok('the objective shows the count', /\d\/3/.test(b.objectiveText()), b.objectiveText());
+    }
+    // Reinforcements take the field when their round turns.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true })];
+      party[0].x = -1;
+      const o = { type: 'boss', protectLeader: true, reinforcements: [{ round: 2, text: 'More come!', enemies: [{ job: 'squire', level: 2, x: 3, y: 3 }, { job: 'squire', level: 2, x: 3, y: 3 }] }] };
+      const b = g.Battle.setup(map, party, [{ job: 'knight', level: 3, x: 9, y: 9, boss: true, name: 'Captain' }], quiet, o);
+      const before = b.units.length;
+      b.round = 1; b.arriveReinforcements();
+      ok('reinforcements wait for their round', b.units.length === before, `${b.units.length} units`);
+      b.round = 2; b.arriveReinforcements();
+      const added = b.units.slice(before);
+      ok('reinforcements arrive on their round, each on its own tile', added.length === 2 && !(added[0].x === added[1].x && added[0].y === added[1].y), added.map(u => `${u.name}@${u.x},${u.y}`).join(' '));
+      b.arriveReinforcements();
+      ok('they arrive once', b.units.length === before + 2);
+    }
+    // Every chapter's mark resolves on its own map, with the foes where they start.
+    {
+      const bad = [];
+      for (const ch of [...g.CAMPAIGN, ...Object.values(g.run('typeof ROADS === "undefined" ? {} : ROADS')).flatMap(r => r.chapters)]) {
+        if (!['escort', 'reach', 'hold'].includes(ch.objective.type)) continue;
+        const grid = new g.Grid(g.MAPS[ch.map]);
+        const zone = g.computeDeployZone(grid, g.MAPS[ch.map].deploy, []);
+        const goal = g.resolveGoal(grid, ch.objective.goal || (ch.objective.type === 'hold' ? 'centre' : 'far'), zone, ch.enemies);
+        if (!goal) bad.push(ch.id);
+      }
+      ok('every marked chapter has a mark', bad.length === 0, bad.join(',') || 'all placed');
+    }
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
