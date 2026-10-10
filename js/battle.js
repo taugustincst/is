@@ -1425,7 +1425,7 @@ class Battle {
     const o = this.objective, g = o.goal;
     if (!g) return 0;
     const on = c.x === g.x && c.y === g.y;
-    if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : 0);
+    if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : (this.onGoal('player') ? 0 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.6));
     // The other side moves to cut off a charge; a leader making for the mark
     // it hunts as it would anyone, rather than camping the mark.
     if (o.type === 'escort' && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
@@ -1448,8 +1448,9 @@ class Battle {
       const near = friends.filter(f => Grid.dist(c.x, c.y, f.x, f.y) <= 2).length;
       const d = danger(c.x, c.y);
       let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + (near ? 30 : 0) + Math.min(near, 3) * 8;
-      // The mark draws it on only where the way is safe and its own are near.
-      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 || !near ? 0.3 : 3);
+      // The mark draws it on where the way is safe: ground nobody can reach
+      // next turn is ground worth crossing, friends near or not.
+      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 ? 0.3 : 3);
       if (s > bestScore) { bestScore = s; best = c; }
     }
     if (best && !(best.x === unit.x && best.y === unit.y)) {
@@ -1531,6 +1532,9 @@ class Battle {
     const precious = unit === this.objective.leader && this.objective.protectLeader;
     const care = (ranged ? 45 : 22) * (hurt ? 1.5 : 1) * (precious ? 2 : 1);
     const risk = (c) => Math.min(care, care * danger(c.x, c.y) / Math.max(1, unit.maxHp));
+    // A beast keeps to its pack: a tile beside another of its kind is worth more.
+    const kin = unit.jobData.kind === 'monster' ? this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && a.job === unit.job) : [];
+    const pack = (c) => kin.some(a => Grid.dist(c.x, c.y, a.x, a.y) === 1);
     for (const c of candidates) {
       for (const ab of abilities) {
         const targets = this.targetTilesFor(unit, ab, c.x, c.y);
@@ -1539,7 +1543,7 @@ class Battle {
           if (s <= 0) continue;
           // Slight preference for staying put and for higher ground, and a
           // marked one for ground the other side cannot easily answer on.
-          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) + this.markWorth(unit, c);
+          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) + this.markWorth(unit, c) + (pack(c) ? 6 : 0);
           if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y, kill: this.killsAnyone(unit, ab, c.x, c.y, t.x, t.y) };
         }
       }
@@ -1547,8 +1551,12 @@ class Battle {
     const near = this.nearestEnemyOf(unit);
     // Badly hurt, with no kill in reach: fall back toward a healer, out of
     // the other side's reach, and let the healer do the work.
-    if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss) {
-      const healers = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
+    // A beast with no healer behind it has nowhere to fall back to, and a
+    // chase across the field is no fight at all: it stands and bites.
+    const healersNear = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
+    const wouldKite = unit.jobData.kind === 'monster' && !healersNear.length;
+    if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss && !wouldKite) {
+      const healers = healersNear;
       const here = danger(unit.x, unit.y);
       let safe = null, bs = -1e9;
       for (const c of candidates) {

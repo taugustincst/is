@@ -817,7 +817,9 @@ class Game {
     if (ch) lines = ch.camp || [];
     else if (this.atFork()) lines = CHOICE.lines;
     else { const epi = s.branch && ROADS[s.branch] ? ROADS[s.branch].ending.camp : EPILOGUE_CAMP; const n = Math.min(epi.length, 2 + (s.trials || 0)); lines = epi.slice(0, n); }
-    el.innerHTML = lines.map(l => `<p>${l}</p>`).join('') || '<p class="muted">The fire burns low. Nobody has anything to say.</p>';
+    el.innerHTML = '';
+    for (const l of lines) el.appendChild(this.storyLine(l, 1.5));
+    if (!lines.length) el.innerHTML = '<p class="muted">The fire burns low. Nobody has anything to say.</p>';
   }
 
   // A word of warning when the party is walking into a chapter underprepared.
@@ -1716,16 +1718,97 @@ class Game {
   }
 
   // ---- story screen ----------------------------------------------------------------------------
+  // ---- faces for the story ------------------------------------------------
+  /* The cast a page can show: the company as it is, anyone who has left it,
+     and the recruits still to come, each painted from their own sprite. A
+     name the company does not know (a boss, a townsman) has no face, and
+     the line stands alone. */
+  castUnit(name) {
+    if (!name) return null;
+    this._cast = this._cast || {};
+    if (this._cast[name] !== undefined) return this._cast[name];
+    let u = (this.state && this.state.party.find(p => p.name === name)) || null;
+    if (!u && this.state) { const ex = (this.state.exiled || []).find(p => p.name === name); if (ex) u = Unit.fromSave(Object.assign({ team: 'player' }, ex)); }
+    if (!u) { const ch = CAMPAIGN.find(c => c.recruit && c.recruit.name === name); if (ch) u = new Unit({ name, job: ch.recruit.job, level: ch.recruit.level, team: 'player' }); }
+    if (!u) { const p = STARTING_PARTY.find(p => p.name === name); if (p) u = new Unit(Object.assign({ team: 'player' }, p)); }
+    // A face found in the party is not cached: the party changes.
+    if (!(this.state && this.state.party.includes(u))) this._cast[name] = u;
+    return u;
+  }
+  // "Garret: ..." or "Bram, from the top of the wagon: ..." opens a line; a
+  // line may carry two such turns, set apart by a double space.
+  static speakerParts(line) {
+    const parts = String(line).split(/\s{2,}(?=[A-Z][a-z]+(?: [A-Z][a-z]+)?(?:, [^:]{1,48})?: )/);
+    return parts.map(p => {
+      const m = /^([A-Z][a-z]+(?: [A-Z][a-z]+)?)(?:, ([^:]{1,48}))?: (.+)$/s.exec(p);
+      return m ? { name: m[1], aside: m[2] || '', text: m[3] } : { name: null, aside: '', text: p };
+    });
+  }
+  // Who a narrative line is about: the first of the cast it names.
+  castNamed(text) {
+    const names = new Set([...(this.state ? this.state.party.map(u => u.name) : []), ...STARTING_PARTY.map(p => p.name), ...CAMPAIGN.filter(c => c.recruit).map(c => c.recruit.name)]);
+    const m = String(text).match(/[A-Z][a-z]+/g) || [];
+    return m.find(n => names.has(n) && this.castUnit(n)) || null;
+  }
+  /* A line of the story laid out: a speaker's turn gets the speaker's face
+     and name beside the words; a narrative line stands as prose. */
+  storyLine(line, size = 2) {
+    const wrap = document.createElement('div');
+    wrap.className = 'line';
+    for (const part of Game.speakerParts(line)) {
+      const u = part.name ? this.castUnit(part.name) : null;
+      const row = document.createElement('div');
+      row.className = part.name ? (u ? 'turn' : 'turn noface') : 'prose';
+      if (u) {
+        const cv = document.createElement('canvas'); cv.width = 24 * size; cv.height = 24 * size; cv.className = 'face';
+        paintUnitSprite(cv, u, size);
+        row.appendChild(cv);
+      }
+      const body = document.createElement('div');
+      if (part.name) {
+        const who = document.createElement('b'); who.className = 'who'; who.textContent = part.aside ? `${part.name}, ${part.aside}` : part.name;
+        body.appendChild(who);
+      }
+      const p = document.createElement('p'); p.textContent = part.text; body.appendChild(p);
+      row.appendChild(body);
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
+  // The faces of those a page has named so far, the one speaking last lit.
+  storyCast(lines, upTo) {
+    const strip = $('story-cast'); if (!strip) return;
+    const seen = [];
+    let speaking = null;
+    for (let k = 0; k < upTo; k++) {
+      for (const part of Game.speakerParts(lines[k])) {
+        const n = part.name && this.castUnit(part.name) ? part.name : this.castNamed(part.text);
+        if (n && !seen.includes(n)) seen.push(n);
+        if (n && k === upTo - 1) speaking = n;
+      }
+    }
+    strip.innerHTML = '';
+    for (const n of seen.slice(0, 8)) {
+      const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40; cv.title = n;
+      cv.className = n === speaking ? 'speaking' : '';
+      paintUnitSprite(cv, this.castUnit(n), 1.6);
+      strip.appendChild(cv);
+    }
+    strip.hidden = !seen.length;
+  }
+
   story(title, lines) {
     return new Promise(resolve => {
       $('story-title').textContent = title;
       const box = $('story-text');
       box.innerHTML = '';
+      this.storyCast(lines, 0);
       let i = 0;
       const btn = $('btn-story-next'), skip = $('btn-story-skip');
       const next = () => {
         if (i < lines.length) {
-          const p = document.createElement('p'); p.textContent = lines[i++]; box.appendChild(p);
+          box.appendChild(this.storyLine(lines[i++]));
+          this.storyCast(lines, i);
           btn.textContent = i < lines.length ? tr('Continue') : tr('Onward');
           skip.hidden = i >= lines.length;
         } else { btn.onclick = null; skip.onclick = null; resolve(); }

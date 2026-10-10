@@ -1191,6 +1191,33 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('the battle runs to an end from there, without saying its opening words again', ['victory', 'defeat'].includes(res) && r.spoken.length === 1, `${res}, ${r.spoken.length} lines`);
   }
 
+  /* No chases: a beast with no healer behind it stands and bites rather
+     than kiting across the field, a beast keeps to its pack, and under Auto
+     the company goes for an unheld mark. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const party = [mk('Lead', 'knight', 6, { leader: true })];
+    const b = g.Battle.setup(g.MAPS.verdant, party, [{ job: 'wolf', level: 3, x: 5, y: 3 }, { job: 'wolf', level: 3, x: 8, y: 8 }], quiet, { type: 'rout' }, 'knight');
+    party[0].x = 4; party[0].y = 3; party[0].learned = {};
+    const [w1, w2] = b.units.filter(u => u.team === 'enemy');
+    w1.hp = Math.floor(w1.maxHp * 0.2);
+    const hpBefore = party[0].hp;
+    await b.aiTurn(w1);
+    ok('a badly hurt wolf with no healer stands and bites', g.Grid.dist(w1.x, w1.y, party[0].x, party[0].y) <= 1 && party[0].hp < hpBefore, `distance ${g.Grid.dist(w1.x, w1.y, party[0].x, party[0].y)}, hp ${hpBefore}->${party[0].hp}`);
+    // The second wolf comes to stand beside the first where it can.
+    w2.x = 7; w2.y = 4;
+    await b.aiTurn(w2);
+    ok('a wolf keeps to its pack', g.Grid.dist(w2.x, w2.y, w1.x, w1.y) <= 2, `distance ${g.Grid.dist(w2.x, w2.y, w1.x, w1.y)}`);
+    // A hold under Auto: the company goes for the mark while nobody holds it.
+    const party2 = [mk('Lead', 'knight', 6, { leader: true })];
+    const h = g.Battle.setup(g.MAPS.verdant, party2, [{ job: 'goblin', level: 2, x: 11, y: 11 }], quiet, { type: 'hold', rounds: 4, goal: 'centre' }, 'knight');
+    party2[0].x = 1; party2[0].y = 1; party2[0].learned = {};
+    const d0 = g.Grid.dist(1, 1, h.objective.goal.x, h.objective.goal.y);
+    await h.aiTurn(party2[0]);
+    const d1 = g.Grid.dist(party2[0].x, party2[0].y, h.objective.goal.x, h.objective.goal.y);
+    ok('under Auto the company makes for an unheld mark', d1 < d0, `${d0} -> ${d1}`);
+  }
+
   /* Words on the field: the leader opens the finales, a boss opens, speaks
      at half health and at its fall, each once; a first kill is remarked on
      once; and every line goes through the speak hook, which the battle

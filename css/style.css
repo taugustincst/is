@@ -217,6 +217,19 @@ small { color: var(--muted); }
 .story-box h2 { color: var(--gold); font-size: 30px; position: relative; padding-bottom: 8px; margin-bottom: 10px; }
 .story-box h2::after { content: ''; position: absolute; left: 0; bottom: 0; width: 80px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
 #story-text p { font-family: Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.65; color: #e2e0ee; animation: fadein 0.5s; }
+/* A line of the story: a speaker's turn carries a face and a name. */
+.line { animation: fadein 0.5s; }
+.line .turn { display: flex; gap: 12px; align-items: flex-start; margin: 8px 0; }
+.line .turn canvas.face { width: 48px; height: 48px; flex: none; image-rendering: pixelated; margin-top: 2px; }
+.line .turn p, .line .prose p { margin: 0; }
+.line .who { display: block; font-family: var(--display); font-size: 13px; letter-spacing: 0.04em; color: var(--gold); margin-bottom: 2px; }
+.campfire .line .turn canvas.face { width: 36px; height: 36px; }
+.campfire .line .turn { gap: 8px; margin: 6px 0; }
+.campfire .line .who { font-size: 12px; }
+/* The faces a page has named, the one speaking lit. */
+.story-cast { display: flex; gap: 6px; margin: -2px 0 10px; }
+.story-cast canvas { width: 40px; height: 40px; image-rendering: pixelated; opacity: 0.45; transition: opacity 0.2s, filter 0.2s; }
+.story-cast canvas.speaking { opacity: 1; filter: drop-shadow(0 0 5px rgba(230, 195, 90, 0.8)); }
 @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #btn-story-next { margin-top: 12px; padding: 10px 24px; }
 

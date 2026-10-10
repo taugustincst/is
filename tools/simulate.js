@@ -17,6 +17,8 @@ const g = load();
 const RUNS = Number(process.argv[2]) || 10;
 const TRAININGS = process.argv[3] === undefined ? 1 : Number(process.argv[3]);
 const RETRIES = process.argv[4] === undefined ? 3 : Number(process.argv[4]);
+// A chapter averaging more turns than this is a chase, and the run fails.
+const TURN_CAP = 40;
 
 // A stand-in for a competent player: learn the cheapest thing available, buy the
 // best gear the purse allows, and take any advanced job that has unlocked.
@@ -168,4 +170,9 @@ async function runCampaign(run) {
       `${Math.round(t.gil / t.played)}`);
   }
   console.log(`\ncampaigns finished: ${finished}/${RUNS} (${Math.round(100 * finished / RUNS)}%)`);
+  // Pacing: a chapter that runs long on average is a chase, not a fight,
+  // and fails the check whatever its win rate.
+  const slow = rows.filter(ch => tally[ch.id] && tally[ch.id].turns / tally[ch.id].played > TURN_CAP).map(ch => `${ch.id} (${Math.round(tally[ch.id].turns / tally[ch.id].played)} turns)`);
+  if (slow.length) { console.log(`\nPACING: over ${TURN_CAP} turns on average: ${slow.join(', ')}`); process.exit(1); }
+  console.log(`pacing: every chapter under ${TURN_CAP} turns on average`);
 })().catch(e => { console.error(e); process.exit(1); });
