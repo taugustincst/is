@@ -209,8 +209,24 @@ own. The ids under them are unchanged, so an old save loads as it was.
   on Skills when there is SP to spend. Nothing is more than a scroll away.
 - **Deployment phase.** Choose who fights and where they stand before the first
   tick, with the enemy roster laid out in front of you.
-- **Objectives** beyond routing the field: defeat the commander, or hold out a
-  set number of turns. Campaign battles are lost if the party leader is lost.
+- **Objectives** beyond routing the field: defeat the commander, hold out a
+  set number of rounds, see a charge to the mark, reach the mark with the
+  leader, or hold the mark for a count of rounds while the other side tries
+  to take it back. The mark is drawn in gold on the field. Twelve chapters
+  ask one of these, and two boss maps bring reinforcements on their round.
+  Campaign battles are lost if the party leader is lost.
+- **Words on the field.** The leader opens each act finale, every boss has
+  words for the start, for half its health and for its fall, and everyone who
+  joins through the story remarks on their first kill: a bubble over the
+  speaker that a tap or a key sends on, and a line in the log.
+- **The other side thinks twice.** It focuses fire on the wounded and the
+  healers, keeps its archers and casters out of reach, retreats to its own
+  healers when badly hurt, and keeps a guard beside its commander.
+- **Four difficulties.** Page, Footman, Knight and Paladin: Page is for the
+  story first, with foes three levels under and a purse that overflows.
+- **Keys and a gamepad.** The arrow keys move a cursor across the field and
+  Enter does what a click there would; a gamepad does the same through the
+  d-pad and its buttons, and walks the buttons of every other screen.
 - **Crystals of the fallen.** Where a unit is carried off, a crystal remains;
   end a move on it and that unit is restored in full. The enemy goes for one
   when badly hurt, and so should you.
@@ -320,13 +336,19 @@ pan instead. The back button steps back through the game rather than closing it.
 
 | Action | Mouse | Touch | Keyboard |
 | --- | --- | --- | --- |
-| Select a tile or command | Click | Tap | `1`–`9` for menu entries |
+| Select a tile or command | Click | Tap | `1`–`9` for menu entries; arrows move a cursor, `Enter` or `Space` confirms |
+| Walk an open list | — | — | `↑` / `↓` |
 | Cancel | Right-click | Cancel button | `Esc` |
-| Pan the camera | Drag | Drag | Arrow keys |
+| Pan the camera | Drag | Drag | `Shift` + arrows |
 | Zoom | Wheel | Pinch | `+` / `-`, `0` to reframe |
 | Back / cancel | Right-click | Android back button | `Esc` |
 | Turn the field | ↺ ↻ buttons | ↺ ↻ buttons | `Q` / `E` |
 | Battle speed | 1× button | 1× button | `F` |
+
+A gamepad works too, once a button on it has been pressed: the d-pad or left
+stick moves the cursor, A confirms, B cancels, X is Wait, Y opens Act, the
+bumpers turn the field, the right stick pans, Start opens the help and Back
+toggles Auto. Off the field the d-pad walks the buttons and A presses one.
 
 The `?` button in battle opens a rules summary.
 

@@ -328,9 +328,11 @@ function makeEnemy(spec, difficulty) {
   if (spec.phases) u.phases = spec.phases.map(p => Object.assign({}, p));
   // And words for the field: at the start, at half health, and at the fall.
   if (spec.lines) u.lines = Object.assign({}, spec.lines);
-  // Enemies know more abilities at higher levels; bosses know everything. Early
-  // foes stay simple so the opening chapters teach rather than punish.
-  const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);
+  // Enemies know more abilities at higher levels; bosses know everything. The
+  // climb is slow: a foe of the first act knows a third of its trade, one of
+  // the last act most of it, so the early chapters teach rather than punish
+  // and the late ones still have something held back.
+  const frac = spec.boss ? 1 : Math.min(0.9, 0.15 + level * 0.03);
   u.autoLearn(frac);
   // From the middle of the campaign on, foes bring passives of their own. A spec
   // may name them outright; otherwise they come from the job's own teachings.

@@ -113,10 +113,12 @@ const STRINGS = {
   'Difficulty': ['Schwierigkeit', 'Difficulté', 'Dificultad', 'Dificuldade', '難易度'],
   'changeable at any time': ['jederzeit änderbar', 'modifiable à tout moment', 'se puede cambiar en cualquier momento', 'pode ser alterada a qualquer momento', 'いつでも変更可'],
   'Difficulty set to {name}.': ['Schwierigkeit auf {name} gesetzt.', 'Difficulté réglée sur {name}.', 'Dificultad establecida en {name}.', 'Dificuldade definida como {name}.', '難易度を{name}に設定しました。'],
+  'Page': ['Page', 'Page', 'Paje', 'Pajem', '小姓'],
   'Footman': ['Fußsoldat', 'Fantassin', 'Infante', 'Soldado', '歩兵'],
   'Knight': ['Ritter', 'Chevalier', 'Caballero', 'Cavaleiro', 'ナイト'],
   'Paladin': ['Paladin', 'Paladin', 'Paladín', 'Paladino', 'パラディン'],
   'Foes are a level below and less well equipped. Purses stretch further.': ['Gegner sind eine Stufe niedriger und schlechter ausgerüstet. Das Geld reicht weiter.', 'Les ennemis ont un niveau de moins et sont moins bien équipés. La bourse dure plus longtemps.', 'Los enemigos están un nivel por debajo y peor equipados. El dinero rinde más.', 'Os inimigos estão um nível abaixo e menos bem equipados. O dinheiro rende mais.', '敵のレベルが1低く、装備も劣る。資金に余裕がある。'],
+  'Foes are three levels below and poorly equipped. Purses overflow. For the story first.': ['Gegner sind drei Stufen niedriger und schlecht ausgerüstet. Die Börsen quellen über. Für die Geschichte zuerst.', 'Les ennemis ont trois niveaux de moins et sont mal équipés. Les bourses débordent. Pour l’histoire d’abord.', 'Los enemigos están tres niveles por debajo y mal equipados. Las bolsas rebosan. Para la historia primero.', 'Os inimigos estão três níveis abaixo e mal equipados. As bolsas transbordam. Para a história primeiro.', '敵は3レベル下で装備も貧弱。財布は潤沢。まずは物語を楽しみたい人に。'],
   'The campaign as written.': ['Der Feldzug, wie er geschrieben steht.', 'La campagne telle qu’écrite.', 'La campaña tal como está escrita.', 'A campanha como foi escrita.', '設計どおりのバランス。'],
   'Foes outrank and outfit you, and coin is scarcer.': ['Gegner übertreffen dich an Rang und Ausrüstung, und Geld ist knapper.', 'Les ennemis vous surpassent en niveau et en équipement, et l’argent est plus rare.', 'Los enemigos te superan en nivel y equipo, y el dinero escasea.', 'Os inimigos superam você em nível e equipamento, e o dinheiro é mais escasso.', '敵のレベルも装備も上回り、資金は乏しい。'],
   'Party': ['Gruppe', 'Compagnie', 'Grupo', 'Grupo', 'パーティ'],
@@ -301,6 +303,8 @@ const STRINGS = {
   'Speed:': ['Tempo:', 'Vitesse :', 'Velocidad:', 'Velocidade:', '速度：'],
   'Turning the field:': ['Feld drehen:', 'Rotation du champ :', 'Girar el campo:', 'Girar o campo:', '視点の回転：'],
   'Controls:': ['Steuerung:', 'Commandes :', 'Controles:', 'Controles:', '操作：'],
+  'Keys:': ['Tasten:', 'Touches :', 'Teclas:', 'Teclas:', 'キー操作：'],
+  'Gamepad:': ['Gamepad:', 'Manette :', 'Mando:', 'Comando:', 'ゲームパッド：'],
 };
 
 // The language in force: 'en', or a column of the table.

@@ -1349,6 +1349,8 @@ const STARTING_PARTY = [
 // Difficulty scales the opposition rather than the party, so a player's own
 // numbers always mean the same thing.
 const DIFFICULTIES = {
+  page:    { name: 'Page', levelShift: -3, gearShift: -2, gilMult: 1.5,
+             desc: 'Foes are three levels below and poorly equipped. Purses overflow. For the story first.' },
   squire:  { name: 'Footman', levelShift: -1, gearShift: -1, gilMult: 1.25,
              desc: 'Foes are a level below and less well equipped. Purses stretch further.' },
   knight:  { name: 'Knight', levelShift: 0, gearShift: 0, gilMult: 1,

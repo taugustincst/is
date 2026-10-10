@@ -452,6 +452,21 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.13.0**
+
+    The polish pass. Marks on the field: twelve chapters now ask you to see a charge to the mark,
+    reach it with the leader or hold it for a count of rounds, and two boss maps bring
+    reinforcements on their round. Words on the field: the leader opens each act finale, every
+    boss has words for the start, for half its health and for its fall, and each recruit remarks
+    on their first kill. The other side thinks twice: it focuses fire, keeps its archers and
+    casters back, retreats to its healers when hurt, and guards its commander. The forge goes to
+    +4 and +5 for a tide pearl and a star heart, and the last cities make seven legendary arms.
+    A fourth difficulty, Page, under Footman, for the story first; the walls of the campaign
+    softened and foes that learn their trade more slowly. The board is drawn once and cached, so
+    late battles run at a steady frame. Camp tabs at the top; on a phone the field sits above the
+    command panel and the camera pans only as far as it must. The arrow keys move a cursor across
+    the field, Enter confirms, and a gamepad does the same.
+
 **1.12.1**
 
     On the unit page, the arrows beside the portrait, a swipe across the page or the arrow keys

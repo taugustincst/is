@@ -1132,6 +1132,24 @@ const mk = (n, job, lvl, opts = {}) => {
     }
   }
 
+  /* The difficulties, and how much of its trade a foe knows: a fourth
+     setting under Footman for the story first, and skills that unlock
+     slowly by level so an early foe is simple and a late one still has
+     something held back. Bosses know it all. */
+  {
+    const d = g.run('DIFFICULTIES');
+    ok('four difficulties, Page the gentlest, in order of severity', Object.keys(d).join() === 'page,squire,knight,paladin' && d.page.levelShift < d.squire.levelShift && d.page.gearShift < d.squire.gearShift && d.page.gilMult > d.squire.gilMult, JSON.stringify(d.page));
+    const spec = { job: 'knight', level: 8, x: 0, y: 0 };
+    const onPage = g.makeEnemy(spec, 'page'), onKnight = g.makeEnemy(spec, 'knight');
+    ok('on Page a foe is three levels under its writing, never below one', onPage.level === 5 && onKnight.level === 8 && g.makeEnemy({ job: 'knight', level: 2, x: 0, y: 0 }, 'page').level === 1, `${onPage.level}/${onKnight.level}`);
+    const known = (lvl, job = 'knight') => { const u = g.makeEnemy({ job, level: lvl, x: 0, y: 0 }, 'knight'); return Object.keys(u.learned).filter(id => g.ABILITIES[id] && g.JOBS[job].abilities.includes(id)).length / g.JOBS[job].abilities.length; };
+    ok('a first-act foe knows about a third of its trade, a last-act one most of it, never all', known(5) <= 0.45 && known(14) > known(5) && known(24) > known(14) && known(24) <= 0.92 && known(40) <= 0.92, `L5 ${known(5).toFixed(2)}, L14 ${known(14).toFixed(2)}, L24 ${known(24).toFixed(2)}`);
+    const boss = g.makeEnemy({ job: 'knight', level: 8, x: 0, y: 0, boss: true }, 'knight');
+    ok('a boss knows everything', g.JOBS.knight.abilities.every(id => boss.learned[id]));
+    const esc = g.CAMPAIGN.filter(c => c.objective.type === 'escort');
+    ok('every escorted charge outranks the field it crosses', esc.length >= 4 && esc.every(c => c.objective.escort.level > Math.max(...c.enemies.filter(e => !e.boss).map(e => e.level))));
+  }
+
   /* Words on the field: the leader opens the finales, a boss opens, speaks
      at half health and at its fall, each once; a first kill is remarked on
      once; and every line goes through the speak hook, which the battle
