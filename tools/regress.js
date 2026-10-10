@@ -95,7 +95,10 @@ const mk = (n, job, lvl, opts = {}) => {
       { log: (m) => logs.push(m), awaitPlayerTurn: async () => {} }, { type: 'rout' });
     const foe = b.units.find(u => u.team === 'enemy');
     ninja.x = 1; ninja.y = 1; foe.hp = 1;
-    await b.applyAbility(ninja, g.ABILITIES.attack, foe.x, foe.y);
+    // The roll is pinned so the main hand cannot miss: the check is about
+    // the offhand's restraint, not the ninja's luck.
+    const rnd = Math.random; Math.random = () => 0;
+    try { await b.applyAbility(ninja, g.ABILITIES.attack, foe.x, foe.y); } finally { Math.random = rnd; }
     const hits = logs.filter(l => /deals \d+ damage/.test(l)).length;
     ok('dual wield stops when the target falls', hits === 1 && ninja.dualWielding, `hits=${hits}`);
   }
