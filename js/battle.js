@@ -1359,8 +1359,9 @@ class Battle {
     for (const c of reach.values()) {
       const near = friends.filter(f => Grid.dist(c.x, c.y, f.x, f.y) <= 2).length;
       const d = danger(c.x, c.y);
-      let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + Math.min(near, 2) * 8;
-      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 ? 0.5 : 3);
+      let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + Math.min(near, 3) * 12;
+      // The mark draws it on only where the way is safe and its own are near.
+      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 || !near ? 0.3 : 3);
       if (s > bestScore) { bestScore = s; best = c; }
     }
     if (best && !(best.x === unit.x && best.y === unit.y)) {
@@ -1438,7 +1439,9 @@ class Battle {
     const danger = this.dangerMap(unit);
     const ranged = this.isRanged(unit);
     const hurt = unit.hp < unit.maxHp * 0.5;
-    const care = (ranged ? 45 : 22) * (hurt ? 1.5 : 1);
+    // The leader whose loss ends the battle is twice as careful of its skin.
+    const precious = unit === this.objective.leader && this.objective.protectLeader;
+    const care = (ranged ? 45 : 22) * (hurt ? 1.5 : 1) * (precious ? 2 : 1);
     const risk = (c) => Math.min(care, care * danger(c.x, c.y) / Math.max(1, unit.maxHp));
     for (const c of candidates) {
       for (const ab of abilities) {
@@ -1456,7 +1459,7 @@ class Battle {
     const near = this.nearestEnemyOf(unit);
     // Badly hurt, with no kill in reach: fall back toward a healer, out of
     // the other side's reach, and let the healer do the work.
-    if (unit.hp < unit.maxHp * 0.3 && !best.kill && !unit.boss) {
+    if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss) {
       const healers = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
       const here = danger(unit.x, unit.y);
       let safe = null, bs = -1e9;
