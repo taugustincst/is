@@ -364,6 +364,7 @@ class Renderer {
 
   setBattle(b) {
     this.battle = b;
+    this._board = null;
     this.floats = []; this.bursts = []; this.fx = []; this.shake = null;
     // Party units outlive a battle, and so did the animation state hung on
     // them: a unit interrupted mid-move kept its interpolated position and
@@ -764,10 +765,31 @@ class Renderer {
     const g = this.battle.grid;
     this.drawGroundShadow();
     const items = [];
-    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
-      const t = g.tiles[y][x];
-      if (t.t === 'x') continue;
-      items.push({ d: this.depthOf(x, y), kind: 'tile', t });
+    const board = this.rotating ? null : this.boardCache();
+    let overlays = null;
+    if (board) {
+      c.drawImage(board.cv, board.x0 + this.cam.x, board.y0 + this.cam.y, board.w, board.h);
+      // Water moves, whatever else does: its shimmer is drawn over the cache.
+      for (const row of g.tiles) for (const t of row) if (t.t === 'w') this.drawWater(t);
+      // Every tile's screen box, for what stands in front of what.
+      this._tileList = [];
+      for (const row of g.tiles) for (const t of row) if (t.t !== 'x') this._tileList.push({ t, d: this.depthOf(t.x, t.y), box: this.tileBox(t) });
+      // What is laid on the tops, then the walls in front of those tops.
+      overlays = this.overlayTiles();
+      for (const t of overlays.values()) this.drawTileDynamic(t);
+      // The walls in front of every marked top, stamped back in one go.
+      const fronts = new Map();
+      for (const t of overlays.values()) {
+        const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+        for (const e of this.frontsOf(this.depthOf(t.x, t.y), { x0: sx - 32, x1: sx + 32, y0: sy - 16, y1: sy + 16 })) fronts.set(e.t, e);
+      }
+      if (fronts.size) this.stampTiles([...fronts.values()], null);
+    } else {
+      for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+        const t = g.tiles[y][x];
+        if (t.t === 'x') continue;
+        items.push({ d: this.depthOf(x, y), kind: 'tile', t });
+      }
     }
     for (const u of this.battle.units) {
       if (u.x < 0) continue; // in reserve, not on the field
@@ -785,9 +807,19 @@ class Renderer {
     items.sort((a, b) => a.d - b.d);
     for (const it of items) {
       if (it.kind === 'tile') this.drawTile(it.t);
-      else if (it.kind === 'unit') this.drawUnit(it.u);
-      else if (it.kind === 'crystal') this.drawCrystal(it.k);
-      else this.drawFx(it.f);
+      else if (it.kind === 'unit') {
+        this.drawUnit(it.u);
+        if (board) {
+          const { sx, sy } = this.unitScreenPos(it.u);
+          this.stampFront(it.d, { x0: sx - 24, x1: sx + 24, y0: sy + SPRITE_HEAD_Y - 20, y1: sy + 12 }, overlays);
+        }
+      } else if (it.kind === 'crystal') {
+        this.drawCrystal(it.k);
+        if (board) {
+          const { sx, sy } = this.toScreen(it.k.x, it.k.y, g.height(it.k.x, it.k.y));
+          this.stampFront(it.d, { x0: sx - 16, x1: sx + 16, y0: sy - 40, y1: sy + 12 }, overlays);
+        }
+      } else this.drawFx(it.f);
     }
     this.drawCharges();
     this.drawBursts();
@@ -821,7 +853,11 @@ class Renderer {
     c.restore();
   }
 
-  drawTile(t) {
+  /* The part of a tile that never changes between frames: its walls, its
+     top, the shadow a higher neighbour throws on it, the light on its far
+     edges. Drawn once into the board cache, or every frame while the board
+     is turning. */
+  drawTileStatic(t) {
     const c = this.ctx;
     const { sx, sy } = this.toScreen(t.x, t.y, t.h);
     const col = TERRAIN[t.t] || TERRAIN.g;
@@ -856,11 +892,31 @@ class Renderer {
     c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy - 16); c.lineTo(sx + 32, sy); c.stroke();
     c.strokeStyle = 'rgba(0,0,0,0.42)';
     c.beginPath(); c.moveTo(sx - 32, sy); c.lineTo(sx, sy + 16); c.lineTo(sx + 32, sy); c.stroke();
-    if (t.t === 'w') {
-      c.strokeStyle = 'rgba(255,255,255,0.35)';
-      const ph = Math.sin(this.time / 500 + t.x + t.y) * 3;
-      c.beginPath(); c.moveTo(sx - 14, sy + ph); c.lineTo(sx - 4, sy - 3 + ph); c.lineTo(sx + 6, sy + ph); c.lineTo(sx + 14, sy - 2 + ph); c.stroke();
-    }
+    void col;
+  }
+
+  /* The whole tile, as it looks this frame: the static part and then what
+     moves or is offered on it. */
+  drawTile(t) {
+    this.drawTileStatic(t);
+    this.drawTileDynamic(t);
+    this.drawTileTree(t);
+  }
+
+  // What changes on a tile from frame to frame: the water's shimmer, the
+  // offers and marks laid on its top, the ring under the acting unit.
+  drawWater(t) {
+    const c = this.ctx;
+    const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+    c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 1;
+    const ph = Math.sin(this.time / 500 + t.x + t.y) * 3;
+    c.beginPath(); c.moveTo(sx - 14, sy + ph); c.lineTo(sx - 4, sy - 3 + ph); c.lineTo(sx + 6, sy + ph); c.lineTo(sx + 14, sy - 2 + ph); c.stroke();
+  }
+
+  drawTileDynamic(t) {
+    const c = this.ctx;
+    const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+    if (t.t === 'w') this.drawWater(t);
     // Highlights
     const key = `${t.x},${t.y}`;
     if (this.hl.move.has(key)) { this.diamond(sx, sy); c.fillStyle = 'rgba(70,130,255,0.45)'; c.fill(); }
@@ -898,13 +954,122 @@ class Renderer {
         c.lineTo(sx - 6, sy + 1); c.closePath(); c.fill();
       }
     }
-    // Tree
-    if (t.t === 't') {
-      c.fillStyle = 'rgba(0,0,0,0.30)';
-      c.beginPath(); c.ellipse(sx, sy + 3, 18, 7, 0, 0, Math.PI * 2); c.fill();
-      // Drawn half again its size, so a tree stands over a figure as it should.
-      c.drawImage(treeSprite(tileVariant(t.x, t.y)), sx - 34, sy - 84, 68, 90);
+  }
+
+  // A tree stands over its tile, and over anything behind it.
+  drawTileTree(t) {
+    if (t.t !== 't') return;
+    const c = this.ctx;
+    const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+    c.fillStyle = 'rgba(0,0,0,0.30)';
+    c.beginPath(); c.ellipse(sx, sy + 3, 18, 7, 0, 0, Math.PI * 2); c.fill();
+    // Drawn half again its size, so a tree stands over a figure as it should.
+    c.drawImage(treeSprite(tileVariant(t.x, t.y)), sx - 34, sy - 84, 68, 90);
+  }
+
+  /* The screen box a tile paints into: its top, its walls below, and its
+     tree above, in world units. */
+  tileBox(t) {
+    const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+    return { x0: sx - 34, x1: sx + 34, y0: sy - (t.t === 't' ? 84 : 17), y1: sy + 17 + t.h * HZ };
+  }
+
+  /* The board, drawn once. Every tile's static part, in depth order, into a
+     canvas the size of the board at the current zoom's integer scale, so a
+     frame costs one drawImage for the ground instead of a few hundred
+     texture draws, gradients and strokes. The cache is keyed on everything
+     the static picture depends on: the battle, the quarter turn the board
+     stands at, the canvas size (the projection is centred on it), and the
+     scale. While the board is turning it is not used at all. */
+  boardCache() {
+    const g = this.battle.grid;
+    const W = this.W || this.cv.width, H = this.H || this.cv.height;
+    const k = Math.min(3, Math.max(1, Math.ceil((this.zoom || 1) * (this.dpr || 1))));
+    const key = `${this.rot}|${W}|${H}|${k}`;
+    const bc = this._board;
+    if (bc && bc.battle === this.battle && bc.key === key) return bc;
+    const cam = this.cam; this.cam = { x: 0, y: 0 };
+    let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    const tiles = [];
+    for (const row of g.tiles) for (const t of row) {
+      if (t.t === 'x') continue;
+      tiles.push(t);
+      const b = this.tileBox(t);
+      minX = Math.min(minX, b.x0); maxX = Math.max(maxX, b.x1); minY = Math.min(minY, b.y0); maxY = Math.max(maxY, b.y1);
     }
+    if (tiles.length === 0) { this.cam = cam; return null; }
+    tiles.sort((a, b) => this.depthOf(a.x, a.y) - this.depthOf(b.x, b.y));
+    minX = Math.floor(minX) - 2; minY = Math.floor(minY) - 2; maxX = Math.ceil(maxX) + 2; maxY = Math.ceil(maxY) + 2;
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, (maxX - minX) * k); cv.height = Math.max(1, (maxY - minY) * k);
+    const real = this.ctx;
+    this.ctx = cv.getContext('2d');
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.setTransform(k, 0, 0, k, -minX * k, -minY * k);
+    for (const t of tiles) { this.drawTileStatic(t); this.drawTileTree(t); }
+    this.ctx = real;
+    this.cam = cam;
+    this._board = { battle: this.battle, key, cv, k, x0: minX, y0: minY, w: maxX - minX, h: maxY - minY };
+    return this._board;
+  }
+
+  /* The tiles with something laid on their top this frame: an offer, a
+     mark, a deployment square, the ring under the acting unit, a goal. */
+  overlayTiles() {
+    const g = this.battle.grid, b = this.battle;
+    const need = new Map();
+    const add = (t) => { if (t && t.t !== 'x') need.set(`${t.x},${t.y}`, t); };
+    const addKey = (k) => { const [x, y] = k.split(',').map(Number); add(g.tile(x, y)); };
+    for (const set of [this.hl.move, this.hl.path, this.hl.target, this.hl.area, this.hl.threat]) for (const k of set) addKey(k);
+    if (this.hl.cursor) add(g.tile(this.hl.cursor.x, this.hl.cursor.y));
+    if (b.active && b.active.x >= 0) add(g.tile(b.active.x, b.active.y));
+    if (b.showDeploy && b.deployKeys) for (const k of b.deployKeys) addKey(k);
+    if (b.objective && b.objective.goals) for (const goal of b.objective.goals) add(g.tile(goal.x, goal.y));
+    return need;
+  }
+
+  // The region a tile paints: its top, its two walls, and its tree.
+  tileRegionPath(t) {
+    const c = this.ctx;
+    const { sx, sy } = this.toScreen(t.x, t.y, t.h);
+    const wh = t.h * HZ;
+    c.moveTo(sx, sy - 16); c.lineTo(sx + 32, sy); c.lineTo(sx + 32, sy + wh); c.lineTo(sx, sy + 16 + wh); c.lineTo(sx - 32, sy + wh); c.lineTo(sx - 32, sy); c.closePath();
+    if (t.t === 't') c.rect(sx - 34, sy - 84, 68, 90);
+  }
+
+  /* After something is drawn over the cached board, the tiles standing in
+     front of it have to cover it again. Rather than redrawing those tiles
+     (whose walls would then cover the tiles in front of them, and so on
+     across the board), the cache itself is stamped back, clipped to their
+     regions: the cache already holds the right picture there, layered
+     correctly, so one stamp settles it. Overlays on those tiles are drawn
+     again on top, since the cache does not hold them. */
+  stampFront(d, box, overlays) {
+    const fronts = this.frontsOf(d, box);
+    if (fronts.length) this.stampTiles(fronts, overlays);
+  }
+
+  // The tiles in front of a depth whose painted region crosses a box.
+  frontsOf(d, box) {
+    const fronts = [];
+    for (const e of this._tileList) if (e.d > d && box.x0 < e.box.x1 && box.x1 > e.box.x0 && box.y0 < e.box.y1 && box.y1 > e.box.y0) fronts.push(e);
+    return fronts;
+  }
+
+  // Stamp the cache back over a set of tiles, then their overlays.
+  stampTiles(entries, overlays) {
+    const board = this._board, c = this.ctx;
+    if (!board) return;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    c.save(); c.beginPath();
+    for (const e of entries) { this.tileRegionPath(e.t); x0 = Math.min(x0, e.box.x0); y0 = Math.min(y0, e.box.y0); x1 = Math.max(x1, e.box.x1); y1 = Math.max(y1, e.box.y1); }
+    c.clip();
+    // Only the part of the cache under the clip is copied: the stamp costs
+    // what it covers, not the whole board.
+    const k = board.k, sx = (x0 - this.cam.x - board.x0), sy = (y0 - this.cam.y - board.y0);
+    c.drawImage(board.cv, sx * k, sy * k, (x1 - x0) * k, (y1 - y0) * k, x0, y0, x1 - x0, y1 - y0);
+    c.restore();
+    if (overlays) for (const e of entries) if (overlays.has(`${e.t.x},${e.t.y}`)) this.drawTileDynamic(e.t);
   }
 
   /* The shadow a higher neighbour casts. Only the two tiles behind this one
