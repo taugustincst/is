@@ -9,11 +9,12 @@ const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
 // Once the first-chapter guide has been seen or skipped, it never returns.
 const COACH_KEY = 'elderon.coached';
+const TIPS_KEY = 'elderon.tips';
 // A save code: a tag, then the save as it is stored, in base64 so it survives
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.13.0';
+const GAME_VERSION = '1.14.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -84,7 +85,8 @@ class Game {
   // title, never mid-battle. Agreeing reloads into it.
   async tryUpdatePrompt() {
     const w = window.__updateWaiting;
-    if (!w || this._updateAsked || (this.screen !== 'world' && this.screen !== 'title')) return;
+    const inHand = this.screen === 'battle' && this.battle && this.battle.begun && !this.battle.over && this.flow && this.ui.turn && this.ui.turn.mode === 'menu';
+    if (!w || this._updateAsked || (this.screen !== 'world' && this.screen !== 'title' && !inHand)) return;
     this._updateAsked = true;
     // At the title with no game open there is nothing to lose, so the new
     // build is taken at once rather than left waiting behind a question a
@@ -94,7 +96,7 @@ class Game {
       w.postMessage('skipWaiting');
       return;
     }
-    if (await this.ask(tr('A new version of the game is ready. Reload into it now? Your progress is saved first.'), { yes: tr('Reload now'), no: tr('Later') })) {
+    if (await this.ask(tr(inHand ? 'A new version of the game is ready. Save the battle as it stands and reload into it now?' : 'A new version of the game is ready. Reload into it now? Your progress is saved first.'), { yes: tr('Reload now'), no: tr('Later') })) {
       if (this.state) this.saveGame();
       window.__reloadOnControl = true;
       w.postMessage('skipWaiting');
@@ -104,7 +106,10 @@ class Game {
   // ---- screens -----------------------------------------------------------------------
   showScreen(name) {
     if (name !== this.screen) this.clearToast(false);
+    // A tip belongs to the screen it was said on; the next screen starts clean.
+    if (name !== this.screen && this._tips && this._tips.length) { this._tips = []; this.showTip(); }
     this.screen = name;
+    document.body.dataset.screen = name;
     if (window.__updateWaiting) setTimeout(() => this.tryUpdatePrompt(), 400);
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
     if (name === 'title') this.showTitleArt(); else this.hideTitleArt();
@@ -218,8 +223,23 @@ class Game {
     $('btn-hire-squire').onclick = () => this.hire('squire');
     $('btn-hire-chemist').onclick = () => this.hire('chemist');
     $('btn-retreat').onclick = () => this.retreat();
+    $('btn-suspend').onclick = () => this.suspendBattle();
     this.bindAsk();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
+    // The help in three pages: what happens on the field, what happens at
+    // camp, and how to drive it; each entry is filed by its own heading.
+    {
+      const box = $('help').querySelector('.help-box'), list = box.querySelector('ul');
+      const camp = ['Saves:', 'Camp tabs:', 'Cities:', 'Forges:', 'Errands:', 'Jobs:', 'Passives:', 'Equipment:', 'Baggage:'];
+      const controls = ['Controls:', 'Keys:', 'Gamepad:'];
+      list.querySelectorAll('li').forEach(li => { const k = (li.querySelector('b') || {}).dataset ? li.querySelector('b').dataset.i18n || li.querySelector('b').textContent : ''; li.dataset.helpTab = camp.includes(k) ? 'camp' : controls.includes(k) ? 'controls' : 'battle'; });
+      const tabs = document.createElement('div'); tabs.className = 'tabs help-tabs';
+      tabs.innerHTML = [['battle', tr('Battle')], ['camp', tr('Camp')], ['controls', tr('Controls')]].map(([id, label]) => `<button data-help="${id}">${label}</button>`).join('');
+      list.before(tabs);
+      const show = (id) => { this.helpTab = id; tabs.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.help === id)); list.querySelectorAll('li').forEach(li => li.classList.toggle('tab-hidden', li.dataset.helpTab !== id)); };
+      tabs.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); show(b.dataset.help); });
+      show('battle');
+    }
     $('btn-speed').onclick = () => this.cyclePace();
     $('btn-auto').onclick = () => this.ui.setAuto(!this.ui.auto);
     this.setPace(+store.get(PACE_KEY) || 1);
@@ -276,6 +296,98 @@ class Game {
     }
     const bm = $('btn-music');
     if (bm) { bm.textContent = audio.musicMuted ? '♪̸' : '♪'; bm.title = audio.musicMuted ? 'Music off' : 'Music on'; }
+  }
+
+  // ---- the record --------------------------------------------------------------
+  /* What a fight adds to the record: a chapter cleared, whether at the first
+     try, in how few turns; kills by trade; battles fought and won. */
+  noteBattle(flow, res, attempts, last) {
+    const s = this.state; if (!s) return;
+    const r = s.records = s.records || Game.freshRecords();
+    r.fought++;
+    if (res === 'victory') r.won++;
+    for (const [job, n] of Object.entries((last && last.killsBy) || {})) r.kills[job] = (r.kills[job] || 0) + n;
+    if (flow && flow.kind === 'chapter') {
+      const ch = this.chapterAt(flow.index);
+      if (!ch) return;
+      const key = s.branch && flow.index >= COMMON ? `${s.branch}:${ch.id}` : ch.id;
+      const c = r.chapters[key] = r.chapters[key] || { cleared: false, firstTry: false, bestTurns: null, attempts: 0 };
+      if (!c.cleared) c.attempts += attempts; // tries until the first clear
+      if (res === 'victory') {
+        if (!c.cleared) c.firstTry = c.attempts === 1;
+        c.cleared = true;
+        if (last && Number.isFinite(last.turns) && (c.bestTurns === null || last.turns < c.bestTurns)) c.bestTurns = last.turns;
+      }
+    }
+  }
+  renderRecords() {
+    const el = $('records'); if (!el) return;
+    const s = this.state, r = s.records || Game.freshRecords();
+    const mins = Math.round((s.playtime || 0) / 60000), time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+    const endings = ROAD_ORDER.map(id => `<span class="ending ${s.endings && s.endings[id] ? 'seen' : ''}">${s.endings && s.endings[id] ? '✓ ' : ''}${ROADS[id].title}</span>`).join('');
+    const rows = [...CAMPAIGN.map(c => [c.id, c]), ...(s.branch ? ROADS[s.branch].chapters.map(c => [`${s.branch}:${c.id}`, c]) : [])]
+      .filter(([key]) => r.chapters[key] && r.chapters[key].cleared)
+      .map(([key, c]) => { const x = r.chapters[key]; return `<tr><td>${c.title}</td><td>${x.firstTry ? '✓' : `${x.attempts}×`}</td><td>${x.bestTurns !== null ? tr('{n} turns', { n: x.bestTurns }) : '—'}</td></tr>`; }).join('');
+    const firstTries = Object.values(r.chapters).filter(c => c.cleared && c.firstTry).length, cleared = Object.values(r.chapters).filter(c => c.cleared).length;
+    const kills = Object.entries(r.kills).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([job, n]) => `<span class="kill-by">${JOBS[job].name} <b>${n}</b></span>`).join('');
+    const roll = s.party.map(u => `<div class="rec-row"><b>${u.name}</b> <small>${tr('{battles} battles · {kills} felled · fell {falls} times', { battles: u.record.battles, kills: u.record.kills, falls: u.record.falls })}</small></div>`).join('');
+    const plusable = Object.keys(s.endings || {}).length > 0;
+    el.innerHTML = `
+      <div class="rec-line">${tr('{time} played', { time })} · ${tr('Battles: {won} won of {n}', { won: r.won, n: r.fought })} · ${tr('Chapters cleared first try: {n} of {total}', { n: firstTries, total: cleared })}${r.plus ? ` · ${tr('New Game + {n}', { n: r.plus })}` : ''}</div>
+      <div class="rec-endings"><b>${tr('Endings seen: {n} of {total}', { n: Object.keys(s.endings || {}).length, total: ROAD_ORDER.length })}</b> ${endings}</div>
+      ${rows ? `<table class="rec-table"><thead><tr><th>${tr('Chapter')}</th><th>${tr('Tries')}</th><th>${tr('Best')}</th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="muted">${tr('No chapter cleared yet.')}</p>`}
+      ${kills ? `<div class="rec-kills"><b>${tr('Kills by trade')}</b> ${kills}</div>` : ''}
+      <div class="rec-roll">${roll}</div>
+      ${plusable ? `<div class="rec-plus"><button id="btn-plus" class="primary">${tr('New Game +')}</button> <small>${tr('A new campaign on Paladin with every job, ability and passive the company has learned; levels and purse back to the start.')}</small></div>` : ''}`;
+    if ($('btn-plus')) $('btn-plus').onclick = () => this.newGamePlus();
+  }
+  /* The company sets out again: the same people with every job, ability
+     and passive they have learned, at level one with the starter kit, on
+     the Paladin setting, in the same slot. */
+  async newGamePlus() {
+    const s = this.state; if (!s) return;
+    if (!(await this.ask(tr('Begin a new campaign on Paladin with every job, ability and passive the company has learned? Levels and purse go back to the start, and the campaign in this slot is replaced.'), { yes: tr('Begin again'), no: tr('Not yet') }))) return;
+    const kept = [...s.party, ...(s.exiled || []).map(x => Unit.fromSave(Object.assign({ team: 'player' }, x)))].filter(u => !u.pet).slice(0, PARTY_MAX);
+    const party = kept.map(u => new Unit({ name: u.name, job: u.job, level: 1, team: 'player', leader: u.leader, jp: u.jp, jpTotal: u.jpTotal, learned: u.learned, secondary: u.secondary, passives: u.passives, record: u.record }));
+    if (!party.some(u => u.leader) && party.length) party[0].leader = true;
+    const records = s.records || Game.freshRecords();
+    records.plus = (records.plus | 0) + 1;
+    this.state = {
+      party, gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: 'paladin',
+      errands: { offered: [], active: [], reports: [] }, cities: {}, slot: s.slot, playtime: s.playtime || 0,
+      branch: null, endings: s.endings || {}, exiled: [], records,
+    };
+    this.cityView = null;
+    this.saveGame();
+    this.toast(tr('The company sets out again, wiser.'));
+    this.showCampTab('road');
+    this.showWorld();
+  }
+
+  // ---- a word the first time something new opens ---------------------------
+  /* A tip is said once, the first time its moment comes: a city opened, a
+     forge shown, SP to spend, a beast that could be won over. One at a time;
+     a second waits behind the first. Seen tips are remembered on the
+     device, so a second campaign is not told again. */
+  tip(key, text) {
+    let seen = [];
+    try { seen = JSON.parse(store.get(TIPS_KEY) || '[]'); } catch (e) { seen = []; }
+    if (!Array.isArray(seen)) seen = [];
+    if (seen.includes(key)) return false;
+    seen.push(key); store.set(TIPS_KEY, JSON.stringify(seen));
+    this._tips = this._tips || [];
+    this._tips.push({ key, text });
+    if (this._tips.length === 1) this.showTip();
+    return true;
+  }
+  showTip() {
+    const el = $('tip'); if (!el) return;
+    const cur = this._tips && this._tips[0];
+    if (!cur) { el.hidden = true; return; }
+    el.querySelector('.tip-text').textContent = cur.text;
+    el.dataset.key = cur.key;
+    el.hidden = false;
+    $('btn-tip-ok').onclick = () => { audio.sfx('menu'); this._tips.shift(); this.showTip(); };
   }
 
   toast(msg) {
@@ -352,10 +464,22 @@ class Game {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
       gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: 'knight',
       errands: { offered: [], active: [], reports: [] }, cities: {}, slot, playtime: 0,
-      branch: null, endings: {}, exiled: [],
+      branch: null, endings: {}, exiled: [], records: Game.freshRecords(),
     };
     this.sessionStart = Date.now();
     this.showWorld();
+  }
+
+  // What a campaign keeps of itself: the chapters cleared and how, the
+  // kills by trade, the battles fought, and how many times it has begun again.
+  static freshRecords() { return { chapters: {}, kills: {}, fought: 0, won: 0, plus: 0 }; }
+  static readRecords(r) {
+    const out = Game.freshRecords();
+    if (!r || typeof r !== 'object') return out;
+    for (const [id, c] of Object.entries(r.chapters || {})) if (c && typeof c === 'object') out.chapters[id] = { cleared: !!c.cleared, firstTry: !!c.firstTry, bestTurns: Number.isFinite(c.bestTurns) ? c.bestTurns : null, attempts: c.attempts | 0 };
+    for (const [job, n] of Object.entries(r.kills || {})) if (JOBS[job] && n > 0) out.kills[job] = n | 0;
+    out.fought = r.fought | 0; out.won = r.won | 0; out.plus = r.plus | 0;
+    return out;
   }
 
   // What each slot holds, read fresh: null where empty or unreadable.
@@ -373,13 +497,14 @@ class Game {
     const ch = Number.isFinite(d.chapter) ? d.chapter : 0;
     const road = d.branch && ROADS[d.branch];
     const chap = ch < COMMON ? CAMPAIGN[ch] : road && road.chapters[ch - COMMON];
-    const where = chap ? `${tr('Act {n}', { n: Math.min(ACTS.length, ACTS.findIndex(a => ch >= a.from && ch <= a.to) + 1 || ACTS.length) })} · ${tr('Chapter {n}', { n: ch + 1 })} · ${chap.title}`
+    let where = chap ? `${tr('Act {n}', { n: Math.min(ACTS.length, ACTS.findIndex(a => ch >= a.from && ch <= a.to) + 1 || ACTS.length) })} · ${tr('Chapter {n}', { n: ch + 1 })} · ${chap.title}`
       : ch === COMMON && !road ? tr('Five Roads · at the capital')
       : `${road ? road.ending.title : tr('After the war')} · ${tr('Trial {n}', { n: (d.trials || 0) + 1 })}`;
     const lv = d.party.length ? Math.round(d.party.reduce((a, u) => a + (u.level || 1), 0) / d.party.length) : 1;
     const mins = Math.round((d.playtime || 0) / 60000), time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
     const ago = d.savedAt ? (() => { const m = Math.round((Date.now() - d.savedAt) / 60000); return m < 2 ? tr('just now') : m < 60 ? tr('{n} min ago', { n: m }) : m < 2880 ? tr('{n} h ago', { n: Math.round(m / 60) }) : tr('{n} days ago', { n: Math.round(m / 1440) }); })() : tr('an older save');
     const lead = d.party.find(u => u.leader) || d.party[0];
+    if (d.battle && MAPS[d.battle.map]) where += ` · ${tr('in battle at {map}', { map: MAPS[d.battle.map].name })}`;
     return { where, line: `${d.party.length === 1 ? tr('1 soldier') : tr('{n} soldiers', { n: d.party.length })} · ${tr('Lv {n}', { n: lv })} · ${tr('{n} marks', { n: d.gil || 0 })} · ${tr('{time} played', { time })} · ${ago}`, leader: lead ? tr('{name} the {job}', { name: lead.name, job: JOBS[lead.job] ? JOBS[lead.job].name : 'Footman' }) : '' };
   }
 
@@ -489,9 +614,18 @@ class Game {
       v: 5, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
       branch: this.state.branch || null, endings: this.state.endings || {}, exiled: this.state.exiled || [],
       difficulty: this.state.difficulty, errands: this.state.errands, cities: this.state.cities || {},
+      records: this.state.records || Game.freshRecords(),
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
       playtime: this.state.playtime, savedAt: now,
     };
+    // A battle in hand goes with the save, as it stands, with where it came
+    // from, so Continue can pick it up rather than lose it.
+    if (this.battle && this.battle.begun && !this.battle.over && this.flow) {
+      data.battle = this.battle.toSave(this.state.party);
+      data.battleLog = this.ui.logLines();
+      data.battleMeta = this.battleMeta || null;
+      data.flow = this.flow;
+    }
     if (!store.set(slotKey(this.state.slot || 1), JSON.stringify(data))) { this.toast(tr('The game could not be saved: storage is blocked or full.')); return false; }
     this.syncTitleButtons();
     return true;
@@ -532,6 +666,7 @@ class Game {
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
       errands: { offered: [], active: [], reports: [] },
       cities: {}, slot, playtime: Number.isFinite(d.playtime) ? d.playtime : 0,
+      records: Game.readRecords(d.records),
     };
     this.sessionStart = Date.now();
     // A save that went past the end (a finished game from before the roads
@@ -549,6 +684,50 @@ class Game {
       if (ITEMS[id] && n > 0) this.state.inventory[id] = n;
     }
     this.showWorld();
+    // A battle left standing is picked up where it was.
+    if (d.battle && d.flow && d.flow.kind && MAPS[d.battle.map] && Array.isArray(d.battle.units) && d.battle.units.length) this.resumeBattle(d.battle, d.flow, d.battleLog, d.battleMeta);
+  }
+
+  // The save goes to its slot with the battle in it, once the fight is on
+  // and command is with the player.
+  autosaveBattle() {
+    if (!this.state || !this.battle || !this.battle.begun || this.battle.over || !this.flow) return;
+    this.saveGame();
+    if (window.__updateWaiting) this.tryUpdatePrompt();
+  }
+
+  /* Leave a battle for the title with the battle kept: Continue picks it
+     up with the same turn in hand. Only between actions, so what is saved
+     is a state the engine can be put back into. */
+  async suspendBattle() {
+    const b = this.battle;
+    if (!b || b.over || !b.begun || !this.flow) return;
+    if (!this.ui.turn || this.ui.turn.mode === 'busy' || this.ui.turn.mode === 'auto') { this.toast(tr('Wait for the move to finish first.')); return; }
+    const yes = await this.ask(tr('Save the battle as it stands and leave to the title? Continue picks it up where you left it.'), { yes: tr('Suspend'), no: tr('Keep fighting') });
+    if (!yes || this.battle !== b || b.over || !this.ui.turn || this.ui.turn.mode === 'busy') return;
+    if (!this.saveGame()) return;
+    b.suspended = true;
+    b.over = true;
+    this.ui.abort();
+  }
+
+  // Back into a battle a save kept: the same flow it came from, with the
+  // story already told and the deployment already made.
+  async resumeBattle(saved, flow, log, meta) {
+    const opts = { resume: saved, resumeLog: log || [], resumeMeta: meta || null, objective: null, kind: flow.kind, flow };
+    try {
+      if (flow.kind === 'chapter') await this.startNextChapter(opts);
+      else if (flow.kind === 'city') { const city = CITIES.find(c => c.id === flow.id); if (!city) throw new Error('no city'); await this.liberateCity(city, opts); }
+      else if (flow.kind === 'trial') await this.startTrial(opts);
+      else await this.battleFlow(MAPS[saved.map], [], flow.gil || 0, opts);
+    } catch (e) {
+      console.error(e);
+      this.battle = null; this.renderer.stop();
+      for (const u of this.state.party) u.resetBattleState();
+      this.toast(tr('The battle could not be picked up and counts as a retreat.'));
+      this.saveGame();
+      this.showWorld();
+    }
   }
 
   avgLevel() { return Math.max(1, Math.round(this.state.party.reduce((a, u) => a + u.level, 0) / this.state.party.length)); }
@@ -629,6 +808,7 @@ class Game {
 
   // ---- world screen --------------------------------------------------------------------------
   showWorld() {
+    if (this.state && this.state.party.some(u => this.canLearnSomething(u))) this.tip('learn', tr('A ✦ beside a name means SP to spend. Open Formation & Jobs, pick the unit, and learn an ability or a passive on the Skills page.'));
     const s = this.state;
     const ch = this.chapterAt(s.chapter);
     $('world-gil').textContent = `${s.gil} marks`;
@@ -638,6 +818,7 @@ class Game {
       return `<div class="party-chip ${i < 5 ? '' : 'reserve'} ${away ? 'away' : ''}" title="${away ? `Away: ${ERRANDS.find(x => x.id === away.id).title}` : learn ? 'Has SP to spend in Formation' : ''}">${u.name}${learn ? ' <span class="learn-mark">✦</span>' : ''} <small>${away ? 'on an errand' : `Lv${u.level} ${u.jobData.name}`}</small></div>`;
     }).join('');
     this.renderErrands();
+    this.renderRecords();
     if (ch) {
       const o = ch.objective || { type: 'rout' };
       const goal = o.type === 'survive' ? tr('Hold out for {n} rounds', { n: o.rounds })
@@ -724,7 +905,7 @@ class Game {
     const liberable = CITIES.filter(c => this.cityReachable(c) && !this.cityOpen(c.id)).length;
     const reports = (s.errands && s.errands.reports || []).length;
     const tabs = [
-      ['road', tr('Road'), 0], ['company', tr('Company'), reports], ['cities', tr('Cities'), liberable], ['options', tr('Options'), 0],
+      ['road', tr('Road'), 0], ['company', tr('Company'), reports], ['cities', tr('Cities'), liberable], ['records', tr('Records'), 0], ['options', tr('Options'), 0],
     ];
     el.innerHTML = tabs.map(([id, label, n]) => `<button data-camp="${id}" class="${id === cur ? 'sel' : ''}">${label}${n ? `<span class="badge">${n}</span>` : ''}</button>`).join('');
     el.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.showCampTab(b.dataset.camp); });
@@ -762,7 +943,9 @@ class Game {
     if (ch) lines = ch.camp || [];
     else if (this.atFork()) lines = CHOICE.lines;
     else { const epi = s.branch && ROADS[s.branch] ? ROADS[s.branch].ending.camp : EPILOGUE_CAMP; const n = Math.min(epi.length, 2 + (s.trials || 0)); lines = epi.slice(0, n); }
-    el.innerHTML = lines.map(l => `<p>${l}</p>`).join('') || '<p class="muted">The fire burns low. Nobody has anything to say.</p>';
+    el.innerHTML = '';
+    for (const l of lines) el.appendChild(this.storyLine(l, 1.5));
+    if (!lines.length) el.innerHTML = '<p class="muted">The fire burns low. Nobody has anything to say.</p>';
   }
 
   // A word of warning when the party is walking into a chapter underprepared.
@@ -1144,7 +1327,11 @@ class Game {
     const city = CITIES.find(c => c.id === id);
     if (!city || !this.cityReachable(city)) return;
     audio.sfx('select');
-    if (this.cityOpen(id)) { this.cityView = id; this.showCampTab('cities'); this.renderCities(); $('cities').scrollIntoView({ block: 'nearest' }); }
+    if (this.cityOpen(id)) {
+      this.cityView = id; this.showCampTab('cities'); this.renderCities(); $('cities').scrollIntoView({ block: 'nearest' });
+      this.tip('city', tr('An open city is yours to use. Its tavern hires recruits already trained in an advanced trade, its market sells arms the wagon never carries, and its forge is below.'));
+      this.tip('forge', tr('The forge betters any weapon, shield, helm or armour for materials and marks, each step its own piece. Won fields leave materials behind; spare gear can be broken down for more.'));
+    }
     else this.liberateCity(city);
   }
 
@@ -1360,21 +1547,28 @@ class Game {
   // a defeat, let the caller act on the result, save, and come home. A field
   // left before a blow was struck returns null and changes nothing.
   async battleFlow(map, enemies, gil, opts, after) {
-    let res; do { res = await this.runBattle(map, enemies, gil, opts); } while (res === 'retry');
+    // Where this fight came from, so a save made in it knows the way back.
+    this.flow = opts.flow ? Object.assign({ gil }, opts.flow) : null;
+    const flow = this.flow;
+    let res, attempts = 0; do { attempts++; res = await this.runBattle(map, enemies, gil, opts); } while (res === 'retry');
+    this.flow = null;
+    if (res === 'victory' || res === 'defeat') this.noteBattle(flow, res, attempts, this.lastBattle);
+    if (res === 'suspended') { this.showScreen('title'); this.syncTitleButtons(); return null; }
     if (res === 'aborted') return null;
     if (after) await after(res);
     this.saveGame();
     this.showWorld();
+    if (this.wantFormation) { this.wantFormation = false; this.openFormation(this.state.party.findIndex(u => this.canLearnSomething(u)) >= 0 ? this.state.party.findIndex(u => this.canLearnSomething(u)) : 0); this.formTab = 'skills'; this.renderFormationDetail(); }
     return res;
   }
 
-  async liberateCity(city) {
+  async liberateCity(city, resume) {
     const map = MAPS[city.map];
     const lvl = Math.max(city.level, this.avgLevel() - 1);
     const cands = this.spawnSpots(map, 5);
     const enemies = city.enemies.map((e, i) => Object.assign({ level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }, e));
-    await this.story(`${city.name}, ${city.held}`, city.intro);
-    await this.battleFlow(map, enemies, city.gil, { objective: { type: 'rout' } }, async (res) => {
+    if (!resume) await this.story(`${city.name}, ${city.held}`, city.intro);
+    await this.battleFlow(map, enemies, city.gil, Object.assign({ objective: { type: 'rout' }, flow: { kind: 'city', id: city.id } }, resume || {}), async (res) => {
       if (res !== 'victory') return;
       this.state.cities[city.id] = true;
       this.saveGame(); // before the outro, so leaving during it cannot lose the city
@@ -1657,16 +1851,97 @@ class Game {
   }
 
   // ---- story screen ----------------------------------------------------------------------------
+  // ---- faces for the story ------------------------------------------------
+  /* The cast a page can show: the company as it is, anyone who has left it,
+     and the recruits still to come, each painted from their own sprite. A
+     name the company does not know (a boss, a townsman) has no face, and
+     the line stands alone. */
+  castUnit(name) {
+    if (!name) return null;
+    this._cast = this._cast || {};
+    if (this._cast[name] !== undefined) return this._cast[name];
+    let u = (this.state && this.state.party.find(p => p.name === name)) || null;
+    if (!u && this.state) { const ex = (this.state.exiled || []).find(p => p.name === name); if (ex) u = Unit.fromSave(Object.assign({ team: 'player' }, ex)); }
+    if (!u) { const ch = CAMPAIGN.find(c => c.recruit && c.recruit.name === name); if (ch) u = new Unit({ name, job: ch.recruit.job, level: ch.recruit.level, team: 'player' }); }
+    if (!u) { const p = STARTING_PARTY.find(p => p.name === name); if (p) u = new Unit(Object.assign({ team: 'player' }, p)); }
+    // A face found in the party is not cached: the party changes.
+    if (!(this.state && this.state.party.includes(u))) this._cast[name] = u;
+    return u;
+  }
+  // "Garret: ..." or "Bram, from the top of the wagon: ..." opens a line; a
+  // line may carry two such turns, set apart by a double space.
+  static speakerParts(line) {
+    const parts = String(line).split(/\s{2,}(?=[A-Z][a-z]+(?: [A-Z][a-z]+)?(?:, [^:]{1,48})?: )/);
+    return parts.map(p => {
+      const m = /^([A-Z][a-z]+(?: [A-Z][a-z]+)?)(?:, ([^:]{1,48}))?: (.+)$/s.exec(p);
+      return m ? { name: m[1], aside: m[2] || '', text: m[3] } : { name: null, aside: '', text: p };
+    });
+  }
+  // Who a narrative line is about: the first of the cast it names.
+  castNamed(text) {
+    const names = new Set([...(this.state ? this.state.party.map(u => u.name) : []), ...STARTING_PARTY.map(p => p.name), ...CAMPAIGN.filter(c => c.recruit).map(c => c.recruit.name)]);
+    const m = String(text).match(/[A-Z][a-z]+/g) || [];
+    return m.find(n => names.has(n) && this.castUnit(n)) || null;
+  }
+  /* A line of the story laid out: a speaker's turn gets the speaker's face
+     and name beside the words; a narrative line stands as prose. */
+  storyLine(line, size = 2) {
+    const wrap = document.createElement('div');
+    wrap.className = 'line';
+    for (const part of Game.speakerParts(line)) {
+      const u = part.name ? this.castUnit(part.name) : null;
+      const row = document.createElement('div');
+      row.className = part.name ? (u ? 'turn' : 'turn noface') : 'prose';
+      if (u) {
+        const cv = document.createElement('canvas'); cv.width = 24 * size; cv.height = 24 * size; cv.className = 'face';
+        paintUnitSprite(cv, u, size);
+        row.appendChild(cv);
+      }
+      const body = document.createElement('div');
+      if (part.name) {
+        const who = document.createElement('b'); who.className = 'who'; who.textContent = part.aside ? `${part.name}, ${tr(part.aside)}` : part.name;
+        body.appendChild(who);
+      }
+      const p = document.createElement('p'); p.textContent = tr(part.text); body.appendChild(p);
+      row.appendChild(body);
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
+  // The faces of those a page has named so far, the one speaking last lit.
+  storyCast(lines, upTo) {
+    const strip = $('story-cast'); if (!strip) return;
+    const seen = [];
+    let speaking = null;
+    for (let k = 0; k < upTo; k++) {
+      for (const part of Game.speakerParts(lines[k])) {
+        const n = part.name && this.castUnit(part.name) ? part.name : this.castNamed(part.text);
+        if (n && !seen.includes(n)) seen.push(n);
+        if (n && k === upTo - 1) speaking = n;
+      }
+    }
+    strip.innerHTML = '';
+    for (const n of seen.slice(0, 8)) {
+      const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40; cv.title = n;
+      cv.className = n === speaking ? 'speaking' : '';
+      paintUnitSprite(cv, this.castUnit(n), 1.6);
+      strip.appendChild(cv);
+    }
+    strip.hidden = !seen.length;
+  }
+
   story(title, lines) {
     return new Promise(resolve => {
-      $('story-title').textContent = title;
+      $('story-title').textContent = tr(title);
       const box = $('story-text');
       box.innerHTML = '';
+      this.storyCast(lines, 0);
       let i = 0;
       const btn = $('btn-story-next'), skip = $('btn-story-skip');
       const next = () => {
         if (i < lines.length) {
-          const p = document.createElement('p'); p.textContent = lines[i++]; box.appendChild(p);
+          box.appendChild(this.storyLine(lines[i++]));
+          this.storyCast(lines, i);
           btn.textContent = i < lines.length ? tr('Continue') : tr('Onward');
           skip.hidden = i >= lines.length;
         } else { btn.onclick = null; skip.onclick = null; resolve(); }
@@ -1698,13 +1973,13 @@ class Game {
     return { map, jobs, level, enemies: jobs, gil: 400 + 120 * n, title: titles[(n - 1) % titles.length] };
   }
 
-  async startTrial() {
+  async startTrial(resume) {
     const n = (this.state.trials || 0) + 1, t = this.trialSpec(n);
     const map = MAPS[t.map];
     const cands = this.spawnSpots(map);
     const enemies = t.jobs.map((job, i) => ({ job, level: t.level, x: cands[i % cands.length].x, y: cands[i % cands.length].y }));
-    await this.story(`Trial ${n}: ${t.title}`, [`${map.name}. Word has spread of the company that ended the war, and ${enemies.length} have come to test it.`]);
-    await this.battleFlow(map, enemies, t.gil, { objective: { type: 'rout' } }, (res) => {
+    if (!resume) await this.story(`Trial ${n}: ${t.title}`, [`${map.name}. Word has spread of the company that ended the war, and ${enemies.length} have come to test it.`]);
+    await this.battleFlow(map, enemies, t.gil, Object.assign({ objective: { type: 'rout' }, flow: { kind: 'trial', n } }, resume || {}), (res) => {
       if (res === 'victory') { this.state.trials = n; this.state.victories++; }
     });
   }
@@ -1810,8 +2085,36 @@ class Game {
       c.restore();
       obstacles.push({ x: x - 9, y: y - 15, w: 18, h: 22 });
     }
-    // The company, where the story has reached: beside the stop.
+    // The company, where the story has reached: beside the stop. A chapter
+    // just won is walked first: the marker goes along the road from the old
+    // stop to the new, over a still copy of the map, and the chapter's card
+    // slides in when it arrives.
     const leader = this.state.party.find(u => u.leader) || this.state.party[0];
+    const travel = this.travel && this.travel.to < pts.length && this.travel.from < pts.length ? this.travel : null;
+    this.travel = null;
+    if (this._travelAnim) { cancelAnimationFrame(this._travelAnim); this._travelAnim = null; }
+    if (leader && travel && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      const still = document.createElement('canvas'); still.width = cv.width; still.height = cv.height; still.getContext('2d').drawImage(cv, 0, 0);
+      const face = document.createElement('canvas'); paintUnitSprite(face, leader, 1);
+      const A = pts[travel.from], B = pts[travel.to];
+      const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 + (travel.to % 2 ? 18 : -18) };
+      const t0 = performance.now(), dur = 1100;
+      const step = (now) => {
+        const t = Math.min(1, (now - t0) / dur), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const x = (1 - e) * (1 - e) * A.x + 2 * (1 - e) * e * C.x + e * e * B.x, y = (1 - e) * (1 - e) * A.y + 2 * (1 - e) * e * C.y + e * e * B.y;
+        c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(still, 0, 0); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.imageSmoothingEnabled = false;
+        const bob = Math.abs(Math.sin(t * Math.PI * 6)) * 3;
+        c.drawImage(face, Math.round(x - face.width / 2), Math.round(y - face.height - 2 - bob));
+        this.travelPos = { x, y, t };
+        if (t < 1 && this.screen === 'world') { this._travelAnim = requestAnimationFrame(step); return; }
+        this._travelAnim = null; this.travelPos = null;
+        this.drawWorldMap();
+        const card = $('world-next'); if (card) { card.classList.remove('arrive'); void card.offsetWidth; card.classList.add('arrive'); }
+      };
+      this._travelAnim = requestAnimationFrame(step);
+      return;
+    }
     if (leader) {
       const at = pts[Math.min(this.state.chapter, pts.length - 1)];
       const face = document.createElement('canvas');
@@ -1887,15 +2190,17 @@ class Game {
     return out;
   }
 
-  async startNextChapter() {
+  async startNextChapter(resume) {
     if (this.atFork()) return this.openChoice();
     const ch = this.chapterAt(this.state.chapter);
-    if (!ch) return this.startTrial();
-    await this.story(ch.title, ch.intro);
+    if (!ch) return this.startTrial(resume);
+    if (!resume) await this.story(ch.title, ch.intro);
     // Experience and SP are earned even in a losing battle, so the run is
     // saved either way rather than letting a defeat quietly discard it.
-    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, talk: ch.talk, kind: 'chapter' }, async (result) => {
+    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, Object.assign({ objective: ch.objective, talk: ch.talk, kind: 'chapter', flow: { kind: 'chapter', index: this.state.chapter } }, resume || {}), async (result) => {
       if (result !== 'victory') return;
+      // The road ahead is walked when the camp next shows: from here to there.
+      this.travel = { from: this.state.chapter, to: this.state.chapter + 1 };
       this.state.chapter++;
       this.state.victories++;
       if (ch.recruit) {
@@ -1973,7 +2278,7 @@ class Game {
     if (!(await this.ask(`Revisit ${ch.title}? The same foes, half the pay, and nothing in the story changes.`, { yes: 'Revisit' }))) return;
     const floor = this.avgLevel() - 1;
     const enemies = ch.enemies.map(e => Object.assign({}, e, { level: Math.max(e.level, floor) }));
-    await this.battleFlow(MAPS[ch.map], enemies, Math.floor(ch.gil / 2), { objective: ch.objective });
+    await this.battleFlow(MAPS[ch.map], enemies, Math.floor(ch.gil / 2), { objective: ch.objective, flow: { kind: 'revisit', index: i } });
   }
 
   async startTraining() {
@@ -1986,16 +2291,22 @@ class Game {
     const cands = this.spawnSpots(map);
     const enemies = pool.map((job, i) => ({ job, level: lvl, x: cands[i % cands.length].x, y: cands[i % cands.length].y }));
     await this.story('Training', [`${map.name}. Word has it that ${pool.length} hostiles are camped here. Good practice.`]);
-    await this.battleFlow(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' } });
+    await this.battleFlow(map, enemies, 300 + lvl * 70, { objective: { type: 'rout' }, flow: { kind: 'training' } });
   }
 
   async runBattle(mapDef, enemySpecs, gilReward, opts = {}) {
     // What kind of fight this is: the guide speaks only on the first chapter.
     this.battleKind = opts.kind || 'other';
     const roster = this.state.party.filter(u => !this.errandOf(u));
-    const levelBefore = new Map(roster.map(u => [u, u.level]));
-    const jpBefore = new Map(roster.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
-    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty, opts.talk);
+    // What each unit had when the fight began, for the results; a battle
+    // picked up from a save keeps the figures from its first beginning.
+    const meta = opts.resumeMeta || { level: Object.fromEntries(roster.map(u => [u.id, u.level])), jp: Object.fromEntries(roster.map(u => [u.id, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)])) };
+    this.battleMeta = meta;
+    const levelBefore = new Map(roster.map(u => [u, meta.level[u.id] !== undefined ? meta.level[u.id] : u.level]));
+    const jpBefore = new Map(roster.map(u => [u, meta.jp[u.id] !== undefined ? meta.jp[u.id] : Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
+    const battle = opts.resume
+      ? Battle.restore(opts.resume, this.state.party, this.ui.hooks())
+      : Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty, opts.talk);
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
     this.ui.showObjective();
@@ -2010,7 +2321,11 @@ class Game {
     this.renderer.start();
     // Let the deployment panels lay out, then frame the board in what is left.
     requestAnimationFrame(() => { this.ui.measureInsets(); this.renderer.centerCamera(); });
-    if (!opts.skipDeploy) await this.ui.deployPhase(battle, roster);
+    if (!opts.skipDeploy && !opts.resume) await this.ui.deployPhase(battle, roster);
+    if (opts.resume) this.ui.restoreLog(opts.resumeLog);
+    battle.begun = true;
+    // A beast on the field, and someone who could win it over: say so once.
+    if (!opts.resume && battle.units.some(e => e.team === 'enemy' && PETS[e.job] && !e.boss) && roster.some(u => u.x >= 0 && u.allAbilities().some(id => ABILITIES[id] && ABILITIES[id].effects.some(ef => ef.type === 'tame')))) this.tip('tame', tr('A creature on this field can be won over: wear it down, then use Tame on it while it is weak, and it fights for the company from then on.'));
     this.ui.measureInsets();
     this.renderer.centerCamera();
     if (battle.over && battle.result === 'defeat' && !battle.tick) {
@@ -2021,17 +2336,20 @@ class Game {
       this.showWorld();
       return 'aborted';
     }
-    this.ui.log(`Battle begins at ${mapDef.name}!`, 'lvl');
+    if (!opts.resume) this.ui.log(`Battle begins at ${mapDef.name}!`, 'lvl');
     let result;
     try {
       result = await battle.run();
-      await sleep(600);
+      if (!battle.suspended) await sleep(600);
     } finally {
       // Whatever happened in there, the draw loop does not outlive the battle.
       this.renderer.stop();
     }
+    // Suspended: the save has it; nothing is settled and nothing is lost.
+    if (battle.suspended) { this.battle = null; this.ui.unbind && this.ui.unbind(); return 'suspended'; }
     // Who stood on the field, for the results screen, before the battle is
     // let go of.
+    this.lastBattle = { turns: battle.turnNo, killsBy: battle.rewards.killsBy || {} };
     const fought = battle.units.filter(u => u.team === 'player' && (u.x >= 0 || u.carriedOff));
     // Who ended it on the ground, taken now: everyone is revived below, before
     // the results screen draws them.
@@ -2072,6 +2390,7 @@ class Game {
       r.events.push(`${battle.tamed.map(t => t.name).join(', ')} slip${battle.tamed.length === 1 ? 's' : ''} away in the confusion.`);
     }
     const again = await this.results(result, r, battle.endReason, fought, fell, gone);
+    if (again === 'formation') this.wantFormation = true;
     return again === 'retry' ? 'retry' : result;
   }
 
@@ -2153,7 +2472,10 @@ class Game {
         note.textContent = `✦ ${learners.length === 1 ? tr('{who} has enough SP for something new. Spend it in Formation.', { who }) : tr('{who} have enough SP for something new. Spend it in Formation.', { who })}`;
         roll.after(note);
       }
-      $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };
+      $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; $('btn-spend').onclick = null; resolve(); };
+      // SP to spend: straight to Formation once the battle is wound up.
+      $('btn-spend').hidden = !learners.length;
+      $('btn-spend').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; $('btn-spend').onclick = null; resolve('formation'); };
       // A lost battle can be fought again at once, without the story before it.
       $('btn-retry').hidden = result !== 'defeat';
       $('btn-retry').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve('retry'); };

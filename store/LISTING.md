@@ -452,6 +452,19 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.14.0**
+
+    The journey pass. A battle can be put down and picked up: Suspend saves it as it stands, the
+    save is written at every turn in hand anyway, and Continue brings it back with the same turn
+    in hand. The story has faces: a speaker's turn carries their face and name, at the campfire
+    and on the story page, and a page shows who it has named. A word the first time something new
+    opens: a city and its forge, SP to spend, a beast that could be won over. A Records tab at
+    camp, and New Game + once an ending is seen: the same company, every job and ability kept, at
+    level one on Paladin. The road is walked after each chapter is won. The Millbrook wolves come
+    to the bridgehead, beasts stand and bite rather than kite, and the other side goes for an
+    escorted charge. Spend SP from the results screen, toasts clear of the camp's buttons, the
+    phone's turn banner at the foot of the board, and the help in three pages.
+
 **1.13.0**
 
     The polish pass. Marks on the field: twelve chapters now ask you to see a charge to the mark,

@@ -200,6 +200,82 @@ class Battle {
     return b;
   }
 
+  // ---- suspending a battle ------------------------------------------------
+  /* The battle as it stands, in plain data: enough to put every unit back
+     where it was with what it had, every charge in the air, the objective's
+     count, the crystals on the ground and whose turn it was. Party units are
+     referred to by id, since the save keeps them; everyone else is carried
+     whole. */
+  toSave(party = []) {
+    const mapId = Object.keys(MAPS).find(k => MAPS[k] === this.mapDef) || null;
+    const uid = u => (u ? u.id : null);
+    const abilityId = ab => Object.keys(ABILITIES).find(k => ABILITIES[k] === ab) || null;
+    const state = u => ({
+      x: u.x, y: u.y, hp: u.hp, mp: u.mp, ct: u.ct, facing: u.facing, mods: u.mods, statuses: u.statuses,
+      airborne: u.airborne, turnFlags: u.turnFlags, koCount: u.koCount, carriedOff: u.carriedOff,
+      deathLogged: !!u._deathLogged, regenFired: !!u._regenFired, guardOf: uid(u.guardOf),
+      saidHalf: !!u.saidHalf, saidFall: !!u.saidFall, phases: u.phases || null, lines: u.lines || null,
+      gilStolen: u.gilStolen || 0, gilFound: u.gilFound || 0, acted: this.actedThisRound.has(u),
+    });
+    const o = this.objective;
+    return {
+      map: mapId, tick: this.tick, turnNo: this.turnNo, round: this.round, difficulty: this.difficulty || null, talk: this.talk || null,
+      objective: Object.assign({}, o, {
+        leader: uid(o.leader), target: uid(o.target), charge: uid(o.charge),
+        goal: o.goal ? { x: o.goal.x, y: o.goal.y } : null, goals: undefined,
+      }),
+      units: this.units.map(u => Object.assign(party.includes(u) ? { ref: u.id } : Object.assign(u.toSave(), { boss: u.boss, escort: u.escort, pet: u.pet }), { state: state(u) })),
+      pending: this.pending.map(p => ({ unit: uid(p.unit), ability: abilityId(p.ability), tx: p.tx, ty: p.ty, ct: p.ct, speed: p.speed })),
+      crystals: this.crystals || [], tamed: this.tamed.map(uid), rewards: this.rewards, spoken: this.spoken || [],
+      active: uid(this.active), retreated: !!this.retreated, maxDeploy: this.maxDeploy,
+    };
+  }
+
+  // The battle put back from what toSave kept. Party units come from the
+  // party the save rebuilt; the rest are made anew from their own record.
+  static restore(data, party, hooks) {
+    const mapDef = MAPS[data.map];
+    if (!mapDef) throw new Error('unknown map');
+    const b = new Battle(mapDef, [], [], hooks);
+    const byId = {};
+    for (const su of data.units || []) {
+      let u;
+      if (su.ref) { u = party.find(p => p.id === su.ref); if (!u) continue; }
+      else { u = new Unit(Object.assign({ team: 'enemy' }, su)); u.boss = !!su.boss; u.escort = !!su.escort; }
+      u.resetBattleState();
+      const s = su.state || {};
+      Object.assign(u, {
+        x: s.x, y: s.y, hp: s.hp, mp: s.mp, ct: s.ct || 0, facing: s.facing || 'S', mods: s.mods || {}, statuses: s.statuses || {},
+        airborne: !!s.airborne, turnFlags: s.turnFlags || { moved: false, acted: false }, koCount: s.koCount === null ? undefined : s.koCount,
+        carriedOff: !!s.carriedOff, _deathLogged: !!s.deathLogged, _regenFired: !!s.regenFired, saidHalf: !!s.saidHalf, saidFall: !!s.saidFall,
+        gilStolen: s.gilStolen || 0, gilFound: s.gilFound || 0,
+      });
+      if (s.phases) u.phases = s.phases;
+      if (s.lines) u.lines = s.lines;
+      b.units.push(u); byId[u.id] = u;
+      if (s.acted) b.actedThisRound.add(u);
+    }
+    for (const su of data.units || []) { const u = byId[su.ref || su.id]; if (u && su.state && su.state.guardOf) u.guardOf = byId[su.state.guardOf] || null; }
+    b.tick = data.tick || 0; b.turnNo = data.turnNo || 0; b.round = data.round || 1;
+    b.difficulty = data.difficulty || undefined; b.talk = data.talk || null;
+    const o = Object.assign({}, data.objective || { type: 'rout' });
+    o.leader = byId[o.leader] || null; o.target = byId[o.target] || null; o.charge = byId[o.charge] || null;
+    o.goal = o.goal ? b.grid.tile(o.goal.x, o.goal.y) : null; o.goals = o.goal ? [o.goal] : [];
+    b.objective = o;
+    b.deployZone = computeDeployZone(b.grid, mapDef.deploy, b.units.filter(u => u.team === 'enemy'));
+    b.deployKeys = new Set(b.deployZone.map(t => `${t.x},${t.y}`));
+    b.maxDeploy = data.maxDeploy || Math.min(5, b.deployZone.length);
+    b.pending = (data.pending || []).map(p => ({ unit: byId[p.unit], ability: ABILITIES[p.ability], tx: p.tx, ty: p.ty, ct: p.ct, speed: p.speed })).filter(p => p.unit && p.ability);
+    b.crystals = data.crystals || [];
+    b.tamed = (data.tamed || []).map(id => byId[id]).filter(Boolean);
+    b.rewards = data.rewards || { exp: 0, gil: 0, events: [] };
+    b.spoken = data.spoken || []; b._talkQueue = [];
+    b.retreated = !!data.retreated;
+    b.resumed = true;
+    b.resumeActive = byId[data.active] || null;
+    return b;
+  }
+
   // ---- deployment ---------------------------------------------------------
   deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0 && !u.escort); }
   canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.occupantAt(x, y); }
@@ -909,6 +985,9 @@ class Battle {
     if (jpEv) { this.log(jpEv, 'lvl'); this.rewards.events.push(jpEv); }
     this.rewards.exp += exp;
     this.rewards.gil += 30 + t.level * 14;
+    // For the record: who felled whom, by trade.
+    this.rewards.killsBy = this.rewards.killsBy || {};
+    this.rewards.killsBy[user.job] = (this.rewards.killsBy[user.job] || 0) + 1;
   }
 
   // ---- tempo loop -------------------------------------------------------
@@ -1055,7 +1134,17 @@ class Battle {
     // A leader left in reserve cannot be lost, so the rule does not apply.
     if (this.objective.leader && !this.onField(this.objective.leader)) this.objective.leader = null;
     if (this.hooks.refresh) this.hooks.refresh();
-    await this.openingWords();
+    if (!this.resumed) await this.openingWords();
+    // A battle picked up where it was left goes on with the turn that was
+    // in hand, without the start-of-turn effects it has already had.
+    if (this.resumeActive) {
+      const u = this.resumeActive; this.resumeActive = null;
+      if (u.alive && this.onField(u) && !this.over) {
+        this.turnNo--;
+        await this.takeTurn(u, true);
+        if (this.checkEnd()) return this.result;
+      }
+    }
     while (!this.over) {
       // Advance one tick.
       this.tick++;
@@ -1116,13 +1205,13 @@ class Battle {
     return this.result;
   }
 
-  async takeTurn(unit) {
+  async takeTurn(unit, resumed = false) {
     await this.flushTalk();
     this.active = unit;
     this.turnNo++;
-    unit.turnFlags = { moved: false, acted: false };
+    if (!resumed) unit.turnFlags = { moved: false, acted: false };
     // Poison / regen at turn start.
-    if (unit.hasStatus('poison')) {
+    if (!resumed && unit.hasStatus('poison')) {
       const v = Math.max(1, Math.floor(unit.maxHp / 8));
       unit.hp = Math.max(0, unit.hp - v);
       this.log(`${unit.name} takes ${v} poison damage.`, 'dmg');
@@ -1135,13 +1224,13 @@ class Battle {
         if (!unit.alive) { this.log(`${unit.name} succumbs to poison!`, 'ko'); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
       }
     }
-    if (unit.hasPassive('mpRegen') && unit.mp < unit.maxMp) {
+    if (!resumed && unit.hasPassive('mpRegen') && unit.mp < unit.maxMp) {
       const v = Math.min(Math.ceil(unit.maxMp / 10), unit.maxMp - unit.mp);
       unit.mp += v;
       this.log(`${unit.name} draws ${v} MP from the well.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v} MP`, '#7cc8ff');
     }
-    if (unit.hasStatus('regen')) {
+    if (!resumed && unit.hasStatus('regen')) {
       const v = Math.min(Math.max(1, Math.floor(unit.maxHp / 8)), unit.maxHp - unit.hp);
       unit.hp += v;
       if (v > 0) { this.log(`${unit.name} regenerates ${v} HP.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v}`, '#7cff7c'); }
@@ -1339,10 +1428,20 @@ class Battle {
     const o = this.objective, g = o.goal;
     if (!g) return 0;
     const on = c.x === g.x && c.y === g.y;
-    if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : 0);
-    // The other side moves to cut off a charge; a leader making for the mark
-    // it hunts as it would anyone, rather than camping the mark.
-    if (o.type === 'escort' && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
+    // On a hold the other side makes for the mark; of the company, under
+    // Auto, only the one nearest it goes to stand there, so a narrow way is
+    // not jammed with everyone, and the rest fight as they would.
+    if (o.type === 'hold') {
+      if (unit.team === 'enemy') return on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5;
+      if (on) return 25;
+      if (this.onGoal('player')) return 0;
+      const mine = this.alliesOf(unit).filter(a => a.alive && this.onField(a) && !a.escort);
+      const holder = mine.sort((p, q) => Grid.dist(p.x, p.y, g.x, g.y) - Grid.dist(q.x, q.y, g.x, g.y) || p.id.localeCompare(q.id))[0];
+      return holder === unit ? -Grid.dist(c.x, c.y, g.x, g.y) * 0.8 : 0;
+    }
+    // The other side goes for the charge itself rather than camping the
+    // mark: a fight comes to the company, not a stalemate at the far end.
+    if (o.type === 'escort' && unit.team === 'enemy') { const ch = o.charge; return ch && ch.alive && this.onField(ch) ? -Grid.dist(c.x, c.y, ch.x, ch.y) * 0.25 : 0; }
     // The leader under Auto goes for the mark it is asked to reach.
     if (o.type === 'reach' && unit === o.leader) return on ? 60 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.8;
     return 0;
@@ -1362,8 +1461,9 @@ class Battle {
       const near = friends.filter(f => Grid.dist(c.x, c.y, f.x, f.y) <= 2).length;
       const d = danger(c.x, c.y);
       let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + (near ? 30 : 0) + Math.min(near, 3) * 8;
-      // The mark draws it on only where the way is safe and its own are near.
-      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 || !near ? 0.3 : 3);
+      // The mark draws it on where the way is safe: ground nobody can reach
+      // next turn is ground worth crossing, friends near or not.
+      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 ? 0.3 : 3);
       if (s > bestScore) { bestScore = s; best = c; }
     }
     if (best && !(best.x === unit.x && best.y === unit.y)) {
@@ -1445,6 +1545,9 @@ class Battle {
     const precious = unit === this.objective.leader && this.objective.protectLeader;
     const care = (ranged ? 45 : 22) * (hurt ? 1.5 : 1) * (precious ? 2 : 1);
     const risk = (c) => Math.min(care, care * danger(c.x, c.y) / Math.max(1, unit.maxHp));
+    // A beast keeps to its pack: a tile beside another of its kind is worth more.
+    const kin = unit.jobData.kind === 'monster' ? this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && a.job === unit.job) : [];
+    const pack = (c) => kin.some(a => Grid.dist(c.x, c.y, a.x, a.y) === 1);
     for (const c of candidates) {
       for (const ab of abilities) {
         const targets = this.targetTilesFor(unit, ab, c.x, c.y);
@@ -1453,16 +1556,32 @@ class Battle {
           if (s <= 0) continue;
           // Slight preference for staying put and for higher ground, and a
           // marked one for ground the other side cannot easily answer on.
-          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) + this.markWorth(unit, c);
+          // A solid blow is worth taking from risky ground; only a poke is
+          // not, so a bowman does not spend the battle backing away.
+          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) * (s >= 40 ? 0.4 : 1) + this.markWorth(unit, c) + (pack(c) ? 6 : 0);
           if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y, kill: this.killsAnyone(unit, ab, c.x, c.y, t.x, t.y) };
         }
       }
     }
     const near = this.nearestEnemyOf(unit);
+    // Badly hurt, with a crystal in reach: a full restore is worth more than
+    // one more blow, unless that blow ends the fight for someone.
+    if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
+      const c = candidates.find(c => this.crystalAt(c.x, c.y) && (c.x !== unit.x || c.y !== unit.y));
+      if (c && best.score < 60) {
+        await this.moveUnit(unit, this.grid.pathTo(reach, c.x, c.y));
+        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
+        return;
+      }
+    }
+    // A beast with no healer behind it has nowhere to fall back to, and a
+    // chase across the field is no fight at all: it stands and bites.
+    const healersNear = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
+    const wouldKite = unit.jobData.kind === 'monster' && !healersNear.length;
     // Badly hurt, with no kill in reach: fall back toward a healer, out of
     // the other side's reach, and let the healer do the work.
-    if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss) {
-      const healers = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
+    if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss && !wouldKite) {
+      const healers = healersNear;
       const here = danger(unit.x, unit.y);
       let safe = null, bs = -1e9;
       for (const c of candidates) {
@@ -1479,16 +1598,6 @@ class Battle {
         if (self) await this.useAbility(unit, self, unit.x, unit.y);
         if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
         await sleep(200);
-        return;
-      }
-    }
-    // Badly hurt, with a crystal in reach: a full restore is worth more than
-    // one more blow, unless that blow ends the fight for someone.
-    if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
-      const c = candidates.find(c => this.crystalAt(c.x, c.y) && (c.x !== unit.x || c.y !== unit.y));
-      if (c && best.score < 60) {
-        await this.moveUnit(unit, this.grid.pathTo(reach, c.x, c.y));
-        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
         return;
       }
     }

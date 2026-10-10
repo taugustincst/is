@@ -1076,6 +1076,8 @@ const mk = (n, job, lvl, opts = {}) => {
     const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
     const place = (b, u, x, y) => { u.x = x; u.y = y; };
     const flat = g.MAPS.millbrook;
+    // The rolls are pinned where a check is about the choice, not the luck.
+    const sure = async (fn) => { const r = Math.random; Math.random = () => 0; try { return await fn(); } finally { Math.random = r; } };
     // a. Two foes in reach, one at half health: the wounded one is struck.
     {
       const party = [mk('Hale', 'knight', 8), mk('Hurt', 'knight', 8)];
@@ -1085,7 +1087,7 @@ const mk = (n, job, lvl, opts = {}) => {
       place(b, party[0], 4, 5); place(b, party[1], 6, 5);
       party[1].hp = Math.floor(party[1].maxHp * 0.45);
       const before = [party[0].hp, party[1].hp];
-      await b.aiTurn(foe);
+      await sure(() => b.aiTurn(foe));
       ok('the AI finishes the wounded before it starts on the hale', party[1].hp < before[1] && party[0].hp === before[0], `hale ${before[0]}->${party[0].hp}, hurt ${before[1]}->${party[1].hp}`);
     }
     // b. A knight and a cleric side by side: the cleric is struck.
@@ -1096,7 +1098,7 @@ const mk = (n, job, lvl, opts = {}) => {
       foe.learned = {};
       place(b, party[0], 4, 5); place(b, party[1], 6, 5);
       const before = [party[0].hp, party[1].hp];
-      await b.aiTurn(foe);
+      await sure(() => b.aiTurn(foe));
       ok('the AI strikes the healer first', party[1].hp < before[1], `knight ${before[0]}->${party[0].hp}, cleric ${before[1]}->${party[1].hp}`);
     }
     // c. An archer with room: it shoots from where the swordsman cannot reach it.
@@ -1151,6 +1153,71 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('a boss knows everything', g.JOBS.knight.abilities.every(id => boss.learned[id]));
     const esc = g.CAMPAIGN.filter(c => c.objective.type === 'escort');
     ok('every escorted charge outranks the field it crosses', esc.length >= 4 && esc.every(c => c.objective.escort.level > Math.max(...c.enemies.filter(e => !e.boss).map(e => e.level))));
+  }
+
+  /* A battle suspended and picked up: everything that was on the field is
+     put back as it was, the charge in the air lands, the turn in hand goes
+     on, and the fight runs to an end from there. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const party = [mk('Lead', 'knight', 8, { leader: true }), mk('Mage', 'blackMage', 8)];
+    for (const u of party) u.learned = {};
+    let stopAt = 0, b;
+    const hooks = { log: () => {}, awaitPlayerTurn: async (u) => { if (b.turnNo >= 4) { b.over = true; b.result = 'suspended'; stopAt = b.turnNo; return; } return b.aiTurn(u); } };
+    b = g.Battle.setup(g.MAPS.verdant, party, [{ job: 'knight', level: 6, x: 8, y: 2, name: 'Foe' }, { job: 'archer', level: 6, x: 9, y: 3, name: 'Bow' }], hooks, { type: 'rout', protectLeader: true }, 'knight');
+    party[0].x = 3; party[0].y = 3; party[1].x = 2; party[1].y = 3;
+    await b.run();
+    ok('a battle stops at a turn in hand', stopAt >= 4 && b.units.some(u => u.team === 'enemy' && u.alive), `turn ${stopAt}`);
+    // Dress the state up with things a save must carry.
+    b.over = false; b.result = null;
+    const foe = b.units.find(u => u.name === 'Foe');
+    foe.hp = Math.max(1, foe.hp - 5); foe.statuses = { slow: 3 };
+    b.pending.push({ unit: party[1], ability: g.ABILITIES.fire, tx: foe.x, ty: foe.y, ct: 40, speed: 20 });
+    b.crystals.push({ x: 5, y: 5, from: 'Nobody', team: 'enemy', t0: 1 });
+    b.spoken.push({ name: 'Lead', text: 'Hold.' });
+    b.active = party[0]; // the turn in hand, as it is while the player is asked
+    const nPending = b.pending.length, nCrystals = b.crystals.length;
+    const data = JSON.parse(JSON.stringify(b.toSave(party)));
+    ok('the snapshot refers to party units by id and carries the rest whole', data.units.filter(u => u.ref).length === 2 && data.units.filter(u => !u.ref && u.job).length === 2 && data.pending.length === nPending && data.crystals.length === nCrystals, JSON.stringify(data.units.map(u => u.ref || u.name)));
+    // Put it back, into a fresh party as a load would make.
+    const party2 = party.map(u => g.Unit.fromSave(u.toSave()));
+    const r = g.Battle.restore(data, party2, quiet);
+    const foe2 = r.units.find(u => u.name === 'Foe');
+    ok('the field is as it was', r.round === b.round && r.turnNo === b.turnNo && r.units.length === b.units.length && foe2 && foe2.hp === foe.hp && foe2.x === foe.x && foe2.statuses.slow === 3 && r.crystals.length === nCrystals && r.spoken.length === 1, `${r.units.length} units, foe hp ${foe2 && foe2.hp}`);
+    const lead2 = party2[0];
+    ok('the party units are the party\'s own, placed where they stood', r.units.includes(lead2) && lead2.x === party[0].x && lead2.y === party[0].y && r.objective.leader === lead2, `${lead2.x},${lead2.y}`);
+    const charge = r.pending.find(p => p.ability === g.ABILITIES.fire);
+    ok('the charge in the air is still in the air', r.pending.length === nPending && charge && charge.unit === party2[1] && charge.ct === 40, `${r.pending.length} of ${nPending}`);
+    ok('the turn in hand is remembered', !!r.resumeActive && r.resumeActive.id === b.active.id, r.resumeActive && r.resumeActive.name);
+    const res = await r.run();
+    ok('the battle runs to an end from there, without saying its opening words again', ['victory', 'defeat'].includes(res) && r.spoken.length === 1, `${res}, ${r.spoken.length} lines`);
+  }
+
+  /* No chases: a beast with no healer behind it stands and bites rather
+     than kiting across the field, a beast keeps to its pack, and under Auto
+     the company goes for an unheld mark. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const party = [mk('Lead', 'knight', 6, { leader: true })];
+    const b = g.Battle.setup(g.MAPS.verdant, party, [{ job: 'wolf', level: 3, x: 5, y: 3 }, { job: 'wolf', level: 3, x: 8, y: 8 }], quiet, { type: 'rout' }, 'knight');
+    party[0].x = 4; party[0].y = 3; party[0].learned = {};
+    const [w1, w2] = b.units.filter(u => u.team === 'enemy');
+    w1.hp = Math.floor(w1.maxHp * 0.2);
+    const hpBefore = party[0].hp;
+    await b.aiTurn(w1);
+    ok('a badly hurt wolf with no healer stands and bites', g.Grid.dist(w1.x, w1.y, party[0].x, party[0].y) <= 1 && party[0].hp < hpBefore, `distance ${g.Grid.dist(w1.x, w1.y, party[0].x, party[0].y)}, hp ${hpBefore}->${party[0].hp}`);
+    // The second wolf comes to stand beside the first where it can.
+    w2.x = 7; w2.y = 4;
+    await b.aiTurn(w2);
+    ok('a wolf keeps to its pack', g.Grid.dist(w2.x, w2.y, w1.x, w1.y) <= 2, `distance ${g.Grid.dist(w2.x, w2.y, w1.x, w1.y)}`);
+    // A hold under Auto: the company goes for the mark while nobody holds it.
+    const party2 = [mk('Lead', 'knight', 6, { leader: true })];
+    const h = g.Battle.setup(g.MAPS.verdant, party2, [{ job: 'goblin', level: 2, x: 11, y: 11 }], quiet, { type: 'hold', rounds: 4, goal: 'centre' }, 'knight');
+    party2[0].x = 1; party2[0].y = 1; party2[0].learned = {};
+    const d0 = g.Grid.dist(1, 1, h.objective.goal.x, h.objective.goal.y);
+    await h.aiTurn(party2[0]);
+    const d1 = g.Grid.dist(party2[0].x, party2[0].y, h.objective.goal.x, h.objective.goal.y);
+    ok('under Auto the company makes for an unheld mark', d1 < d0, `${d0} -> ${d1}`);
   }
 
   /* Words on the field: the leader opens the finales, a boss opens, speaks

@@ -91,6 +91,11 @@ small { color: var(--muted); }
 .world-side { width: 300px; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
 #world-next { border-left: 3px solid var(--gold); }
+/* The next chapter's card, sliding in as the company arrives. */
+@keyframes arrive { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+#world-next.arrive .chapter-num, #world-next.arrive .chapter-title { animation: arrive 0.5s ease-out both; }
+#world-next.arrive .chapter-title { animation-delay: 0.08s; }
+@media (prefers-reduced-motion: reduce) { #world-next.arrive .chapter-num, #world-next.arrive .chapter-title { animation: none; } }
 .chapter-num { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
 .chapter-title { font-family: var(--display); font-size: 26px; color: var(--gold); }
 .act-after { color: #9ec0ff; font-style: italic; }
@@ -217,6 +222,19 @@ small { color: var(--muted); }
 .story-box h2 { color: var(--gold); font-size: 30px; position: relative; padding-bottom: 8px; margin-bottom: 10px; }
 .story-box h2::after { content: ''; position: absolute; left: 0; bottom: 0; width: 80px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
 #story-text p { font-family: Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.65; color: #e2e0ee; animation: fadein 0.5s; }
+/* A line of the story: a speaker's turn carries a face and a name. */
+.line { animation: fadein 0.5s; }
+.line .turn { display: flex; gap: 12px; align-items: flex-start; margin: 8px 0; }
+.line .turn canvas.face { width: 48px; height: 48px; flex: none; image-rendering: pixelated; margin-top: 2px; }
+.line .turn p, .line .prose p { margin: 0; }
+.line .who { display: block; font-family: var(--display); font-size: 13px; letter-spacing: 0.04em; color: var(--gold); margin-bottom: 2px; }
+.campfire .line .turn canvas.face { width: 36px; height: 36px; }
+.campfire .line .turn { gap: 8px; margin: 6px 0; }
+.campfire .line .who { font-size: 12px; }
+/* The faces a page has named, the one speaking lit. */
+.story-cast { display: flex; gap: 6px; margin: -2px 0 10px; }
+.story-cast canvas { width: 40px; height: 40px; image-rendering: pixelated; opacity: 0.45; transition: opacity 0.2s, filter 0.2s; }
+.story-cast canvas.speaking { opacity: 1; filter: drop-shadow(0 0 5px rgba(230, 195, 90, 0.8)); }
 @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #btn-story-next { margin-top: 12px; padding: 10px 24px; }
 
@@ -327,6 +345,8 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #help.open { display: block; }
 .help-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(640px, 90%); max-height: min(90vh, calc(100% - 24px)); overflow-y: auto; box-sizing: border-box; background: #181a30; border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
 .help-box li { margin-bottom: 8px; line-height: 1.4; }
+.help-tabs { margin: 0 0 10px; }
+.help-box li.tab-hidden { display: none; }
 
 /* ---------- results ---------- */
 .results-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 90%); max-height: min(92vh, calc(100% - 16px)); overflow-y: auto; box-sizing: border-box; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 24px; text-align: center; }
@@ -366,6 +386,16 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #ask .ask-actions button { min-width: 96px; min-height: 40px; }
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--panel); border: 1px solid var(--gold); padding: 8px 18px; border-radius: 8px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 50; box-shadow: var(--panel-shadow); }
 #toast.show { opacity: 1; transform: translateX(-50%); }
+/* Where a screen's buttons sit at the bottom, the toast sits at the top. */
+body[data-screen="world"] #toast, body[data-screen="formation"] #toast, body[data-screen="shop"] #toast, body[data-screen="inventory"] #toast { bottom: auto; top: 14px; transform: translateX(-50%) translateY(-20px); }
+body[data-screen="world"] #toast.show, body[data-screen="formation"] #toast.show, body[data-screen="shop"] #toast.show, body[data-screen="inventory"] #toast.show { transform: translateX(-50%); }
+/* A word the first time something new opens. */
+#tip { position: fixed; right: 12px; bottom: 12px; width: min(340px, calc(100% - 24px)); z-index: 45; background: var(--panel); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.45; color: var(--text); box-shadow: var(--panel-shadow); animation: fadein 0.3s; }
+#tip[hidden] { display: none; }
+#tip .tip-text { margin: 0 0 8px; }
+#tip .tip-actions { display: flex; justify-content: flex-end; }
+/* On the field the panels take the corners, so the tip sits at the top. */
+body[data-screen="battle"] #tip { top: calc(96px + var(--safe-t, 0px)); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
 
 /* ---------- shop ---------- */
 .shop-layout { max-width: 900px; margin: 24px auto; padding: 0 20px; height: calc(100% - 48px); display: flex; flex-direction: column; }
@@ -374,6 +404,16 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #shop-gil { font-size: 20px; color: var(--gold); }
 .tabs { display: flex; gap: 6px; margin: 8px 0; }
 .camp-tabs, .form-tabs { flex-wrap: wrap; margin: 0 0 12px; }
+/* The record. */
+.rec-line { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.rec-endings { font-size: 13px; margin-bottom: 8px; } .rec-endings .ending { display: inline-block; margin: 2px 6px 2px 0; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.rec-endings .ending.seen { color: #ffe08a; border-color: var(--gold); }
+.rec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+.rec-table th { text-align: left; color: var(--muted); font-weight: normal; border-bottom: 1px solid var(--border); padding: 3px 6px; }
+.rec-table td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); } .rec-table td:nth-child(2), .rec-table th:nth-child(2) { text-align: center; } .rec-table td:nth-child(3), .rec-table th:nth-child(3) { text-align: right; }
+.rec-kills { font-size: 13px; margin-bottom: 8px; } .rec-kills .kill-by { display: inline-block; margin: 2px 8px 2px 0; } .rec-kills .kill-by b { color: var(--gold); }
+.rec-roll .rec-row { font-size: 13px; padding: 2px 0; } .rec-roll small { color: var(--muted); }
+.rec-plus { margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .rec-plus small { color: var(--muted); max-width: 420px; }
 .camp-tabs button .badge, .form-tabs button .badge { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--gold); color: #1a1408; font-size: 11px; line-height: 16px; }
 .tab-hidden { display: none !important; }
 .tabs button { border-radius: 999px; padding: 5px 14px; }
@@ -550,8 +590,9 @@ html, body, button, select { touch-action: manipulation; }
   .order-row { padding: 0 0 0 4px; gap: 4px; font-size: 11px; flex: none; }
   .order-row .sub { display: none; }
   #unit-card { top: calc(84px + var(--safe-t)); }
-  /* The turn banner sits over the board's own band, clear of the unit card. */
-  .banner { top: 40%; }
+  /* The turn banner sits at the foot of the board's band, under the figures
+     the camera centres there and clear of the unit card. */
+  .banner { top: auto; bottom: calc(244px + var(--safe-b)); font-size: 20px; }
   #command, #deploy-panel { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
   #hint { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; text-align: center; }
   #coach { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }

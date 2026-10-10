@@ -195,6 +195,25 @@ own. The ids under them are unchanged, so an old save loads as it was.
 - **Three save slots**, each listed with where the game stands, the company's
   size and level, playtime and when it was saved. New Game takes an empty
   slot or asks which to write over; Continue takes the latest.
+- **A battle put down and picked up.** The save is written at every turn in
+  hand, and Suspend writes it and leaves for the title; Continue brings the
+  battle back as it stood, with the same turn in hand, the charges in the
+  air and the log. A waiting update can be taken mid-battle for the same
+  reason.
+- **The story has faces.** A line that opens with a name is a turn: the
+  speaker's face and name beside the words, at the campfire and on the
+  story page, and a strip of the faces a page has named, the one speaking
+  lit.
+- **A word the first time something new opens.** The first open city and
+  its forge, SP to spend, a beast that could be won over: one tip each,
+  said once and remembered on the device.
+- **Records, and New Game +.** A camp tab with time played, battles won,
+  chapters cleared and at what try and in how few turns, kills by trade,
+  each soldier's own record and the endings seen; and once an ending is
+  seen, New Game +: the same company with every job, ability and passive,
+  at level one with the starter kit, on Paladin.
+- **The road is walked.** After a chapter is won the company's marker goes
+  along the road to the next stop, and the chapter's card slides in.
 - **Skip** on any story page, **Try again** on a lost battle without the story
   before it, **Undo Move** until a unit acts, and any flagged stop on the map
   can be fought again for half the pay. Statuses on the unit card say what
@@ -299,9 +318,12 @@ the device unless you send it; there is no account and no cloud.
 **Five languages.** The screens, menus, hints, questions and the guide speak
 German, French, Spanish, Brazilian Portuguese and Japanese as well as English,
 taken from the browser's language until you choose one on the title screen or in
-the camp's Options tab. Names, the story, item and ability text and the help's
-own paragraphs stay in English. The table is `js/i18n.js`, keyed by the English
-text; `tools/validate.js` checks every language has every key.
+the camp's Options tab. Names, item and ability text and the help's own
+paragraphs stay in English, and so does the story for now: its lines pass
+through the same table, so a line translated there shows translated and the
+rest stays as written, and a language can be added a chapter at a time. The
+table is `js/i18n.js`, keyed by the English text; `tools/validate.js` checks
+every language has every key of the shell.
 
 **One file.** `node tools/bundle.js` writes `dist/elderon.html`: the stylesheet,
 all ten scripts and the icons inlined into a single self-contained page with
@@ -403,6 +425,7 @@ node tools/test-elements.js     # elemental affinities, absorption, prediction, 
 node tools/test-statuses.js     # Silence, Blind, Berserk and what answers them
 node tools/test-boss.js         # the final battle's second shape
 node tools/simulate.js 20 1 3   # 20 campaigns, 1 training battle per chapter, 3 retries
+                                # exits 1 if any chapter averages over 10 rounds
 npm run test:browser            # the Playwright suite in tests/browser (needs playwright-core and a Chromium)
 bash tests/browser/run.sh t-qol # one test, by name
 ```

@@ -28,7 +28,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'hold', rounds: 4, goal: 'centre' },
+    objective: { type: 'hold', rounds: 3, goal: { x: 6, y: 6 } },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
     camp: [
       'Mira: "The mill was still turning when I passed this way in spring. Someone should have shut it off."',
@@ -709,7 +709,7 @@ const CAMPAIGN = [
 
   // ---- Act V: the Crown of Elderon ----
   {
-    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Envoy Marlowe', job: 'bard', level: 22 } },
+    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Envoy Marlowe', job: 'bard', level: 24 } },
     id: 'ch23', title: 'The Summons', map: 'kingsroad',
     camp: [
       'Garret reads the letter twice. "He asks for you by name. Not for the company. For you."  Rowan: "He is dying. Dying men ask for the one they wronged."',

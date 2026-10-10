@@ -80,6 +80,15 @@ class BattleUI {
   // Every engine event is logged, so the log is also where battle sound lives.
   static LOG_SFX = { heal: 'heal', miss: 'miss', ko: 'ko', lvl: 'levelup' };
 
+  // The last lines of the log, for a save, and back again for a battle
+  // picked up where it was left.
+  logLines(n = 30) { return [...this.el.log.children].slice(-n).map(d => ({ t: d.textContent, c: d.className.replace('log-line', '').trim() })); }
+  restoreLog(lines) {
+    this.el.log.innerHTML = '';
+    for (const l of lines || []) { const d = document.createElement('div'); d.className = `log-line ${l.c || ''}`; d.textContent = l.t; this.el.log.appendChild(d); }
+    this.el.log.scrollTop = this.el.log.scrollHeight;
+  }
+
   log(msg, cls = '') {
     const sfx = BattleUI.LOG_SFX[cls];
     if (sfx) audio.sfx(sfx);
@@ -442,6 +451,10 @@ class BattleUI {
     return new Promise(resolve => {
       this.turn = { unit, mode: 'menu', ability: null, reach: null, targets: null, resolve };
       this.cursor = unit.x >= 0 ? { x: unit.x, y: unit.y } : null;
+      // The battle as it stands goes into the save at each turn in hand, so a
+      // closed tab or a dead battery loses nothing; and a waiting build can
+      // be taken now that there is a place to pick up from.
+      if (window.game && game.autosaveBattle) game.autosaveBattle();
       if (this.coach) {
         this.coach.turns++;
         if (this.coach.turns === 2) this.coachSay('order', tr('The strip at the top is the turn order: fast units act more often, and a charged spell waits for its charge. Undo Move takes a move back until the unit acts.'));
