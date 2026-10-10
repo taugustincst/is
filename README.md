@@ -195,6 +195,25 @@ own. The ids under them are unchanged, so an old save loads as it was.
 - **Three save slots**, each listed with where the game stands, the company's
   size and level, playtime and when it was saved. New Game takes an empty
   slot or asks which to write over; Continue takes the latest.
+- **A battle put down and picked up.** The save is written at every turn in
+  hand, and Suspend writes it and leaves for the title; Continue brings the
+  battle back as it stood, with the same turn in hand, the charges in the
+  air and the log. A waiting update can be taken mid-battle for the same
+  reason.
+- **The story has faces.** A line that opens with a name is a turn: the
+  speaker's face and name beside the words, at the campfire and on the
+  story page, and a strip of the faces a page has named, the one speaking
+  lit.
+- **A word the first time something new opens.** The first open city and
+  its forge, SP to spend, a beast that could be won over: one tip each,
+  said once and remembered on the device.
+- **Records, and New Game +.** A camp tab with time played, battles won,
+  chapters cleared and at what try and in how few turns, kills by trade,
+  each soldier's own record and the endings seen; and once an ending is
+  seen, New Game +: the same company with every job, ability and passive,
+  at level one with the starter kit, on Paladin.
+- **The road is walked.** After a chapter is won the company's marker goes
+  along the road to the next stop, and the chapter's card slides in.
 - **Skip** on any story page, **Try again** on a lost battle without the story
   before it, **Undo Move** until a unit acts, and any flagged stop on the map
   can be fought again for half the pay. Statuses on the unit card say what

@@ -14,7 +14,7 @@ const TIPS_KEY = 'elderon.tips';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.13.0';
+const GAME_VERSION = '1.14.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
