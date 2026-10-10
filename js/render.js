@@ -581,16 +581,20 @@ class Renderer {
   // Pan the camera so a grid position sits near the centre.
   async focus(u, ms = 300) {
     const g = this.battle.grid;
-    const off = this.viewCentre();
-    const tx = -(u.x - u.y) * TILE_W / 2 + (off.cx - (this.W || this.cv.width) / 2);
-    const ty = -(u.x + u.y) * TILE_H / 2 + g.height(u.x, u.y) * HZ + (off.cy - (this.H || this.cv.height) / 2);
-    // Only pan when the unit would otherwise sit outside the comfortable centre zone.
+    // Only pan when the unit would otherwise sit outside the comfortable
+    // centre zone, and then only as far as brings it just inside: a phone's
+    // tall free band is left showing the board, not dragged after every
+    // figure. The projection turns with the board, so the screen position is
+    // read from it rather than recomputed.
     const z = this.zoom || 1;
     const view = this.viewCentre();
     const cur = this.toScreen(u.x, u.y, g.height(u.x, u.y));
     const dx = (cur.sx - view.cx) * z, dy = (cur.sy - view.cy) * z;
-    if (Math.abs(dx) < view.w * 0.3 && Math.abs(dy) < view.h * 0.3) return;
-    await this.panTo(tx, ty, ms);
+    const zx = view.w * 0.3, zy = view.h * 0.3;
+    if (Math.abs(dx) < zx && Math.abs(dy) < zy) return;
+    const over = (d, lim) => (d > lim ? d - lim * 0.6 : d < -lim ? d + lim * 0.6 : 0);
+    const mx = over(dx, zx), my = over(dy, zy);
+    await this.panTo(this.cam.x - mx / z, this.cam.y - my / z, ms);
   }
 
   // ---- picking -----------------------------------------------------------------

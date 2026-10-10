@@ -86,7 +86,8 @@
   <div class="world-layout">
     <div class="world-main">
       <h2 data-i18n>Camp</h2>
-      <canvas id="world-map" width="800" height="400" title="The road ahead"></canvas>
+      <div id="camp-tabs" class="tabs camp-tabs"></div>
+      <canvas id="world-map" width="800" height="400" title="The road ahead" data-camp-tab="road"></canvas>
       <div id="world-next" class="card"></div>
       <div class="world-actions">
         <button id="btn-battle" class="primary">March to Battle</button>
@@ -97,7 +98,6 @@
         <button id="btn-save" data-i18n>Save</button>
         <button id="btn-title" data-i18n>Title</button>
       </div>
-      <div id="camp-tabs" class="tabs camp-tabs"></div>
       <div class="card campfire" data-camp-tab="road">
         <h3><span data-i18n>Around the fire</span> <small data-i18n>the night before</small></h3>
         <div id="campfire"></div>

@@ -107,7 +107,10 @@ class BattleUI {
       ? el.getBoundingClientRect() : null;
     const H = cv.clientHeight, W = cv.clientWidth;
     for (const id of ['battle-top', 'turn-order', 'unit-card', 'log', 'command', 'deploy-panel', 'hint']) {
-      const r = box(document.getElementById(id));
+      const el = document.getElementById(id);
+      // An emptied hint keeps its box where it last stood; it takes nothing.
+      if (id === 'hint' && !el.textContent) continue;
+      const r = box(el);
       if (!r || !r.width || !r.height) continue;
       // Only a panel that runs most of the way along an edge takes a band out
       // of the view. A panel sitting in a corner blocks a corner, and the board

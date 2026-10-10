@@ -538,7 +538,8 @@ html, body, button, select { touch-action: manipulation; }
   .order-row { padding: 0 0 0 4px; gap: 4px; font-size: 11px; flex: none; }
   .order-row .sub { display: none; }
   #unit-card { top: calc(84px + var(--safe-t)); }
-  .banner { top: calc(120px + var(--safe-t)); }
+  /* The turn banner sits over the board's own band, clear of the unit card. */
+  .banner { top: 40%; }
   #command, #deploy-panel { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
   #hint { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; text-align: center; }
   #coach { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
