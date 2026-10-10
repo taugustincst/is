@@ -423,8 +423,18 @@ Difficulty was tuned against `tools/simulate.js`, which plays the campaign end
 to end with both sides driven by the game's own AI, carrying levels, SP, marks and
 purchases forward between chapters and retrying a chapter it loses, as a player
 would. On the middle setting with one training battle per chapter, every chapter
-is cleared, first-attempt win rates run 60–100%, and chapters three, five and
-seven take about one retry.
+is cleared, first-attempt win rates run 70–100% on most chapters and about 50% on
+the walls (Thornwall, Brassgate, Starfall and the Summons), and four campaigns in
+five run to an ending without a chapter failing three times. The simulator's
+party is driven by the same AI as the enemy, so it is worst at what a player does
+best: keeping the leader out of reach, and walking a charge to the mark behind a
+screen of its own. Expect the escort and reach chapters to go better in a
+player's hands than in the table.
+
+Foes learn their trade slowly: one of the first act knows about a third of it,
+one of the last act most, and only a boss knows everything. Below Footman sits
+Page, for the story first: foes three levels under, poorly equipped, and a purse
+that overflows.
 
 Equipment is the main lever: a party that shops well arrives ready, and one that
 does not will grind. Camp says so plainly when the party is behind on levels or
