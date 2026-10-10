@@ -338,7 +338,7 @@ const CAMPAIGN = [
       'Rowan lays the letter on the counting table. "This is yours. I came to return it."',
     ],
     enemies: [
-      { job: 'artificer', level: 13, x: 6, y: 2, name: 'Director Crane', boss: true,
+      { job: 'artificer', level: 12, x: 6, y: 2, name: 'Director Crane', boss: true,
         lines: { open: 'Arithmetic, Aldric. You are a column that does not add up.', half: 'The furnace is lit. You are already late.', fall: 'I built a war that runs on time. Time... runs out.' },
         passives: ['counter', 'magickUp', 'movePlus1'],
         phases: [{
@@ -350,8 +350,8 @@ const CAMPAIGN = [
       },
       { job: 'sentinel', level: 9, x: 4, y: 3 },
       { job: 'sentinel', level: 9, x: 8, y: 3 },
-      { job: 'gunner', level: 10, x: 3, y: 1, name: 'Director\'s Guard' },
-      { job: 'gunner', level: 10, x: 9, y: 1, name: 'Director\'s Guard' },
+      { job: 'gunner', level: 9, x: 3, y: 1, name: 'Director\'s Guard' },
+      { job: 'gunner', level: 9, x: 9, y: 1, name: 'Director\'s Guard' },
       { job: 'engineer', level: 10, x: 6, y: 5, name: 'Chief Engineer' },
       { job: 'aeronaut', level: 10, x: 1, y: 6, name: 'Gallery Aeronaut' },
     ],

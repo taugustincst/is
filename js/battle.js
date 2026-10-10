@@ -1341,7 +1341,34 @@ class Battle {
     const on = c.x === g.x && c.y === g.y;
     if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : 0);
     if ((o.type === 'reach' || o.type === 'escort') && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
+    // The leader under Auto goes for the mark it is asked to reach.
+    if (o.type === 'reach' && unit === o.leader) return on ? 60 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.8;
     return 0;
+  }
+
+  /* A charge under Auto, or in the simulator, does not fight: it keeps out
+     of reach of the other side, close to its own, and goes for the mark
+     when the way there is safe enough. */
+  async escortTurn(unit) {
+    await sleep(200);
+    const reach = this.grid.reachable(unit, this.units);
+    const danger = this.dangerMap(unit);
+    const g = this.objective.goal;
+    const friends = this.units.filter(u => u.team === unit.team && u !== unit && u.alive && this.onField(u));
+    let best = null, bestScore = -1e9;
+    for (const c of reach.values()) {
+      const near = friends.filter(f => Grid.dist(c.x, c.y, f.x, f.y) <= 2).length;
+      const d = danger(c.x, c.y);
+      let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + Math.min(near, 2) * 8;
+      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 ? 0.5 : 3);
+      if (s > bestScore) { bestScore = s; best = c; }
+    }
+    if (best && !(best.x === unit.x && best.y === unit.y)) {
+      const path = this.grid.pathTo(reach, best.x, best.y);
+      if (path.length > 1) await this.moveUnit(unit, path);
+    }
+    const foe = this.nearestEnemyOf(unit);
+    if (foe) unit.facing = facingFromDelta(foe.x - unit.x, foe.y - unit.y);
   }
 
   // Whether a blow from a tile would fell someone on the other side.
@@ -1395,6 +1422,7 @@ class Battle {
   }
 
   async aiTurn(unit) {
+    if (unit.escort) return this.escortTurn(unit);
     await sleep(350);
     const reach = this.grid.reachable(unit, this.units);
     const abilities = unit.allAbilities().map(id => ABILITIES[id]).filter(ab => this.canAfford(unit, ab));
