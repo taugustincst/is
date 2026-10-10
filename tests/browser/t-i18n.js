@@ -30,13 +30,13 @@ const skipStory = async (page) => { for (let i = 0; i < 12; i++) { const t = awa
   // The camp in German, then French from the Options tab, with no reload.
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
   const camp = await page.evaluate(() => ({ battle: $('btn-battle').textContent, tabs: [...document.querySelectorAll('#camp-tabs button')].map(b => b.textContent), heading: document.querySelector('#screen-world h2').textContent, next: $('world-next').textContent }));
-  ok('the camp is German', camp.battle === 'In die Schlacht' && camp.tabs.join() === 'Weg,Gruppe,Städte,Optionen' && camp.heading === 'Lager' && /Akt 1 · .* · Kapitel 1/.test(camp.next) && /Ziel: /.test(camp.next), JSON.stringify(camp));
+  ok('the camp is German', camp.battle === 'In die Schlacht' && camp.tabs.join() === 'Weg,Gruppe,Städte,Chronik,Optionen' && camp.heading === 'Lager' && /Akt 1 · .* · Kapitel 1/.test(camp.next) && /Ziel: /.test(camp.next), JSON.stringify(camp));
   await page.evaluate(() => game.showCampTab('options'));
   const picker = await page.evaluate(() => ({ n: document.querySelectorAll('#world-lang button').length, sel: document.querySelector('#world-lang button.sel').dataset.lang, hidden: document.querySelector('.card.language').classList.contains('tab-hidden') }));
   ok('Options offers every language, with the current one marked', picker.n === 6 && picker.sel === 'de' && !picker.hidden, JSON.stringify(picker));
   await page.click('#world-lang button[data-lang="fr"]');
   const fr = await page.evaluate(() => ({ battle: $('btn-battle').textContent, tabs: [...document.querySelectorAll('#camp-tabs button')].map(b => b.textContent), title: $('title-lang').value, diff: [...document.querySelectorAll('#world-difficulty button')].map(b => b.textContent), stored: localStorage.getItem('elderon.lang') }));
-  ok('French from Options, at once', fr.battle === 'Marcher au combat' && fr.tabs.join() === 'Route,Compagnie,Villes,Options' && fr.title === 'fr' && fr.diff.join() === 'Page,Fantassin,Chevalier,Paladin' && fr.stored === 'fr', JSON.stringify(fr));
+  ok('French from Options, at once', fr.battle === 'Marcher au combat' && fr.tabs.join() === 'Route,Compagnie,Villes,Registres,Options' && fr.title === 'fr' && fr.diff.join() === 'Page,Fantassin,Chevalier,Paladin' && fr.stored === 'fr', JSON.stringify(fr));
   const shop = await page.evaluate(() => { game.openShop('buy'); return { tabs: [...document.querySelectorAll('#shop-tabs button')].map(b => b.textContent), h2: document.querySelector('#screen-shop h2').textContent, h3: document.querySelector('#shop-list h3').textContent, item: document.querySelector('#shop-list .shop-row b').textContent }; });
   ok('the shop is French but the wares keep their names', shop.tabs.join() === 'Acheter,Vendre' && shop.h2 === 'Chariot du marchand' && shop.h3 === 'Armes' && /^[A-Za-z' ]+$/.test(shop.item), JSON.stringify(shop));
   await page.click('#btn-shop-back'); await page.waitForSelector('#screen-world.active');

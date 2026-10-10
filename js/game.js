@@ -106,7 +106,10 @@ class Game {
   // ---- screens -----------------------------------------------------------------------
   showScreen(name) {
     if (name !== this.screen) this.clearToast(false);
+    // A tip belongs to the screen it was said on; the next screen starts clean.
+    if (name !== this.screen && this._tips && this._tips.length) { this._tips = []; this.showTip(); }
     this.screen = name;
+    document.body.dataset.screen = name;
     if (window.__updateWaiting) setTimeout(() => this.tryUpdatePrompt(), 400);
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
     if (name === 'title') this.showTitleArt(); else this.hideTitleArt();
@@ -223,6 +226,20 @@ class Game {
     $('btn-suspend').onclick = () => this.suspendBattle();
     this.bindAsk();
     $('btn-help').onclick = () => $('help').classList.toggle('open');
+    // The help in three pages: what happens on the field, what happens at
+    // camp, and how to drive it; each entry is filed by its own heading.
+    {
+      const box = $('help').querySelector('.help-box'), list = box.querySelector('ul');
+      const camp = ['Saves:', 'Camp tabs:', 'Cities:', 'Forges:', 'Errands:', 'Jobs:', 'Passives:', 'Equipment:', 'Baggage:'];
+      const controls = ['Controls:', 'Keys:', 'Gamepad:'];
+      list.querySelectorAll('li').forEach(li => { const k = (li.querySelector('b') || {}).dataset ? li.querySelector('b').dataset.i18n || li.querySelector('b').textContent : ''; li.dataset.helpTab = camp.includes(k) ? 'camp' : controls.includes(k) ? 'controls' : 'battle'; });
+      const tabs = document.createElement('div'); tabs.className = 'tabs help-tabs';
+      tabs.innerHTML = [['battle', tr('Battle')], ['camp', tr('Camp')], ['controls', tr('Controls')]].map(([id, label]) => `<button data-help="${id}">${label}</button>`).join('');
+      list.before(tabs);
+      const show = (id) => { this.helpTab = id; tabs.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.help === id)); list.querySelectorAll('li').forEach(li => li.classList.toggle('tab-hidden', li.dataset.helpTab !== id)); };
+      tabs.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); show(b.dataset.help); });
+      show('battle');
+    }
     $('btn-speed').onclick = () => this.cyclePace();
     $('btn-auto').onclick = () => this.ui.setAuto(!this.ui.auto);
     this.setPace(+store.get(PACE_KEY) || 1);
@@ -1541,6 +1558,7 @@ class Game {
     if (after) await after(res);
     this.saveGame();
     this.showWorld();
+    if (this.wantFormation) { this.wantFormation = false; this.openFormation(this.state.party.findIndex(u => this.canLearnSomething(u)) >= 0 ? this.state.party.findIndex(u => this.canLearnSomething(u)) : 0); this.formTab = 'skills'; this.renderFormationDetail(); }
     return res;
   }
 
@@ -2372,6 +2390,7 @@ class Game {
       r.events.push(`${battle.tamed.map(t => t.name).join(', ')} slip${battle.tamed.length === 1 ? 's' : ''} away in the confusion.`);
     }
     const again = await this.results(result, r, battle.endReason, fought, fell, gone);
+    if (again === 'formation') this.wantFormation = true;
     return again === 'retry' ? 'retry' : result;
   }
 
@@ -2453,7 +2472,10 @@ class Game {
         note.textContent = `✦ ${learners.length === 1 ? tr('{who} has enough SP for something new. Spend it in Formation.', { who }) : tr('{who} have enough SP for something new. Spend it in Formation.', { who })}`;
         roll.after(note);
       }
-      $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve(); };
+      $('btn-results').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; $('btn-spend').onclick = null; resolve(); };
+      // SP to spend: straight to Formation once the battle is wound up.
+      $('btn-spend').hidden = !learners.length;
+      $('btn-spend').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; $('btn-spend').onclick = null; resolve('formation'); };
       // A lost battle can be fought again at once, without the story before it.
       $('btn-retry').hidden = result !== 'defeat';
       $('btn-retry').onclick = () => { $('btn-results').onclick = null; $('btn-retry').onclick = null; resolve('retry'); };

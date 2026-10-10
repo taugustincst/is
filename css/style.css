@@ -345,6 +345,8 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #help.open { display: block; }
 .help-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(640px, 90%); max-height: min(90vh, calc(100% - 24px)); overflow-y: auto; box-sizing: border-box; background: #181a30; border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
 .help-box li { margin-bottom: 8px; line-height: 1.4; }
+.help-tabs { margin: 0 0 10px; }
+.help-box li.tab-hidden { display: none; }
 
 /* ---------- results ---------- */
 .results-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 90%); max-height: min(92vh, calc(100% - 16px)); overflow-y: auto; box-sizing: border-box; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 24px; text-align: center; }
@@ -384,11 +386,16 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #ask .ask-actions button { min-width: 96px; min-height: 40px; }
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--panel); border: 1px solid var(--gold); padding: 8px 18px; border-radius: 8px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 50; box-shadow: var(--panel-shadow); }
 #toast.show { opacity: 1; transform: translateX(-50%); }
+/* Where a screen's buttons sit at the bottom, the toast sits at the top. */
+body[data-screen="world"] #toast, body[data-screen="formation"] #toast, body[data-screen="shop"] #toast, body[data-screen="inventory"] #toast { bottom: auto; top: 14px; transform: translateX(-50%) translateY(-20px); }
+body[data-screen="world"] #toast.show, body[data-screen="formation"] #toast.show, body[data-screen="shop"] #toast.show, body[data-screen="inventory"] #toast.show { transform: translateX(-50%); }
 /* A word the first time something new opens. */
 #tip { position: fixed; right: 12px; bottom: 12px; width: min(340px, calc(100% - 24px)); z-index: 45; background: var(--panel); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.45; color: var(--text); box-shadow: var(--panel-shadow); animation: fadein 0.3s; }
 #tip[hidden] { display: none; }
 #tip .tip-text { margin: 0 0 8px; }
 #tip .tip-actions { display: flex; justify-content: flex-end; }
+/* On the field the panels take the corners, so the tip sits at the top. */
+body[data-screen="battle"] #tip { top: calc(96px + var(--safe-t, 0px)); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
 
 /* ---------- shop ---------- */
 .shop-layout { max-width: 900px; margin: 24px auto; padding: 0 20px; height: calc(100% - 48px); display: flex; flex-direction: column; }
@@ -583,8 +590,9 @@ html, body, button, select { touch-action: manipulation; }
   .order-row { padding: 0 0 0 4px; gap: 4px; font-size: 11px; flex: none; }
   .order-row .sub { display: none; }
   #unit-card { top: calc(84px + var(--safe-t)); }
-  /* The turn banner sits over the board's own band, clear of the unit card. */
-  .banner { top: 40%; }
+  /* The turn banner sits at the foot of the board's band, under the figures
+     the camera centres there and clear of the unit card. */
+  .banner { top: auto; bottom: calc(244px + var(--safe-b)); font-size: 20px; }
   #command, #deploy-panel { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
   #hint { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; text-align: center; }
   #coach { width: calc(100vw - 12px - var(--safe-l) - var(--safe-r)); left: calc(6px + var(--safe-l)); right: auto; }
