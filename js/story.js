@@ -108,7 +108,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'survive', rounds: 4, protectLeader: true },
+    objective: { type: 'survive', rounds: 3, protectLeader: true },
     id: 'ch5', title: 'The Gates of Dunmarch', map: 'dunmarch',
     camp: [
       'Rowan: "Brannoc taught me the sword. He stood at my mother\'s funeral."',
@@ -678,7 +678,7 @@ const CAMPAIGN = [
       'Ottilie sets the bell down on the black glass. "No," she says. "But there is this."',
     ],
     enemies: [
-      { job: 'drownedQueen', level: 25, x: 6, y: 5, name: 'The Drowned Queen', boss: true,
+      { job: 'drownedQueen', level: 23, x: 6, y: 5, name: 'The Drowned Queen', boss: true,
         lines: { open: 'There is no wind down here. There is nothing to put me out into.', half: 'The sea does not end. Neither do I.', fall: 'A bell. Who told you about the bell?' },
         passives: ['counter', 'magickUp', 'movePlus1'],
         phases: [{
@@ -688,12 +688,12 @@ const CAMPAIGN = [
           cry: '"There is no wind down here. There is nothing to put me out into."',
         }],
       },
-      { job: 'drownedKnight', level: 23, x: 3, y: 3, name: 'Queen\'s Guard' },
-      { job: 'drownedKnight', level: 23, x: 9, y: 3, name: 'Queen\'s Guard' },
-      { job: 'siren', level: 23, x: 2, y: 6 },
-      { job: 'siren', level: 23, x: 10, y: 6 },
-      { job: 'saltPriest', level: 23, x: 6, y: 2, name: 'Queen\'s Cantor' },
-      { job: 'leviathan', level: 23, x: 8, y: 9, name: 'The Old Serpent' },
+      { job: 'drownedKnight', level: 22, x: 3, y: 3, name: 'Queen\'s Guard' },
+      { job: 'drownedKnight', level: 22, x: 9, y: 3, name: 'Queen\'s Guard' },
+      { job: 'siren', level: 22, x: 2, y: 6 },
+      { job: 'siren', level: 22, x: 10, y: 6 },
+      { job: 'saltPriest', level: 22, x: 6, y: 2, name: 'Queen\'s Cantor' },
+      { job: 'leviathan', level: 22, x: 8, y: 9, name: 'The Old Serpent' },
     ],
     gil: 14000,
     outro: [
@@ -725,12 +725,12 @@ const CAMPAIGN = [
           'The cities\' envoy, Marlowe, carries the charter and no sword. He reaches the capital gate alive, or the charter is paper.',
     ],
     enemies: [
-      { job: 'royalGuard', level: 21, x: 8, y: 2, name: 'Captain of the Road' },
-      { job: 'royalGuard', level: 20, x: 6, y: 1 },
-      { job: 'royalGuard', level: 20, x: 10, y: 3 },
-      { job: 'courtMage', level: 20, x: 8, y: 0, name: 'Court Mage' },
-      { job: 'griffon', level: 20, x: 3, y: 2 },
-      { job: 'mercenary', level: 20, x: 11, y: 5, name: 'Hired Blade' },
+      { job: 'royalGuard', level: 20, x: 8, y: 2, name: 'Captain of the Road' },
+      { job: 'royalGuard', level: 19, x: 6, y: 1 },
+      { job: 'royalGuard', level: 19, x: 10, y: 3 },
+      { job: 'courtMage', level: 19, x: 8, y: 0, name: 'Court Mage' },
+      { job: 'griffon', level: 19, x: 3, y: 2 },
+      { job: 'mercenary', level: 19, x: 11, y: 5, name: 'Hired Blade' },
     ],
     gil: 7200,
     outro: [

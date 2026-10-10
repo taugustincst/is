@@ -1340,7 +1340,9 @@ class Battle {
     if (!g) return 0;
     const on = c.x === g.x && c.y === g.y;
     if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : 0);
-    if ((o.type === 'reach' || o.type === 'escort') && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
+    // The other side moves to cut off a charge; a leader making for the mark
+    // it hunts as it would anyone, rather than camping the mark.
+    if (o.type === 'escort' && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
     // The leader under Auto goes for the mark it is asked to reach.
     if (o.type === 'reach' && unit === o.leader) return on ? 60 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.8;
     return 0;
@@ -1359,7 +1361,7 @@ class Battle {
     for (const c of reach.values()) {
       const near = friends.filter(f => Grid.dist(c.x, c.y, f.x, f.y) <= 2).length;
       const d = danger(c.x, c.y);
-      let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + Math.min(near, 3) * 12;
+      let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + (near ? 30 : 0) + Math.min(near, 3) * 8;
       // The mark draws it on only where the way is safe and its own are near.
       if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 || !near ? 0.3 : 3);
       if (s > bestScore) { bestScore = s; best = c; }
