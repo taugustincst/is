@@ -1270,7 +1270,7 @@ const CITIES = [
     ],
     hires: ['runeblade', 'samurai'], pets: ['skeleton', 'wisp', 'treant'], stock: ['starIronRing', 'auroraStaff'],
     open: 'Lamps in the stalls. The star-iron is sold by weight now, like anything else.' },
-  { id: 'saltwick', name: 'Saltwick', from: 17, pos: [0.82, 0.40], map: 'saltwick', level: 18, gil: 4500, hireCost: 950, forgeTier: 4,
+  { id: 'saltwick', name: 'Saltwick', from: 17, pos: [0.82, 0.40], map: 'saltwick', level: 18, gil: 4500, hireCost: 950, forgeTier: 5,
     held: 'held by the wreckers', blurb: 'The Concord\'s harbour for the Isles trade, its light dark and its quays full of men who came back wrong.',
     intro: [
       'Saltwick town lies behind the harbour, and the wreckers hold it as they hold the quays: smiling, and in the rain, and dry.',
@@ -1283,7 +1283,7 @@ const CITIES = [
     ],
     hires: ['corsair', 'harpooner'], pets: ['reefCrab', 'siren'], stock: ['saltwickSabre', 'wreckersCoat'],
     open: 'The light turns all night. Ships come in by it, and their crews are ordinary.' },
-  { id: 'tessaly', name: 'Tessaly', from: 20, pos: [0.66, 0.06], map: 'tessaly', level: 21, gil: 5500, hireCost: 1000, forgeTier: 4,
+  { id: 'tessaly', name: 'Tessaly', from: 20, pos: [0.66, 0.06], map: 'tessaly', level: 21, gil: 5500, hireCost: 1000, forgeTier: 6,
     held: 'held by the drowned', blurb: 'The drowned city, bared for an hour at low water, with its guard still on their corners.',
     intro: [
       'At low water Tessaly\'s market square stands a fathom clear of the sea, and the drowned keep it as they kept it living.',
@@ -1296,7 +1296,7 @@ const CITIES = [
     ],
     hires: ['tidecaller', 'harpooner'], pets: ['siren', 'treant'], stock: ['queensTrident', 'tessalyPearl'],
     open: 'Open at the ebb. The stallholders are wet, and glad of the custom, and do not talk about the last four hundred years.' },
-  { id: 'aldermere', name: 'Aldermere', from: 22, pos: [0.36, 0.40], map: 'guildhall', level: 23, gil: 6000, hireCost: 1100, forgeTier: 4,
+  { id: 'aldermere', name: 'Aldermere', from: 22, pos: [0.36, 0.40], map: 'guildhall', level: 23, gil: 6000, hireCost: 1100, forgeTier: 6,
     held: 'held by Black Hollis\'s company', blurb: 'The cities\' league town, where the charter was written, with a mercenary company sitting on it.',
     intro: [
       'Aldermere wrote the charter of the free cities in its guildhall, and Black Hollis\'s company has been paid to sit in the guildhall until it is forgotten.',
@@ -1309,7 +1309,7 @@ const CITIES = [
     ],
     hires: ['marshal', 'duelist'], pets: ['griffon', 'golem'], stock: ['leagueCoat', 'charterRing'],
     open: 'The charter is back on the guildhall wall. People come to read it, and stay to argue.' },
-  { id: 'elderonCity', name: 'Elderon City', from: 23, pos: [0.52, 0.54], map: 'capital', level: 25, gil: 7000, hireCost: 1200, forgeTier: 4,
+  { id: 'elderonCity', name: 'Elderon City', from: 23, pos: [0.52, 0.54], map: 'capital', level: 25, gil: 7000, hireCost: 1200, forgeTier: 7,
     held: 'held by the Chancellor\'s guard', blurb: 'The capital\'s high quarter, under the palace, with the guard on every corner.',
     intro: [
       'The high quarter of the capital is where the guard live, and they have shut it, because the company is in the low one.',

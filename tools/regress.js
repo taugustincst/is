@@ -689,10 +689,20 @@ const mk = (n, job, lvl, opts = {}) => {
     // recipe is one city's, in a city that exists; a won field always leaves
     // something, and never more than three.
     const bases = Object.keys(g.ITEMS).filter(id => g.upgradeable(id));
-    const steps = bases.filter(id => [1, 2, 3].every(p => { const v = g.ITEMS[`${id}+${p}`], b = g.ITEMS[id]; return v && v.base === id && v.plus === p && v.price > 0 && !v.city && !v.forge && (v.power || 0) + (v.hp || 0) + (v.evade || 0) + (v.mp || 0) > (b.power || 0) + (b.hp || 0) + (b.evade || 0) + (b.mp || 0); }));
-    ok('every weapon, shield, helm and armour climbs +1, +2 and +3, each a gain', bases.length > 150 && steps.length === bases.length, `${steps.length}/${bases.length}`);
-    const costs = bases.filter(id => { const c1 = g.forgeCost(id), c3 = g.forgeCost(`${id}+2`); return c1 && c1.plus === 1 && c1.gil > 0 && Object.values(c1.mats)[0] === 1 && c3 && (c3.mats.emberGlass === 1 || c3.mats.starIron === 1) && g.forgeCost(`${id}+3`) === null; });
-    ok('each step asks a step more of the piece\'s own material, the last a coal of ember glass or star-iron', costs.length === bases.length, `${costs.length}/${bases.length}`);
+    const steps = bases.filter(id => [1, 2, 3, 4, 5].every(p => { const v = g.ITEMS[`${id}+${p}`], b = g.ITEMS[id]; return v && v.base === id && v.plus === p && v.price > 0 && !v.city && !v.forge && (v.power || 0) + (v.hp || 0) + (v.evade || 0) + (v.mp || 0) > (b.power || 0) + (b.hp || 0) + (b.evade || 0) + (b.mp || 0); }));
+    ok('every weapon, shield, helm and armour climbs +1 to +5, each a gain', bases.length > 150 && steps.length === bases.length, `${steps.length}/${bases.length}`);
+    const costs = bases.filter(id => { const c1 = g.forgeCost(id), c3 = g.forgeCost(`${id}+2`); return c1 && c1.plus === 1 && c1.gil > 0 && Object.values(c1.mats)[0] === 1 && c3 && (c3.mats.emberGlass === 1 || c3.mats.starIron === 1); });
+    ok('each step asks a step more of the piece\'s own material, the third a coal of ember glass or star-iron', costs.length === bases.length, `${costs.length}/${bases.length}`);
+    const rare = bases.filter(id => { const c4 = g.forgeCost(`${id}+3`), c5 = g.forgeCost(`${id}+4`), c3 = g.forgeCost(`${id}+2`); return c4 && c4.mats.tidePearl === 1 && c4.mats.emberGlass === 1 && c5 && c5.mats.starHeart === 1 && c5.mats.starIron === 1 && c4.gil >= 1500 && c5.gil >= 3000 && c5.gil > c4.gil && c4.gil > c3.gil * 2 && g.forgeCost(`${id}+5`) === null; });
+    ok('the fourth step asks a tide pearl and the fifth a star heart, each dearer than the last; +5 is the top', rare.length === bases.length, `${rare.length}/${bases.length}`);
+    const sink = Object.keys(g.ITEMS).filter(id => g.upgradeable(id) && g.ITEMS[id].tier >= 6 && !g.ITEMS[id].forge).map(id => g.forgeCost(`${id}+3`).gil + g.forgeCost(`${id}+4`).gil);
+    ok('taking a late piece from +3 to +5 costs several thousand marks', sink.length > 10 && Math.min(...sink) >= 7000, `from ${Math.min(...sink)} marks`);
+    const forgedLegends = Object.entries(g.FORGE_ITEMS).filter(([, it]) => it.late && (it.cost.starHeart || it.cost.tidePearl));
+    ok('seven legendary arms are forged in the last cities, each for a star heart or tide pearls, none under eight thousand', forgedLegends.length === 7 && forgedLegends.every(([, it]) => (it.cost.starHeart || it.cost.tidePearl) && it.price >= 8000 && it.tier >= 7 && cities.find(c => c.id === it.forge && c.from >= 17)), forgedLegends.map(([id]) => id).join(','));
+    let early = 0, late = 0, lateRare = 0;
+    for (let i = 0; i < 2000; i++) { const d = g.fieldMaterials(7, i % 2 === 0, Math.random, 12); if (d.tidePearl || d.starHeart) early++; }
+    for (let i = 0; i < 2000; i++) { const d = g.fieldMaterials(7, i % 2 === 0, Math.random, 22); late++; if (d.tidePearl || d.starHeart) lateRare++; }
+    ok('the rare materials never fall before their chapters, and fall seldom after', early === 0 && lateRare > 40 && lateRare < late * 0.25, `${lateRare}/${late} late fields, ${early} early`);
     const issued = [];
     for (const job of Object.keys(g.JOB_EQUIP)) for (const lvl of [1, 8, 16, 26]) for (const id of Object.values(g.enemyGearFor(job, lvl, 1))) { const it = g.ITEMS[id]; if (it.base || it.forge || it.slot === 'material') issued.push(`${job}@${lvl}:${id}`); }
     ok('no enemy is ever issued a forge\'s work', issued.length === 0, issued.slice(0, 4).join(','));

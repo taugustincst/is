@@ -1164,7 +1164,7 @@ class Game {
       <div class="city-hires">${pets}</div>` : ''}
       <h4>Market <small>sold here and nowhere else</small></h4>
       <div class="city-stock">${stock}</div>
-      <h4>Forge <small>betters what you carry to +3, makes arms sold nowhere, and breaks spare gear down</small></h4>
+      <h4>Forge <small>betters what you carry to +5, makes arms sold nowhere, and breaks spare gear down</small></h4>
       <div class="tabs forge-tabs">${FORGE_TABS.map(([id, label]) => `<button data-forge="${id}" class="${id === forgeTab ? 'sel' : ''}">${tr(label)}</button>`).join('')}</div>
       <div class="city-stock forge-body">${this.forgeRows(city, forgeTab)}</div>`;
     paintIcons(el);
@@ -2057,7 +2057,7 @@ class Game {
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) r.loot = loot;
       // And a few materials for the forge, every time.
-      r.materials = fieldMaterials(this.shopTier(), !!gilReward && gilReward >= 250);
+      r.materials = fieldMaterials(this.shopTier(), !!gilReward && gilReward >= 250, Math.random, this.state.chapter);
       for (const [m, n] of Object.entries(r.materials)) this.invAdd(m, n);
       // Whatever was tamed follows the company off a field it has won, while
       // there is room in the kennel and in the company.
