@@ -1054,6 +1054,74 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('the credits show the package version', shown === pkg, `game ${shown}, package ${pkg}`);
   }
 
+  /* The AI's second thoughts. It had taken the best single blow from the
+     best single tile; it now finishes the wounded, strikes healers first,
+     keeps its archers and casters out of reach, falls back when badly hurt
+     with a healer behind it, and keeps a guard on its commander. Each is
+     a battle laid out so that only the new reading produces the move. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const place = (b, u, x, y) => { u.x = x; u.y = y; };
+    const flat = g.MAPS.millbrook;
+    // a. Two foes in reach, one at half health: the wounded one is struck.
+    {
+      const party = [mk('Hale', 'knight', 8), mk('Hurt', 'knight', 8)];
+      let b = g.Battle.setup(flat, party, [{ job: 'knight', level: 8, x: 5, y: 5, name: 'Foe' }], quiet, { type: 'rout' });
+      const foe = b.units.find(u => u.team === 'enemy');
+      foe.learned = {}; // a plain blow, so the choice is the target and nothing else
+      place(b, party[0], 4, 5); place(b, party[1], 6, 5);
+      party[1].hp = Math.floor(party[1].maxHp * 0.45);
+      const before = [party[0].hp, party[1].hp];
+      await b.aiTurn(foe);
+      ok('the AI finishes the wounded before it starts on the hale', party[1].hp < before[1] && party[0].hp === before[0], `hale ${before[0]}->${party[0].hp}, hurt ${before[1]}->${party[1].hp}`);
+    }
+    // b. A knight and a cleric side by side: the cleric is struck.
+    {
+      const party = [mk('Wall', 'knight', 8), mk('Mender', 'whiteMage', 8)];
+      let b = g.Battle.setup(flat, party, [{ job: 'knight', level: 8, x: 5, y: 5, name: 'Foe' }], quiet, { type: 'rout' });
+      const foe = b.units.find(u => u.team === 'enemy');
+      foe.learned = {};
+      place(b, party[0], 4, 5); place(b, party[1], 6, 5);
+      const before = [party[0].hp, party[1].hp];
+      await b.aiTurn(foe);
+      ok('the AI strikes the healer first', party[1].hp < before[1], `knight ${before[0]}->${party[0].hp}, cleric ${before[1]}->${party[1].hp}`);
+    }
+    // c. An archer with room: it shoots from where the swordsman cannot reach it.
+    {
+      const party = [mk('Sword', 'knight', 6)];
+      let b = g.Battle.setup(flat, party, [{ job: 'archer', level: 6, x: 5, y: 2, name: 'Bow' }], quiet, { type: 'rout' });
+      const bow = b.units.find(u => u.team === 'enemy');
+      place(b, party[0], 5, 4);
+      await b.aiTurn(bow);
+      const dist = g.Grid.dist(bow.x, bow.y, party[0].x, party[0].y);
+      ok('an archer keeps out of a swordsman\'s reach', dist > party[0].baseStats().move + 1, `distance ${dist}, move ${party[0].baseStats().move}`);
+    }
+    // d. Badly hurt, with a healer behind: it falls back rather than trading blows.
+    {
+      const party = [mk('Sword', 'knight', 10), mk('Sword2', 'knight', 10)];
+      const foes = [{ job: 'knight', level: 6, x: 3, y: 3, name: 'Hurt' }, { job: 'whiteMage', level: 6, x: 7, y: 7, name: 'Priest' }];
+      let b = g.Battle.setup(g.MAPS.verdant, party, foes, quiet, { type: 'rout' });
+      const hurt = b.units.find(u => u.name === 'Hurt');
+      place(b, party[0], 2, 3); place(b, party[1], 4, 3);
+      hurt.hp = Math.floor(hurt.maxHp * 0.2);
+      const d0 = g.Grid.dist(hurt.x, hurt.y, 7, 7);
+      await b.aiTurn(hurt);
+      const d1 = g.Grid.dist(hurt.x, hurt.y, 7, 7);
+      const adjacent = party.some(u => g.Grid.dist(u.x, u.y, hurt.x, hurt.y) <= 1);
+      ok('a badly hurt foe with a healer behind it falls back', d1 < d0 && !adjacent, `distance to healer ${d0}->${d1}, adjacent ${adjacent}`);
+    }
+    // e. A commander keeps a guard: the sturdiest of the rest stays within two tiles.
+    {
+      const party = [mk('Sword', 'knight', 8)];
+      const foes = [{ job: 'knight', level: 10, x: 8, y: 8, name: 'Captain', boss: true }, { job: 'knight', level: 8, x: 7, y: 8, name: 'Guard' }, { job: 'archer', level: 8, x: 9, y: 7, name: 'Bow' }];
+      let b = g.Battle.setup(flat, party, foes, quiet, { type: 'boss' });
+      const boss = b.units.find(u => u.boss), guard = b.units.find(u => u.guardOf === boss);
+      place(b, party[0], 2, 2);
+      ok('the commander has a guard', !!guard && guard.team === 'enemy', guard ? guard.name : 'none');
+      if (guard) { await b.aiTurn(guard); ok('the guard stays within two tiles of the commander', g.Grid.dist(guard.x, guard.y, boss.x, boss.y) <= 2, `distance ${g.Grid.dist(guard.x, guard.y, boss.x, boss.y)}`); }
+    }
+  }
+
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

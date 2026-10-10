@@ -120,6 +120,10 @@ class Battle {
     if (b.objective.type === 'boss') {
       b.objective.target = b.units.find(u => u.team === 'enemy' && u.boss) ||
         b.units.find(u => u.team === 'enemy');
+      // The commander keeps a guard: the sturdiest of the rest stays close.
+      const boss = b.objective.target;
+      const guard = b.units.filter(u => u.team === 'enemy' && u !== boss && !u.boss).sort((p, q) => q.maxHp - p.maxHp)[0];
+      if (guard && boss && boss.boss) guard.guardOf = boss;
     }
     if (b.objective.protectLeader) {
       b.objective.leader = playerUnits.find(u => u.leader) || playerUnits[0];
@@ -1094,7 +1098,12 @@ class Battle {
       if (p.dmg) {
         const dmg = Math.min(p.dmg, t.hp);
         const lethal = p.dmg >= t.hp;
-        score += (enemy ? 1 : -1.2) * hitF * (dmg + (lethal ? 40 : 0) + (t.leader ? 10 : 0));
+        // Focus fire: a wounded target is worth finishing, and a healer is
+        // worth more than the damage says, since every blow on anyone else
+        // comes back while it stands.
+        const wounded = enemy ? (1 - t.hp / t.maxHp) * 25 : 0;
+        const healer = enemy && this.isHealer(t) ? 12 : 0;
+        score += (enemy ? 1 : -1.2) * hitF * (dmg + (lethal ? 40 : 0) + (t.leader ? 10 : 0) + wounded + healer);
       }
       if (p.heal) {
         const heal = Math.min(p.heal, t.maxHp - t.hp);
@@ -1138,25 +1147,111 @@ class Battle {
     return score;
   }
 
+  // Whether a blow from a tile would fell someone on the other side.
+  killsAnyone(unit, ab, fromX, fromY, tx, ty) {
+    const ox = unit.x, oy = unit.y;
+    unit.x = fromX; unit.y = fromY;
+    const kill = this.predict(unit, ab, tx, ty).some(p => p.unit.team !== unit.team && p.dmg >= p.unit.hp && p.hit >= 50);
+    unit.x = ox; unit.y = oy;
+    return kill;
+  }
+
+  // Whether a unit can mend or raise others: the one to strike first.
+  isHealer(u) {
+    return u.allAbilities().some(id => ABILITIES[id].effects.some(e => (e.type === 'heal' || e.type === 'revive') && ABILITIES[id].affects !== 'enemy' && !ABILITIES[id].self));
+  }
+
+  // Whether a unit fights from a distance or by magic: one to keep out of reach.
+  isRanged(u) {
+    return u.weapon.range >= 3 || u.allAbilities().some(id => ABILITIES[id].mp > 0 && ABILITIES[id].effects.some(e => e.type === 'damage'));
+  }
+
+  /* What a tile is worth avoiding: the damage the other side could put on
+     it next turn, summed over every foe that could reach it. A foe's reach
+     is its move and its longest strike, counted as distance; its blow is a
+     rough reading of its arm or its art, since the exact figure would cost
+     a prediction per foe per tile per candidate. */
+  dangerMap(unit) {
+    const foes = this.enemiesOf(unit).filter(e => e.alive && this.onField(e));
+    const arms = foes.map(e => {
+      const st = e.baseStats();
+      let range = e.weapon.range, magic = 0;
+      for (const id of e.allAbilities()) { const ab = ABILITIES[id]; if (ab.effects.some(x => x.type === 'damage')) { if (typeof ab.range === 'number') range = Math.max(range, ab.range); if (ab.mp > 0) magic = Math.max(magic, st.ma * 6); } }
+      const blow = Math.max(e.weapon.power * st.pa * 0.8, magic);
+      return { e, reach: st.move + range, blow };
+    });
+    const cache = new Map();
+    return (x, y) => {
+      const k = `${x},${y}`;
+      if (cache.has(k)) return cache.get(k);
+      let d = 0;
+      for (const a of arms) {
+        const dist = Grid.dist(a.e.x, a.e.y, x, y);
+        // Within reach, the nearer the worse: a foe next to you has every
+        // angle. A turn's march beyond reach still counts for a little.
+        if (dist <= a.reach) d += a.blow * (1.2 - 0.4 * dist / Math.max(1, a.reach));
+        else if (dist <= a.reach + 2) d += a.blow * 0.3;
+      }
+      cache.set(k, d);
+      return d;
+    };
+  }
+
   async aiTurn(unit) {
     await sleep(350);
     const reach = this.grid.reachable(unit, this.units);
     const abilities = unit.allAbilities().map(id => ABILITIES[id]).filter(ab => this.canAfford(unit, ab));
     let best = { score: 0, tile: null, ab: null, tx: 0, ty: 0 };
-    const candidates = [...reach.values()];
+    let candidates = [...reach.values()];
+    // A guard stays by the one it guards, unless a kill is on offer elsewhere.
+    const ward = unit.guardOf && unit.guardOf.alive && this.onField(unit.guardOf) ? unit.guardOf : null;
+    if (ward) {
+      const close = candidates.filter(c => Grid.dist(c.x, c.y, ward.x, ward.y) <= 2);
+      if (close.length) candidates = close;
+    }
+    // Where it is dangerous to stand, and how much that matters to this unit.
+    const danger = this.dangerMap(unit);
+    const ranged = this.isRanged(unit);
+    const hurt = unit.hp < unit.maxHp * 0.5;
+    const care = (ranged ? 45 : 22) * (hurt ? 1.5 : 1);
+    const risk = (c) => Math.min(care, care * danger(c.x, c.y) / Math.max(1, unit.maxHp));
     for (const c of candidates) {
       for (const ab of abilities) {
         const targets = this.targetTilesFor(unit, ab, c.x, c.y);
         for (const t of targets) {
           const s = this.scoreTarget(unit, ab, c.x, c.y, t.x, t.y);
           if (s <= 0) continue;
-          // Slight preference for staying put and for higher ground.
-          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5;
-          if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y };
+          // Slight preference for staying put and for higher ground, and a
+          // marked one for ground the other side cannot easily answer on.
+          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c);
+          if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y, kill: this.killsAnyone(unit, ab, c.x, c.y, t.x, t.y) };
         }
       }
     }
     const near = this.nearestEnemyOf(unit);
+    // Badly hurt, with no kill in reach: fall back toward a healer, out of
+    // the other side's reach, and let the healer do the work.
+    if (unit.hp < unit.maxHp * 0.3 && !best.kill && !unit.boss) {
+      const healers = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
+      const here = danger(unit.x, unit.y);
+      let safe = null, bs = -1e9;
+      for (const c of candidates) {
+        const d = danger(c.x, c.y);
+        if (d >= here && c.cost > 0) continue;
+        const toHealer = healers.length ? Math.min(...healers.map(h => Grid.dist(c.x, c.y, h.x, h.y))) : 0;
+        const s = -d / Math.max(1, unit.maxHp) * 50 - toHealer * 4 + (near ? Grid.dist(c.x, c.y, near.x, near.y) * 2 : 0);
+        if (s > bs) { bs = s; safe = c; }
+      }
+      if (safe && (safe.x !== unit.x || safe.y !== unit.y) && (danger(safe.x, safe.y) < here || healers.length)) {
+        await this.moveUnit(unit, this.grid.pathTo(reach, safe.x, safe.y));
+        // A mend of its own, if it has one, from the safer ground.
+        const self = abilities.find(ab => ab.effects.some(e => e.type === 'heal') && (ab.self || ab.allowSelf));
+        if (self) await this.useAbility(unit, self, unit.x, unit.y);
+        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
+        await sleep(200);
+        return;
+      }
+    }
     // Badly hurt, with a crystal in reach: a full restore is worth more than
     // one more blow, unless that blow ends the fight for someone.
     if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
@@ -1179,7 +1274,10 @@ class Battle {
     if (near) {
       let bestTile = null, bd = 1e9;
       for (const c of candidates) {
-        const d = Grid.dist(c.x, c.y, near.x, near.y) + (c.cost * 0.01) - this.grid.height(c.x, c.y) * 0.05;
+        // Close in, but a unit that fights from a distance keeps that
+        // distance: it stops short of where the other side can answer.
+        const dist = Grid.dist(c.x, c.y, near.x, near.y);
+        const d = (ranged ? Math.abs(dist - Math.max(2, unit.weapon.range)) : dist) + (c.cost * 0.01) - this.grid.height(c.x, c.y) * 0.05 + risk(c) * 0.08;
         if (d < bd) { bd = d; bestTile = c; }
       }
       if (bestTile && (bestTile.x !== unit.x || bestTile.y !== unit.y)) {

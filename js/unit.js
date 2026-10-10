@@ -212,6 +212,7 @@ class Unit {
     this._regenFired = false;
     this._deathLogged = false;
     this._tookHit = false;
+    this.guardOf = null; // a boss this unit keeps close to, set when a battle is laid out
   }
 
   hasStatus(id) { return this.statuses[id] > 0; }
