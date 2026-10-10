@@ -200,6 +200,82 @@ class Battle {
     return b;
   }
 
+  // ---- suspending a battle ------------------------------------------------
+  /* The battle as it stands, in plain data: enough to put every unit back
+     where it was with what it had, every charge in the air, the objective's
+     count, the crystals on the ground and whose turn it was. Party units are
+     referred to by id, since the save keeps them; everyone else is carried
+     whole. */
+  toSave(party = []) {
+    const mapId = Object.keys(MAPS).find(k => MAPS[k] === this.mapDef) || null;
+    const uid = u => (u ? u.id : null);
+    const abilityId = ab => Object.keys(ABILITIES).find(k => ABILITIES[k] === ab) || null;
+    const state = u => ({
+      x: u.x, y: u.y, hp: u.hp, mp: u.mp, ct: u.ct, facing: u.facing, mods: u.mods, statuses: u.statuses,
+      airborne: u.airborne, turnFlags: u.turnFlags, koCount: u.koCount, carriedOff: u.carriedOff,
+      deathLogged: !!u._deathLogged, regenFired: !!u._regenFired, guardOf: uid(u.guardOf),
+      saidHalf: !!u.saidHalf, saidFall: !!u.saidFall, phases: u.phases || null, lines: u.lines || null,
+      gilStolen: u.gilStolen || 0, gilFound: u.gilFound || 0, acted: this.actedThisRound.has(u),
+    });
+    const o = this.objective;
+    return {
+      map: mapId, tick: this.tick, turnNo: this.turnNo, round: this.round, difficulty: this.difficulty || null, talk: this.talk || null,
+      objective: Object.assign({}, o, {
+        leader: uid(o.leader), target: uid(o.target), charge: uid(o.charge),
+        goal: o.goal ? { x: o.goal.x, y: o.goal.y } : null, goals: undefined,
+      }),
+      units: this.units.map(u => Object.assign(party.includes(u) ? { ref: u.id } : Object.assign(u.toSave(), { boss: u.boss, escort: u.escort, pet: u.pet }), { state: state(u) })),
+      pending: this.pending.map(p => ({ unit: uid(p.unit), ability: abilityId(p.ability), tx: p.tx, ty: p.ty, ct: p.ct, speed: p.speed })),
+      crystals: this.crystals || [], tamed: this.tamed.map(uid), rewards: this.rewards, spoken: this.spoken || [],
+      active: uid(this.active), retreated: !!this.retreated, maxDeploy: this.maxDeploy,
+    };
+  }
+
+  // The battle put back from what toSave kept. Party units come from the
+  // party the save rebuilt; the rest are made anew from their own record.
+  static restore(data, party, hooks) {
+    const mapDef = MAPS[data.map];
+    if (!mapDef) throw new Error('unknown map');
+    const b = new Battle(mapDef, [], [], hooks);
+    const byId = {};
+    for (const su of data.units || []) {
+      let u;
+      if (su.ref) { u = party.find(p => p.id === su.ref); if (!u) continue; }
+      else { u = new Unit(Object.assign({ team: 'enemy' }, su)); u.boss = !!su.boss; u.escort = !!su.escort; }
+      u.resetBattleState();
+      const s = su.state || {};
+      Object.assign(u, {
+        x: s.x, y: s.y, hp: s.hp, mp: s.mp, ct: s.ct || 0, facing: s.facing || 'S', mods: s.mods || {}, statuses: s.statuses || {},
+        airborne: !!s.airborne, turnFlags: s.turnFlags || { moved: false, acted: false }, koCount: s.koCount === null ? undefined : s.koCount,
+        carriedOff: !!s.carriedOff, _deathLogged: !!s.deathLogged, _regenFired: !!s.regenFired, saidHalf: !!s.saidHalf, saidFall: !!s.saidFall,
+        gilStolen: s.gilStolen || 0, gilFound: s.gilFound || 0,
+      });
+      if (s.phases) u.phases = s.phases;
+      if (s.lines) u.lines = s.lines;
+      b.units.push(u); byId[u.id] = u;
+      if (s.acted) b.actedThisRound.add(u);
+    }
+    for (const su of data.units || []) { const u = byId[su.ref || su.id]; if (u && su.state && su.state.guardOf) u.guardOf = byId[su.state.guardOf] || null; }
+    b.tick = data.tick || 0; b.turnNo = data.turnNo || 0; b.round = data.round || 1;
+    b.difficulty = data.difficulty || undefined; b.talk = data.talk || null;
+    const o = Object.assign({}, data.objective || { type: 'rout' });
+    o.leader = byId[o.leader] || null; o.target = byId[o.target] || null; o.charge = byId[o.charge] || null;
+    o.goal = o.goal ? b.grid.tile(o.goal.x, o.goal.y) : null; o.goals = o.goal ? [o.goal] : [];
+    b.objective = o;
+    b.deployZone = computeDeployZone(b.grid, mapDef.deploy, b.units.filter(u => u.team === 'enemy'));
+    b.deployKeys = new Set(b.deployZone.map(t => `${t.x},${t.y}`));
+    b.maxDeploy = data.maxDeploy || Math.min(5, b.deployZone.length);
+    b.pending = (data.pending || []).map(p => ({ unit: byId[p.unit], ability: ABILITIES[p.ability], tx: p.tx, ty: p.ty, ct: p.ct, speed: p.speed })).filter(p => p.unit && p.ability);
+    b.crystals = data.crystals || [];
+    b.tamed = (data.tamed || []).map(id => byId[id]).filter(Boolean);
+    b.rewards = data.rewards || { exp: 0, gil: 0, events: [] };
+    b.spoken = data.spoken || []; b._talkQueue = [];
+    b.retreated = !!data.retreated;
+    b.resumed = true;
+    b.resumeActive = byId[data.active] || null;
+    return b;
+  }
+
   // ---- deployment ---------------------------------------------------------
   deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0 && !u.escort); }
   canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.occupantAt(x, y); }
@@ -1055,7 +1131,17 @@ class Battle {
     // A leader left in reserve cannot be lost, so the rule does not apply.
     if (this.objective.leader && !this.onField(this.objective.leader)) this.objective.leader = null;
     if (this.hooks.refresh) this.hooks.refresh();
-    await this.openingWords();
+    if (!this.resumed) await this.openingWords();
+    // A battle picked up where it was left goes on with the turn that was
+    // in hand, without the start-of-turn effects it has already had.
+    if (this.resumeActive) {
+      const u = this.resumeActive; this.resumeActive = null;
+      if (u.alive && this.onField(u) && !this.over) {
+        this.turnNo--;
+        await this.takeTurn(u, true);
+        if (this.checkEnd()) return this.result;
+      }
+    }
     while (!this.over) {
       // Advance one tick.
       this.tick++;
@@ -1116,13 +1202,13 @@ class Battle {
     return this.result;
   }
 
-  async takeTurn(unit) {
+  async takeTurn(unit, resumed = false) {
     await this.flushTalk();
     this.active = unit;
     this.turnNo++;
-    unit.turnFlags = { moved: false, acted: false };
+    if (!resumed) unit.turnFlags = { moved: false, acted: false };
     // Poison / regen at turn start.
-    if (unit.hasStatus('poison')) {
+    if (!resumed && unit.hasStatus('poison')) {
       const v = Math.max(1, Math.floor(unit.maxHp / 8));
       unit.hp = Math.max(0, unit.hp - v);
       this.log(`${unit.name} takes ${v} poison damage.`, 'dmg');
@@ -1135,13 +1221,13 @@ class Battle {
         if (!unit.alive) { this.log(`${unit.name} succumbs to poison!`, 'ko'); if (this.hooks.onDeath) await this.hooks.onDeath(unit); this.active = null; return; }
       }
     }
-    if (unit.hasPassive('mpRegen') && unit.mp < unit.maxMp) {
+    if (!resumed && unit.hasPassive('mpRegen') && unit.mp < unit.maxMp) {
       const v = Math.min(Math.ceil(unit.maxMp / 10), unit.maxMp - unit.mp);
       unit.mp += v;
       this.log(`${unit.name} draws ${v} MP from the well.`, 'heal');
       if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v} MP`, '#7cc8ff');
     }
-    if (unit.hasStatus('regen')) {
+    if (!resumed && unit.hasStatus('regen')) {
       const v = Math.min(Math.max(1, Math.floor(unit.maxHp / 8)), unit.maxHp - unit.hp);
       unit.hp += v;
       if (v > 0) { this.log(`${unit.name} regenerates ${v} HP.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(unit, `+${v}`, '#7cff7c'); }

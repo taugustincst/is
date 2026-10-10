@@ -1153,6 +1153,44 @@ const mk = (n, job, lvl, opts = {}) => {
     ok('every escorted charge outranks the field it crosses', esc.length >= 4 && esc.every(c => c.objective.escort.level > Math.max(...c.enemies.filter(e => !e.boss).map(e => e.level))));
   }
 
+  /* A battle suspended and picked up: everything that was on the field is
+     put back as it was, the charge in the air lands, the turn in hand goes
+     on, and the fight runs to an end from there. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const party = [mk('Lead', 'knight', 8, { leader: true }), mk('Mage', 'blackMage', 8)];
+    for (const u of party) u.learned = {};
+    let stopAt = 0, b;
+    const hooks = { log: () => {}, awaitPlayerTurn: async (u) => { if (b.turnNo >= 4) { b.over = true; b.result = 'suspended'; stopAt = b.turnNo; return; } return b.aiTurn(u); } };
+    b = g.Battle.setup(g.MAPS.verdant, party, [{ job: 'knight', level: 6, x: 8, y: 2, name: 'Foe' }, { job: 'archer', level: 6, x: 9, y: 3, name: 'Bow' }], hooks, { type: 'rout', protectLeader: true }, 'knight');
+    party[0].x = 3; party[0].y = 3; party[1].x = 2; party[1].y = 3;
+    await b.run();
+    ok('a battle stops at a turn in hand', stopAt >= 4 && b.units.some(u => u.team === 'enemy' && u.alive), `turn ${stopAt}`);
+    // Dress the state up with things a save must carry.
+    b.over = false; b.result = null;
+    const foe = b.units.find(u => u.name === 'Foe');
+    foe.hp = Math.max(1, foe.hp - 5); foe.statuses = { slow: 3 };
+    b.pending.push({ unit: party[1], ability: g.ABILITIES.fire, tx: foe.x, ty: foe.y, ct: 40, speed: 20 });
+    b.crystals.push({ x: 5, y: 5, from: 'Nobody', team: 'enemy', t0: 1 });
+    b.spoken.push({ name: 'Lead', text: 'Hold.' });
+    b.active = party[0]; // the turn in hand, as it is while the player is asked
+    const nPending = b.pending.length, nCrystals = b.crystals.length;
+    const data = JSON.parse(JSON.stringify(b.toSave(party)));
+    ok('the snapshot refers to party units by id and carries the rest whole', data.units.filter(u => u.ref).length === 2 && data.units.filter(u => !u.ref && u.job).length === 2 && data.pending.length === nPending && data.crystals.length === nCrystals, JSON.stringify(data.units.map(u => u.ref || u.name)));
+    // Put it back, into a fresh party as a load would make.
+    const party2 = party.map(u => g.Unit.fromSave(u.toSave()));
+    const r = g.Battle.restore(data, party2, quiet);
+    const foe2 = r.units.find(u => u.name === 'Foe');
+    ok('the field is as it was', r.round === b.round && r.turnNo === b.turnNo && r.units.length === b.units.length && foe2 && foe2.hp === foe.hp && foe2.x === foe.x && foe2.statuses.slow === 3 && r.crystals.length === nCrystals && r.spoken.length === 1, `${r.units.length} units, foe hp ${foe2 && foe2.hp}`);
+    const lead2 = party2[0];
+    ok('the party units are the party\'s own, placed where they stood', r.units.includes(lead2) && lead2.x === party[0].x && lead2.y === party[0].y && r.objective.leader === lead2, `${lead2.x},${lead2.y}`);
+    const charge = r.pending.find(p => p.ability === g.ABILITIES.fire);
+    ok('the charge in the air is still in the air', r.pending.length === nPending && charge && charge.unit === party2[1] && charge.ct === 40, `${r.pending.length} of ${nPending}`);
+    ok('the turn in hand is remembered', !!r.resumeActive && r.resumeActive.id === b.active.id, r.resumeActive && r.resumeActive.name);
+    const res = await r.run();
+    ok('the battle runs to an end from there, without saying its opening words again', ['victory', 'defeat'].includes(res) && r.spoken.length === 1, `${res}, ${r.spoken.length} lines`);
+  }
+
   /* Words on the field: the leader opens the finales, a boss opens, speaks
      at half health and at its fall, each once; a first kill is remarked on
      once; and every line goes through the speak hook, which the battle
