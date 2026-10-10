@@ -28,7 +28,7 @@ const CAMPAIGN = [
     ],
   },
   {
-    objective: { type: 'hold', rounds: 3, goal: 'centre' },
+    objective: { type: 'hold', rounds: 3, goal: { x: 6, y: 6 } },
     id: 'ch2', title: 'The Wolves of Millbrook', map: 'millbrook',
     camp: [
       'Mira: "The mill was still turning when I passed this way in spring. Someone should have shut it off."',

@@ -299,9 +299,12 @@ the device unless you send it; there is no account and no cloud.
 **Five languages.** The screens, menus, hints, questions and the guide speak
 German, French, Spanish, Brazilian Portuguese and Japanese as well as English,
 taken from the browser's language until you choose one on the title screen or in
-the camp's Options tab. Names, the story, item and ability text and the help's
-own paragraphs stay in English. The table is `js/i18n.js`, keyed by the English
-text; `tools/validate.js` checks every language has every key.
+the camp's Options tab. Names, item and ability text and the help's own
+paragraphs stay in English, and so does the story for now: its lines pass
+through the same table, so a line translated there shows translated and the
+rest stays as written, and a language can be added a chapter at a time. The
+table is `js/i18n.js`, keyed by the English text; `tools/validate.js` checks
+every language has every key of the shell.
 
 **One file.** `node tools/bundle.js` writes `dist/elderon.html`: the stylesheet,
 all ten scripts and the icons inlined into a single self-contained page with

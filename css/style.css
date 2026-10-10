@@ -392,6 +392,16 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #shop-gil { font-size: 20px; color: var(--gold); }
 .tabs { display: flex; gap: 6px; margin: 8px 0; }
 .camp-tabs, .form-tabs { flex-wrap: wrap; margin: 0 0 12px; }
+/* The record. */
+.rec-line { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.rec-endings { font-size: 13px; margin-bottom: 8px; } .rec-endings .ending { display: inline-block; margin: 2px 6px 2px 0; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.rec-endings .ending.seen { color: #ffe08a; border-color: var(--gold); }
+.rec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+.rec-table th { text-align: left; color: var(--muted); font-weight: normal; border-bottom: 1px solid var(--border); padding: 3px 6px; }
+.rec-table td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); } .rec-table td:nth-child(2), .rec-table th:nth-child(2) { text-align: center; } .rec-table td:nth-child(3), .rec-table th:nth-child(3) { text-align: right; }
+.rec-kills { font-size: 13px; margin-bottom: 8px; } .rec-kills .kill-by { display: inline-block; margin: 2px 8px 2px 0; } .rec-kills .kill-by b { color: var(--gold); }
+.rec-roll .rec-row { font-size: 13px; padding: 2px 0; } .rec-roll small { color: var(--muted); }
+.rec-plus { margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .rec-plus small { color: var(--muted); max-width: 420px; }
 .camp-tabs button .badge, .form-tabs button .badge { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--gold); color: #1a1408; font-size: 11px; line-height: 16px; }
 .tab-hidden { display: none !important; }
 .tabs button { border-radius: 999px; padding: 5px 14px; }

@@ -985,6 +985,9 @@ class Battle {
     if (jpEv) { this.log(jpEv, 'lvl'); this.rewards.events.push(jpEv); }
     this.rewards.exp += exp;
     this.rewards.gil += 30 + t.level * 14;
+    // For the record: who felled whom, by trade.
+    this.rewards.killsBy = this.rewards.killsBy || {};
+    this.rewards.killsBy[user.job] = (this.rewards.killsBy[user.job] || 0) + 1;
   }
 
   // ---- tempo loop -------------------------------------------------------
@@ -1436,9 +1439,9 @@ class Battle {
       const holder = mine.sort((p, q) => Grid.dist(p.x, p.y, g.x, g.y) - Grid.dist(q.x, q.y, g.x, g.y) || p.id.localeCompare(q.id))[0];
       return holder === unit ? -Grid.dist(c.x, c.y, g.x, g.y) * 0.8 : 0;
     }
-    // The other side moves to cut off a charge; a leader making for the mark
-    // it hunts as it would anyone, rather than camping the mark.
-    if (o.type === 'escort' && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
+    // The other side goes for the charge itself rather than camping the
+    // mark: a fight comes to the company, not a stalemate at the far end.
+    if (o.type === 'escort' && unit.team === 'enemy') { const ch = o.charge; return ch && ch.alive && this.onField(ch) ? -Grid.dist(c.x, c.y, ch.x, ch.y) * 0.4 : 0; }
     // The leader under Auto goes for the mark it is asked to reach.
     if (o.type === 'reach' && unit === o.leader) return on ? 60 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.8;
     return 0;
@@ -1553,7 +1556,9 @@ class Battle {
           if (s <= 0) continue;
           // Slight preference for staying put and for higher ground, and a
           // marked one for ground the other side cannot easily answer on.
-          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) + this.markWorth(unit, c) + (pack(c) ? 6 : 0);
+          // A solid blow is worth taking from risky ground; only a poke is
+          // not, so a bowman does not spend the battle backing away.
+          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) * (s >= 40 ? 0.4 : 1) + this.markWorth(unit, c) + (pack(c) ? 6 : 0);
           if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y, kill: this.killsAnyone(unit, ab, c.x, c.y, t.x, t.y) };
         }
       }

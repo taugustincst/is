@@ -281,6 +281,72 @@ class Game {
     if (bm) { bm.textContent = audio.musicMuted ? '♪̸' : '♪'; bm.title = audio.musicMuted ? 'Music off' : 'Music on'; }
   }
 
+  // ---- the record --------------------------------------------------------------
+  /* What a fight adds to the record: a chapter cleared, whether at the first
+     try, in how few turns; kills by trade; battles fought and won. */
+  noteBattle(flow, res, attempts, last) {
+    const s = this.state; if (!s) return;
+    const r = s.records = s.records || Game.freshRecords();
+    r.fought++;
+    if (res === 'victory') r.won++;
+    for (const [job, n] of Object.entries((last && last.killsBy) || {})) r.kills[job] = (r.kills[job] || 0) + n;
+    if (flow && flow.kind === 'chapter') {
+      const ch = this.chapterAt(flow.index);
+      if (!ch) return;
+      const key = s.branch && flow.index >= COMMON ? `${s.branch}:${ch.id}` : ch.id;
+      const c = r.chapters[key] = r.chapters[key] || { cleared: false, firstTry: false, bestTurns: null, attempts: 0 };
+      if (!c.cleared) c.attempts += attempts; // tries until the first clear
+      if (res === 'victory') {
+        if (!c.cleared) c.firstTry = c.attempts === 1;
+        c.cleared = true;
+        if (last && Number.isFinite(last.turns) && (c.bestTurns === null || last.turns < c.bestTurns)) c.bestTurns = last.turns;
+      }
+    }
+  }
+  renderRecords() {
+    const el = $('records'); if (!el) return;
+    const s = this.state, r = s.records || Game.freshRecords();
+    const mins = Math.round((s.playtime || 0) / 60000), time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+    const endings = ROAD_ORDER.map(id => `<span class="ending ${s.endings && s.endings[id] ? 'seen' : ''}">${s.endings && s.endings[id] ? '✓ ' : ''}${ROADS[id].title}</span>`).join('');
+    const rows = [...CAMPAIGN.map(c => [c.id, c]), ...(s.branch ? ROADS[s.branch].chapters.map(c => [`${s.branch}:${c.id}`, c]) : [])]
+      .filter(([key]) => r.chapters[key] && r.chapters[key].cleared)
+      .map(([key, c]) => { const x = r.chapters[key]; return `<tr><td>${c.title}</td><td>${x.firstTry ? '✓' : `${x.attempts}×`}</td><td>${x.bestTurns !== null ? tr('{n} turns', { n: x.bestTurns }) : '—'}</td></tr>`; }).join('');
+    const firstTries = Object.values(r.chapters).filter(c => c.cleared && c.firstTry).length, cleared = Object.values(r.chapters).filter(c => c.cleared).length;
+    const kills = Object.entries(r.kills).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([job, n]) => `<span class="kill-by">${JOBS[job].name} <b>${n}</b></span>`).join('');
+    const roll = s.party.map(u => `<div class="rec-row"><b>${u.name}</b> <small>${tr('{battles} battles · {kills} felled · fell {falls} times', { battles: u.record.battles, kills: u.record.kills, falls: u.record.falls })}</small></div>`).join('');
+    const plusable = Object.keys(s.endings || {}).length > 0;
+    el.innerHTML = `
+      <div class="rec-line">${tr('{time} played', { time })} · ${tr('Battles: {won} won of {n}', { won: r.won, n: r.fought })} · ${tr('Chapters cleared first try: {n} of {total}', { n: firstTries, total: cleared })}${r.plus ? ` · ${tr('New Game + {n}', { n: r.plus })}` : ''}</div>
+      <div class="rec-endings"><b>${tr('Endings seen: {n} of {total}', { n: Object.keys(s.endings || {}).length, total: ROAD_ORDER.length })}</b> ${endings}</div>
+      ${rows ? `<table class="rec-table"><thead><tr><th>${tr('Chapter')}</th><th>${tr('Tries')}</th><th>${tr('Best')}</th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="muted">${tr('No chapter cleared yet.')}</p>`}
+      ${kills ? `<div class="rec-kills"><b>${tr('Kills by trade')}</b> ${kills}</div>` : ''}
+      <div class="rec-roll">${roll}</div>
+      ${plusable ? `<div class="rec-plus"><button id="btn-plus" class="primary">${tr('New Game +')}</button> <small>${tr('A new campaign on Paladin with every job, ability and passive the company has learned; levels and purse back to the start.')}</small></div>` : ''}`;
+    if ($('btn-plus')) $('btn-plus').onclick = () => this.newGamePlus();
+  }
+  /* The company sets out again: the same people with every job, ability
+     and passive they have learned, at level one with the starter kit, on
+     the Paladin setting, in the same slot. */
+  async newGamePlus() {
+    const s = this.state; if (!s) return;
+    if (!(await this.ask(tr('Begin a new campaign on Paladin with every job, ability and passive the company has learned? Levels and purse go back to the start, and the campaign in this slot is replaced.'), { yes: tr('Begin again'), no: tr('Not yet') }))) return;
+    const kept = [...s.party, ...(s.exiled || []).map(x => Unit.fromSave(Object.assign({ team: 'player' }, x)))].filter(u => !u.pet).slice(0, PARTY_MAX);
+    const party = kept.map(u => new Unit({ name: u.name, job: u.job, level: 1, team: 'player', leader: u.leader, jp: u.jp, jpTotal: u.jpTotal, learned: u.learned, secondary: u.secondary, passives: u.passives, record: u.record }));
+    if (!party.some(u => u.leader) && party.length) party[0].leader = true;
+    const records = s.records || Game.freshRecords();
+    records.plus = (records.plus | 0) + 1;
+    this.state = {
+      party, gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: 'paladin',
+      errands: { offered: [], active: [], reports: [] }, cities: {}, slot: s.slot, playtime: s.playtime || 0,
+      branch: null, endings: s.endings || {}, exiled: [], records,
+    };
+    this.cityView = null;
+    this.saveGame();
+    this.toast(tr('The company sets out again, wiser.'));
+    this.showCampTab('road');
+    this.showWorld();
+  }
+
   // ---- a word the first time something new opens ---------------------------
   /* A tip is said once, the first time its moment comes: a city opened, a
      forge shown, SP to spend, a beast that could be won over. One at a time;
@@ -381,10 +447,22 @@ class Game {
       party: STARTING_PARTY.map(p => new Unit(Object.assign({ team: 'player' }, p))),
       gil: 500, chapter: 0, victories: 0, trials: 0, inventory: {}, difficulty: 'knight',
       errands: { offered: [], active: [], reports: [] }, cities: {}, slot, playtime: 0,
-      branch: null, endings: {}, exiled: [],
+      branch: null, endings: {}, exiled: [], records: Game.freshRecords(),
     };
     this.sessionStart = Date.now();
     this.showWorld();
+  }
+
+  // What a campaign keeps of itself: the chapters cleared and how, the
+  // kills by trade, the battles fought, and how many times it has begun again.
+  static freshRecords() { return { chapters: {}, kills: {}, fought: 0, won: 0, plus: 0 }; }
+  static readRecords(r) {
+    const out = Game.freshRecords();
+    if (!r || typeof r !== 'object') return out;
+    for (const [id, c] of Object.entries(r.chapters || {})) if (c && typeof c === 'object') out.chapters[id] = { cleared: !!c.cleared, firstTry: !!c.firstTry, bestTurns: Number.isFinite(c.bestTurns) ? c.bestTurns : null, attempts: c.attempts | 0 };
+    for (const [job, n] of Object.entries(r.kills || {})) if (JOBS[job] && n > 0) out.kills[job] = n | 0;
+    out.fought = r.fought | 0; out.won = r.won | 0; out.plus = r.plus | 0;
+    return out;
   }
 
   // What each slot holds, read fresh: null where empty or unreadable.
@@ -519,6 +597,7 @@ class Game {
       v: 5, gil: this.state.gil, chapter: this.state.chapter, victories: this.state.victories, trials: this.state.trials || 0,
       branch: this.state.branch || null, endings: this.state.endings || {}, exiled: this.state.exiled || [],
       difficulty: this.state.difficulty, errands: this.state.errands, cities: this.state.cities || {},
+      records: this.state.records || Game.freshRecords(),
       inventory: this.state.inventory, party: this.state.party.map(u => u.toSave()),
       playtime: this.state.playtime, savedAt: now,
     };
@@ -570,6 +649,7 @@ class Game {
       party: d.party.map(p => Unit.fromSave(Object.assign({ team: 'player' }, p))),
       errands: { offered: [], active: [], reports: [] },
       cities: {}, slot, playtime: Number.isFinite(d.playtime) ? d.playtime : 0,
+      records: Game.readRecords(d.records),
     };
     this.sessionStart = Date.now();
     // A save that went past the end (a finished game from before the roads
@@ -721,6 +801,7 @@ class Game {
       return `<div class="party-chip ${i < 5 ? '' : 'reserve'} ${away ? 'away' : ''}" title="${away ? `Away: ${ERRANDS.find(x => x.id === away.id).title}` : learn ? 'Has SP to spend in Formation' : ''}">${u.name}${learn ? ' <span class="learn-mark">✦</span>' : ''} <small>${away ? 'on an errand' : `Lv${u.level} ${u.jobData.name}`}</small></div>`;
     }).join('');
     this.renderErrands();
+    this.renderRecords();
     if (ch) {
       const o = ch.objective || { type: 'rout' };
       const goal = o.type === 'survive' ? tr('Hold out for {n} rounds', { n: o.rounds })
@@ -807,7 +888,7 @@ class Game {
     const liberable = CITIES.filter(c => this.cityReachable(c) && !this.cityOpen(c.id)).length;
     const reports = (s.errands && s.errands.reports || []).length;
     const tabs = [
-      ['road', tr('Road'), 0], ['company', tr('Company'), reports], ['cities', tr('Cities'), liberable], ['options', tr('Options'), 0],
+      ['road', tr('Road'), 0], ['company', tr('Company'), reports], ['cities', tr('Cities'), liberable], ['records', tr('Records'), 0], ['options', tr('Options'), 0],
     ];
     el.innerHTML = tabs.map(([id, label, n]) => `<button data-camp="${id}" class="${id === cur ? 'sel' : ''}">${label}${n ? `<span class="badge">${n}</span>` : ''}</button>`).join('');
     el.querySelectorAll('button').forEach(b => b.onclick = () => { audio.sfx('menu'); this.showCampTab(b.dataset.camp); });
@@ -1451,8 +1532,10 @@ class Game {
   async battleFlow(map, enemies, gil, opts, after) {
     // Where this fight came from, so a save made in it knows the way back.
     this.flow = opts.flow ? Object.assign({ gil }, opts.flow) : null;
-    let res; do { res = await this.runBattle(map, enemies, gil, opts); } while (res === 'retry');
+    const flow = this.flow;
+    let res, attempts = 0; do { attempts++; res = await this.runBattle(map, enemies, gil, opts); } while (res === 'retry');
     this.flow = null;
+    if (res === 'victory' || res === 'defeat') this.noteBattle(flow, res, attempts, this.lastBattle);
     if (res === 'suspended') { this.showScreen('title'); this.syncTitleButtons(); return null; }
     if (res === 'aborted') return null;
     if (after) await after(res);
@@ -2218,6 +2301,7 @@ class Game {
     if (battle.suspended) { this.battle = null; this.ui.unbind && this.ui.unbind(); return 'suspended'; }
     // Who stood on the field, for the results screen, before the battle is
     // let go of.
+    this.lastBattle = { turns: battle.turnNo, killsBy: battle.rewards.killsBy || {} };
     const fought = battle.units.filter(u => u.team === 'player' && (u.x >= 0 || u.carriedOff));
     // Who ended it on the ground, taken now: everyone is revived below, before
     // the results screen draws them.
