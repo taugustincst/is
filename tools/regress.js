@@ -1076,6 +1076,8 @@ const mk = (n, job, lvl, opts = {}) => {
     const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
     const place = (b, u, x, y) => { u.x = x; u.y = y; };
     const flat = g.MAPS.millbrook;
+    // The rolls are pinned where a check is about the choice, not the luck.
+    const sure = async (fn) => { const r = Math.random; Math.random = () => 0; try { return await fn(); } finally { Math.random = r; } };
     // a. Two foes in reach, one at half health: the wounded one is struck.
     {
       const party = [mk('Hale', 'knight', 8), mk('Hurt', 'knight', 8)];
@@ -1085,7 +1087,7 @@ const mk = (n, job, lvl, opts = {}) => {
       place(b, party[0], 4, 5); place(b, party[1], 6, 5);
       party[1].hp = Math.floor(party[1].maxHp * 0.45);
       const before = [party[0].hp, party[1].hp];
-      await b.aiTurn(foe);
+      await sure(() => b.aiTurn(foe));
       ok('the AI finishes the wounded before it starts on the hale', party[1].hp < before[1] && party[0].hp === before[0], `hale ${before[0]}->${party[0].hp}, hurt ${before[1]}->${party[1].hp}`);
     }
     // b. A knight and a cleric side by side: the cleric is struck.
@@ -1096,7 +1098,7 @@ const mk = (n, job, lvl, opts = {}) => {
       foe.learned = {};
       place(b, party[0], 4, 5); place(b, party[1], 6, 5);
       const before = [party[0].hp, party[1].hp];
-      await b.aiTurn(foe);
+      await sure(() => b.aiTurn(foe));
       ok('the AI strikes the healer first', party[1].hp < before[1], `knight ${before[0]}->${party[0].hp}, cleric ${before[1]}->${party[1].hp}`);
     }
     // c. An archer with room: it shoots from where the swordsman cannot reach it.

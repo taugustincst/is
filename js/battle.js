@@ -1425,7 +1425,17 @@ class Battle {
     const o = this.objective, g = o.goal;
     if (!g) return 0;
     const on = c.x === g.x && c.y === g.y;
-    if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : (this.onGoal('player') ? 0 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.6));
+    // On a hold the other side makes for the mark; of the company, under
+    // Auto, only the one nearest it goes to stand there, so a narrow way is
+    // not jammed with everyone, and the rest fight as they would.
+    if (o.type === 'hold') {
+      if (unit.team === 'enemy') return on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5;
+      if (on) return 25;
+      if (this.onGoal('player')) return 0;
+      const mine = this.alliesOf(unit).filter(a => a.alive && this.onField(a) && !a.escort);
+      const holder = mine.sort((p, q) => Grid.dist(p.x, p.y, g.x, g.y) - Grid.dist(q.x, q.y, g.x, g.y) || p.id.localeCompare(q.id))[0];
+      return holder === unit ? -Grid.dist(c.x, c.y, g.x, g.y) * 0.8 : 0;
+    }
     // The other side moves to cut off a charge; a leader making for the mark
     // it hunts as it would anyone, rather than camping the mark.
     if (o.type === 'escort' && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;

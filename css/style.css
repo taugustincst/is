@@ -379,6 +379,11 @@ button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-vi
 #ask .ask-actions button { min-width: 96px; min-height: 40px; }
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--panel); border: 1px solid var(--gold); padding: 8px 18px; border-radius: 8px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 50; box-shadow: var(--panel-shadow); }
 #toast.show { opacity: 1; transform: translateX(-50%); }
+/* A word the first time something new opens. */
+#tip { position: fixed; right: 12px; bottom: 12px; width: min(340px, calc(100% - 24px)); z-index: 45; background: var(--panel); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.45; color: var(--text); box-shadow: var(--panel-shadow); animation: fadein 0.3s; }
+#tip[hidden] { display: none; }
+#tip .tip-text { margin: 0 0 8px; }
+#tip .tip-actions { display: flex; justify-content: flex-end; }
 
 /* ---------- shop ---------- */
 .shop-layout { max-width: 900px; margin: 24px auto; padding: 0 20px; height: calc(100% - 48px); display: flex; flex-direction: column; }

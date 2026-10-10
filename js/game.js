@@ -9,6 +9,7 @@ const slotKey = (n) => n === 1 ? SAVE_KEY : `${SAVE_KEY}-${n}`;
 const PACE_KEY = 'elderon.pace';
 // Once the first-chapter guide has been seen or skipped, it never returns.
 const COACH_KEY = 'elderon.coached';
+const TIPS_KEY = 'elderon.tips';
 // A save code: a tag, then the save as it is stored, in base64 so it survives
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
@@ -278,6 +279,32 @@ class Game {
     }
     const bm = $('btn-music');
     if (bm) { bm.textContent = audio.musicMuted ? '♪̸' : '♪'; bm.title = audio.musicMuted ? 'Music off' : 'Music on'; }
+  }
+
+  // ---- a word the first time something new opens ---------------------------
+  /* A tip is said once, the first time its moment comes: a city opened, a
+     forge shown, SP to spend, a beast that could be won over. One at a time;
+     a second waits behind the first. Seen tips are remembered on the
+     device, so a second campaign is not told again. */
+  tip(key, text) {
+    let seen = [];
+    try { seen = JSON.parse(store.get(TIPS_KEY) || '[]'); } catch (e) { seen = []; }
+    if (!Array.isArray(seen)) seen = [];
+    if (seen.includes(key)) return false;
+    seen.push(key); store.set(TIPS_KEY, JSON.stringify(seen));
+    this._tips = this._tips || [];
+    this._tips.push({ key, text });
+    if (this._tips.length === 1) this.showTip();
+    return true;
+  }
+  showTip() {
+    const el = $('tip'); if (!el) return;
+    const cur = this._tips && this._tips[0];
+    if (!cur) { el.hidden = true; return; }
+    el.querySelector('.tip-text').textContent = cur.text;
+    el.dataset.key = cur.key;
+    el.hidden = false;
+    $('btn-tip-ok').onclick = () => { audio.sfx('menu'); this._tips.shift(); this.showTip(); };
   }
 
   toast(msg) {
@@ -684,6 +711,7 @@ class Game {
 
   // ---- world screen --------------------------------------------------------------------------
   showWorld() {
+    if (this.state && this.state.party.some(u => this.canLearnSomething(u))) this.tip('learn', tr('A ✦ beside a name means SP to spend. Open Formation & Jobs, pick the unit, and learn an ability or a passive on the Skills page.'));
     const s = this.state;
     const ch = this.chapterAt(s.chapter);
     $('world-gil').textContent = `${s.gil} marks`;
@@ -1201,7 +1229,11 @@ class Game {
     const city = CITIES.find(c => c.id === id);
     if (!city || !this.cityReachable(city)) return;
     audio.sfx('select');
-    if (this.cityOpen(id)) { this.cityView = id; this.showCampTab('cities'); this.renderCities(); $('cities').scrollIntoView({ block: 'nearest' }); }
+    if (this.cityOpen(id)) {
+      this.cityView = id; this.showCampTab('cities'); this.renderCities(); $('cities').scrollIntoView({ block: 'nearest' });
+      this.tip('city', tr('An open city is yours to use. Its tavern hires recruits already trained in an advanced trade, its market sells arms the wagon never carries, and its forge is below.'));
+      this.tip('forge', tr('The forge betters any weapon, shield, helm or armour for materials and marks, each step its own piece. Won fields leave materials behind; spare gear can be broken down for more.'));
+    }
     else this.liberateCity(city);
   }
 
@@ -1766,10 +1798,10 @@ class Game {
       }
       const body = document.createElement('div');
       if (part.name) {
-        const who = document.createElement('b'); who.className = 'who'; who.textContent = part.aside ? `${part.name}, ${part.aside}` : part.name;
+        const who = document.createElement('b'); who.className = 'who'; who.textContent = part.aside ? `${part.name}, ${tr(part.aside)}` : part.name;
         body.appendChild(who);
       }
-      const p = document.createElement('p'); p.textContent = part.text; body.appendChild(p);
+      const p = document.createElement('p'); p.textContent = tr(part.text); body.appendChild(p);
       row.appendChild(body);
       wrap.appendChild(row);
     }
@@ -1799,7 +1831,7 @@ class Game {
 
   story(title, lines) {
     return new Promise(resolve => {
-      $('story-title').textContent = title;
+      $('story-title').textContent = tr(title);
       const box = $('story-text');
       box.innerHTML = '';
       this.storyCast(lines, 0);
@@ -2161,6 +2193,8 @@ class Game {
     if (!opts.skipDeploy && !opts.resume) await this.ui.deployPhase(battle, roster);
     if (opts.resume) this.ui.restoreLog(opts.resumeLog);
     battle.begun = true;
+    // A beast on the field, and someone who could win it over: say so once.
+    if (!opts.resume && battle.units.some(e => e.team === 'enemy' && PETS[e.job] && !e.boss) && roster.some(u => u.x >= 0 && u.allAbilities().some(id => ABILITIES[id] && ABILITIES[id].effects.some(ef => ef.type === 'tame')))) this.tip('tame', tr('A creature on this field can be won over: wear it down, then use Tame on it while it is weak, and it fights for the company from then on.'));
     this.ui.measureInsets();
     this.renderer.centerCamera();
     if (battle.over && battle.result === 'defeat' && !battle.tick) {
