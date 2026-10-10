@@ -635,6 +635,18 @@ const ICON_GLYPHS = {
     '.....xFFx.......',
     '......xx........',
   ],
+  pearl: [
+    '................',
+    '................',
+    '.....xxxxxx.....',
+    '....xhhccccx....',
+    '...xhhcccccCx...',
+    '...xhcccccCCx...',
+    '...xccccccCCx...',
+    '...xCccccCCCx...',
+    '....xCCCCCCx....',
+    '.....xxxxxx.....',
+  ],
   star: [
     '................',
     '.......h........',
@@ -798,7 +810,7 @@ const ICON_CLOTHS = ['#8a6a48', '#4a6a9a', '#6a4a8a', '#9a3a3a', '#3a7a6a', '#c8
 const ICON_FIXED = { x: '#1a1a24', w: '#8a5a32', W: '#5a3a1e', l: '#9a6a3a', L: '#6a4424', s: '#e8e4d8', b: '#c89a3a', y: '#d8b040', Y: '#9a7a20' };
 // The apothecary's items, each its own colour of liquid.
 const ICON_LIQUIDS = { potion: '#4a8ae8', hipotion: '#3a6ae0', xpotion: '#2a4ad0', ether: '#9a6ae8', antidote: '#5ac85a', remedy: '#e8c040', phoenix: '#f08a3a', herbs: '#5ac85a' };
-const ICON_MATERIAL_KIND = { ironIngot: 'ingot', steelIngot: 'ingot', oakHeartwood: 'wood', silkBolt: 'silk', brassFitting: 'brass', emberGlass: 'glass', starIron: 'star' };
+const ICON_MATERIAL_KIND = { ironIngot: 'ingot', steelIngot: 'ingot', oakHeartwood: 'wood', silkBolt: 'silk', brassFitting: 'brass', emberGlass: 'glass', starIron: 'star', tidePearl: 'pearl', starHeart: 'heart' };
 const ICON_ABILITY_KIND = { potion: 'potion', hiPotion: 'hipotion', xPotion: 'xpotion', ether: 'ether', antidote: 'antidote', remedy: 'remedy', phoenixDown: 'phoenix', echoHerbs: 'herbs' };
 
 // The element a piece answers to, if any: what it resists or drinks in.
@@ -887,6 +899,7 @@ function iconPalette(key, kind) {
   if (kind === 'star') { pal.m = '#4a4a66'; pal.M = '#2a2a40'; pal.h = '#ffffff'; }
   if (kind === 'ingot' && base.tier >= 3) Object.assign(pal, ICON_METALS[1]);
   if (kind === 'silk') { pal.c = '#e8d0d8'; pal.C = '#b89aa6'; }
+  if (kind === 'pearl') { pal.c = '#e9eef8'; pal.C = '#9fb0cc'; pal.h = '#ffffff'; }
   return pal;
 }
 

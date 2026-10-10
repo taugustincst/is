@@ -13,7 +13,7 @@ const COACH_KEY = 'elderon.coached';
 // a chat message, an email or a paste into a notes app.
 const CODE_TAG = 'ELDERON1.';
 // Shown in the credits; tools/regress.js keeps it equal to package.json's.
-const GAME_VERSION = '1.12.1';
+const GAME_VERSION = '1.13.0';
 // Where each chapter sits on the map of the realm, as fractions of the canvas.
 // Twelve stops: Act I runs east along the lower road, Act II turns back west
 // along the coast above it, so the two never cross on the parchment.
@@ -642,6 +642,9 @@ class Game {
       const o = ch.objective || { type: 'rout' };
       const goal = o.type === 'survive' ? tr('Hold out for {n} rounds', { n: o.rounds })
         : o.type === 'boss' ? tr('Defeat {name}', { name: (ch.enemies.find(e => e.boss) || {}).name || tr('the commander') })
+        : o.type === 'escort' ? tr('See {name} to the mark', { name: o.escort ? o.escort.name : tr('the charge') })
+        : o.type === 'reach' ? tr('Reach the mark with the leader')
+        : o.type === 'hold' ? tr('Hold the mark for {n} rounds', { n: o.rounds })
         : tr('Defeat every enemy');
       const topLevel = Math.max(...ch.enemies.map(e => e.level));
       const ready = this.readiness(ch);
@@ -1161,7 +1164,7 @@ class Game {
       <div class="city-hires">${pets}</div>` : ''}
       <h4>Market <small>sold here and nowhere else</small></h4>
       <div class="city-stock">${stock}</div>
-      <h4>Forge <small>betters what you carry to +3, makes arms sold nowhere, and breaks spare gear down</small></h4>
+      <h4>Forge <small>betters what you carry to +5, makes arms sold nowhere, and breaks spare gear down</small></h4>
       <div class="tabs forge-tabs">${FORGE_TABS.map(([id, label]) => `<button data-forge="${id}" class="${id === forgeTab ? 'sel' : ''}">${tr(label)}</button>`).join('')}</div>
       <div class="city-stock forge-body">${this.forgeRows(city, forgeTab)}</div>`;
     paintIcons(el);
@@ -1891,7 +1894,7 @@ class Game {
     await this.story(ch.title, ch.intro);
     // Experience and SP are earned even in a losing battle, so the run is
     // saved either way rather than letting a defeat quietly discard it.
-    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, kind: 'chapter' }, async (result) => {
+    await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, { objective: ch.objective, talk: ch.talk, kind: 'chapter' }, async (result) => {
       if (result !== 'victory') return;
       this.state.chapter++;
       this.state.victories++;
@@ -1992,7 +1995,7 @@ class Game {
     const roster = this.state.party.filter(u => !this.errandOf(u));
     const levelBefore = new Map(roster.map(u => [u, u.level]));
     const jpBefore = new Map(roster.map(u => [u, Object.values(u.jpTotal).reduce((a, b) => a + b, 0)]));
-    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty);
+    const battle = Battle.setup(mapDef, roster, enemySpecs, this.ui.hooks(), opts.objective, this.state.difficulty, opts.talk);
     this.battle = battle;
     $('battle-name').textContent = mapDef.name;
     this.ui.showObjective();
@@ -2054,7 +2057,7 @@ class Game {
       const loot = this.rollLoot(!!gilReward && gilReward >= 250);
       if (loot) r.loot = loot;
       // And a few materials for the forge, every time.
-      r.materials = fieldMaterials(this.shopTier(), !!gilReward && gilReward >= 250);
+      r.materials = fieldMaterials(this.shopTier(), !!gilReward && gilReward >= 250, Math.random, this.state.chapter);
       for (const [m, n] of Object.entries(r.materials)) this.invAdd(m, n);
       // Whatever was tamed follows the company off a field it has won, while
       // there is room in the kennel and in the company.

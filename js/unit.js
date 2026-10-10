@@ -24,6 +24,7 @@ class Unit {
     this.team = opts.team || 'player';
     this.leader = !!opts.leader;
     this.boss = !!opts.boss;
+    this.escort = !!opts.escort; // someone the company must see to a mark alive; not of the party
     // A beast: a creature on the company's side. Only a monster job can be one.
     this.pet = !!opts.pet && JOBS[this.job].kind === 'monster';
     this.jp = opts.jp || {};            // spendable SP per job
@@ -212,6 +213,7 @@ class Unit {
     this._regenFired = false;
     this._deathLogged = false;
     this._tookHit = false;
+    this.guardOf = null; // a boss this unit keeps close to, set when a battle is laid out
   }
 
   hasStatus(id) { return this.statuses[id] > 0; }
@@ -324,9 +326,13 @@ function makeEnemy(spec, difficulty) {
   });
   // A boss may have further shapes waiting behind the first.
   if (spec.phases) u.phases = spec.phases.map(p => Object.assign({}, p));
-  // Enemies know more abilities at higher levels; bosses know everything. Early
-  // foes stay simple so the opening chapters teach rather than punish.
-  const frac = spec.boss ? 1 : Math.min(1, 0.2 + level * 0.09);
+  // And words for the field: at the start, at half health, and at the fall.
+  if (spec.lines) u.lines = Object.assign({}, spec.lines);
+  // Enemies know more abilities at higher levels; bosses know everything. The
+  // climb is slow: a foe of the first act knows a third of its trade, one of
+  // the last act most of it, so the early chapters teach rather than punish
+  // and the late ones still have something held back.
+  const frac = spec.boss ? 1 : Math.min(0.9, 0.15 + level * 0.03);
   u.autoLearn(frac);
   // From the middle of the campaign on, foes bring passives of their own. A spec
   // may name them outright; otherwise they come from the job's own teachings.

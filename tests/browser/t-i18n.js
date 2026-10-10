@@ -36,7 +36,7 @@ const skipStory = async (page) => { for (let i = 0; i < 12; i++) { const t = awa
   ok('Options offers every language, with the current one marked', picker.n === 6 && picker.sel === 'de' && !picker.hidden, JSON.stringify(picker));
   await page.click('#world-lang button[data-lang="fr"]');
   const fr = await page.evaluate(() => ({ battle: $('btn-battle').textContent, tabs: [...document.querySelectorAll('#camp-tabs button')].map(b => b.textContent), title: $('title-lang').value, diff: [...document.querySelectorAll('#world-difficulty button')].map(b => b.textContent), stored: localStorage.getItem('elderon.lang') }));
-  ok('French from Options, at once', fr.battle === 'Marcher au combat' && fr.tabs.join() === 'Route,Compagnie,Villes,Options' && fr.title === 'fr' && fr.diff.join() === 'Fantassin,Chevalier,Paladin' && fr.stored === 'fr', JSON.stringify(fr));
+  ok('French from Options, at once', fr.battle === 'Marcher au combat' && fr.tabs.join() === 'Route,Compagnie,Villes,Options' && fr.title === 'fr' && fr.diff.join() === 'Page,Fantassin,Chevalier,Paladin' && fr.stored === 'fr', JSON.stringify(fr));
   const shop = await page.evaluate(() => { game.openShop('buy'); return { tabs: [...document.querySelectorAll('#shop-tabs button')].map(b => b.textContent), h2: document.querySelector('#screen-shop h2').textContent, h3: document.querySelector('#shop-list h3').textContent, item: document.querySelector('#shop-list .shop-row b').textContent }; });
   ok('the shop is French but the wares keep their names', shop.tabs.join() === 'Acheter,Vendre' && shop.h2 === 'Chariot du marchand' && shop.h3 === 'Armes' && /^[A-Za-z' ]+$/.test(shop.item), JSON.stringify(shop));
   await page.click('#btn-shop-back'); await page.waitForSelector('#screen-world.active');

@@ -86,7 +86,8 @@
   <div class="world-layout">
     <div class="world-main">
       <h2 data-i18n>Camp</h2>
-      <canvas id="world-map" width="800" height="400" title="The road ahead"></canvas>
+      <div id="camp-tabs" class="tabs camp-tabs"></div>
+      <canvas id="world-map" width="800" height="400" title="The road ahead" data-camp-tab="road"></canvas>
       <div id="world-next" class="card"></div>
       <div class="world-actions">
         <button id="btn-battle" class="primary">March to Battle</button>
@@ -97,7 +98,6 @@
         <button id="btn-save" data-i18n>Save</button>
         <button id="btn-title" data-i18n>Title</button>
       </div>
-      <div id="camp-tabs" class="tabs camp-tabs"></div>
       <div class="card campfire" data-camp-tab="road">
         <h3><span data-i18n>Around the fire</span> <small data-i18n>the night before</small></h3>
         <div id="campfire"></div>
@@ -202,6 +202,7 @@
 <section id="screen-battle" class="screen">
   <canvas id="battle-canvas" width="1100" height="680" role="img" aria-label="The battlefield"></canvas>
   <div id="banner" class="banner" aria-live="polite"></div>
+  <div id="speech" class="speech" role="status" aria-live="polite" hidden></div>
   <div id="turn-order" class="panel"></div>
   <div id="unit-card" class="panel"></div>
   <div id="battle-top">
@@ -259,7 +260,9 @@
         <li><b data-i18n>Auto:</b> the Auto button, or A, hands your turns to the computer until you press it again. It fights like the enemy does: fine for a training battle, no substitute for you in a hard one.</li>
         <li><b data-i18n>Speed:</b> the 1× button, or F, runs battles at double or triple time. Nothing is skipped; it all just happens faster. Handy once you have watched enough enemy turns.</li>
         <li><b data-i18n>Turning the field:</b> the board turns a quarter at a time with the ↺ and ↻ buttons, or Q and E. Height hides things; turn the field to see behind a wall, or to line up a shot you could not see.</li>
-        <li><b data-i18n>Controls:</b> click or tap tiles and buttons, keys 1-9 for menu entries. Right-click or Esc cancels. Drag or pinch to pan and zoom, arrows and +/- as well, 0 to reframe.</li>
+        <li><b data-i18n>Controls:</b> click or tap tiles and buttons, keys 1-9 for menu entries. Right-click or Esc cancels. Drag or pinch to pan and zoom, +/- as well, 0 to reframe.</li>
+        <li><b data-i18n>Keys:</b> the arrows move a cursor across the field, a step in the direction the board is seen from; Enter or Space does what a click there would. With a list open, up and down walk it. Shift with the arrows pans.</li>
+        <li><b data-i18n>Gamepad:</b> plug one in and the d-pad or left stick moves the cursor, A confirms, B cancels, X is Wait, Y opens Act, the bumpers turn the field, the right stick pans, Start opens this help and Back toggles Auto. Off the field the d-pad walks the buttons and A presses one.</li>
       </ul>
       <button id="btn-help-close" data-i18n>Close</button>
     </div>

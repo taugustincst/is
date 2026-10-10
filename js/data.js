@@ -1349,6 +1349,8 @@ const STARTING_PARTY = [
 // Difficulty scales the opposition rather than the party, so a player's own
 // numbers always mean the same thing.
 const DIFFICULTIES = {
+  page:    { name: 'Page', levelShift: -3, gearShift: -2, gilMult: 1.5,
+             desc: 'Foes are three levels below and poorly equipped. Purses overflow. For the story first.' },
   squire:  { name: 'Footman', levelShift: -1, gearShift: -1, gilMult: 1.25,
              desc: 'Foes are a level below and less well equipped. Purses stretch further.' },
   knight:  { name: 'Knight', levelShift: 0, gearShift: 0, gilMult: 1,
@@ -1865,6 +1867,10 @@ const MATERIALS = {
   brassFitting: { name: 'Brass Fitting', slot: 'material', price: 300, tier: 3, desc: 'Turned brass: locks, barrels and the works of a gun.' },
   emberGlass:   { name: 'Ember Glass', slot: 'material', price: 650, tier: 4, desc: 'Glass with a coal still burning in it. A forge asks for it at the last step.' },
   starIron:     { name: 'Star-Iron', slot: 'material', price: 1800, tier: 7, desc: 'Iron that fell from the sky. The Hollow Market sells it by weight.' },
+  // The rare two, for the fourth and fifth steps and the legendary arms:
+  // sold in the last cities, left on the fields of the last two acts.
+  tidePearl:    { name: 'Tide Pearl', slot: 'material', price: 1400, tier: 6, from: 17, desc: 'A pearl grown in the drowned dark. The fourth step of a forge asks for one.' },
+  starHeart:    { name: 'Star Heart', slot: 'material', price: 3600, tier: 7, from: 20, desc: 'The core of a fallen star, ground to a dust that remembers burning. The fifth step asks for one.' },
 };
 
 /* What a city's smiths can make and nobody sells: materials and marks in, one
@@ -1902,16 +1908,25 @@ const FORGE_ITEMS = {
   // Elderon City: the guard's own armouries.
   handCannon:    { name: 'Hand Cannon', forge: 'elderonCity', slot: 'weapon', wtype: 'gun', power: 16, range: 3, vert: 9, spd: -1, price: 2700, tier: 6, cost: { brassFitting: 3, steelIngot: 2 } },
   crownPlate:    { name: 'Crown Plate', forge: 'elderonCity', slot: 'body', atype: 'heavy', hp: 66, pa: 1, price: 2900, tier: 6, cost: { steelIngot: 4, emberGlass: 1 } },
+  // The legendary arms: one piece of work each, in the last cities, for a
+  // star heart and a purse that has been full too long.
+  kingsbane:     { name: 'Kingsbane', forge: 'elderonCity', late: true, slot: 'weapon', wtype: 'sword', power: 22, range: 1, vert: 2, pa: 2, resist: { dark: 'resist' }, price: 9600, tier: 7, cost: { starIron: 2, starHeart: 1, steelIngot: 3 } },
+  starfallPlate: { name: 'Starfall Plate', forge: 'elderonCity', late: true, slot: 'body', atype: 'heavy', hp: 84, pa: 1, resist: { ice: 'resist', dark: 'resist' }, price: 9800, tier: 7, cost: { starIron: 2, starHeart: 1, steelIngot: 4 } },
+  charterTome:   { name: 'Charter Tome', forge: 'aldermere', late: true, slot: 'weapon', wtype: 'tome', power: 11, range: 2, vert: 3, ma: 16, mp: 50, price: 9400, tier: 7, cost: { starHeart: 1, oakHeartwood: 4, emberGlass: 2 } },
+  leagueBulwark: { name: 'League Bulwark', forge: 'aldermere', late: true, slot: 'offhand', otype: 'shield', evade: 36, hp: 50, resist: { fire: 'resist' }, price: 9000, tier: 7, cost: { starIron: 1, starHeart: 1, steelIngot: 3 } },
+  tidecallerBow: { name: 'Tidecaller Bow', forge: 'tessaly', late: true, slot: 'weapon', wtype: 'bow', power: 14, range: 7, vert: 8, ma: 4, price: 9200, tier: 7, cost: { tidePearl: 2, starHeart: 1, oakHeartwood: 3 } },
+  pearlCrown:    { name: 'Pearl Crown', forge: 'tessaly', late: true, slot: 'head', htype: 'helm', look: 'helm', hp: 40, mp: 30, ma: 2, resist: { water: 'immune' }, price: 8800, tier: 7, cost: { tidePearl: 2, emberGlass: 2, starIron: 1 } },
+  starfallCannon: { name: 'Starfall Cannon', forge: 'saltwick', late: true, slot: 'weapon', wtype: 'gun', power: 19, range: 5, vert: 9, price: 10000, tier: 7, cost: { starIron: 2, starHeart: 1, brassFitting: 4 } },
 };
 Object.assign(ITEMS, MATERIALS, FORGE_ITEMS);
 
-/* Improvement. Any weapon, shield, helm or armour can be raised +1, +2 and
-   +3 at a forge. Each level is an item of its own (`longsword+2`), so the
+/* Improvement. Any weapon, shield, helm or armour can be raised +1 to +5
+   at a forge: three steps on the piece's own material, then two rare ones. Each level is an item of its own (`longsword+2`), so the
    baggage counts it, a save keeps it, the sprite wears it and the shop never
    sees it: a variant carries `base` and `plus`, and nothing that sells or
    issues gear touches one. Power climbs by a point a level; what protects
    climbs by a share of itself, so a cloak and a plate both feel it. */
-const FORGE_MAX = 3;
+const FORGE_MAX = 5;
 const FORGE_SLOTS = ['weapon', 'offhand', 'head', 'body'];
 function upgradeable(id) { const it = ITEMS[id]; return !!it && !it.base && FORGE_SLOTS.includes(it.slot); }
 function forgeVariant(id, plus) {
@@ -1940,8 +1955,10 @@ function forgeMaterial(id) {
 }
 
 // The next step up from a piece: the item it becomes and what the smith
-// asks, or null when it is as good as it gets. The last step wants a coal
-// of ember glass, or star-iron for the legendary arms.
+// asks, or null when it is as good as it gets. The third step wants a coal
+// of ember glass, or star-iron for the legendary arms; the fourth a tide
+// pearl and the fifth a star heart, with the marks climbing to match: the
+// last two steps are where a late purse goes.
 function forgeCost(id) {
   const it = ITEMS[id];
   if (!it || !upgradeable(it.base || id)) return null;
@@ -1949,8 +1966,13 @@ function forgeCost(id) {
   if (plus > FORGE_MAX) return null;
   const baseId = it.base || id, base = ITEMS[baseId];
   const mats = { [forgeMaterial(baseId)]: plus };
-  if (plus === FORGE_MAX) mats[base.tier >= 7 ? 'starIron' : 'emberGlass'] = 1;
-  return { to: `${baseId}+${plus}`, plus, mats, gil: Math.max(120 * plus, Math.round((base.price || 200) * 0.3 * plus)) };
+  if (plus === 3) mats[base.tier >= 7 ? 'starIron' : 'emberGlass'] = 1;
+  if (plus === 4) { mats.tidePearl = 1; mats.emberGlass = 1; }
+  if (plus === 5) { mats.starHeart = 1; mats.starIron = 1; }
+  const price = base.price || 200;
+  const gil = plus <= 3 ? Math.max(120 * plus, Math.round(price * 0.3 * plus))
+    : plus === 4 ? Math.max(1500, price * 2) : Math.max(3000, Math.round(price * 3.5));
+  return { to: `${baseId}+${plus}`, plus, mats, gil };
 }
 
 // What breaking a spare piece down gives back, or null for what cannot be
@@ -1968,10 +1990,11 @@ function salvageYield(id) {
 
 // What a won field leaves for the forge: a few materials at about the
 // wagon's tier, leaning to the best of them, and one more from a battle
-// that paid well. Star-iron only where the legendary arms already are.
-function fieldMaterials(tier, rich, rnd = Math.random) {
-  const pool = Object.keys(MATERIALS).filter(m => MATERIALS[m].tier <= Math.max(1, tier));
-  const weight = m => MATERIALS[m].tier >= 7 ? 1 : 1 + MATERIALS[m].tier;
+// that paid well. Star-iron only where the legendary arms already are, and
+// the rare two only once the story has reached their chapters, seldom.
+function fieldMaterials(tier, rich, rnd = Math.random, chapter = 0) {
+  const pool = Object.keys(MATERIALS).filter(m => MATERIALS[m].tier <= Math.max(1, tier) && !(MATERIALS[m].from > chapter));
+  const weight = m => MATERIALS[m].from || MATERIALS[m].tier >= 7 ? 1 : 1 + MATERIALS[m].tier;
   const total = pool.reduce((a, m) => a + weight(m), 0);
   const n = 1 + (rich ? 1 : 0) + (rnd() < 0.5 ? 1 : 0);
   const out = {};

@@ -43,6 +43,10 @@ async function until(page, fn, arg, timeout) {
     fs.writeFileSync(SW, swOriginal.replace(/const VERSION = '[0-9a-f]+';/, `const VERSION = '${v2}';`));
     ok('a changed file changes the stamp', v2 !== v1, `${v1} -> ${v2}`);
     await page.reload();
+    // The page asks for an update check as it loads; the browser throttles
+    // a check that comes hard on the heels of the last one, so the test asks
+    // again outright, as a later launch would.
+    await page.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); await r.update(); });
     // At the title with no game open there is nothing to lose, so the page
     // takes the new build at once: the new worker takes over and the page
     // reloads itself into it, with the old cache gone.

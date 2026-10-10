@@ -64,7 +64,43 @@ const OBJECTIVES = {
   rout: { label: 'Defeat every enemy' },
   boss: { label: 'Defeat the commander' },
   survive: { label: 'Hold out' },
+  escort: { label: 'See the charge to the mark' },
+  reach: { label: 'Reach the mark' },
+  hold: { label: 'Hold the mark' },
 };
+
+/* Where an objective's mark falls on a field. 'far' is the walkable tile
+   farthest from the company's deployment, reached on foot; 'centre' the
+   walkable tile nearest the middle of the board; a pair of coordinates is
+   taken as it is. Every map resolves one, which the validator proves. */
+function resolveGoal(grid, spec, deployZone, blocked = []) {
+  if (spec && typeof spec === 'object' && spec.x !== undefined) return grid.tile(spec.x, spec.y);
+  const taken = new Set(blocked.map(b => `${b.x},${b.y}`));
+  const zone = deployZone && deployZone.length ? deployZone : [grid.tile(0, 0)];
+  const cx = zone.reduce((a, t) => a + t.x, 0) / zone.length, cy = zone.reduce((a, t) => a + t.y, 0) / zone.length;
+  // On foot from the deployment: a step of two levels at most, as a footman jumps.
+  const seen = new Set(), queue = [];
+  for (const t of zone) if (grid.passable(t.x, t.y)) { seen.add(`${t.x},${t.y}`); queue.push(t); }
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cur.x + dx, ny = cur.y + dy, k = `${nx},${ny}`;
+      if (seen.has(k) || !grid.passable(nx, ny)) continue;
+      if (Math.abs(grid.height(nx, ny) - grid.height(cur.x, cur.y)) > 2) continue;
+      seen.add(k); queue.push(grid.tile(nx, ny));
+    }
+  }
+  const walkable = [...seen].map(k => { const [x, y] = k.split(',').map(Number); return grid.tile(x, y); });
+  if (!walkable.length) return null;
+  const mid = { x: (grid.w - 1) / 2, y: (grid.h - 1) / 2 };
+  let best = null, bs = -1e9;
+  for (const t of walkable) {
+    if (taken.has(`${t.x},${t.y}`)) continue; // nobody starts on the mark
+    const s = spec === 'centre' ? -(Math.abs(t.x - mid.x) + Math.abs(t.y - mid.y)) : Math.abs(t.x - cx) + Math.abs(t.y - cy) + grid.height(t.x, t.y) * 0.01;
+    if (s > bs) { bs = s; best = t; }
+  }
+  return best;
+}
 
 // Turns a fallen unit lingers before it is carried from the field.
 const KO_COUNTDOWN = 3;
@@ -98,7 +134,7 @@ class Battle {
     // Player units start in reserve at x = -1; the deployment phase places them.
   }
 
-  static setup(mapDef, playerUnits, enemySpecs, hooks, objective, difficulty) {
+  static setup(mapDef, playerUnits, enemySpecs, hooks, objective, difficulty, talk) {
     const enemies = enemySpecs.map(spec => makeEnemy(spec, difficulty));
     const b = new Battle(mapDef, playerUnits, [], hooks);
     if (objective) b.objective = Object.assign({}, objective);
@@ -120,11 +156,44 @@ class Battle {
     if (b.objective.type === 'boss') {
       b.objective.target = b.units.find(u => u.team === 'enemy' && u.boss) ||
         b.units.find(u => u.team === 'enemy');
+      // The commander keeps a guard: the sturdiest of the rest stays close.
+      const boss = b.objective.target;
+      const guard = b.units.filter(u => u.team === 'enemy' && u !== boss && !u.boss).sort((p, q) => q.maxHp - p.maxHp)[0];
+      if (guard && boss && boss.boss) guard.guardOf = boss;
     }
     if (b.objective.protectLeader) {
       b.objective.leader = playerUnits.find(u => u.leader) || playerUnits[0];
       b.requiredUnit = b.objective.leader; // the deployment phase insists on this one
     }
+    b.difficulty = difficulty;
+    // What is said on the field: the chapter's opening words, and what the
+    // engine finds to say as the battle goes.
+    b.talk = Array.isArray(talk) ? talk : null;
+    b.spoken = [];
+    b._talkQueue = [];
+    // A mark on the field, for the objectives that have one.
+    if (['escort', 'reach', 'hold'].includes(b.objective.type)) {
+      const goal = resolveGoal(b.grid, b.objective.goal || (b.objective.type === 'hold' ? 'centre' : 'far'), b.deployZone, enemySpecs);
+      b.objective.goal = goal;
+      b.objective.goals = goal ? [goal] : [];
+      b.objective.held = 0;
+    }
+    // The charge: someone not of the party, under the company's command,
+    // standing on the field before anyone is placed.
+    if (b.objective.type === 'escort' && b.objective.escort) {
+      const spec = b.objective.escort;
+      const u = new Unit({ name: spec.name, job: spec.job, level: spec.level, team: 'player', escort: true, gear: spec.gear || enemyGearFor(spec.job, spec.level, 0) });
+      u.autoLearn(0.5);
+      u.resetBattleState();
+      const free = b.deployZone.filter(t => !b.occupantAt(t.x, t.y));
+      const at = (spec.x !== undefined && b.grid.passable(spec.x, spec.y) && !b.occupantAt(spec.x, spec.y)) ? b.grid.tile(spec.x, spec.y) : free[free.length - 1] || free[0];
+      if (at) { u.x = at.x; u.y = at.y; }
+      u.facing = 'N';
+      b.units.push(u);
+      b.objective.charge = u;
+    }
+    // Reinforcements wait for their round.
+    if (b.objective.reinforcements) b.objective.reinforcements = b.objective.reinforcements.map(r => Object.assign({ fired: false }, r));
     // Random initial Tempo so the opening order isn't purely by speed.
     for (const u of b.units) u.ct = Math.floor(Math.random() * 30);
     b.crystals = []; // left where the fallen were carried off; taken by whoever stands there
@@ -132,7 +201,7 @@ class Battle {
   }
 
   // ---- deployment ---------------------------------------------------------
-  deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0); }
+  deployed() { return this.units.filter(u => u.team === 'player' && u.x >= 0 && !u.escort); }
   canDeployAt(x, y) { return this.deployKeys.has(`${x},${y}`) && !this.occupantAt(x, y); }
 
   placeUnit(unit, x, y) {
@@ -385,6 +454,7 @@ class Battle {
       }
     }
     delete user._blastHp;
+    await this.flushTalk();
     if (!this.counterDepth) await this.resolveCounters(user, ab, targets);
     if (!targets.length) this.log(`${user.name}'s ${ab.name} hits nothing.`);
     if (ab.suicide) {
@@ -406,6 +476,7 @@ class Battle {
     }
     if (didSomething || targets.length) this.awardAction(user, targets);
     if (this.hooks.refresh) this.hooks.refresh();
+    await this.flushTalk();
     await sleep(200);
   }
 
@@ -445,8 +516,8 @@ class Battle {
           const back = Math.min(Math.floor(v / 5), user.maxHp - user.hp);
           if (back > 0) { user.hp += back; this.log(`${user.name} feeds on the wound: ${back} HP.`, 'heal'); if (this.hooks.showFloat) this.hooks.showFloat(user, `+${back}`, '#c56aff'); }
         }
-        if (t.hp === 0) { if (user.record && t.team !== user.team) user.record.kills++; this.onUnitKO(t); }
-        else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
+        if (t.hp === 0) { this.creditKill(user, t); this.onUnitKO(t); }
+        else { t._tookHit = true; this.onDamaged(user, ab, t, v); this.checkTalk(t); }
         return true;
       }
       case 'drain': {
@@ -461,8 +532,8 @@ class Battle {
         this.log(`${user.name} drains ${v} HP from ${t.name}.`, 'dmg');
         if (this.hooks.onImpact) this.hooks.onImpact(t, ab, v, user);
         if (this.hooks.showFloat) { this.hooks.showFloat(t, `${v}`, '#c56aff'); this.hooks.showFloat(user, `+${v}`, '#7cff7c'); }
-        if (t.hp === 0) { if (user.record && t.team !== user.team) user.record.kills++; this.onUnitKO(t); }
-        else { t._tookHit = true; this.onDamaged(user, ab, t, v); }
+        if (t.hp === 0) { this.creditKill(user, t); this.onUnitKO(t); }
+        else { t._tookHit = true; this.onDamaged(user, ab, t, v); this.checkTalk(t); }
         return true;
       }
       case 'heal': {
@@ -704,7 +775,7 @@ class Battle {
     if (u.hp > Math.floor(u.maxHp * ph.atPct)) return false;
     u.phases.shift();
     if (ph.say) this.log(ph.say, 'ko');
-    if (ph.cry) this.log(ph.cry, 'act');
+    if (ph.cry) this.queueTalk(u, ph.cry);
     if (ph.job && JOBS[ph.job]) {
       u.job = ph.job;
       u.gear = {}; // the new shape has no use for a man's equipment
@@ -745,6 +816,7 @@ class Battle {
       return;
     }
     if (t.record) t.record.falls++;
+    if (t.boss && t.lines && t.lines.fall && !t.saidFall) { t.saidFall = true; this.queueTalk(t, t.lines.fall); }
     t.statuses = {};
     t.ct = 0;
     // Cancel anything the unit was charging.
@@ -787,6 +859,47 @@ class Battle {
     this.rewards.exp += exp;
   }
 
+  // ---- words on the field ---------------------------------------------------
+  /* A line said aloud: logged as speech, kept for the record, and shown by
+     the UI as a bubble over the speaker while the battle waits for it. */
+  async say(unit, text) {
+    const clean = String(text).trim().replace(/^"|"$/g, '');
+    if (!clean) return;
+    this.log(`${unit.name}: “${clean}”`, 'talk');
+    this.spoken.push({ name: unit.name, text: clean });
+    if (this.hooks.speak) await this.hooks.speak(unit, clean);
+  }
+  // Lines found in the middle of a blow wait until it has landed.
+  queueTalk(unit, text) { if (text) this._talkQueue.push([unit, text]); }
+  async flushTalk() {
+    while (this._talkQueue.length) { const [u, t] = this._talkQueue.shift(); await this.say(u, t); }
+  }
+  // The opening words: the leader's, then whatever the other side has to say.
+  async openingWords() {
+    const lines = [];
+    for (const t of this.talk || []) {
+      const who = t.who === 'leader'
+        ? (this.objective.leader || this.units.find(u => u.team === 'player' && u.leader && this.onField(u)))
+        : this.units.find(u => u.name === t.who && this.onField(u));
+      if (who && who.alive && this.onField(who)) lines.push([who, t.text]);
+    }
+    for (const u of this.units) if (u.team === 'enemy' && u.lines && u.lines.open && this.onField(u)) lines.push([u, u.lines.open]);
+    for (const [u, text] of lines) await this.say(u, text);
+  }
+  // A boss brought to half its health has something to say about it, once.
+  checkTalk(t) {
+    if (!t.lines || !t.lines.half || t.saidHalf || !t.alive || t.hp <= 0) return;
+    if (t.hp > Math.floor(t.maxHp / 2)) return;
+    t.saidHalf = true;
+    this.queueTalk(t, t.lines.half);
+  }
+  // The kill goes on the record; a first one, for those with words for it, is remarked on.
+  creditKill(user, t) {
+    if (!user.record || t.team === user.team) return;
+    user.record.kills++;
+    if (user.record.kills === 1 && user.team === 'player' && typeof FIRST_BLOOD !== 'undefined' && FIRST_BLOOD[user.name]) this.queueTalk(user, FIRST_BLOOD[user.name]);
+  }
+
   awardKill(user, t) {
     if (user.team !== 'player') return;
     const exp = 28 + Math.max(0, (t.level - user.level) * 4);
@@ -804,7 +917,53 @@ class Battle {
     const o = this.objective;
     if (o.type === 'survive') return `Hold out: round ${Math.min(this.round, o.rounds)}/${o.rounds}`;
     if (o.type === 'boss') return `Defeat ${o.target ? o.target.name : 'the commander'}`;
+    if (o.type === 'escort') return `Bring ${o.charge ? o.charge.name : 'the charge'} to the mark`;
+    if (o.type === 'reach') return `Reach the mark with ${o.leader ? o.leader.name : 'anyone'}`;
+    if (o.type === 'hold') return `Hold the mark: ${o.held}/${o.rounds} rounds`;
     return OBJECTIVES.rout.label;
+  }
+
+  // Who stands on the mark, if anyone.
+  onGoal(team) {
+    const g = this.objective.goal;
+    if (!g) return null;
+    return this.units.find(u => u.alive && this.onField(u) && u.x === g.x && u.y === g.y && (!team || u.team === team)) || null;
+  }
+
+  /* Reinforcements due this round take the field: each at its own tile, or
+     the nearest free one, announced so the player sees them arrive. */
+  arriveReinforcements() {
+    const o = this.objective;
+    if (!o.reinforcements) return;
+    for (const r of o.reinforcements) {
+      if (r.fired || this.round < r.round) continue;
+      r.fired = true;
+      const placed = [];
+      for (const spec of r.enemies) {
+        const e = makeEnemy(spec, this.difficulty);
+        e.resetBattleState();
+        let at = this.grid.passable(spec.x, spec.y) && !this.occupantAt(spec.x, spec.y) ? this.grid.tile(spec.x, spec.y) : null;
+        if (!at) {
+          let bd = 1e9;
+          for (const row of this.grid.tiles) for (const t of row) {
+            if (!this.grid.passable(t.x, t.y) || this.occupantAt(t.x, t.y)) continue;
+            const d = Grid.dist(t.x, t.y, spec.x, spec.y);
+            if (d < bd) { bd = d; at = t; }
+          }
+        }
+        if (!at) continue;
+        e.x = at.x; e.y = at.y; e.ct = Math.floor(Math.random() * 30);
+        const near = this.nearestEnemyOf(e);
+        e.facing = near ? facingFromDelta(near.x - e.x, near.y - e.y) : 'S';
+        this.units.push(e);
+        placed.push(e);
+      }
+      if (placed.length) {
+        this.log(r.text || `Reinforcements: ${placed.map(e => e.name).join(', ')}.`, 'ko');
+        if (this.hooks.announce) this.hooks.announce(r.text || 'Reinforcements!', 'enemy');
+        if (this.hooks.refresh) this.hooks.refresh();
+      }
+    }
   }
 
   finish(result, why) {
@@ -844,6 +1003,32 @@ class Battle {
       if (t && (!t.alive || !this.onField(t))) return this.finish('victory', `${t.name} falls. The rest scatter.`);
       return false;
     }
+    if (o.type === 'escort') {
+      const c = o.charge;
+      if (c && !this.onField(c)) return this.finish('defeat', `${c.name} is lost. The road ends here.`);
+      if (c && c.alive && o.goal && c.x === o.goal.x && c.y === o.goal.y) return this.finish('victory', `${c.name} reaches the mark. Well done.`);
+      if (!standing('enemy')) return this.finish('victory', 'The road is clear.');
+      return false;
+    }
+    if (o.type === 'reach') {
+      const l = o.leader || this.units.find(u => u.team === 'player' && u.alive && this.onField(u));
+      if (l && l.alive && o.goal && l.x === o.goal.x && l.y === o.goal.y) return this.finish('victory', `${l.name} reaches the mark. Through!`);
+      if (!standing('enemy')) return this.finish('victory', 'The way is clear.');
+      return false;
+    }
+    if (o.type === 'hold') {
+      // Each round the mark is the company's and nobody else's counts; a
+      // round the other side stands on it costs everything held so far.
+      if (this.round !== o.heldRound) {
+        o.heldRound = this.round;
+        const ours = this.onGoal('player'), theirs = this.onGoal('enemy');
+        if (theirs && !ours) { if (o.held) this.log('The mark is lost! Take it back.', 'ko'); o.held = 0; }
+        else if (ours && this.round > 1) o.held++;
+      }
+      if (o.held >= o.rounds) return this.finish('victory', 'The mark is held. They break off.');
+      if (!standing('enemy')) return this.finish('victory', 'Nothing is left to contest the mark.');
+      return false;
+    }
     if (!standing('enemy')) return this.finish('victory');
     return false;
   }
@@ -870,6 +1055,7 @@ class Battle {
     // A leader left in reserve cannot be lost, so the rule does not apply.
     if (this.objective.leader && !this.onField(this.objective.leader)) this.objective.leader = null;
     if (this.hooks.refresh) this.hooks.refresh();
+    await this.openingWords();
     while (!this.over) {
       // Advance one tick.
       this.tick++;
@@ -900,6 +1086,7 @@ class Battle {
         if (p.ability.airborne) { p.unit.airborne = false; if (this.hooks.onLand) await this.hooks.onLand(p.unit, p.tx, p.ty); }
         if (this.hooks.focus) this.hooks.focus(p.unit);
         await this.applyAbility(p.unit, p.ability, p.tx, p.ty);
+        await this.flushTalk();
         if (this.checkEnd()) return this.result;
       }
       // Units gain Tempo; tick down statuses. The fallen keep a slot in the order
@@ -930,6 +1117,7 @@ class Battle {
   }
 
   async takeTurn(unit) {
+    await this.flushTalk();
     this.active = unit;
     this.turnNo++;
     unit.turnFlags = { moved: false, acted: false };
@@ -973,6 +1161,7 @@ class Battle {
     if (standing.length && standing.every(u => this.actedThisRound.has(u))) {
       this.round++;
       this.actedThisRound.clear();
+      this.arriveReinforcements();
     }
     if (this.hooks.onTurnEnd) this.hooks.onTurnEnd(unit);
   }
@@ -1094,7 +1283,13 @@ class Battle {
       if (p.dmg) {
         const dmg = Math.min(p.dmg, t.hp);
         const lethal = p.dmg >= t.hp;
-        score += (enemy ? 1 : -1.2) * hitF * (dmg + (lethal ? 40 : 0) + (t.leader ? 10 : 0));
+        // Focus fire: a wounded target is worth finishing, and a healer is
+        // worth more than the damage says, since every blow on anyone else
+        // comes back while it stands.
+        const wounded = enemy ? (1 - t.hp / t.maxHp) * 25 : 0;
+        const healer = enemy && this.isHealer(t) ? 12 : 0;
+        const charge = enemy && t.escort ? 20 : 0;
+        score += (enemy ? 1 : -1.2) * hitF * (dmg + (lethal ? 40 : 0) + (t.leader ? 10 : 0) + wounded + healer + charge);
       }
       if (p.heal) {
         const heal = Math.min(p.heal, t.maxHp - t.hp);
@@ -1138,25 +1333,155 @@ class Battle {
     return score;
   }
 
+  // What standing on a tile is worth for the objective: the other side
+  // takes the mark it must deny, and keeps the mark it must hold.
+  markWorth(unit, c) {
+    const o = this.objective, g = o.goal;
+    if (!g) return 0;
+    const on = c.x === g.x && c.y === g.y;
+    if (o.type === 'hold') return unit.team === 'enemy' ? (on ? 30 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.5) : (on ? 25 : 0);
+    // The other side moves to cut off a charge; a leader making for the mark
+    // it hunts as it would anyone, rather than camping the mark.
+    if (o.type === 'escort' && unit.team === 'enemy') return -Grid.dist(c.x, c.y, g.x, g.y) * 0.4;
+    // The leader under Auto goes for the mark it is asked to reach.
+    if (o.type === 'reach' && unit === o.leader) return on ? 60 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.8;
+    return 0;
+  }
+
+  /* A charge under Auto, or in the simulator, does not fight: it keeps out
+     of reach of the other side, close to its own, and goes for the mark
+     when the way there is safe enough. */
+  async escortTurn(unit) {
+    await sleep(200);
+    const reach = this.grid.reachable(unit, this.units);
+    const danger = this.dangerMap(unit);
+    const g = this.objective.goal;
+    const friends = this.units.filter(u => u.team === unit.team && u !== unit && u.alive && this.onField(u));
+    let best = null, bestScore = -1e9;
+    for (const c of reach.values()) {
+      const near = friends.filter(f => Grid.dist(c.x, c.y, f.x, f.y) <= 2).length;
+      const d = danger(c.x, c.y);
+      let s = -d * 3 / Math.max(1, unit.maxHp) * 100 + (near ? 30 : 0) + Math.min(near, 3) * 8;
+      // The mark draws it on only where the way is safe and its own are near.
+      if (g) s += (c.x === g.x && c.y === g.y) ? 200 : -Grid.dist(c.x, c.y, g.x, g.y) * (d > 0 || !near ? 0.3 : 3);
+      if (s > bestScore) { bestScore = s; best = c; }
+    }
+    if (best && !(best.x === unit.x && best.y === unit.y)) {
+      const path = this.grid.pathTo(reach, best.x, best.y);
+      if (path.length > 1) await this.moveUnit(unit, path);
+    }
+    const foe = this.nearestEnemyOf(unit);
+    if (foe) unit.facing = facingFromDelta(foe.x - unit.x, foe.y - unit.y);
+  }
+
+  // Whether a blow from a tile would fell someone on the other side.
+  killsAnyone(unit, ab, fromX, fromY, tx, ty) {
+    const ox = unit.x, oy = unit.y;
+    unit.x = fromX; unit.y = fromY;
+    const kill = this.predict(unit, ab, tx, ty).some(p => p.unit.team !== unit.team && p.dmg >= p.unit.hp && p.hit >= 50);
+    unit.x = ox; unit.y = oy;
+    return kill;
+  }
+
+  // Whether a unit can mend or raise others: the one to strike first.
+  isHealer(u) {
+    return u.allAbilities().some(id => ABILITIES[id].effects.some(e => (e.type === 'heal' || e.type === 'revive') && ABILITIES[id].affects !== 'enemy' && !ABILITIES[id].self));
+  }
+
+  // Whether a unit fights from a distance or by magic: one to keep out of reach.
+  isRanged(u) {
+    return u.weapon.range >= 3 || u.allAbilities().some(id => ABILITIES[id].mp > 0 && ABILITIES[id].effects.some(e => e.type === 'damage'));
+  }
+
+  /* What a tile is worth avoiding: the damage the other side could put on
+     it next turn, summed over every foe that could reach it. A foe's reach
+     is its move and its longest strike, counted as distance; its blow is a
+     rough reading of its arm or its art, since the exact figure would cost
+     a prediction per foe per tile per candidate. */
+  dangerMap(unit) {
+    const foes = this.enemiesOf(unit).filter(e => e.alive && this.onField(e));
+    const arms = foes.map(e => {
+      const st = e.baseStats();
+      let range = e.weapon.range, magic = 0;
+      for (const id of e.allAbilities()) { const ab = ABILITIES[id]; if (ab.effects.some(x => x.type === 'damage')) { if (typeof ab.range === 'number') range = Math.max(range, ab.range); if (ab.mp > 0) magic = Math.max(magic, st.ma * 6); } }
+      const blow = Math.max(e.weapon.power * st.pa * 0.8, magic);
+      return { e, reach: st.move + range, blow };
+    });
+    const cache = new Map();
+    return (x, y) => {
+      const k = `${x},${y}`;
+      if (cache.has(k)) return cache.get(k);
+      let d = 0;
+      for (const a of arms) {
+        const dist = Grid.dist(a.e.x, a.e.y, x, y);
+        // Within reach, the nearer the worse: a foe next to you has every
+        // angle. A turn's march beyond reach still counts for a little.
+        if (dist <= a.reach) d += a.blow * (1.2 - 0.4 * dist / Math.max(1, a.reach));
+        else if (dist <= a.reach + 2) d += a.blow * 0.3;
+      }
+      cache.set(k, d);
+      return d;
+    };
+  }
+
   async aiTurn(unit) {
+    if (unit.escort) return this.escortTurn(unit);
     await sleep(350);
     const reach = this.grid.reachable(unit, this.units);
     const abilities = unit.allAbilities().map(id => ABILITIES[id]).filter(ab => this.canAfford(unit, ab));
     let best = { score: 0, tile: null, ab: null, tx: 0, ty: 0 };
-    const candidates = [...reach.values()];
+    let candidates = [...reach.values()];
+    // A guard stays by the one it guards, unless a kill is on offer elsewhere.
+    const ward = unit.guardOf && unit.guardOf.alive && this.onField(unit.guardOf) ? unit.guardOf : null;
+    if (ward) {
+      const close = candidates.filter(c => Grid.dist(c.x, c.y, ward.x, ward.y) <= 2);
+      if (close.length) candidates = close;
+    }
+    // Where it is dangerous to stand, and how much that matters to this unit.
+    const danger = this.dangerMap(unit);
+    const ranged = this.isRanged(unit);
+    const hurt = unit.hp < unit.maxHp * 0.5;
+    // The leader whose loss ends the battle is twice as careful of its skin.
+    const precious = unit === this.objective.leader && this.objective.protectLeader;
+    const care = (ranged ? 45 : 22) * (hurt ? 1.5 : 1) * (precious ? 2 : 1);
+    const risk = (c) => Math.min(care, care * danger(c.x, c.y) / Math.max(1, unit.maxHp));
     for (const c of candidates) {
       for (const ab of abilities) {
         const targets = this.targetTilesFor(unit, ab, c.x, c.y);
         for (const t of targets) {
           const s = this.scoreTarget(unit, ab, c.x, c.y, t.x, t.y);
           if (s <= 0) continue;
-          // Slight preference for staying put and for higher ground.
-          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5;
-          if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y };
+          // Slight preference for staying put and for higher ground, and a
+          // marked one for ground the other side cannot easily answer on.
+          const adj = (c.cost === 0 ? 2 : 0) + this.grid.height(c.x, c.y) * 0.5 - risk(c) + this.markWorth(unit, c);
+          if (s + adj > best.score) best = { score: s + adj, tile: c, ab, tx: t.x, ty: t.y, kill: this.killsAnyone(unit, ab, c.x, c.y, t.x, t.y) };
         }
       }
     }
     const near = this.nearestEnemyOf(unit);
+    // Badly hurt, with no kill in reach: fall back toward a healer, out of
+    // the other side's reach, and let the healer do the work.
+    if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss) {
+      const healers = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
+      const here = danger(unit.x, unit.y);
+      let safe = null, bs = -1e9;
+      for (const c of candidates) {
+        const d = danger(c.x, c.y);
+        if (d >= here && c.cost > 0) continue;
+        const toHealer = healers.length ? Math.min(...healers.map(h => Grid.dist(c.x, c.y, h.x, h.y))) : 0;
+        const s = -d / Math.max(1, unit.maxHp) * 50 - toHealer * 4 + (near ? Grid.dist(c.x, c.y, near.x, near.y) * 2 : 0);
+        if (s > bs) { bs = s; safe = c; }
+      }
+      if (safe && (safe.x !== unit.x || safe.y !== unit.y) && (danger(safe.x, safe.y) < here || healers.length)) {
+        await this.moveUnit(unit, this.grid.pathTo(reach, safe.x, safe.y));
+        // A mend of its own, if it has one, from the safer ground.
+        const self = abilities.find(ab => ab.effects.some(e => e.type === 'heal') && (ab.self || ab.allowSelf));
+        if (self) await this.useAbility(unit, self, unit.x, unit.y);
+        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
+        await sleep(200);
+        return;
+      }
+    }
     // Badly hurt, with a crystal in reach: a full restore is worth more than
     // one more blow, unless that blow ends the fight for someone.
     if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
@@ -1178,8 +1503,14 @@ class Battle {
     // Nothing offensive worth doing: close in on the nearest enemy, then buff if possible.
     if (near) {
       let bestTile = null, bd = 1e9;
+      const mark = this.objective.goal && (this.objective.type === 'hold' || ((this.objective.type === 'reach' || this.objective.type === 'escort') && unit.team === 'enemy')) ? this.objective.goal : null;
       for (const c of candidates) {
-        const d = Grid.dist(c.x, c.y, near.x, near.y) + (c.cost * 0.01) - this.grid.height(c.x, c.y) * 0.05;
+        // Close in, but a unit that fights from a distance keeps that
+        // distance: it stops short of where the other side can answer. With
+        // a mark to take or deny, that is the place to close on.
+        const dist = Grid.dist(c.x, c.y, near.x, near.y);
+        const d = (ranged ? Math.abs(dist - Math.max(2, unit.weapon.range)) : dist) + (c.cost * 0.01) - this.grid.height(c.x, c.y) * 0.05 + risk(c) * 0.08 - this.markWorth(unit, c) * 0.1
+          + (mark ? Grid.dist(c.x, c.y, mark.x, mark.y) * 0.6 : 0);
         if (d < bd) { bd = d; bestTile = c; }
       }
       if (bestTile && (bestTile.x !== unit.x || bestTile.y !== unit.y)) {

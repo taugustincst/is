@@ -1,7 +1,7 @@
 {
   "name": "chronicles-of-elderon-desktop",
   "productName": "Chronicles of Elderon",
-  "version": "1.12.1",
+  "version": "1.13.0",
   "description": "A tactical role-playing game of tempo turns, jobs and height maps.",
   "main": "main.js",
   "private": true,

@@ -15,7 +15,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.click('#btn-new'); await page.waitForSelector('#screen-world.active');
   // Redwater open, a purse, and a baggage with the plain materials in it.
   await page.evaluate(() => {
-    const s = game.state; s.chapter = 2; s.gil = 4000; s.cities.redwater = true;
+    const s = game.state; s.chapter = 2; s.gil = 12000; s.cities.redwater = true;
     game.invAdd('ironIngot', 4); game.invAdd('oakHeartwood', 2); game.invAdd('broadsword', 1);
     game.showWorld(); game.goToCity('redwater');
   });
@@ -37,8 +37,20 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.evaluate(() => { game.invAdd('emberGlass', 1); game.renderCities(); });
   await page.click(`button[data-improve="u:${await page.evaluate(() => game.state.party[0].id)}:weapon"]`);
   await page.waitForTimeout(150);
-  const top = await page.evaluate(() => { const u = game.state.party[0]; return { id: u.gear.weapon, power: u.weapon.power, glass: game.invCount('emberGlass'), more: document.querySelector(`button[data-improve="u:${u.id}:weapon"]`) }; });
-  ok('+3 is the top, and it is off the Improve page once reached', top.id === 'shortSword+3' && top.power === 8 && top.glass === 0 && top.more === null, JSON.stringify(top));
+  const third3 = await page.evaluate(() => { const u = game.state.party[0]; const b = document.querySelector(`button[data-improve="u:${u.id}:weapon"]`); const row = b && b.closest('.shop-row'); return { id: u.gear.weapon, power: u.weapon.power, glass: game.invCount('emberGlass'), next: b ? b.textContent : null, disabled: b && b.disabled, cost: row ? row.querySelector('.cost').textContent : '' }; });
+  ok('+3 reached; the fourth step asks a tide pearl and waits without it', third3.id === 'shortSword+3' && third3.power === 8 && third3.glass === 0 && third3.next === 'Improve to +4' && third3.disabled && /Tide Pearl.*have 0/.test(third3.cost), JSON.stringify(third3));
+  // The rare two steps: a tide pearl, then a star heart, and a purse emptied for them.
+  await page.evaluate(() => { game.invAdd('tidePearl', 1); game.invAdd('emberGlass', 1); game.invAdd('ironIngot', 4); game.renderCities(); });
+  const purse4 = await page.evaluate(() => game.state.gil);
+  await page.click(`button[data-improve="u:${await page.evaluate(() => game.state.party[0].id)}:weapon"]`);
+  await page.waitForTimeout(150);
+  const fourth = await page.evaluate(() => { const u = game.state.party[0]; return { id: u.gear.weapon, power: u.weapon.power, pearl: game.invCount('tidePearl'), gil: game.state.gil }; });
+  ok('+4 takes the pearl and fifteen hundred marks', fourth.id === 'shortSword+4' && fourth.power === 9 && fourth.pearl === 0 && fourth.gil === purse4 - 1500, JSON.stringify(fourth));
+  await page.evaluate(() => { game.invAdd('starHeart', 1); game.invAdd('starIron', 1); game.invAdd('ironIngot', 5); game.renderCities(); });
+  await page.click(`button[data-improve="u:${await page.evaluate(() => game.state.party[0].id)}:weapon"]`);
+  await page.waitForTimeout(150);
+  const top = await page.evaluate(() => { const u = game.state.party[0]; return { id: u.gear.weapon, power: u.weapon.power, heart: game.invCount('starHeart'), gil: game.state.gil, more: !!document.querySelector(`button[data-improve="u:${u.id}:weapon"]`) }; });
+  ok('+5 is the top, three thousand marks and a star heart, and it is off the Improve page once reached', top.id === 'shortSword+5' && top.power === 10 && top.heart === 0 && top.gil === purse4 - 4500 && !top.more, JSON.stringify(top));
 
   // Craft: Redwater's recipes, and one made. The +3 took the iron; restock.
   await page.evaluate(() => game.invAdd('ironIngot', 3));
@@ -100,10 +112,10 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.reload(); await page.waitForSelector('#screen-title.active');
   await page.click('#btn-continue'); await page.waitForSelector('#screen-world.active');
   const kept = await page.evaluate(() => ({ weapon: game.state.party[0].gear.weapon, power: game.state.party[0].weapon.power, iron: game.invCount('ironIngot'), silk: game.invCount('silkBolt'), mail: game.invCount('reaverMail') }));
-  ok('a save keeps the +3 and the baggage', kept.weapon === 'shortSword+3' && kept.power === 8 && kept.iron === 1 && kept.silk === 1 && kept.mail === 1, JSON.stringify(kept));
+  ok('a save keeps the +5 and the baggage', kept.weapon === 'shortSword+5' && kept.power === 10 && kept.iron === 1 && kept.silk === 1 && kept.mail === 1, JSON.stringify(kept));
   // And the improved piece equips, shows and optimises like any other.
   const worn = await page.evaluate(() => { game.openFormation(0); game.formTab = 'gear'; game.renderFormationDetail(); const sel = document.querySelector('select[data-slot="weapon"]'); return { chosen: sel.value, label: sel.selectedOptions[0].textContent }; });
-  ok('the Gear page shows the improved piece worn', worn.chosen === 'shortSword+3' && /Short Sword \+3/.test(worn.label), JSON.stringify(worn));
+  ok('the Gear page shows the improved piece worn', worn.chosen === 'shortSword+5' && /Short Sword \+5/.test(worn.label), JSON.stringify(worn));
 
   // On a phone the forge fits the width.
   await page.setViewportSize({ width: 390, height: 844 });

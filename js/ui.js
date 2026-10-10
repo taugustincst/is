@@ -25,6 +25,7 @@ class BattleUI {
       tileInfo: document.getElementById('tile-info'),
       objective: document.getElementById('objective'),
       hint: document.getElementById('hint'),
+      speech: document.getElementById('speech'),
     };
     this.bindInput();
   }
@@ -68,6 +69,8 @@ class BattleUI {
       onDeath: (u) => this.r.onDeath(u),
       focus: (u) => this.r.focus(u),
       onTurnStart: async (u) => { await this.r.focus(u); this.banner(tr('{name}\'s turn', { name: u.name }), u.team); this.refresh(); },
+      announce: (text, team) => { this.banner(text, team || 'enemy'); audio.sfx('ko'); },
+      speak: (u, text) => this.speak(u, text),
       onTurnEnd: () => { this.r.clearHighlights(); this.refresh(); },
       awaitPlayerTurn: (u) => this.awaitPlayerTurn(u),
     };
@@ -86,6 +89,56 @@ class BattleUI {
     this.el.log.appendChild(d);
     while (this.el.log.children.length > 60) this.el.log.removeChild(this.el.log.firstChild);
     this.el.log.scrollTop = this.el.log.scrollHeight;
+  }
+
+  /* A line spoken on the field: a bubble with the speaker's face, over the
+     speaker's head where there is room for it, else at the top of the board.
+     The battle waits for it, long enough to be read, less at speed or on
+     auto; a tap on the bubble or a key sends it on. */
+  speak(u, text) {
+    const el = this.el.speech;
+    if (!el || !this.r.battle) return Promise.resolve();
+    el.innerHTML = '<canvas width="48" height="48"></canvas><div class="speech-body"><b></b><span></span></div>';
+    paintUnitSprite(el.querySelector('canvas'), u, 2);
+    el.querySelector('b').textContent = u.name;
+    el.querySelector('span').textContent = text;
+    el.className = `speech ${u.escort ? 'neutral' : u.team}`;
+    el.hidden = false;
+    this.placeSpeech(u);
+    requestAnimationFrame(() => el.classList.add('show'));
+    const dur = Math.max(this.auto ? 700 : 1400, (1600 + text.length * 28) / (PACE.scale || 1) / (this.auto ? 2 : 1));
+    return new Promise(resolve => {
+      let done = false;
+      const end = () => {
+        if (done) return; done = true;
+        clearTimeout(timer); document.removeEventListener('keydown', end); el.onclick = null;
+        el.classList.remove('show'); el.hidden = true;
+        resolve();
+      };
+      const timer = setTimeout(end, dur);
+      el.onclick = (e) => { e.stopPropagation(); end(); };
+      document.addEventListener('keydown', end);
+    });
+  }
+  placeSpeech(u) {
+    const el = this.el.speech, cv = this.cv, r = this.r;
+    const rect = cv.getBoundingClientRect(), host = cv.parentElement.getBoundingClientRect();
+    const W = r.W || cv.width, H = r.H || cv.height, z = r.zoom || 1;
+    const s = r.toScreen(u.x, u.y, r.battle.grid.height(u.x, u.y));
+    const px = ((s.sx - W / 2) * z + W / 2) * rect.width / W + rect.left - host.left;
+    const py = ((s.sy - 44 * z) - H / 2) * z / z * 1 + 0; // the head, in canvas units
+    const top = (((s.sy - H / 2) * z + H / 2) - 48 * z) * rect.height / H + rect.top - host.top;
+    const ins = r.insets || { top: 0, left: 0, right: 0, bottom: 0 };
+    const w = Math.min(340, host.width - 16);
+    el.style.width = `${w}px`;
+    let left = px - 60, y = top - el.offsetHeight - 10;
+    left = Math.max(8, Math.min(host.width - w - 8, left));
+    const minY = Math.min(ins.top + 8, host.height * 0.4);
+    if (y < minY) y = minY;
+    el.style.left = `${left}px`; el.style.top = `${y}px`;
+    const tail = Math.max(16, Math.min(w - 30, px - left - 7));
+    el.style.setProperty('--tail', `${tail}px`);
+    void py;
   }
 
   banner(text, team) {
@@ -107,7 +160,10 @@ class BattleUI {
       ? el.getBoundingClientRect() : null;
     const H = cv.clientHeight, W = cv.clientWidth;
     for (const id of ['battle-top', 'turn-order', 'unit-card', 'log', 'command', 'deploy-panel', 'hint']) {
-      const r = box(document.getElementById(id));
+      const el = document.getElementById(id);
+      // An emptied hint keeps its box where it last stood; it takes nothing.
+      if (id === 'hint' && !el.textContent) continue;
+      const r = box(el);
       if (!r || !r.width || !r.height) continue;
       // Only a panel that runs most of the way along an edge takes a band out
       // of the view. A panel sitting in a corner blocks a corner, and the board
@@ -142,7 +198,7 @@ class BattleUI {
     const list = this.battle.forecast(9);
     let html = `<div class="panel-title">${tr('Turn Order')}</div>`;
     for (const e of list) {
-      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? e.unit.jobData.name : 'fallen'}</span></div>`;
+      if (e.kind === 'unit') html += `<div class="order-row ${e.unit.escort ? 'neutral' : e.unit.team} ${e.unit.alive ? '' : 'fallen'}"><span class="dot"></span>${e.unit.name}<span class="sub">${e.unit.alive ? (e.unit.escort ? tr('charge') : e.unit.jobData.name) : 'fallen'}</span></div>`;
       else html += `<div class="order-row pending"><span class="dot"></span>${e.p.ability.name}<span class="sub">${e.p.unit.name}</span></div>`;
     }
     this.el.order.innerHTML = html;
@@ -385,6 +441,7 @@ class BattleUI {
     }
     return new Promise(resolve => {
       this.turn = { unit, mode: 'menu', ability: null, reach: null, targets: null, resolve };
+      this.cursor = unit.x >= 0 ? { x: unit.x, y: unit.y } : null;
       if (this.coach) {
         this.coach.turns++;
         if (this.coach.turns === 2) this.coachSay('order', tr('The strip at the top is the turn order: fast units act more often, and a charged spell waits for its charge. Undo Move takes a move back until the unit acts.'));
@@ -690,10 +747,10 @@ class BattleUI {
       if (game._ask) return; // an open question takes the keys
       if (e.key === 'Escape') return this.cancel();
       const pan = 40, z = this.r.zoom || 1;
-      if (e.key === 'ArrowLeft') { this.r.cam.x += pan / z; this.r.clampCamera(); }
-      else if (e.key === 'ArrowRight') { this.r.cam.x -= pan / z; this.r.clampCamera(); }
-      else if (e.key === 'ArrowUp') { this.r.cam.y += pan / z; this.r.clampCamera(); }
-      else if (e.key === 'ArrowDown') { this.r.cam.y -= pan / z; this.r.clampCamera(); }
+      const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+      if (arrow && e.shiftKey) { this.r.cam.x -= arrow[0] * pan / z; this.r.cam.y -= arrow[1] * pan / z; this.r.clampCamera(); }
+      else if (arrow) { if (!this.keyStep(arrow[0], arrow[1])) return; }
+      else if (e.key === 'Enter' || e.key === ' ') { if (!this.confirm()) return; }
       else if (e.key === '+' || e.key === '=') this.r.setZoom(z * 1.15);
       else if (e.key === '-' || e.key === '_') this.r.setZoom(z / 1.15);
       else if (e.key === '0') this.r.centerCamera();
@@ -710,6 +767,159 @@ class BattleUI {
       } else return;
       e.preventDefault();
     });
+    this.bindGamepad();
+  }
+
+  // ---- the cursor: keys and a gamepad ---------------------------------------
+  /* A tile cursor for those who would rather not reach for the mouse. The
+     arrows walk it across the board, a step at a time in the direction the
+     board is seen from; Enter or Space does what a click on that tile would.
+     Where a list is open (the action menu, a skillset, the facings) up and
+     down walk the list instead and left and right still move the cursor. */
+  keyStep(dx, dy) {
+    const t = this.turn;
+    const listed = this.deploy ? false : !!t && ['menu', 'act', 'abilities', 'wait'].includes(t.mode);
+    if (listed && dy && !dx) return this.listNav(dy);
+    return this.stepCursor(dx, dy);
+  }
+  // The buttons of whichever panel is open, in order, for walking by key.
+  panelButtons() {
+    const panel = this.deploy ? this.el.roster : this.el.menu;
+    return [...panel.querySelectorAll('button')].filter(b => !b.disabled && b.offsetParent !== null);
+  }
+  listNav(dir) {
+    const btns = this.panelButtons();
+    if (!btns.length) return false;
+    const i = btns.indexOf(document.activeElement);
+    const n = i < 0 ? (dir > 0 ? 0 : btns.length - 1) : (i + dir + btns.length) % btns.length;
+    btns[n].focus();
+    if (btns[n].scrollIntoView) btns[n].scrollIntoView({ block: 'nearest' });
+    if (btns[n].dataset.id && ABILITIES[btns[n].dataset.id]) this.showAbilityInfo(ABILITIES[btns[n].dataset.id]);
+    return true;
+  }
+  // Where the cursor starts from when there is none: the unit whose turn it
+  // is, the unit being placed, or the middle of the board.
+  cursorHome() {
+    if (this.cursor && this.battle.grid.tile(this.cursor.x, this.cursor.y)) return this.cursor;
+    const g = this.battle.grid;
+    if (this.turn && this.turn.unit.x >= 0) return { x: this.turn.unit.x, y: this.turn.unit.y };
+    if (this.deploy) { const z = this.battle.deployZone; if (z.length) return { x: z[0].x, y: z[0].y }; }
+    return { x: Math.floor(g.w / 2), y: Math.floor(g.h / 2) };
+  }
+  /* A step in screen terms, right being along the board's near-right edge
+     as it is currently turned, so the keys keep meaning the same thing when
+     the board has been rotated. The neighbour whose rotated position lies
+     that way is the one stepped to. */
+  stepCursor(dx, dy) {
+    if (!this.battle) return false;
+    const g = this.battle.grid, from = this.cursorHome();
+    const r0 = this.r.gridRot(from.x, from.y);
+    const want = { x: Math.round(r0.x) + dx, y: Math.round(r0.y) + dy };
+    const to = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([ax, ay]) => ({ x: from.x + ax, y: from.y + ay }))
+      .find(n => g.tile(n.x, n.y) && Math.round(this.r.gridRot(n.x, n.y).x) === want.x && Math.round(this.r.gridRot(n.x, n.y).y) === want.y);
+    if (!to) { this.placeCursor(from.x, from.y); return true; }
+    this.placeCursor(to.x, to.y);
+    return true;
+  }
+  placeCursor(x, y) {
+    const t = this.battle.grid.tile(x, y);
+    if (!t) return;
+    this.cursor = { x, y };
+    this.hover = t;
+    this.r.hl.cursor = t;
+    this.renderTileInfo(t);
+    this.refresh();
+    if (this.turn && this.turn.mode === 'target') this.previewTarget(t);
+    if (this.turn && this.turn.mode === 'move') this.previewMove(t);
+    this.r.focus({ x, y }, 160);
+  }
+  // Enter, Space or the A button: a focused button in the open panel is
+  // pressed; otherwise the cursor's tile is clicked.
+  confirm() {
+    const a = document.activeElement;
+    if (a && a.tagName === 'BUTTON' && (this.el.menu.contains(a) || this.el.roster.contains(a))) { a.click(); return true; }
+    if (!this.cursor) return false;
+    const t = this.battle.grid.tile(this.cursor.x, this.cursor.y);
+    if (!t) return false;
+    this.onClick(t, t);
+    return true;
+  }
+
+  /* A gamepad, polled once a frame while one is plugged in. On the field
+     the d-pad or left stick moves the cursor, A confirms, B cancels, X is
+     Wait, Y opens Act, the bumpers turn the board, the right stick pans,
+     Start opens the help and Back toggles Auto. On every other screen the
+     d-pad walks the buttons and A presses the one in hand, B goes back. */
+  bindGamepad() {
+    if (typeof navigator === 'undefined' || !navigator.getGamepads) return;
+    this.pad = { prev: [], axisPrev: [0, 0], repeatAt: 0 };
+    const poll = () => {
+      requestAnimationFrame(poll);
+      let gp = null;
+      try { gp = [...(navigator.getGamepads() || [])].find(p => p && p.connected !== false); } catch (err) { gp = null; }
+      if (!gp) return;
+      const now = performance.now();
+      const pressed = (i) => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
+      const edge = (i) => { const on = pressed(i), was = !!this.pad.prev[i]; this.pad.prev[i] = on; return on && !was; };
+      // The d-pad and the left stick, with a repeat while held.
+      const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+      let dx = (pressed(15) ? 1 : 0) - (pressed(14) ? 1 : 0), dy = (pressed(13) ? 1 : 0) - (pressed(12) ? 1 : 0);
+      if (!dx && !dy) { dx = ax > 0.5 ? 1 : ax < -0.5 ? -1 : 0; dy = ay > 0.5 ? 1 : ay < -0.5 ? -1 : 0; }
+      const moving = dx || dy;
+      const fresh = moving && (dx !== this.pad.axisPrev[0] || dy !== this.pad.axisPrev[1]);
+      this.pad.axisPrev = [dx, dy];
+      if (moving && (fresh || now >= this.pad.repeatAt)) {
+        this.pad.repeatAt = now + (fresh ? 300 : 140);
+        this.padDirection(dx, dy);
+      }
+      if (!moving) this.pad.repeatAt = 0;
+      if (edge(0)) this.padPress('confirm');
+      if (edge(1)) this.padPress('cancel');
+      if (edge(2)) this.padPress('wait');
+      if (edge(3)) this.padPress('act');
+      if (edge(4)) this.padPress('turnLeft');
+      if (edge(5)) this.padPress('turnRight');
+      if (edge(8)) this.padPress('auto');
+      if (edge(9)) this.padPress('help');
+      // The right stick pans the field.
+      const rx = gp.axes[2] || 0, ry = gp.axes[3] || 0;
+      if (this.battle && game.screen === 'battle' && (Math.abs(rx) > 0.3 || Math.abs(ry) > 0.3)) {
+        const z = this.r.zoom || 1;
+        this.r.cam.x -= rx * 12 / z; this.r.cam.y -= ry * 12 / z; this.r.clampCamera();
+      }
+    };
+    requestAnimationFrame(poll);
+  }
+  onField() { return !!this.battle && game.screen === 'battle' && !game._ask; }
+  padDirection(dx, dy) {
+    if (this.onField()) { this.keyStep(dx, dy); return; }
+    this.screenNav(dy || dx);
+  }
+  padPress(what) {
+    if (what === 'help') { const h = document.getElementById('help'); if (h) h.classList.toggle('open'); return; }
+    if (this.onField()) {
+      if (what === 'confirm') this.confirm();
+      else if (what === 'cancel') this.cancel();
+      else if (what === 'wait') { const b = this.el.menu.querySelector('button[data-a="wait"]:not([disabled])'); if (b) b.click(); }
+      else if (what === 'act') { const b = this.el.menu.querySelector('button[data-a="act"]:not([disabled])'); if (b) b.click(); }
+      else if (what === 'turnLeft') this.turnField(-1);
+      else if (what === 'turnRight') this.turnField(1);
+      else if (what === 'auto') this.setAuto(!this.auto);
+      return;
+    }
+    if (what === 'confirm') { const a = document.activeElement; if (a && a !== document.body && a.click) a.click(); }
+    else if (what === 'cancel') { const back = document.querySelector('.screen.active [id$="-back"], .screen.active [data-a="back"]'); if (back) back.click(); }
+  }
+  // Off the field, the d-pad walks whatever can be pressed on the open screen.
+  screenNav(dir) {
+    const scr = document.querySelector('.screen.active');
+    if (!scr) return;
+    const els = [...scr.querySelectorAll('button, select, input, a[href], [tabindex="0"]')].filter(el => !el.disabled && el.offsetParent !== null && !el.closest('.tab-hidden'));
+    if (!els.length) return;
+    const i = els.indexOf(document.activeElement);
+    const n = i < 0 ? (dir > 0 ? 0 : els.length - 1) : (i + dir + els.length) % els.length;
+    els[n].focus();
+    if (els[n].scrollIntoView) els[n].scrollIntoView({ block: 'nearest' });
   }
 
   // Distance between the first two active pointers, for pinch zoom.

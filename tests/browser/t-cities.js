@@ -73,7 +73,7 @@ const ok = (n, c, d) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (d ? `  [$
   await page.click('#btn-continue'); await page.waitForSelector('#screen-world.active');
   ok('an open city survives a save and reload', await page.evaluate(() => game.cityOpen('redwater')));
   // The map knows the city: a click on its marker opens the panel.
-  const clicked = await page.evaluate(() => { const cv = document.getElementById('world-map'); const r = cv.getBoundingClientRect(); const c = CITIES[0]; const x = r.left + c.pos[0] * r.width, y = r.top + c.pos[1] * r.height; cv.onclick({ clientX: x, clientY: y }); return !!document.getElementById('btn-city-back'); });
+  const clicked = await page.evaluate(() => { game.showCampTab('road', true); const cv = document.getElementById('world-map'); const r = cv.getBoundingClientRect(); const c = CITIES[0]; const x = r.left + c.pos[0] * r.width, y = r.top + c.pos[1] * r.height; cv.onclick({ clientX: x, clientY: y }); return !!document.getElementById('btn-city-back'); });
   ok('the city\'s marker on the map opens it', clicked);
   ok('no page errors', errors.length === 0, errors.join(' | '));
   console.log(fails ? `${fails} FAILED` : 'all city checks passed');

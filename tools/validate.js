@@ -183,7 +183,43 @@ for (const ch of ALL_CHAPTERS) {
   const o = ch.objective || {};
   if (o.type === 'boss' && !ch.enemies.some(e => e.boss)) bad(`${ch.id}: boss objective with no boss`);
   if (o.type === 'survive' && !(o.rounds > 0)) bad(`${ch.id}: survive objective without a round count`);
+  if (o.type === 'hold' && !(o.rounds > 0)) bad(`${ch.id}: hold objective without a round count`);
+  if (o.type === 'escort' && !(o.escort && g.JOBS[o.escort.job] && o.escort.name && o.escort.level > 0)) bad(`${ch.id}: escort objective without a charge`);
+  if (['escort', 'reach', 'hold'].includes(o.type)) {
+    const map = g.MAPS[ch.map];
+    if (map) {
+      const grid = new g.Grid(map);
+      const zone = g.computeDeployZone(grid, map.deploy, []);
+      const goal = g.resolveGoal(grid, o.goal || (o.type === 'hold' ? 'centre' : 'far'), zone, ch.enemies);
+      if (!goal) bad(`${ch.id}: no mark can be placed on ${ch.map}`);
+      else if (zone.some(t => t.x === goal.x && t.y === goal.y)) bad(`${ch.id}: the mark falls on the deployment`);
+      else if (ch.enemies.some(e => e.x === goal.x && e.y === goal.y)) bad(`${ch.id}: an enemy starts on the mark`);
+    }
+  }
+  if (!['rout', 'boss', 'survive', 'escort', 'reach', 'hold'].includes(o.type || 'rout')) bad(`${ch.id}: unknown objective ${o.type}`);
+  for (const r of o.reinforcements || []) {
+    if (!(r.round > 1)) bad(`${ch.id}: reinforcements must come after the first round`);
+    for (const e of r.enemies || []) {
+      if (!g.JOBS[e.job]) bad(`${ch.id}: reinforcement job ${e.job} does not exist`);
+      const map = g.MAPS[ch.map];
+      if (map && !(e.x >= 0 && e.x < map.w && e.y >= 0 && e.y < map.h)) bad(`${ch.id}: reinforcement ${e.job} placed off the map`);
+    }
+  }
   if (ch.recruit && !g.JOBS[ch.recruit.job]) bad(`${ch.id}: recruit has unknown job '${ch.recruit.job}'`);
+  // Words on the field: every boss has its three, each a sentence, and the
+  // chapter's opening lines name a speaker who can be there.
+  for (const e of ch.enemies) {
+    if (e.boss && !e.lines) bad(`${ch.id}: ${e.name} has nothing to say`);
+    for (const k of ['open', 'half', 'fall']) {
+      if (e.lines && !(typeof e.lines[k] === 'string' && e.lines[k].trim().length > 0)) bad(`${ch.id}: ${e.name} lacks a '${k}' line`);
+      if (e.lines && e.lines[k] && e.lines[k].length > 120) bad(`${ch.id}: ${e.name}'s '${k}' line runs long (${e.lines[k].length})`);
+    }
+    if (!e.boss && e.lines) bad(`${ch.id}: ${e.name} speaks but is no boss`);
+  }
+  for (const t of ch.talk || []) {
+    if (!(t.text && t.text.length > 0 && t.text.length <= 140)) bad(`${ch.id}: an opening line is missing or runs long`);
+    if (t.who !== 'leader' && !g.STARTING_PARTY.some(p => p.name === t.who) && !g.CAMPAIGN.some(c => c.recruit && c.recruit.name === t.who)) bad(`${ch.id}: '${t.who}' is nobody in the company`);
+  }
   // A deployment zone must exist once the enemies are placed.
   const grid = new g.Grid(m);
   const zone = g.computeDeployZone(grid, m.deploy, ch.enemies);
@@ -213,6 +249,13 @@ for (const ch of ALL_CHAPTERS) {
 }
 for (const p of g.STARTING_PARTY) if (!g.JOBS[p.job]) bad(`starting party member ${p.name} has unknown job '${p.job}'`);
 if (!g.STARTING_PARTY.some(p => p.leader)) bad('the starting party has no leader');
+// Everyone who joins through the story has words for their first kill.
+for (const name of [...g.STARTING_PARTY.map(p => p.name), ...g.CAMPAIGN.filter(c => c.recruit).map(c => c.recruit.name)]) {
+  if (!(g.FIRST_BLOOD[name] && g.FIRST_BLOOD[name].length <= 120)) bad(`${name} has no first-blood line`);
+}
+for (const name of Object.keys(g.FIRST_BLOOD)) {
+  if (!g.STARTING_PARTY.some(p => p.name === name) && !g.CAMPAIGN.some(c => c.recruit && c.recruit.name === name)) bad(`first-blood line for '${name}', who never joins`);
+}
 for (const pool of g.TRAINING_POOL) for (const j of pool) if (!g.JOBS[j]) bad(`training pool names unknown job '${j}'`);
 
 if (problems.length) {

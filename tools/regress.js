@@ -95,7 +95,10 @@ const mk = (n, job, lvl, opts = {}) => {
       { log: (m) => logs.push(m), awaitPlayerTurn: async () => {} }, { type: 'rout' });
     const foe = b.units.find(u => u.team === 'enemy');
     ninja.x = 1; ninja.y = 1; foe.hp = 1;
-    await b.applyAbility(ninja, g.ABILITIES.attack, foe.x, foe.y);
+    // The roll is pinned so the main hand cannot miss: the check is about
+    // the offhand's restraint, not the ninja's luck.
+    const rnd = Math.random; Math.random = () => 0;
+    try { await b.applyAbility(ninja, g.ABILITIES.attack, foe.x, foe.y); } finally { Math.random = rnd; }
     const hits = logs.filter(l => /deals \d+ damage/.test(l)).length;
     ok('dual wield stops when the target falls', hits === 1 && ninja.dualWielding, `hits=${hits}`);
   }
@@ -689,10 +692,20 @@ const mk = (n, job, lvl, opts = {}) => {
     // recipe is one city's, in a city that exists; a won field always leaves
     // something, and never more than three.
     const bases = Object.keys(g.ITEMS).filter(id => g.upgradeable(id));
-    const steps = bases.filter(id => [1, 2, 3].every(p => { const v = g.ITEMS[`${id}+${p}`], b = g.ITEMS[id]; return v && v.base === id && v.plus === p && v.price > 0 && !v.city && !v.forge && (v.power || 0) + (v.hp || 0) + (v.evade || 0) + (v.mp || 0) > (b.power || 0) + (b.hp || 0) + (b.evade || 0) + (b.mp || 0); }));
-    ok('every weapon, shield, helm and armour climbs +1, +2 and +3, each a gain', bases.length > 150 && steps.length === bases.length, `${steps.length}/${bases.length}`);
-    const costs = bases.filter(id => { const c1 = g.forgeCost(id), c3 = g.forgeCost(`${id}+2`); return c1 && c1.plus === 1 && c1.gil > 0 && Object.values(c1.mats)[0] === 1 && c3 && (c3.mats.emberGlass === 1 || c3.mats.starIron === 1) && g.forgeCost(`${id}+3`) === null; });
-    ok('each step asks a step more of the piece\'s own material, the last a coal of ember glass or star-iron', costs.length === bases.length, `${costs.length}/${bases.length}`);
+    const steps = bases.filter(id => [1, 2, 3, 4, 5].every(p => { const v = g.ITEMS[`${id}+${p}`], b = g.ITEMS[id]; return v && v.base === id && v.plus === p && v.price > 0 && !v.city && !v.forge && (v.power || 0) + (v.hp || 0) + (v.evade || 0) + (v.mp || 0) > (b.power || 0) + (b.hp || 0) + (b.evade || 0) + (b.mp || 0); }));
+    ok('every weapon, shield, helm and armour climbs +1 to +5, each a gain', bases.length > 150 && steps.length === bases.length, `${steps.length}/${bases.length}`);
+    const costs = bases.filter(id => { const c1 = g.forgeCost(id), c3 = g.forgeCost(`${id}+2`); return c1 && c1.plus === 1 && c1.gil > 0 && Object.values(c1.mats)[0] === 1 && c3 && (c3.mats.emberGlass === 1 || c3.mats.starIron === 1); });
+    ok('each step asks a step more of the piece\'s own material, the third a coal of ember glass or star-iron', costs.length === bases.length, `${costs.length}/${bases.length}`);
+    const rare = bases.filter(id => { const c4 = g.forgeCost(`${id}+3`), c5 = g.forgeCost(`${id}+4`), c3 = g.forgeCost(`${id}+2`); return c4 && c4.mats.tidePearl === 1 && c4.mats.emberGlass === 1 && c5 && c5.mats.starHeart === 1 && c5.mats.starIron === 1 && c4.gil >= 1500 && c5.gil >= 3000 && c5.gil > c4.gil && c4.gil > c3.gil * 2 && g.forgeCost(`${id}+5`) === null; });
+    ok('the fourth step asks a tide pearl and the fifth a star heart, each dearer than the last; +5 is the top', rare.length === bases.length, `${rare.length}/${bases.length}`);
+    const sink = Object.keys(g.ITEMS).filter(id => g.upgradeable(id) && g.ITEMS[id].tier >= 6 && !g.ITEMS[id].forge).map(id => g.forgeCost(`${id}+3`).gil + g.forgeCost(`${id}+4`).gil);
+    ok('taking a late piece from +3 to +5 costs several thousand marks', sink.length > 10 && Math.min(...sink) >= 7000, `from ${Math.min(...sink)} marks`);
+    const forgedLegends = Object.entries(g.FORGE_ITEMS).filter(([, it]) => it.late && (it.cost.starHeart || it.cost.tidePearl));
+    ok('seven legendary arms are forged in the last cities, each for a star heart or tide pearls, none under eight thousand', forgedLegends.length === 7 && forgedLegends.every(([, it]) => (it.cost.starHeart || it.cost.tidePearl) && it.price >= 8000 && it.tier >= 7 && cities.find(c => c.id === it.forge && c.from >= 17)), forgedLegends.map(([id]) => id).join(','));
+    let early = 0, late = 0, lateRare = 0;
+    for (let i = 0; i < 2000; i++) { const d = g.fieldMaterials(7, i % 2 === 0, Math.random, 12); if (d.tidePearl || d.starHeart) early++; }
+    for (let i = 0; i < 2000; i++) { const d = g.fieldMaterials(7, i % 2 === 0, Math.random, 22); late++; if (d.tidePearl || d.starHeart) lateRare++; }
+    ok('the rare materials never fall before their chapters, and fall seldom after', early === 0 && lateRare > 40 && lateRare < late * 0.25, `${lateRare}/${late} late fields, ${early} early`);
     const issued = [];
     for (const job of Object.keys(g.JOB_EQUIP)) for (const lvl of [1, 8, 16, 26]) for (const id of Object.values(g.enemyGearFor(job, lvl, 1))) { const it = g.ITEMS[id]; if (it.base || it.forge || it.slot === 'material') issued.push(`${job}@${lvl}:${id}`); }
     ok('no enemy is ever issued a forge\'s work', issued.length === 0, issued.slice(0, 4).join(','));
@@ -1052,6 +1065,215 @@ const mk = (n, job, lvl, opts = {}) => {
     const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
     const shown = (fs.readFileSync(path.join(root, 'js', 'game.js'), 'utf8').match(/const GAME_VERSION = '([^']+)';/) || [])[1];
     ok('the credits show the package version', shown === pkg, `game ${shown}, package ${pkg}`);
+  }
+
+  /* The AI's second thoughts. It had taken the best single blow from the
+     best single tile; it now finishes the wounded, strikes healers first,
+     keeps its archers and casters out of reach, falls back when badly hurt
+     with a healer behind it, and keeps a guard on its commander. Each is
+     a battle laid out so that only the new reading produces the move. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const place = (b, u, x, y) => { u.x = x; u.y = y; };
+    const flat = g.MAPS.millbrook;
+    // a. Two foes in reach, one at half health: the wounded one is struck.
+    {
+      const party = [mk('Hale', 'knight', 8), mk('Hurt', 'knight', 8)];
+      let b = g.Battle.setup(flat, party, [{ job: 'knight', level: 8, x: 5, y: 5, name: 'Foe' }], quiet, { type: 'rout' });
+      const foe = b.units.find(u => u.team === 'enemy');
+      foe.learned = {}; // a plain blow, so the choice is the target and nothing else
+      place(b, party[0], 4, 5); place(b, party[1], 6, 5);
+      party[1].hp = Math.floor(party[1].maxHp * 0.45);
+      const before = [party[0].hp, party[1].hp];
+      await b.aiTurn(foe);
+      ok('the AI finishes the wounded before it starts on the hale', party[1].hp < before[1] && party[0].hp === before[0], `hale ${before[0]}->${party[0].hp}, hurt ${before[1]}->${party[1].hp}`);
+    }
+    // b. A knight and a cleric side by side: the cleric is struck.
+    {
+      const party = [mk('Wall', 'knight', 8), mk('Mender', 'whiteMage', 8)];
+      let b = g.Battle.setup(flat, party, [{ job: 'knight', level: 8, x: 5, y: 5, name: 'Foe' }], quiet, { type: 'rout' });
+      const foe = b.units.find(u => u.team === 'enemy');
+      foe.learned = {};
+      place(b, party[0], 4, 5); place(b, party[1], 6, 5);
+      const before = [party[0].hp, party[1].hp];
+      await b.aiTurn(foe);
+      ok('the AI strikes the healer first', party[1].hp < before[1], `knight ${before[0]}->${party[0].hp}, cleric ${before[1]}->${party[1].hp}`);
+    }
+    // c. An archer with room: it shoots from where the swordsman cannot reach it.
+    {
+      const party = [mk('Sword', 'knight', 6)];
+      let b = g.Battle.setup(flat, party, [{ job: 'archer', level: 6, x: 5, y: 2, name: 'Bow' }], quiet, { type: 'rout' });
+      const bow = b.units.find(u => u.team === 'enemy');
+      place(b, party[0], 5, 4);
+      await b.aiTurn(bow);
+      const dist = g.Grid.dist(bow.x, bow.y, party[0].x, party[0].y);
+      ok('an archer keeps out of a swordsman\'s reach', dist > party[0].baseStats().move + 1, `distance ${dist}, move ${party[0].baseStats().move}`);
+    }
+    // d. Badly hurt, with a healer behind: it falls back rather than trading blows.
+    {
+      const party = [mk('Sword', 'knight', 10), mk('Sword2', 'knight', 10)];
+      const foes = [{ job: 'knight', level: 6, x: 3, y: 3, name: 'Hurt' }, { job: 'whiteMage', level: 6, x: 7, y: 7, name: 'Priest' }];
+      let b = g.Battle.setup(g.MAPS.verdant, party, foes, quiet, { type: 'rout' });
+      const hurt = b.units.find(u => u.name === 'Hurt');
+      place(b, party[0], 2, 3); place(b, party[1], 4, 3);
+      hurt.hp = Math.floor(hurt.maxHp * 0.2);
+      const d0 = g.Grid.dist(hurt.x, hurt.y, 7, 7);
+      await b.aiTurn(hurt);
+      const d1 = g.Grid.dist(hurt.x, hurt.y, 7, 7);
+      const adjacent = party.some(u => g.Grid.dist(u.x, u.y, hurt.x, hurt.y) <= 1);
+      ok('a badly hurt foe with a healer behind it falls back', d1 < d0 && !adjacent, `distance to healer ${d0}->${d1}, adjacent ${adjacent}`);
+    }
+    // e. A commander keeps a guard: the sturdiest of the rest stays within two tiles.
+    {
+      const party = [mk('Sword', 'knight', 8)];
+      const foes = [{ job: 'knight', level: 10, x: 8, y: 8, name: 'Captain', boss: true }, { job: 'knight', level: 8, x: 7, y: 8, name: 'Guard' }, { job: 'archer', level: 8, x: 9, y: 7, name: 'Bow' }];
+      let b = g.Battle.setup(flat, party, foes, quiet, { type: 'boss' });
+      const boss = b.units.find(u => u.boss), guard = b.units.find(u => u.guardOf === boss);
+      place(b, party[0], 2, 2);
+      ok('the commander has a guard', !!guard && guard.team === 'enemy', guard ? guard.name : 'none');
+      if (guard) { await b.aiTurn(guard); ok('the guard stays within two tiles of the commander', g.Grid.dist(guard.x, guard.y, boss.x, boss.y) <= 2, `distance ${g.Grid.dist(guard.x, guard.y, boss.x, boss.y)}`); }
+    }
+  }
+
+  /* The difficulties, and how much of its trade a foe knows: a fourth
+     setting under Footman for the story first, and skills that unlock
+     slowly by level so an early foe is simple and a late one still has
+     something held back. Bosses know it all. */
+  {
+    const d = g.run('DIFFICULTIES');
+    ok('four difficulties, Page the gentlest, in order of severity', Object.keys(d).join() === 'page,squire,knight,paladin' && d.page.levelShift < d.squire.levelShift && d.page.gearShift < d.squire.gearShift && d.page.gilMult > d.squire.gilMult, JSON.stringify(d.page));
+    const spec = { job: 'knight', level: 8, x: 0, y: 0 };
+    const onPage = g.makeEnemy(spec, 'page'), onKnight = g.makeEnemy(spec, 'knight');
+    ok('on Page a foe is three levels under its writing, never below one', onPage.level === 5 && onKnight.level === 8 && g.makeEnemy({ job: 'knight', level: 2, x: 0, y: 0 }, 'page').level === 1, `${onPage.level}/${onKnight.level}`);
+    const known = (lvl, job = 'knight') => { const u = g.makeEnemy({ job, level: lvl, x: 0, y: 0 }, 'knight'); return Object.keys(u.learned).filter(id => g.ABILITIES[id] && g.JOBS[job].abilities.includes(id)).length / g.JOBS[job].abilities.length; };
+    ok('a first-act foe knows about a third of its trade, a last-act one most of it, never all', known(5) <= 0.45 && known(14) > known(5) && known(24) > known(14) && known(24) <= 0.92 && known(40) <= 0.92, `L5 ${known(5).toFixed(2)}, L14 ${known(14).toFixed(2)}, L24 ${known(24).toFixed(2)}`);
+    const boss = g.makeEnemy({ job: 'knight', level: 8, x: 0, y: 0, boss: true }, 'knight');
+    ok('a boss knows everything', g.JOBS.knight.abilities.every(id => boss.learned[id]));
+    const esc = g.CAMPAIGN.filter(c => c.objective.type === 'escort');
+    ok('every escorted charge outranks the field it crosses', esc.length >= 4 && esc.every(c => c.objective.escort.level > Math.max(...c.enemies.filter(e => !e.boss).map(e => e.level))));
+  }
+
+  /* Words on the field: the leader opens the finales, a boss opens, speaks
+     at half health and at its fall, each once; a first kill is remarked on
+     once; and every line goes through the speak hook, which the battle
+     waits for. */
+  {
+    const place = (b, u, x, y) => { u.x = x; u.y = y; };
+    const said = [];
+    const hooks = { log: () => {}, awaitPlayerTurn: async () => {}, speak: async (u, t) => { said.push(`${u.name}: ${t}`); } };
+    const party = [mk('Rowan', 'knight', 12, { leader: true }), mk('Tamsin', 'whiteMage', 12)];
+    const spec = { job: 'knight', level: 8, x: 5, y: 5, name: 'Ser Test', boss: true, lines: { open: 'Open.', half: 'Half.', fall: 'Fall.' } };
+    const b = g.Battle.setup(g.MAPS.verdant, party, [spec, { job: 'knight', level: 3, x: 7, y: 7, name: 'Guard' }], hooks, { type: 'boss', protectLeader: true }, 'knight', [{ who: 'leader', text: 'Forward.' }, { who: 'Nobody', text: 'Never said.' }]);
+    place(b, party[0], 2, 2); place(b, party[1], 3, 2);
+    for (const u of party) { u.learned = {}; u.record.kills = 0; }
+    await b.openingWords();
+    ok('the leader speaks first, then the boss; a line for someone absent is dropped', said.join(' | ') === 'Rowan: Forward. | Ser Test: Open.', said.join(' | '));
+    const boss = b.units.find(u => u.boss);
+    said.length = 0;
+    boss.hp = Math.floor(boss.maxHp / 2) + 1; b.checkTalk(boss); await b.flushTalk();
+    ok('a point above half health says nothing', said.length === 0, said.join(' | '));
+    boss.hp = Math.floor(boss.maxHp / 2); b.checkTalk(boss); b.checkTalk(boss); await b.flushTalk();
+    ok('half health is remarked on, once', said.join(' | ') === 'Ser Test: Half.', said.join(' | '));
+    said.length = 0;
+    boss.hp = 0; b.onUnitKO(boss); await b.flushTalk();
+    ok('the fall has its line', said.join(' | ') === 'Ser Test: Fall.', said.join(' | '));
+    ok('the log keeps the words as speech', b.spoken.length === 4 && b.spoken.every(x => x.name && x.text), JSON.stringify(b.spoken.slice(-1)));
+    // First blood: the first kill on the record, and only the first.
+    said.length = 0;
+    const guard = b.units.find(u => u.name === 'Guard');
+    b.creditKill(party[1], guard); await b.flushTalk();
+    ok('a first kill is remarked on by one with words for it', said.length === 1 && said[0].startsWith('Tamsin: ') && party[1].record.kills === 1, said.join(' | '));
+    b.creditKill(party[1], guard); await b.flushTalk();
+    ok('the second kill passes in silence', said.length === 1, `${said.length} lines`);
+    b.creditKill(mk('Hired', 'knight', 5), guard); await b.flushTalk();
+    ok('a hired sword has no line of their own', said.length === 1);
+    // Every finale opens with the leader; every boss has its three lines.
+    const finales = ['ch7', 'ch12', 'ch17', 'ch22', 'ch24'];
+    ok('each act finale opens with the leader\'s words', finales.every(id => { const c = g.CAMPAIGN.find(x => x.id === id); return c && c.talk && c.talk.some(t => t.who === 'leader'); }));
+    const bosses = g.CAMPAIGN.flatMap(c => c.enemies.filter(e => e.boss));
+    ok('every campaign boss has words to open, for half health and for its fall', bosses.length >= 8 && bosses.every(e => e.lines && e.lines.open && e.lines.half && e.lines.fall), `${bosses.length} bosses`);
+    ok('everyone who joins through the story has a first-blood line', g.CAMPAIGN.filter(c => c.recruit).every(c => g.FIRST_BLOOD[c.recruit.name]));
+  }
+
+  /* The objectives with a mark on the field: a charge to see to it, a
+     leader to reach it, a round count to hold it; and reinforcements that
+     take the field on their round. */
+  {
+    const quiet = { log: () => {}, awaitPlayerTurn: async () => {} };
+    const map = g.MAPS.verdant;
+    // Escort: the charge stands on the field before anyone is placed, is
+    // not counted among the deployed, and walking it to the mark wins.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true }), mk('Bow', 'archer', 6)];
+      const o = { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Pell', job: 'chemist', level: 5 } };
+      const b = g.Battle.setup(map, party, [{ job: 'squire', level: 1, x: 9, y: 9 }], quiet, o);
+      const charge = b.objective.charge;
+      ok('an escort objective places its charge on the field', !!charge && charge.escort && charge.x >= 0 && charge.team === 'player', charge ? `${charge.name} at ${charge.x},${charge.y}` : 'none');
+      ok('the charge is not counted among the deployed', !b.deployed().includes(charge), `${b.deployed().length} deployed`);
+      ok('the mark is placed away from the deployment and off foes', !!b.objective.goal && !b.deployKeys.has(`${b.objective.goal.x},${b.objective.goal.y}`), JSON.stringify(b.objective.goal && [b.objective.goal.x, b.objective.goal.y]));
+      ok('the objective reads as an escort', /Pell/.test(b.objectiveText()), b.objectiveText());
+      charge.x = b.objective.goal.x; charge.y = b.objective.goal.y;
+      ok('the charge on the mark wins the battle', b.checkEnd() && b.result === 'victory', b.endReason);
+      const b2 = g.Battle.setup(map, party.map(u => { u.x = -1; return u; }), [{ job: 'squire', level: 1, x: 9, y: 9 }], quiet, o);
+      b2.objective.charge.alive = false; b2.objective.charge.carriedOff = true; b2.objective.charge.x = -1;
+      ok('losing the charge loses the battle', b2.checkEnd() && b2.result === 'defeat', b2.endReason);
+    }
+    // Reach: the leader on the mark wins; anyone else there does not.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true }), mk('Bow', 'archer', 6)];
+      for (const u of party) { u.x = -1; u.y = -1; }
+      const b = g.Battle.setup(map, party, [{ job: 'squire', level: 1, x: 9, y: 9 }], quiet, { type: 'reach', protectLeader: true, goal: 'far' });
+      const goal = b.objective.goal;
+      party[1].x = goal.x; party[1].y = goal.y; party[0].x = 1; party[0].y = 1;
+      ok('reaching the mark with someone else is not enough', !b.checkEnd(), b.endReason || 'still fighting');
+      party[1].x = 2; party[1].y = 1; party[0].x = goal.x; party[0].y = goal.y;
+      ok('the leader on the mark wins', b.checkEnd() && b.result === 'victory', b.endReason);
+    }
+    // Hold: rounds standing on the mark count; a round the other side holds it resets them.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true })];
+      party[0].x = -1;
+      const foes = [{ job: 'squire', level: 1, x: 9, y: 9 }];
+      const b = g.Battle.setup(map, party, foes, quiet, { type: 'hold', rounds: 3, protectLeader: true, goal: 'centre' });
+      const goal = b.objective.goal, foe = b.units.find(u => u.team === 'enemy');
+      party[0].x = goal.x; party[0].y = goal.y;
+      b.round = 2; b.checkEnd(); b.round = 3; b.checkEnd();
+      ok('rounds on the mark are counted', b.objective.held === 2, `held ${b.objective.held}`);
+      party[0].x = 0; party[0].y = 0; foe.x = goal.x; foe.y = goal.y;
+      b.round = 4; b.checkEnd();
+      ok('a round the other side holds the mark costs what was held', b.objective.held === 0, `held ${b.objective.held}`);
+      foe.x = 9; foe.y = 9; party[0].x = goal.x; party[0].y = goal.y;
+      b.round = 5; b.checkEnd(); b.round = 6; b.checkEnd(); b.round = 7; const done = b.checkEnd();
+      ok('holding the mark for the count wins', done && b.result === 'victory', `${b.objective.held} held, ${b.endReason}`);
+      ok('the objective shows the count', /\d\/3/.test(b.objectiveText()), b.objectiveText());
+    }
+    // Reinforcements take the field when their round turns.
+    {
+      const party = [mk('Lead', 'knight', 6, { leader: true })];
+      party[0].x = -1;
+      const o = { type: 'boss', protectLeader: true, reinforcements: [{ round: 2, text: 'More come!', enemies: [{ job: 'squire', level: 2, x: 3, y: 3 }, { job: 'squire', level: 2, x: 3, y: 3 }] }] };
+      const b = g.Battle.setup(map, party, [{ job: 'knight', level: 3, x: 9, y: 9, boss: true, name: 'Captain' }], quiet, o);
+      const before = b.units.length;
+      b.round = 1; b.arriveReinforcements();
+      ok('reinforcements wait for their round', b.units.length === before, `${b.units.length} units`);
+      b.round = 2; b.arriveReinforcements();
+      const added = b.units.slice(before);
+      ok('reinforcements arrive on their round, each on its own tile', added.length === 2 && !(added[0].x === added[1].x && added[0].y === added[1].y), added.map(u => `${u.name}@${u.x},${u.y}`).join(' '));
+      b.arriveReinforcements();
+      ok('they arrive once', b.units.length === before + 2);
+    }
+    // Every chapter's mark resolves on its own map, with the foes where they start.
+    {
+      const bad = [];
+      for (const ch of [...g.CAMPAIGN, ...Object.values(g.run('typeof ROADS === "undefined" ? {} : ROADS')).flatMap(r => r.chapters)]) {
+        if (!['escort', 'reach', 'hold'].includes(ch.objective.type)) continue;
+        const grid = new g.Grid(g.MAPS[ch.map]);
+        const zone = g.computeDeployZone(grid, g.MAPS[ch.map].deploy, []);
+        const goal = g.resolveGoal(grid, ch.objective.goal || (ch.objective.type === 'hold' ? 'centre' : 'far'), zone, ch.enemies);
+        if (!goal) bad.push(ch.id);
+      }
+      ok('every marked chapter has a mark', bad.length === 0, bad.join(',') || 'all placed');
+    }
   }
 
   console.log(fails ? `\n${fails} regression(s) FAILED` : '\nall regression checks passed');
