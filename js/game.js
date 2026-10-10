@@ -2067,8 +2067,36 @@ class Game {
       c.restore();
       obstacles.push({ x: x - 9, y: y - 15, w: 18, h: 22 });
     }
-    // The company, where the story has reached: beside the stop.
+    // The company, where the story has reached: beside the stop. A chapter
+    // just won is walked first: the marker goes along the road from the old
+    // stop to the new, over a still copy of the map, and the chapter's card
+    // slides in when it arrives.
     const leader = this.state.party.find(u => u.leader) || this.state.party[0];
+    const travel = this.travel && this.travel.to < pts.length && this.travel.from < pts.length ? this.travel : null;
+    this.travel = null;
+    if (this._travelAnim) { cancelAnimationFrame(this._travelAnim); this._travelAnim = null; }
+    if (leader && travel && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      const still = document.createElement('canvas'); still.width = cv.width; still.height = cv.height; still.getContext('2d').drawImage(cv, 0, 0);
+      const face = document.createElement('canvas'); paintUnitSprite(face, leader, 1);
+      const A = pts[travel.from], B = pts[travel.to];
+      const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 + (travel.to % 2 ? 18 : -18) };
+      const t0 = performance.now(), dur = 1100;
+      const step = (now) => {
+        const t = Math.min(1, (now - t0) / dur), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const x = (1 - e) * (1 - e) * A.x + 2 * (1 - e) * e * C.x + e * e * B.x, y = (1 - e) * (1 - e) * A.y + 2 * (1 - e) * e * C.y + e * e * B.y;
+        c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(still, 0, 0); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.imageSmoothingEnabled = false;
+        const bob = Math.abs(Math.sin(t * Math.PI * 6)) * 3;
+        c.drawImage(face, Math.round(x - face.width / 2), Math.round(y - face.height - 2 - bob));
+        this.travelPos = { x, y, t };
+        if (t < 1 && this.screen === 'world') { this._travelAnim = requestAnimationFrame(step); return; }
+        this._travelAnim = null; this.travelPos = null;
+        this.drawWorldMap();
+        const card = $('world-next'); if (card) { card.classList.remove('arrive'); void card.offsetWidth; card.classList.add('arrive'); }
+      };
+      this._travelAnim = requestAnimationFrame(step);
+      return;
+    }
     if (leader) {
       const at = pts[Math.min(this.state.chapter, pts.length - 1)];
       const face = document.createElement('canvas');
@@ -2153,6 +2181,8 @@ class Game {
     // saved either way rather than letting a defeat quietly discard it.
     await this.battleFlow(MAPS[ch.map], ch.enemies, ch.gil, Object.assign({ objective: ch.objective, talk: ch.talk, kind: 'chapter', flow: { kind: 'chapter', index: this.state.chapter } }, resume || {}), async (result) => {
       if (result !== 'victory') return;
+      // The road ahead is walked when the camp next shows: from here to there.
+      this.travel = { from: this.state.chapter, to: this.state.chapter + 1 };
       this.state.chapter++;
       this.state.victories++;
       if (ch.recruit) {

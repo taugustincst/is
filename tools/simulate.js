@@ -17,8 +17,9 @@ const g = load();
 const RUNS = Number(process.argv[2]) || 10;
 const TRAININGS = process.argv[3] === undefined ? 1 : Number(process.argv[3]);
 const RETRIES = process.argv[4] === undefined ? 3 : Number(process.argv[4]);
-// A chapter averaging more turns than this is a chase, and the run fails.
-const TURN_CAP = 40;
+// A chapter averaging more rounds than this (a round: everyone has acted
+// once) is a chase, not a fight, and the run fails.
+const ROUND_CAP = 10;
 
 // A stand-in for a competent player: learn the cheapest thing available, buy the
 // best gear the purse allows, and take any advanced job that has unlocked.
@@ -78,7 +79,7 @@ async function fight(party, spec, state) {
   b = g.Battle.setup(g.MAPS[spec.map], party, spec.enemies, hooks, spec.objective);
   const res = await b.run();
   if (res === 'victory') state.gil += b.rewards.gil + (spec.gil || 0);
-  return { res, turns: b.turnNo };
+  return { res, turns: b.turnNo, rounds: b.round };
 }
 
 // A training battle roughly matching what the game generates.
@@ -131,7 +132,7 @@ async function runCampaign(run) {
       r = await fight(party, ch, state);
     }
     results.push({
-      ch: ch.id, res: r.res, first, attempts, turns: r.turns, gil: state.gil,
+      ch: ch.id, res: r.res, first, attempts, turns: r.turns, rounds: r.rounds, gil: state.gil,
       lvl: party.reduce((a, u) => a + u.level, 0) / party.length,
     });
     if (r.res !== 'victory') break;
@@ -147,14 +148,14 @@ async function runCampaign(run) {
     const res = await runCampaign(r);
     if (res.length === roadFor(r).length && res[res.length - 1].res === 'victory') finished++;
     for (const e of res) {
-      const t = tally[e.ch] = tally[e.ch] || { win: 0, cleared: 0, played: 0, turns: 0, lvl: 0, gil: 0, tries: 0 };
-      t.played++; t.turns += e.turns; t.lvl += e.lvl; t.gil += e.gil; t.tries += e.attempts;
+      const t = tally[e.ch] = tally[e.ch] || { win: 0, cleared: 0, played: 0, turns: 0, rounds: 0, lvl: 0, gil: 0, tries: 0 };
+      t.played++; t.turns += e.turns; t.rounds += e.rounds || 0; t.lvl += e.lvl; t.gil += e.gil; t.tries += e.attempts;
       if (e.first === 'victory') t.win++;
       if (e.res === 'victory') t.cleared++;
     }
   }
   console.log(`${RUNS} runs, ${TRAININGS} training battle(s) per chapter, up to ${RETRIES} retries\n`);
-  console.log('chapter        reached   1st try   cleared   tries   turns   party Lv   marks left');
+  console.log('chapter        reached   1st try   cleared   tries   turns   rounds  party Lv   marks left');
   const rows = [...g.CAMPAIGN, ...ROAD_ORDER.flatMap(id => ROADS[id].chapters.map(ch => ({ id: `${id}:${ch.id}` })))];
   for (const ch of rows) {
     const t = tally[ch.id];
@@ -166,13 +167,14 @@ async function runCampaign(run) {
       `${Math.round(100 * t.cleared / t.played)}%`.padEnd(10) +
       `${(t.tries / t.played).toFixed(1)}`.padEnd(8) +
       `${Math.round(t.turns / t.played)}`.padEnd(8) +
+      `${(t.rounds / t.played).toFixed(1)}`.padEnd(8) +
       `${(t.lvl / t.played).toFixed(1)}`.padEnd(11) +
       `${Math.round(t.gil / t.played)}`);
   }
   console.log(`\ncampaigns finished: ${finished}/${RUNS} (${Math.round(100 * finished / RUNS)}%)`);
   // Pacing: a chapter that runs long on average is a chase, not a fight,
   // and fails the check whatever its win rate.
-  const slow = rows.filter(ch => tally[ch.id] && tally[ch.id].turns / tally[ch.id].played > TURN_CAP).map(ch => `${ch.id} (${Math.round(tally[ch.id].turns / tally[ch.id].played)} turns)`);
-  if (slow.length) { console.log(`\nPACING: over ${TURN_CAP} turns on average: ${slow.join(', ')}`); process.exit(1); }
-  console.log(`pacing: every chapter under ${TURN_CAP} turns on average`);
+  const slow = rows.filter(ch => tally[ch.id] && tally[ch.id].rounds / tally[ch.id].played > ROUND_CAP).map(ch => `${ch.id} (${(tally[ch.id].rounds / tally[ch.id].played).toFixed(1)} rounds)`);
+  if (slow.length) { console.log(`\nPACING: over ${ROUND_CAP} rounds on average: ${slow.join(', ')}`); process.exit(1); }
+  console.log(`pacing: every chapter under ${ROUND_CAP} rounds on average`);
 })().catch(e => { console.error(e); process.exit(1); });

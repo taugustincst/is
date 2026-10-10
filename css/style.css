@@ -91,6 +91,11 @@ small { color: var(--muted); }
 .world-side { width: 300px; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
 #world-next { border-left: 3px solid var(--gold); }
+/* The next chapter's card, sliding in as the company arrives. */
+@keyframes arrive { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+#world-next.arrive .chapter-num, #world-next.arrive .chapter-title { animation: arrive 0.5s ease-out both; }
+#world-next.arrive .chapter-title { animation-delay: 0.08s; }
+@media (prefers-reduced-motion: reduce) { #world-next.arrive .chapter-num, #world-next.arrive .chapter-title { animation: none; } }
 .chapter-num { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
 .chapter-title { font-family: var(--display); font-size: 26px; color: var(--gold); }
 .act-after { color: #9ec0ff; font-style: italic; }
