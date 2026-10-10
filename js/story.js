@@ -709,7 +709,7 @@ const CAMPAIGN = [
 
   // ---- Act V: the Crown of Elderon ----
   {
-    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Envoy Marlowe', job: 'bard', level: 22 } },
+    objective: { type: 'escort', protectLeader: true, goal: 'far', escort: { name: 'Envoy Marlowe', job: 'bard', level: 24 } },
     id: 'ch23', title: 'The Summons', map: 'kingsroad',
     camp: [
       'Garret reads the letter twice. "He asks for you by name. Not for the company. For you."  Rowan: "He is dying. Dying men ask for the one they wronged."',

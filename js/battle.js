@@ -1441,7 +1441,7 @@ class Battle {
     }
     // The other side goes for the charge itself rather than camping the
     // mark: a fight comes to the company, not a stalemate at the far end.
-    if (o.type === 'escort' && unit.team === 'enemy') { const ch = o.charge; return ch && ch.alive && this.onField(ch) ? -Grid.dist(c.x, c.y, ch.x, ch.y) * 0.4 : 0; }
+    if (o.type === 'escort' && unit.team === 'enemy') { const ch = o.charge; return ch && ch.alive && this.onField(ch) ? -Grid.dist(c.x, c.y, ch.x, ch.y) * 0.25 : 0; }
     // The leader under Auto goes for the mark it is asked to reach.
     if (o.type === 'reach' && unit === o.leader) return on ? 60 : -Grid.dist(c.x, c.y, g.x, g.y) * 0.8;
     return 0;
@@ -1564,12 +1564,22 @@ class Battle {
       }
     }
     const near = this.nearestEnemyOf(unit);
-    // Badly hurt, with no kill in reach: fall back toward a healer, out of
-    // the other side's reach, and let the healer do the work.
+    // Badly hurt, with a crystal in reach: a full restore is worth more than
+    // one more blow, unless that blow ends the fight for someone.
+    if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
+      const c = candidates.find(c => this.crystalAt(c.x, c.y) && (c.x !== unit.x || c.y !== unit.y));
+      if (c && best.score < 60) {
+        await this.moveUnit(unit, this.grid.pathTo(reach, c.x, c.y));
+        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
+        return;
+      }
+    }
     // A beast with no healer behind it has nowhere to fall back to, and a
     // chase across the field is no fight at all: it stands and bites.
     const healersNear = this.alliesOf(unit).filter(a => a !== unit && a.alive && this.onField(a) && this.isHealer(a));
     const wouldKite = unit.jobData.kind === 'monster' && !healersNear.length;
+    // Badly hurt, with no kill in reach: fall back toward a healer, out of
+    // the other side's reach, and let the healer do the work.
     if (unit.hp < unit.maxHp * (precious ? 0.45 : 0.3) && !best.kill && !unit.boss && !wouldKite) {
       const healers = healersNear;
       const here = danger(unit.x, unit.y);
@@ -1588,16 +1598,6 @@ class Battle {
         if (self) await this.useAbility(unit, self, unit.x, unit.y);
         if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
         await sleep(200);
-        return;
-      }
-    }
-    // Badly hurt, with a crystal in reach: a full restore is worth more than
-    // one more blow, unless that blow ends the fight for someone.
-    if (unit.hp < unit.maxHp * 0.4 && this.crystals.length) {
-      const c = candidates.find(c => this.crystalAt(c.x, c.y) && (c.x !== unit.x || c.y !== unit.y));
-      if (c && best.score < 60) {
-        await this.moveUnit(unit, this.grid.pathTo(reach, c.x, c.y));
-        if (near && !unit.airborne) unit.facing = facingFromDelta(near.x - unit.x, near.y - unit.y);
         return;
       }
     }
