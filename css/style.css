@@ -593,5 +593,3 @@ button.icon { min-width: 34px; padding: 4px 8px; font-size: 14px; line-height: 1
   #battle-top { flex-wrap: wrap; justify-content: center; row-gap: 3px; }
   #battle-name { max-width: 100%; flex-basis: 100%; text-align: center; }
 }
-
-/* MARKER-OF-A-NEW-BUILD */
