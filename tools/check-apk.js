@@ -75,7 +75,7 @@ function manifestClasses(aapt2, apk, pkg) {
 /** A string resource's value, looked up by id (0x7f...), or the id itself. */
 function resourceString(aapt2, apk, id) {
   const lines = run(aapt2, ['dump', 'resources', apk]).split('\n');
-  const at = lines.findIndex(l => l.includes(`resource ${id} `));
+  const at = lines.findIndex(l => l.includes(`resource ${id.replace(/^@/, "")} `));
   const v = at >= 0 && lines[at + 1] ? lines[at + 1].match(/"([^"]*)"/) : null;
   return v ? v[1] : `the site in its resources (${id})`;
 }
