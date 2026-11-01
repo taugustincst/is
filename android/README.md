@@ -19,13 +19,38 @@ build-tools, and a JDK 17 or newer:
 cd android
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew installDebug           # build and install onto a connected device
-./gradlew bundleRelease          # app/build/outputs/bundle/release/app-release.aab, for Play
+./gradlew :play:bundleRelease    # play/build/outputs/bundle/release/play-release.aab, for Play
 ```
 
 Release builds are signed with the upload key named in `keystore.properties`
 when that file exists, and with the debug key otherwise so they still
 install. [PLAY_STORE.md](PLAY_STORE.md) walks through the key, the bundle and
-the console, step by step.
+the console, step by step, and how to get the bundle built and signed on
+GitHub's runners instead.
+
+## Two apps
+
+`app/` is this shell: the whole game inside the APK, no permissions, under
+the package name `com.elderon.tactics`. It is what the GitHub Releases
+carry for sideloading.
+
+`play/` is the Google Play edition, under the listing's package name
+`com.taugustincst.elderon`: a Trusted Web Activity, in which Chrome opens
+the game's site (`https://taugustincst.github.io/fftremake/`, set by
+`-PplayHost` and `-PplayPath`) fullscreen, and Play Billing reaches the
+page through the Digital Goods API, which only a Trusted Web Activity has
+and which `js/billing.js` is written for. It is Bubblewrap's project
+spelled out: android-browser-helper's launcher activity and delegation
+service, its billing module's payment components, two small subclasses
+and no `Application` class. `./gradlew :play:bundleRelease` builds it;
+[PLAY_STORE.md](PLAY_STORE.md) has the asset links the site must serve
+for it and the path through the console.
+
+CI builds both and checks every APK with `node tools/check-apk.js` (every
+class the manifest names is in the dex, the launcher activity among them,
+and for this shell the game's files in the assets), because a build that
+compiles can still die at launch, and one of this package once did on
+Play's test devices.
 
 If Gradle cannot find the SDK, set its location:
 

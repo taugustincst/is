@@ -1,0 +1,118 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The Google Play edition: a Trusted Web Activity. Chrome opens the game's
+// own site fullscreen, without a URL bar once the site's asset links name
+// this app's signing key, and Play Billing reaches the page through the
+// Digital Goods API that only a Trusted Web Activity has (js/billing.js is
+// written for it). The WebView shell next door (app/) has no such store,
+// so it is the sideload build, not the Play one.
+//
+// Built from Bubblewrap's template with the parts it generates spelled
+// out: android-browser-helper for the activity and the delegation service,
+// its billing module for the payment components, two subclasses of our own
+// and nothing else. In particular there is no Application class. Play
+// removed an earlier upload of this package, made by a generator outside
+// this project, because its manifest named one its dex did not hold and
+// the app died at launch; tools/check-apk.js checks every APK built here
+// for exactly that before it goes anywhere.
+
+// The site the app opens. The listing's asset links live at
+// https://<playHost>/.well-known/assetlinks.json and must name this
+// package and its Play App Signing key, or Chrome shows the URL bar.
+def playHost = (project.hasProperty('playHost') ? project.property('playHost') : 'taugustincst.github.io').toString()
+def playPath = (project.hasProperty('playPath') ? project.property('playPath') : '/fftremake/').toString()
+def launchUrl = "https://${playHost}${playPath}"
+def pathPrefix = playPath.replaceAll('/+$', '') ?: '/'
+
+// Release signing, the same way as app/: the upload key from
+// android/keystore.properties when it exists, the debug key otherwise.
+def keystoreFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
+}
+def relVersionCode = (project.hasProperty('versionCode') ? project.property('versionCode') : '1').toString().toInteger()
+def relVersionName = (project.hasProperty('versionName') ? project.property('versionName') : '1.0').toString()
+
+// The launcher icons are the sideload app's, copied at build time so there
+// is one set of them in the repository.
+def sharedRes = layout.buildDirectory.dir('shared-res')
+tasks.register('copyIcons', Copy) {
+    description = 'Copies the launcher icons from app/ into this module.'
+    from(rootProject.file('app/src/main/res')) {
+        include 'mipmap-*/**'
+        include 'values/colors.xml'
+    }
+    into sharedRes
+}
+
+android {
+    // The package name is the app's identity on Google Play: the listing was
+    // created under it, and Play never lets it change.
+    namespace 'com.taugustincst.elderon'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.taugustincst.elderon'
+        minSdk 24
+        targetSdk 36
+        versionCode relVersionCode
+        versionName relVersionName
+
+        resValue 'string', 'launchUrl', launchUrl
+        resValue 'string', 'hostName', playHost
+        resValue 'string', 'webManifestUrl', launchUrl + 'manifest.webmanifest'
+        resValue 'string', 'providerAuthority', 'com.taugustincst.elderon.fileprovider'
+        resValue 'integer', 'splashScreenFadeOutDuration', '300'
+        // The app's side of the asset-links handshake: it names the site,
+        // the site's assetlinks.json names the app and its key.
+        resValue 'string', 'assetStatements',
+            '[{\\"relation\\": [\\"delegate_permission/common.handle_all_urls\\"], ' +
+            '\\"target\\": {\\"namespace\\": \\"web\\", \\"site\\": \\"https://' + playHost + '\\"}}]'
+        manifestPlaceholders = [pathPrefix: pathPrefix]
+    }
+
+    sourceSets {
+        main {
+            res.srcDirs += sharedRes
+        }
+    }
+
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Nothing worth shrinking, and shrinking is one more way for a
+            // class the manifest names to go missing from the dex.
+            minifyEnabled false
+            signingConfig keystoreFile.exists() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn('copyIcons') }
+
+dependencies {
+    // The Trusted Web Activity launcher, splash screen and delegation
+    // service, and the Play Billing bridge the Digital Goods API rides on.
+    // Versions are the ones Bubblewrap generates with.
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+    implementation 'com.google.androidbrowserhelper:billing:1.2.0'
+    implementation 'androidx.core:core:1.16.0'
+}

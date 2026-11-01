@@ -63,14 +63,28 @@ jobs:
           echo "SDKMANAGER=$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
-      - name: Build the debug APK
+      # Both apps: the sideload shell (app/) and the Play edition (play/),
+      # as debug APKs and as the release bundles Play takes.
+      - name: Build the debug APKs and the release bundles
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug bundleRelease --no-daemon
+      # A build that compiles can still die at launch: Play once pulled a
+      # build of this package whose manifest named a class the dex did not
+      # hold. This checks each APK the way the phone will (tools/check-apk.js).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the APKs would load
+        run: |
+          node tools/check-apk.js android/app/build/outputs/apk/debug/app-debug.apk --package com.elderon.tactics
+          node tools/check-apk.js android/play/build/outputs/apk/debug/play-debug.apk --package com.taugustincst.elderon
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: debug-apks
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/play/build/outputs/apk/debug/play-debug.apk
           if-no-files-found: ignore

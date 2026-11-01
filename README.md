@@ -25,11 +25,12 @@ a browser, or serve the folder with any static file server.
   and the release workflow pushes it with butler once the key is set.
 - **On Android:** the [latest release](https://github.com/taugustincst/fftremake/releases/latest)
   carries an `.apk` to sideload (signed with a debug key, so it installs on
-  any phone; it is not the Google Play bundle, which needs the upload key
-  described in `android/PLAY_STORE.md`). The same release carries the whole
-  game as a single `.html` file. Releases are cut by
-  `.github/workflows/release.yml`: run it from the Actions tab with a version
-  number, or push a tag such as `v1.8.1`.
+  any phone) and, once the repository holds the upload key in its secrets,
+  the `-play.aab` bundle of the Google Play edition, a Trusted Web Activity
+  around the site, as `android/PLAY_STORE.md` describes. The same release
+  carries the whole game as a single `.html`
+  file. Releases are cut by `.github/workflows/release.yml`: run it from the
+  Actions tab with a version number, or push a tag such as `v1.8.1`.
 
 ## The game
 
@@ -337,16 +338,18 @@ app: open it in Chrome and choose "Install app". It lands on the home screen
 with its own icon, launches fullscreen and runs offline. The single-file build
 builds its own manifest at runtime, so it offers to install too.
 
-**Build the Android app.** `android/` holds a Gradle project that wraps the game
-in a WebView and bundles it into an app with no permissions at all — it cannot
-reach the network. `cd android && ./gradlew assembleDebug` for a debug APK,
-`./gradlew bundleRelease` for the bundle Google Play takes. See
-[android/README.md](android/README.md) for how the shell works and
-[android/PLAY_STORE.md](android/PLAY_STORE.md) for the path through the Play
-Console; the listing copy, policy answers and graphics are in
-[store/](store/LISTING.md). The project targets Android 16 as Play requires,
-but it was written without access to the Android SDK, so the first real build
-is yours.
+**Build the Android apps.** `android/` holds a Gradle project with two of
+them. `app/` wraps the game in a WebView and bundles it into an app with no
+permissions at all — it cannot reach the network; `cd android && ./gradlew
+assembleDebug` builds it. `play/` is the Google Play edition, a Trusted Web
+Activity under the listing's package name that opens the site in Chrome and
+sells the game through Play Billing; `./gradlew :play:bundleRelease` builds
+the bundle Play takes. See [android/README.md](android/README.md) for how
+both work and [android/PLAY_STORE.md](android/PLAY_STORE.md) for the path
+through the Play Console; the listing copy, policy answers and graphics are
+in [store/](store/LISTING.md). Both target Android 16 as Play requires and
+are built on every push by CI, which also checks that each would load:
+every class its manifest names is in its dex.
 
 On a phone the layout changes shape: portrait turns the turn order into a strip
 across the top and gives the command panel the full width, landscape puts

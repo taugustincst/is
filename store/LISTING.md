@@ -452,6 +452,12 @@ health features. **News**: not a news app.
 
 ## Release notes
 
+**1.14.1**
+
+    The Play edition rebuilt in the open: the Trusted Web Activity the listing runs on is now part
+    of the project, with no Application class to go missing, every build is checked to load before
+    it is released, and the release workflow signs and attaches the Play bundle itself.
+
 **1.14.0**
 
     The journey pass. A battle can be put down and picked up: Suspend saves it as it stands, the
