@@ -6,11 +6,16 @@ name: Release
 # a tag such as v1.6.0. With a BUTLER_API_KEY secret and an ITCH_TARGET
 # variable (user/game) set, the itch.io page is updated as well.
 #
-# The APK is signed with the debug key (android/app/build.gradle falls back
-# to it when no keystore.properties exists on the builder), so it installs
-# by sideloading on any Android device. It is not the signed bundle Google
-# Play accepts: that needs the upload key, which never leaves its owner's
-# machine (see android/PLAY_STORE.md).
+# The APK is the sideload shell (android/app), signed with the debug key
+# (its build.gradle falls back to it when no keystore.properties exists on
+# the builder), so it installs by sideloading on any Android device. The
+# Google Play edition (android/play, a Trusted Web Activity under the
+# listing's package name) is built as a bundle as well, and attached as the
+# -play.aab when the repository holds the upload key in its secrets
+# (ANDROID_UPLOAD_KEYSTORE, base64 of the .jks, with
+# ANDROID_UPLOAD_STORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS and
+# ANDROID_UPLOAD_KEY_PASSWORD); without them the bundle is debug-signed,
+# which Play refuses, so it is left off the release (see android/PLAY_STORE.md).
 on:
   workflow_dispatch:
     inputs:
@@ -18,6 +23,11 @@ on:
         description: 'Version name for the release, e.g. 1.5.0 (the tag becomes v<version>)'
         required: true
         type: string
+      version_code:
+        description: 'Android versionCode. Default: from the version, 1.14.1 -> 11401. Pass a higher one if the Play Console shows one.'
+        required: false
+        type: string
+        default: ''
   push:
     tags: ['v*']
 
@@ -27,6 +37,7 @@ permissions:
 env:
   BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
   ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+  ANDROID_UPLOAD_KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE }}
 
 jobs:
   release:
@@ -48,10 +59,18 @@ jobs:
           fi
           echo "name=$V" >> "$GITHUB_OUTPUT"
           echo "tag=v$V" >> "$GITHUB_OUTPUT"
-          # Every upload to a device store must carry a higher code than the
-          # last; the run number climbs with every run of this workflow.
-          echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          echo "version $V, tag v$V, versionCode ${{ github.run_number }}"
+          # Every upload to Play must carry a higher versionCode than the
+          # last. It is derived from the version so it climbs with it and
+          # can be read off a release: 1.14.1 is 11401. The version_code
+          # input overrides it when the console already holds a higher one.
+          CODE="${{ inputs.version_code }}"
+          if [ -z "$CODE" ]; then
+            IFS=. read -r MA MI PA <<< "$V"
+            MA="${MA%%[^0-9]*}"; MI="${MI%%[^0-9]*}"; PA="${PA%%[^0-9]*}"
+            CODE=$(( ${MA:-0} * 10000 + ${MI:-0} * 100 + ${PA:-0} ))
+          fi
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "version $V, tag v$V, versionCode $CODE"
 
       # The web build: one file, nothing else to fetch.
       - uses: actions/setup-node@v4
@@ -86,15 +105,49 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME" -name sdkmanager -type f | sort -V | tail -1)"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
-      - name: Build the APK
+      # The upload key, when the repository holds it: the keystore is decoded
+      # next to the file build.gradle reads, and both are ignored by git.
+      - name: Set up the Play upload key
+        if: env.ANDROID_UPLOAD_KEYSTORE != ''
+        working-directory: android
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_UPLOAD_KEYSTORE" | base64 -d > upload.jks
+          {
+            echo "storeFile=upload.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+          echo "release builds will be signed with the upload key"
+      - name: Build the sideload APK and the Play bundle
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon \
+          ./gradlew assembleRelease bundleRelease --no-daemon \
             -PversionCode=${{ steps.ver.outputs.code }} \
             -PversionName=${{ steps.ver.outputs.name }}
           cp app/build/outputs/apk/release/app-release.apk \
              "../chronicles-of-elderon-${{ steps.ver.outputs.name }}.apk"
+          # The Play bundle goes on the release only when it carries the
+          # upload key; a debug-signed one is nothing Play would take.
+          if [ -f keystore.properties ]; then
+            cp play/build/outputs/bundle/release/play-release.aab \
+               "../chronicles-of-elderon-${{ steps.ver.outputs.name }}-play.aab"
+            echo "Play bundle attached, versionCode ${{ steps.ver.outputs.code }}"
+          else
+            echo "no upload key in the secrets: the Play bundle is built but not attached"
+          fi
+      # The build that Play pulled for not loading named a class its dex did
+      # not hold. Every build that leaves here is checked for that first,
+      # the Play edition through the APK of the same build.
+      - name: Check the builds would load
+        run: |
+          node tools/check-apk.js android/app/build/outputs/apk/release/app-release.apk --package com.elderon.tactics
+          node tools/check-apk.js android/play/build/outputs/apk/release/play-release.apk --package com.taugustincst.elderon
 
       - name: Publish the release
         uses: softprops/action-gh-release@v2
@@ -103,10 +156,13 @@ jobs:
           name: Chronicles of Elderon ${{ steps.ver.outputs.name }}
           files: |
             chronicles-of-elderon-${{ steps.ver.outputs.name }}.apk
+            chronicles-of-elderon-${{ steps.ver.outputs.name }}-play.aab
             chronicles-of-elderon-${{ steps.ver.outputs.name }}.html
             chronicles-of-elderon-${{ steps.ver.outputs.name }}-itch.zip
           body: |
             **Android:** download the `.apk` and open it on the phone to install (Android will ask once to allow installs from this source). It is signed with a debug key for sideloading, not a Google Play upload.
+
+            **Google Play:** the `-play.aab`, when attached, is the Play edition (versionCode ${{ steps.ver.outputs.code }}) to upload in the Play Console, signed with the upload key from the repository's secrets; see `android/PLAY_STORE.md`.
 
             **Play in a browser:** the `.html` file is the whole game in one file. Open it in Chrome, Firefox or Safari; nothing else is fetched, and it works offline once opened.
 
