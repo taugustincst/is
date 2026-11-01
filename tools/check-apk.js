@@ -72,6 +72,14 @@ function manifestClasses(aapt2, apk, pkg) {
   return out;
 }
 
+/** A string resource's value, looked up by id (0x7f...), or the id itself. */
+function resourceString(aapt2, apk, id) {
+  const lines = run(aapt2, ['dump', 'resources', apk]).split('\n');
+  const at = lines.findIndex(l => l.includes(`resource ${id} `));
+  const v = at >= 0 && lines[at + 1] ? lines[at + 1].match(/"([^"]*)"/) : null;
+  return v ? v[1] : `the site in its resources (${id})`;
+}
+
 /** Every class defined in the APK's dex files, as dotted names. */
 function definedClasses(dexdump, apk, tmp) {
   run('unzip', ['-o', '-q', '-d', tmp, apk, 'classes*.dex']);
@@ -138,8 +146,15 @@ function main() {
       }
       console.log(`  assets: ${present}/${wanted.length} files index.html needs are in the APK`);
     } else {
-      const site = (run(aapt2, ['dump', 'xmltree', '--file', 'AndroidManifest.xml', apk])
-        .match(/DEFAULT_URL[\s\S]*?android:value\(0x[0-9a-f]+\)="([^"]+)"/) || [])[1];
+      // The start URL sits in the meta-data element after its name, as a
+      // literal or as a reference into the resources.
+      const lines = run(aapt2, ['dump', 'xmltree', '--file', 'AndroidManifest.xml', apk]).split('\n');
+      let site = null;
+      const at = lines.findIndex(l => /android:name\(0x[0-9a-f]+\)="android\.support\.customtabs\.trusted\.DEFAULT_URL"/.test(l));
+      for (let i = at + 1; at >= 0 && i < lines.length && !/^\s*E: /.test(lines[i]); i++) {
+        const v = lines[i].match(/android:value\(0x[0-9a-f]+\)=(?:"([^"]+)"|(@0x[0-9a-f]+))/);
+        if (v) { site = v[1] || resourceString(aapt2, apk, v[2]); break; }
+      }
       console.log(`  no game in the assets: a Trusted Web Activity${site ? ' opening ' + site : ''}`);
       if (!site) problems.push('neither a game in the assets nor a DEFAULT_URL to open');
     }
